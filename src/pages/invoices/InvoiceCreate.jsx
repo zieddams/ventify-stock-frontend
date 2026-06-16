@@ -89,7 +89,7 @@ export default function InvoiceCreate() {
           total:        fmt(l.total),
         })),
       })
-      navigate(`/stock/invoices/${res.data.id}`)
+      navigate(`/invoices/${res.data.id}`)
     } catch (e) {
       setErrors(e.response?.data?.errors ?? {})
     } finally { setSaving(false) }
@@ -291,3 +291,4 @@ export default function InvoiceCreate() {
     </div>
   )
 }
+

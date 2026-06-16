@@ -29,16 +29,45 @@ export default function RouteSessionsIndex() {
   const [loading,  setLoading]  = useState(true)
   const [page,     setPage]     = useState(1)
   const [meta,     setMeta]     = useState(null)
+  const [date, setDate] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   useEffect(() => {
     setLoading(true)
-    api.get('/route-sessions', { params: { page } })
-      .then(r => { setSessions(r.data.data ?? r.data); setMeta(r.data.meta ?? null) })
+    const params = { page }
+
+    if (date) {
+      params.date = date
+    } else {
+      if (dateFrom) params.date_from = dateFrom
+      if (dateTo) params.date_to = dateTo
+    }
+
+    api.get('/route-sessions', { params })
+      .then(r => {
+        const payload = r.data
+        const items = Array.isArray(payload) ? payload : (payload.data ?? [])
+        const pagination = payload?.meta ?? (
+          payload?.current_page
+            ? {
+                current_page: payload.current_page,
+                last_page: payload.last_page,
+                total: payload.total,
+                per_page: payload.per_page,
+              }
+            : null
+        )
+
+        setSessions(items)
+        setMeta(pagination)
+      })
       .finally(() => setLoading(false))
-  }, [page])
+  }, [page, date, dateFrom, dateTo])
 
   const totalVendu = sessions.reduce((s, x) => s + parseFloat(x.total_sold ?? 0), 0)
   const totalProfit = sessions.reduce((s, x) => s + parseFloat(x.profit_total ?? 0), 0)
+  const hasFilters = date || dateFrom || dateTo
 
   return (
     <div>
@@ -66,6 +95,66 @@ export default function RouteSessionsIndex() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="card mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label className="block text-xs text-muted-color mb-1 font-medium">Jour precis</label>
+            <input
+              type="date"
+              value={date}
+              onChange={e => {
+                setPage(1)
+                setDate(e.target.value)
+                if (e.target.value) {
+                  setDateFrom('')
+                  setDateTo('')
+                }
+              }}
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-muted-color mb-1 font-medium">Du</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={e => {
+                setPage(1)
+                setDate('')
+                setDateFrom(e.target.value)
+              }}
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-muted-color mb-1 font-medium">Au</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={e => {
+                setPage(1)
+                setDate('')
+                setDateTo(e.target.value)
+              }}
+            />
+          </div>
+        </div>
+
+        {hasFilters && (
+          <div className="mt-3 flex justify-end">
+            <button
+              onClick={() => {
+                setPage(1)
+                setDate('')
+                setDateFrom('')
+                setDateTo('')
+              }}
+              className="btn-secondary text-xs"
+            >
+              <i className="fa-solid fa-rotate-left" /> Reinitialiser les filtres
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="card">

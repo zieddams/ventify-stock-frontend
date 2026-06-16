@@ -3,6 +3,7 @@ import api from '../../services/api'
 import Modal from '../../components/Modal'
 import FormField from '../../components/FormField'
 import { PageLoader } from '../../components/Spinner'
+import { APP_BASE_PATH } from '../../utils/appPaths'
 
 const REF_TYPES = [
   { key: 'categories',   label: 'Catégories',   apiType: 'category'    },
@@ -80,6 +81,9 @@ function AppTab() {
   const [pingStatus,   setPingStatus]   = useState('idle')
   const [pingLatency,  setPingLatency]  = useState(null)
   const pingRef = useRef()
+  const frontendUrl = APP_BASE_PATH === '/'
+    ? `${window.location.origin}/`
+    : `${window.location.origin}${APP_BASE_PATH}`
 
   const saveSwagger = async () => {
     try {
@@ -113,7 +117,7 @@ function AppTab() {
         </h2>
         <div className="flex gap-2">
           <input type="url" value={swaggerUrl} onChange={e => setSwaggerUrl(e.target.value)}
-            placeholder="https://irtiwaa.ziedtech.com/api/documentation" className="flex-1" />
+            placeholder="https://irtiwaa.ziedtech.com/docs/api" className="flex-1" />
           {swaggerUrl && (
             <a href={swaggerUrl} target="_blank" rel="noopener noreferrer"
               className="btn-ghost px-3 flex-shrink-0" title="Ouvrir">
@@ -160,7 +164,7 @@ function AppTab() {
           </div>
           <div className="rounded-xl px-3 py-2.5 border border-theme" style={{ background: 'var(--surface-2)' }}>
             <div className="text-xs text-muted-color mb-1">Frontend</div>
-            <div className="text-xs font-mono text-base-color break-all">{window.location.origin}/stock</div>
+            <div className="text-xs font-mono text-base-color break-all">{frontendUrl}</div>
           </div>
         </div>
       </div>
@@ -423,6 +427,8 @@ function SystemTab() {
             <InfoRow label="Cache"     value={sysInfo.cache} />
             <InfoRow label="Queue"     value={sysInfo.queue} />
             <InfoRow label="App URL"   value={sysInfo.app_url} mono />
+            <InfoRow label="Web URL"   value={sysInfo.frontend_url} mono />
+            <InfoRow label="Web Path"  value={sysInfo.frontend_path} mono />
             <InfoRow label="Mail Host" value={sysInfo.mail_host} mono />
             <InfoRow label="Mail From" value={sysInfo.mail_from} mono />
             <div className="pt-2 text-xs text-muted-color">
@@ -446,3 +452,4 @@ function SystemTab() {
     </div>
   )
 }
+

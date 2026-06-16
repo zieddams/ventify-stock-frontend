@@ -15,6 +15,7 @@ const EMPTY = {
   expense_date: new Date().toISOString().slice(0, 10),
   category: 'divers', label: '', amount: '',
 }
+const DEFAULT_MONTH = new Date().toISOString().slice(0, 7)
 
 export default function ExpensesIndex() {
   const [expenses, setExpenses] = useState([])
@@ -22,16 +23,26 @@ export default function ExpensesIndex() {
   const [form,     setForm]     = useState(EMPTY)
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState('')
-  const [month,    setMonth]    = useState(new Date().toISOString().slice(0, 7))
+  const [month,    setMonth]    = useState(DEFAULT_MONTH)
+  const [categoryFilter, setCategoryFilter] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   const load = () => {
     setLoading(true)
-    api.get('/expenses', { params: { month } })
+    const params = {}
+
+    if (month && !dateFrom && !dateTo) params.month = month
+    if (categoryFilter) params.category = categoryFilter
+    if (dateFrom) params.date_from = dateFrom
+    if (dateTo) params.date_to = dateTo
+
+    api.get('/expenses', { params })
       .then(r => setExpenses(r.data))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [month])
+  useEffect(() => { load() }, [month, categoryFilter, dateFrom, dateTo])
 
   const total = expenses.reduce((s, e) => s + Number(e.amount), 0)
 
@@ -50,6 +61,7 @@ export default function ExpensesIndex() {
   }
 
   const catInfo = (val) => CATEGORIES.find(c => c.value === val) ?? { label: val, color: '#64748b' }
+  const hasFilters = month !== DEFAULT_MONTH || categoryFilter || dateFrom || dateTo
 
   return (
     <div>
@@ -105,9 +117,70 @@ export default function ExpensesIndex() {
                 Total: <span className="font-mono font-semibold" style={{ color: '#ea580c' }}>{total.toFixed(3)} TND</span>
               </p>
             </div>
-            <input type="month" value={month} onChange={e => setMonth(e.target.value)}
-              className="text-sm" style={{ width: 'auto' }} />
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+            <div>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Mois</label>
+              <input
+                type="month"
+                value={month}
+                onChange={e => {
+                  setMonth(e.target.value)
+                  if (e.target.value) {
+                    setDateFrom('')
+                    setDateTo('')
+                  }
+                }}
+                className="text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-muted-color mb-1 font-medium">CatÃ©gorie</label>
+              <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+                <option value="">Toutes</option>
+                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Du</label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={e => {
+                  setDateFrom(e.target.value)
+                  setMonth('')
+                }}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Au</label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={e => {
+                  setDateTo(e.target.value)
+                  setMonth('')
+                }}
+              />
+            </div>
+          </div>
+
+          {hasFilters && (
+            <div className="mb-4 flex justify-end">
+              <button
+                onClick={() => {
+                  setMonth(DEFAULT_MONTH)
+                  setCategoryFilter('')
+                  setDateFrom('')
+                  setDateTo('')
+                }}
+                className="btn-secondary text-xs"
+              >
+                <i className="fa-solid fa-rotate-left" /> Reinitialiser les filtres
+              </button>
+            </div>
+          )}
 
           {loading ? (
             <div className="flex items-center justify-center py-12 text-muted-color">

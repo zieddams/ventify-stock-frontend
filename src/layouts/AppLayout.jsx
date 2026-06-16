@@ -6,48 +6,48 @@ import NotificationBell from '../components/NotificationBell'
 
 /* ─── Nav definitions ──────────────────────────────────────────────────────── */
 const MAIN_NAV = [
-  { to: '/stock',           icon: 'fa-solid fa-chart-pie',       label: 'Tableau de bord', exact: true },
-  { to: '/stock/invoices',  icon: 'fa-solid fa-file-invoice',    label: 'Factures'                    },
-  { to: '/stock/customers', icon: 'fa-solid fa-users',           label: 'Clients'                     },
-  { to: '/stock/products',  icon: 'fa-solid fa-box-open',        label: 'Produits'                    },
+  { to: '/',           icon: 'fa-solid fa-chart-pie',       label: 'Tableau de bord', exact: true },
+  { to: '/invoices',  icon: 'fa-solid fa-file-invoice',    label: 'Factures'                    },
+  { to: '/customers', icon: 'fa-solid fa-users',           label: 'Clients'                     },
+  { to: '/products',  icon: 'fa-solid fa-box-open',        label: 'Produits'                    },
 ]
 const FINANCE_NAV = [
-  { to: '/stock/credit',    icon: 'fa-solid fa-credit-card',     label: 'Crédit clients'  },
-  { to: '/stock/expenses',  icon: 'fa-solid fa-receipt',         label: 'Dépenses'        },
+  { to: '/credit',    icon: 'fa-solid fa-credit-card',     label: 'Crédit clients'  },
+  { to: '/expenses',  icon: 'fa-solid fa-receipt',         label: 'Dépenses'        },
 ]
 const ADMIN_NAV = [
-  { to: '/stock/routes',    icon: 'fa-solid fa-truck-fast',          label: 'Sorties journée' },
-  { to: '/stock/depot',     icon: 'fa-solid fa-warehouse',           label: 'Dépôt'           },
-  { to: '/stock/camions',   icon: 'fa-solid fa-truck',               label: 'Camions'         },
-  { to: '/stock/map',       icon: 'fa-solid fa-map-pin',              label: 'Carte clients'   },
-  { to: '/stock/inventory', icon: 'fa-solid fa-clipboard-list',      label: 'Inventaire'      },
-  { to: '/stock/reports',   icon: 'fa-solid fa-chart-line',          label: 'Rapports'        },
-  { to: '/stock/import',    icon: 'fa-solid fa-file-import',         label: 'Import données'  },
-  { to: '/stock/export',    icon: 'fa-solid fa-file-export',         label: 'Export données'  },
-  { to: '/stock/users',     icon: 'fa-solid fa-user-gear',           label: 'Utilisateurs'    },
-  { to: '/stock/zones',     icon: 'fa-solid fa-map-location-dot',    label: 'Zones & tarifs'  },
-  { to: '/stock/config',    icon: 'fa-solid fa-sliders',             label: 'Configuration'   },
+  { to: '/routes',    icon: 'fa-solid fa-truck-fast',          label: 'Sorties journée' },
+  { to: '/depot',     icon: 'fa-solid fa-warehouse',           label: 'Dépôt'           },
+  { to: '/camions',   icon: 'fa-solid fa-truck',               label: 'Camions'         },
+  { to: '/map',       icon: 'fa-solid fa-map-pin',              label: 'Carte clients'   },
+  { to: '/inventory', icon: 'fa-solid fa-clipboard-list',      label: 'Inventaire'      },
+  { to: '/reports',   icon: 'fa-solid fa-chart-line',          label: 'Rapports'        },
+  { to: '/import',    icon: 'fa-solid fa-file-import',         label: 'Import données'  },
+  { to: '/export',    icon: 'fa-solid fa-file-export',         label: 'Export données'  },
+  { to: '/users',     icon: 'fa-solid fa-user-gear',           label: 'Utilisateurs'    },
+  { to: '/zones',     icon: 'fa-solid fa-map-location-dot',    label: 'Zones & tarifs'  },
+  { to: '/config',    icon: 'fa-solid fa-sliders',             label: 'Configuration'   },
 ]
 
 /* ─── Page title map ───────────────────────────────────────────────────────── */
 const PAGE_TITLES = {
-  '/stock':           { label: 'Tableau de bord', icon: 'fa-solid fa-chart-pie'       },
-  '/stock/invoices':  { label: 'Factures',         icon: 'fa-solid fa-file-invoice'   },
-  '/stock/customers': { label: 'Clients',           icon: 'fa-solid fa-users'          },
-  '/stock/products':  { label: 'Produits',          icon: 'fa-solid fa-box-open'       },
-  '/stock/credit':    { label: 'Crédit clients',    icon: 'fa-solid fa-credit-card'    },
-  '/stock/expenses':  { label: 'Dépenses',          icon: 'fa-solid fa-receipt'        },
-  '/stock/routes':    { label: 'Sorties journée',   icon: 'fa-solid fa-truck-fast'     },
-  '/stock/depot':     { label: 'Dépôt',             icon: 'fa-solid fa-warehouse'      },
-  '/stock/camions':   { label: 'Camions',           icon: 'fa-solid fa-truck'          },
-  '/stock/reports':   { label: 'Rapports',          icon: 'fa-solid fa-chart-line'     },
-  '/stock/users':     { label: 'Utilisateurs',      icon: 'fa-solid fa-user-gear'      },
-  '/stock/zones':     { label: 'Zones & tarifs',    icon: 'fa-solid fa-map-location-dot'},
-  '/stock/config':    { label: 'Configuration',     icon: 'fa-solid fa-sliders'        },
-  '/stock/map':       { label: 'Carte clients',      icon: 'fa-solid fa-map-pin'        },
-  '/stock/inventory': { label: 'Inventaire',        icon: 'fa-solid fa-clipboard-list' },
-  '/stock/import':    { label: 'Import données',     icon: 'fa-solid fa-file-import'    },
-  '/stock/export':    { label: 'Export données',     icon: 'fa-solid fa-file-export'    },
+  '/':           { label: 'Tableau de bord', icon: 'fa-solid fa-chart-pie'       },
+  '/invoices':  { label: 'Factures',         icon: 'fa-solid fa-file-invoice'   },
+  '/customers': { label: 'Clients',           icon: 'fa-solid fa-users'          },
+  '/products':  { label: 'Produits',          icon: 'fa-solid fa-box-open'       },
+  '/credit':    { label: 'Crédit clients',    icon: 'fa-solid fa-credit-card'    },
+  '/expenses':  { label: 'Dépenses',          icon: 'fa-solid fa-receipt'        },
+  '/routes':    { label: 'Sorties journée',   icon: 'fa-solid fa-truck-fast'     },
+  '/depot':     { label: 'Dépôt',             icon: 'fa-solid fa-warehouse'      },
+  '/camions':   { label: 'Camions',           icon: 'fa-solid fa-truck'          },
+  '/reports':   { label: 'Rapports',          icon: 'fa-solid fa-chart-line'     },
+  '/users':     { label: 'Utilisateurs',      icon: 'fa-solid fa-user-gear'      },
+  '/zones':     { label: 'Zones & tarifs',    icon: 'fa-solid fa-map-location-dot'},
+  '/config':    { label: 'Configuration',     icon: 'fa-solid fa-sliders'        },
+  '/map':       { label: 'Carte clients',      icon: 'fa-solid fa-map-pin'        },
+  '/inventory': { label: 'Inventaire',        icon: 'fa-solid fa-clipboard-list' },
+  '/import':    { label: 'Import données',     icon: 'fa-solid fa-file-import'    },
+  '/export':    { label: 'Export données',     icon: 'fa-solid fa-file-export'    },
 }
 
 /* ─── Single rail icon link ────────────────────────────────────────────────── */
@@ -209,12 +209,14 @@ export default function AppLayout() {
 
   const handleLogout = async () => {
     await logout()
-    navigate('/stock/login')
+    navigate('/login')
   }
 
   // Resolve current page info
-  const pageKey  = Object.keys(PAGE_TITLES).find(k => location.pathname === k || location.pathname.startsWith(k + '/')) ?? '/stock'
-  const pageInfo = PAGE_TITLES[pageKey] ?? PAGE_TITLES['/stock']
+  const pageKey  = Object.keys(PAGE_TITLES).find(k =>
+    location.pathname === k || (k !== '/' && location.pathname.startsWith(k + '/'))
+  ) ?? '/'
+  const pageInfo = PAGE_TITLES[pageKey] ?? PAGE_TITLES['/']
 
   return (
     <div className="flex h-screen overflow-hidden bg-app">
@@ -226,7 +228,7 @@ export default function AppLayout() {
         {/* Logo */}
         <div className="mb-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center shadow-lg cursor-pointer"
-            onClick={() => navigate('/stock')} title="El Irtiwaa">
+            onClick={() => navigate('/')} title="El Irtiwaa">
             <i className="fa-solid fa-droplet text-white" />
           </div>
         </div>
@@ -314,7 +316,7 @@ export default function AppLayout() {
             <span className="text-xs text-muted-color opacity-50">El Irtiwaa</span>
             <span className="text-xs font-mono px-1.5 py-0.5 rounded"
               style={{ color: 'rgba(13,148,136,0.7)', background: 'rgba(13,148,136,0.06)', border: '1px solid rgba(13,148,136,0.12)' }}>
-              v2.4.0
+              v2.5.0
             </span>
           </div>
         </main>
@@ -332,3 +334,4 @@ export default function AppLayout() {
     </div>
   )
 }
+

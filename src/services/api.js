@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { appPath } from '../utils/appPaths'
 
 const api = axios.create({
   baseURL: '/api/v1',
@@ -17,7 +18,7 @@ api.interceptors.response.use(
     if (err.response?.status === 401) {
       localStorage.removeItem('ventify_token')
       localStorage.removeItem('ventify_user')
-      window.location.href = '/stock/login'
+      window.location.href = appPath('/login')
     }
     return Promise.reject(err)
   }

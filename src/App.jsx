@@ -22,30 +22,31 @@ import InventaireIndex from './pages/inventory/InventaireIndex'
 import ImportIndex from './pages/import/ImportIndex'
 import ExportIndex from './pages/export/ExportIndex'
 import LiveMapIndex from './pages/map/LiveMapIndex'
+import { APP_BASE_PATH } from './utils/appPaths'
 
 function RequireAuth({ children }) {
   const { user } = useAuth()
-  if (!user) return <Navigate to="/stock/login" replace />
+  if (!user) return <Navigate to="/login" replace />
   return children
 }
 
 function RequireAdmin({ children }) {
   const { user } = useAuth()
-  if (!user) return <Navigate to="/stock/login" replace />
-  if (user.role !== 'admin' && user.role !== 'developer') return <Navigate to="/stock" replace />
+  if (!user) return <Navigate to="/login" replace />
+  if (user.role !== 'admin' && user.role !== 'developer') return <Navigate to="/" replace />
   return children
 }
 
 function RequireFinance({ children }) {
   const { user } = useAuth()
-  if (!user) return <Navigate to="/stock/login" replace />
-  if (!['admin', 'developer', 'comptable'].includes(user.role)) return <Navigate to="/stock" replace />
+  if (!user) return <Navigate to="/login" replace />
+  if (!['admin', 'developer', 'comptable'].includes(user.role)) return <Navigate to="/" replace />
   return children
 }
 
 function PublicOnly({ children }) {
   const { user } = useAuth()
-  if (user) return <Navigate to="/stock" replace />
+  if (user) return <Navigate to="/" replace />
   return children
 }
 
@@ -53,10 +54,10 @@ export default function App() {
   return (
     <ThemeProvider>
     <AuthProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={APP_BASE_PATH}>
         <Routes>
-          <Route path="/stock/login" element={<PublicOnly><Login /></PublicOnly>} />
-          <Route path="/stock" element={<RequireAuth><AppLayout /></RequireAuth>}>
+          <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
+          <Route path="/" element={<RequireAuth><AppLayout /></RequireAuth>}>
             <Route index element={<Dashboard />} />
             <Route path="products" element={<ProductsIndex />} />
             <Route path="customers" element={<CustomersIndex />} />
@@ -77,10 +78,11 @@ export default function App() {
             <Route path="import"    element={<RequireAdmin><ImportIndex /></RequireAdmin>} />
             <Route path="export"    element={<RequireAdmin><ExportIndex /></RequireAdmin>} />
           </Route>
-          <Route path="*" element={<Navigate to="/stock" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
     </ThemeProvider>
   )
 }
+

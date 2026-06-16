@@ -1,14 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useDeferredValue, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../services/api'
 import { StatusBadge, PaymentStatusBadge } from '../../components/Badge'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
 
+const DEFAULT_PERIOD = 'month'
 const PERIODS = [
   { key: 'today', label: "Aujourd'hui" },
   { key: 'week',  label: 'Cette semaine' },
   { key: 'month', label: 'Ce mois' },
+  { key: 'custom', label: 'Personnalise' },
   { key: '',      label: 'Tout' },
 ]
 
@@ -19,19 +21,56 @@ function fmt(n) {
 export default function InvoicesIndex() {
   const [invoices, setInvoices] = useState([])
   const [loading,  setLoading]  = useState(true)
-  const [period,   setPeriod]   = useState('month')
+  const [period,   setPeriod]   = useState(DEFAULT_PERIOD)
+  const [paymentStatus, setPaymentStatus] = useState('')
+  const [search, setSearch] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const { isAdmin } = useAuth()
+  const deferredSearch = useDeferredValue(search)
+  const today = new Date().toISOString().slice(0, 10)
 
   const load = async () => {
     setLoading(true)
     try {
-      const res = await api.get('/invoices', { params: { period } })
-      setInvoices(res.data)
+      const params = {}
+
+      if (period) params.period = period
+      if (paymentStatus) params.payment_status = paymentStatus
+      if (dateFrom) params.date_from = dateFrom
+      if (dateTo) params.date_to = dateTo
+      if (deferredSearch.trim()) params.q = deferredSearch.trim()
+
+      const res = await api.get('/invoices', { params })
+      setInvoices(Array.isArray(res.data) ? res.data : (res.data.data ?? []))
     } catch {}
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [period])
+  useEffect(() => { load() }, [period, paymentStatus, dateFrom, dateTo, deferredSearch])
+
+  const handlePeriodChange = (nextPeriod) => {
+    setPeriod(nextPeriod)
+
+    if (nextPeriod !== 'custom') {
+      setDateFrom('')
+      setDateTo('')
+      return
+    }
+
+    if (!dateFrom && !dateTo) {
+      setDateFrom(today)
+      setDateTo(today)
+    }
+  }
+
+  const resetFilters = () => {
+    setPeriod(DEFAULT_PERIOD)
+    setPaymentStatus('')
+    setSearch('')
+    setDateFrom('')
+    setDateTo('')
+  }
 
   const del = async (inv) => {
     if (!confirm(`Supprimer la facture ${inv.number} ?`)) return
@@ -40,7 +79,10 @@ export default function InvoicesIndex() {
   }
 
   const total = invoices.filter(i => i.status !== 'cancelled').reduce((s, i) => s + parseFloat(i.total ?? 0), 0)
-  const unpaid = invoices.filter(i => i.payment_status === 'unpaid').reduce((s, i) => s + parseFloat(i.total ?? 0), 0)
+  const unpaid = invoices
+    .filter(i => i.payment_status !== 'paid')
+    .reduce((s, i) => s + Math.max(parseFloat(i.total ?? 0) - parseFloat(i.paid_amount ?? 0), 0), 0)
+  const hasFilters = period !== DEFAULT_PERIOD || paymentStatus || search || dateFrom || dateTo
 
   return (
     <div>
@@ -50,7 +92,7 @@ export default function InvoicesIndex() {
           <h1 className="text-xl font-bold text-base-color tracking-tight">Factures</h1>
           <p className="text-sm text-muted-color mt-0.5">{invoices.length} facture(s) · Total: {fmt(total)} TND</p>
         </div>
-        <Link to="/stock/invoices/create" className="btn-primary">
+        <Link to="/invoices/create" className="btn-primary">
           <i className="fa-solid fa-plus" /> Nouvelle facture
         </Link>
       </div>
@@ -79,7 +121,7 @@ export default function InvoicesIndex() {
       {/* Period filter */}
       <div className="flex gap-2 mb-4 flex-wrap">
         {PERIODS.map(p => (
-          <button key={p.key} onClick={() => setPeriod(p.key)}
+          <button key={p.key} onClick={() => handlePeriodChange(p.key)}
             className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors border ${
               period === p.key
                 ? 'bg-teal-600 text-white border-teal-600'
@@ -88,6 +130,59 @@ export default function InvoicesIndex() {
             {p.label}
           </button>
         ))}
+      </div>
+
+      <div className="card mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div>
+            <label className="block text-xs text-muted-color mb-1 font-medium">Recherche</label>
+            <input
+              type="search"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Numero, client ou commercial..."
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-muted-color mb-1 font-medium">Paiement</label>
+            <select value={paymentStatus} onChange={e => setPaymentStatus(e.target.value)}>
+              <option value="">Tous</option>
+              <option value="unpaid">Impaye</option>
+              <option value="partial">Partiel</option>
+              <option value="paid">Paye</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-muted-color mb-1 font-medium">Du</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={e => {
+                setDateFrom(e.target.value)
+                setPeriod('custom')
+              }}
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-muted-color mb-1 font-medium">Au</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={e => {
+                setDateTo(e.target.value)
+                setPeriod('custom')
+              }}
+            />
+          </div>
+        </div>
+
+        {hasFilters && (
+          <div className="mt-3 flex justify-end">
+            <button onClick={resetFilters} className="btn-secondary text-xs">
+              <i className="fa-solid fa-rotate-left" /> Reinitialiser les filtres
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="card">
@@ -105,7 +200,7 @@ export default function InvoicesIndex() {
                 {invoices.map(inv => (
                   <tr key={inv.id} className="table-row">
                     <td className="py-3 pr-4">
-                      <Link to={`/stock/invoices/${inv.id}`}
+                      <Link to={`/invoices/${inv.id}`}
                         className="font-mono text-xs font-semibold"
                         style={{ color: '#0d9488' }}>
                         {inv.number}
@@ -123,7 +218,7 @@ export default function InvoicesIndex() {
                     </td>
                     <td className="py-3">
                       <div className="flex items-center gap-3">
-                        <Link to={`/stock/invoices/${inv.id}`}
+                        <Link to={`/invoices/${inv.id}`}
                           className="text-xs font-medium hover:underline"
                           style={{ color: '#0d9488' }}>
                           <i className="fa-solid fa-eye mr-1" />Voir
@@ -154,3 +249,4 @@ export default function InvoicesIndex() {
     </div>
   )
 }
+

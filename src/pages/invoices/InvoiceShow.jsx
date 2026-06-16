@@ -55,7 +55,7 @@ export default function InvoiceShow() {
   const del = async () => {
     if (!confirm('Supprimer définitivement cette facture ?')) return
     await api.delete(`/invoices/${id}`)
-    navigate('/stock/invoices')
+    navigate('/invoices')
   }
 
   if (loading) return <PageLoader />
@@ -72,7 +72,7 @@ export default function InvoiceShow() {
     <div className="max-w-3xl">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 mb-6 text-sm">
-        <Link to="/stock/invoices" className="text-muted-color hover:text-base-color transition-colors">
+        <Link to="/invoices" className="text-muted-color hover:text-base-color transition-colors">
           <i className="fa-solid fa-arrow-left mr-1.5" />Factures
         </Link>
         <span className="text-muted-color">/</span>
@@ -207,3 +207,4 @@ export default function InvoiceShow() {
     </div>
   )
 }
+

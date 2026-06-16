@@ -103,14 +103,23 @@ function ProfitTab() {
   const [data,    setData]    = useState(null)
   const [loading, setLoading] = useState(true)
   const [period,  setPeriod]  = useState('month')
+  const [dateFrom, setDateFrom] = useState(new Date().toISOString().slice(0, 10))
+  const [dateTo, setDateTo] = useState(new Date().toISOString().slice(0, 10))
   const ct = useChartTheme()
 
   useEffect(() => {
     setLoading(true)
-    api.get('/reports/profit', { params: { period } })
+    const params = { period }
+
+    if (period === 'custom') {
+      params.date_from = dateFrom
+      params.date_to = dateTo
+    }
+
+    api.get('/reports/profit', { params })
       .then(r => setData(r.data))
       .finally(() => setLoading(false))
-  }, [period])
+  }, [period, dateFrom, dateTo])
 
   if (loading) return (
     <div className="py-12 text-center text-muted-color">
@@ -127,7 +136,7 @@ function ProfitTab() {
   return (
     <>
       <div className="flex items-center gap-2 mb-5 flex-wrap">
-        {[['today', "Auj."], ['week', 'Semaine'], ['month', 'Mois']].map(([p, l]) => (
+        {[['today', "Auj."], ['week', 'Semaine'], ['month', 'Mois'], ['custom', 'Personnalise']].map(([p, l]) => (
           <button key={p} onClick={() => setPeriod(p)}
             className={`px-3 py-1.5 text-xs rounded-xl font-semibold border transition-colors ${
               period === p
@@ -138,6 +147,21 @@ function ProfitTab() {
           </button>
         ))}
       </div>
+
+      {period === 'custom' && (
+        <div className="card mb-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Du</label>
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Au</label>
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <KpiCard label="CA total"         value={fmt(data?.totals?.revenue) + ' TND'} icon="fa-solid fa-sack-dollar"        color="#0d9488" />

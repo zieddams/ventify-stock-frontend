@@ -133,7 +133,7 @@ function AgingWidget() {
     { key: 'b0_30',  label: '0–30 j',  color: '#0d9488' },
     { key: 'b31_60', label: '31–60 j', color: '#f59e0b' },
     { key: 'b61_90', label: '61–90 j', color: '#f97316' },
-    { key: 'b90p',   label: '+90 j',   color: '#ef4444' },
+    { key: 'b90_plus', label: '+90 j', color: '#ef4444' },
   ]
   const total = (aging.totals?.total_due ?? 0)
   if (total === 0) return null
@@ -145,7 +145,7 @@ function AgingWidget() {
           <i className="fa-solid fa-clock-rotate-left text-amber-500" />
           Balance âgée — Crédit clients
         </h2>
-        <Link to="/stock/credit" className="text-xs font-medium" style={{ color: '#0d9488' }}>
+        <Link to="/credit" className="text-xs font-medium" style={{ color: '#0d9488' }}>
           Voir tout <i className="fa-solid fa-arrow-right" style={{ fontSize: 9 }} />
         </Link>
       </div>
@@ -163,7 +163,7 @@ function AgingWidget() {
       </div>
 
       {/* Top customers */}
-      {(aging.rows ?? []).slice(0, 5).length > 0 && (
+      {(aging.customers ?? []).slice(0, 5).length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
@@ -176,7 +176,7 @@ function AgingWidget() {
               </tr>
             </thead>
             <tbody>
-              {aging.rows.slice(0, 5).map((r, i) => (
+              {aging.customers.slice(0, 5).map((r, i) => (
                 <tr key={i} className="table-row">
                   <td className="py-2 pr-3 font-medium text-base-color">{r.customer_name}</td>
                   {buckets.map(b => (
@@ -431,7 +431,7 @@ export default function Dashboard() {
           <AgingWidget />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Link to="/stock/invoices"
+            <Link to="/invoices"
               className="card card-hover cursor-pointer group transition-all">
               <div className="w-12 h-12 rounded-xl bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                 <i className="fa-solid fa-file-invoice text-teal-600 dark:text-teal-400 text-xl" />
@@ -439,7 +439,7 @@ export default function Dashboard() {
               <div className="font-semibold text-base-color">Mes factures</div>
               <div className="text-sm text-muted-color mt-0.5">Voir et créer des factures</div>
             </Link>
-            <Link to="/stock/customers"
+            <Link to="/customers"
               className="card card-hover cursor-pointer group transition-all">
               <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                 <i className="fa-solid fa-users text-blue-500 text-xl" />
@@ -447,7 +447,7 @@ export default function Dashboard() {
               <div className="font-semibold text-base-color">Mes clients</div>
               <div className="text-sm text-muted-color mt-0.5">Gérer votre portefeuille client</div>
             </Link>
-            <Link to="/stock/invoices/create"
+            <Link to="/invoices/create"
               className="card card-hover cursor-pointer group transition-all sm:col-span-2">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform"
@@ -466,3 +466,4 @@ export default function Dashboard() {
     </div>
   )
 }
+

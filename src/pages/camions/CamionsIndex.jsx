@@ -154,11 +154,17 @@ export default function CamionsIndex() {
                       </thead>
                       <tbody>
                         {stockItems.map((s, i) => {
-                          const low = parseFloat(s.qty) < 5
+                          const minStock = parseFloat(s.product?.min_stock ?? 0)
+                          const low = minStock > 0
+                            ? parseFloat(s.qty ?? 0) <= minStock
+                            : parseFloat(s.qty ?? 0) < 5
                           return (
                             <tr key={i} className="table-row">
                               <td className="py-2 pr-4 text-base-color font-medium">{s.product?.name}</td>
-                              <td className="py-2 pr-4 text-muted-color text-xs">{s.product?.unit}</td>
+                              <td className="py-2 pr-4 text-muted-color text-xs">
+                                {s.product?.unit}
+                                {minStock > 0 && ` · min ${fmt(minStock)}`}
+                              </td>
                               <td className="py-2 font-bold font-mono text-sm" style={{ color: low ? '#f59e0b' : '#0d9488' }}>
                                 {fmt(s.qty)}
                                 {low && <i className="fa-solid fa-triangle-exclamation ml-1.5 text-xs" style={{ color: '#f59e0b' }} />}

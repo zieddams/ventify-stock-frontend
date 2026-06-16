@@ -12,19 +12,19 @@ function timeAgo(dateStr) {
 }
 
 const TYPE_CONFIG = {
-  'App\\Notifications\\LowStockNotification': {
+  LowStockNotification: {
     icon:  'fa-solid fa-triangle-exclamation',
     color: '#f59e0b',
     bg:    'rgba(245,158,11,0.12)',
     label: 'Stock bas',
-    route: '/stock/depot',
+    route: '/depot',
   },
-  'App\\Notifications\\DailySummaryNotification': {
+  DailySummaryNotification: {
     icon:  'fa-solid fa-chart-line',
     color: '#0d9488',
     bg:    'rgba(13,148,136,0.12)',
     label: 'Rapport',
-    route: '/stock/reports',
+    route: '/reports',
   },
   default: {
     icon:  'fa-solid fa-bell',
@@ -204,3 +204,4 @@ export default function NotificationBell() {
     </div>
   )
 }
+

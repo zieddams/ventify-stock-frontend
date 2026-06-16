@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
-const APP_VERSION = '2.4.0'
+const APP_VERSION = '2.5.0'
 
 /* Floating orb — pure CSS animation, no library */
 function Orb({ size, color, top, left, delay, duration }) {
@@ -37,7 +37,7 @@ export default function Login() {
     setLoading(true)
     try {
       await login(email, password)
-      navigate('/stock')
+      navigate('/')
     } catch (err) {
       setError(err.response?.data?.message || 'Identifiants incorrects')
     } finally {
@@ -277,3 +277,4 @@ export default function Login() {
     </div>
   )
 }
+
