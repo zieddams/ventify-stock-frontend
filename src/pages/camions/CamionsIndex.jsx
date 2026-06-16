@@ -10,7 +10,7 @@ function fmt(n) {
 
 export default function CamionsIndex() {
   const [camions,   setCamions]   = useState([])
-  const [physical,  setPhysical]  = useState([])
+  const [physical]  = useState([])
   const [products,  setProducts]  = useState([])
   const [loading,   setLoading]   = useState(true)
   const [modal,     setModal]     = useState(false)
@@ -27,11 +27,6 @@ export default function CamionsIndex() {
       ])
       setCamions(cRes.data)
       setProducts(pRes.data)
-    } catch {}
-    // try to load physical camions (may 404 if no endpoint yet)
-    try {
-      const phRes = await api.get('/camions')
-      setPhysical(phRes.data)
     } catch {}
     setLoading(false)
   }

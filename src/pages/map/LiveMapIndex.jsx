@@ -48,6 +48,14 @@ function formatRelativeTime(value) {
   return `Il y a ${Math.floor(hours / 24)}j`
 }
 
+function formatRoleLabel(role) {
+  if (role === 'rep') return 'Commercial'
+  if (role === 'admin') return 'Admin'
+  if (role === 'developer') return 'Developpeur'
+  if (role === 'comptable') return 'Comptable'
+  return role || 'Utilisateur'
+}
+
 function makeDotIcon(color, size = 10) {
   return L.divIcon({
     className: '',
@@ -169,6 +177,8 @@ function FitTerrainBounds({ reps, routeTrace }) {
 }
 
 function MetricCard({ label, value, icon, color, sub }) {
+  const terrainTrackedCount = terrain.stats?.users_total ?? terrain.stats?.reps_total ?? 0
+
   return (
     <div className="card py-3 px-4 flex items-center gap-3">
       <div
@@ -419,16 +429,16 @@ function TerrainTab({
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
         <MetricCard
-          label="Commerciaux en ligne"
-          value={terrain.stats?.online_reps ?? 0}
-          sub={`${terrain.stats?.active_reps ?? 0} actifs`}
+          label="Mobiles en ligne"
+          value={terrain.stats?.online_users ?? terrain.stats?.online_reps ?? 0}
+          sub={`${terrain.stats?.active_users ?? terrain.stats?.active_reps ?? 0} comptes actifs`}
           icon="fa-solid fa-signal"
           color="#0d9488"
         />
         <MetricCard
           label="Sessions ouvertes"
           value={terrain.stats?.open_sessions ?? 0}
-          sub={`${terrain.stats?.reps_total ?? 0} commerciaux suivis`}
+          sub={`${terrain.stats?.users_total ?? terrain.stats?.reps_total ?? 0} comptes suivis`}
           icon="fa-solid fa-route"
           color="#3b82f6"
         />
@@ -461,7 +471,7 @@ function TerrainTab({
             <div className="flex items-center justify-between gap-3 mb-3">
               <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
                 <i className="fa-solid fa-mobile-screen-button text-teal-500" />
-                Sessions terrain
+                Equipe terrain
               </h2>
               <label className="flex items-center gap-2 text-xs text-muted-color cursor-pointer">
                 <input type="checkbox" checked={onlineOnly} onChange={event => onOnlineOnly(event.target.checked)} />
@@ -469,7 +479,7 @@ function TerrainTab({
               </label>
             </div>
             <input
-              placeholder="Rechercher un commercial ou une version app..."
+              placeholder="Rechercher un utilisateur, un role ou une version app..."
               value={repSearch}
               onChange={event => onRepSearch(event.target.value)}
             />
@@ -491,6 +501,7 @@ function TerrainTab({
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-base-color truncate">{rep.name}</div>
+                        <div className="text-[11px] uppercase tracking-wide text-muted-color mt-0.5">{formatRoleLabel(rep.role)}</div>
                         <div className="text-xs text-muted-color truncate">
                           {rep.zone?.name ?? 'Zone non definie'} · {rep.device?.brand || rep.device?.model
                             ? `${rep.device?.brand ?? ''} ${rep.device?.model ?? ''}`.trim()
@@ -517,7 +528,7 @@ function TerrainTab({
               {filteredReps.length === 0 && (
                 <div className="rounded-2xl px-4 py-8 text-center" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                   <i className="fa-solid fa-magnifying-glass text-muted-color opacity-50 mb-2 block" />
-                  <p className="text-sm text-muted-color">Aucun commercial ne correspond aux filtres.</p>
+                  <p className="text-sm text-muted-color">Aucun compte mobile ne correspond aux filtres.</p>
                 </div>
               )}
             </div>
@@ -551,6 +562,7 @@ function TerrainTab({
                 </div>
 
                 <div className="divide-y" style={{ '--tw-divide-opacity': 1 }}>
+                  <DetailRow label="Role" value={formatRoleLabel(selectedRep.role)} />
                   <DetailRow label="Dernier ping" value={`${formatRelativeTime(selectedRep.presence?.last_seen)} · ${formatDateTime(selectedRep.presence?.last_seen)}`} />
                   <DetailRow label="Appareil" value={selectedRep.device?.device_name || `${selectedRep.device?.brand ?? ''} ${selectedRep.device?.model ?? ''}`.trim() || 'Non remonte'} />
                   <DetailRow label="Version mobile" value={selectedRep.device?.app_version || 'Non remontee'} />
@@ -616,7 +628,7 @@ function TerrainTab({
           ) : (
             <div className="card text-center py-10">
               <i className="fa-solid fa-location-dot text-3xl text-muted-color opacity-30 mb-3 block" />
-              <p className="text-sm text-muted-color">Selectionnez un commercial pour afficher ses details terrain.</p>
+              <p className="text-sm text-muted-color">Selectionnez un compte mobile pour afficher ses details terrain.</p>
             </div>
           )}
         </div>
@@ -998,7 +1010,11 @@ export default function LiveMapIndex() {
     <div>
       <PageHeader
         title="Carte & terrain"
-        subtitle={activeTab === 'terrain' ? terrainSubtitle : customerSubtitle}
+        subtitle={activeTab === 'terrain'
+          ? (terrain.generated_at
+            ? `${terrainTrackedCount} comptes suivis - MAJ ${formatDateTime(terrain.generated_at)}`
+            : 'Suivi mobile, GPS et stock terrain')
+          : customerSubtitle}
         action={(
           <button
             onClick={() => {
@@ -1031,7 +1047,7 @@ export default function LiveMapIndex() {
           active={activeTab === 'terrain'}
           icon="fa-solid fa-tower-broadcast"
           label="Terrain mobile"
-          count={terrain.stats?.reps_total ?? 0}
+          count={terrainTrackedCount}
           onClick={() => patchSearchParams({ tab: 'terrain' })}
         />
       </div>

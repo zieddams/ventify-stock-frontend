@@ -5,6 +5,7 @@ import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
+import { useAuth } from '../../contexts/AuthContext'
 import { getConfigItemLabel, getDefaultConfigValue, useConfigItems } from '../../hooks/useConfigItems'
 import api from '../../services/api'
 
@@ -17,6 +18,7 @@ const EMPTY = {
   email: '',
   zone_id: '',
   credit_limit: '',
+  user_id: '',
 }
 
 function fmt(value) {
@@ -24,8 +26,10 @@ function fmt(value) {
 }
 
 export default function CustomersIndex() {
+  const { user, isAdmin } = useAuth()
   const [customers, setCustomers] = useState([])
   const [zones, setZones] = useState([])
+  const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [modal, setModal] = useState(false)
@@ -41,18 +45,26 @@ export default function CustomersIndex() {
   const defaultPaymentMethod = getDefaultConfigValue(paymentMethods, 'cash')
   const [pay, setPay] = useState({ amount: '', method: defaultPaymentMethod, invoice_id: '', note: '' })
   const [paying, setPaying] = useState(false)
+  const canAssignOwner = isAdmin()
 
   const load = async () => {
     setLoading(true)
 
     try {
-      const [customersResponse, zonesResponse] = await Promise.all([
+      const requests = [
         api.get('/customers'),
         api.get('/zones'),
-      ])
+      ]
+
+      if (canAssignOwner) {
+        requests.push(api.get('/users'))
+      }
+
+      const [customersResponse, zonesResponse, usersResponse] = await Promise.all(requests)
 
       setCustomers(customersResponse.data ?? [])
       setZones(zonesResponse.data ?? [])
+      setUsers(usersResponse?.data ?? [])
     } finally {
       setLoading(false)
     }
@@ -60,7 +72,7 @@ export default function CustomersIndex() {
 
   useEffect(() => {
     load()
-  }, [])
+  }, [canAssignOwner])
 
   useEffect(() => {
     setPay((current) => {
@@ -74,7 +86,10 @@ export default function CustomersIndex() {
 
   const openCreate = () => {
     setEditing(null)
-    setForm(EMPTY)
+    setForm({
+      ...EMPTY,
+      user_id: canAssignOwner ? String(user?.id ?? '') : '',
+    })
     setErrors({})
     setModal(true)
   }
@@ -90,6 +105,7 @@ export default function CustomersIndex() {
       email: customer.email ?? '',
       zone_id: customer.zone_id ?? '',
       credit_limit: customer.credit_limit ?? '',
+      user_id: customer.user_id ?? '',
     })
     setErrors({})
     setModal(true)
@@ -104,6 +120,12 @@ export default function CustomersIndex() {
         ...form,
         zone_id: form.zone_id === '' ? null : Number(form.zone_id),
         credit_limit: form.credit_limit === '' ? null : Number(form.credit_limit),
+      }
+
+      if (canAssignOwner && form.user_id !== '') {
+        payload.user_id = Number(form.user_id)
+      } else {
+        delete payload.user_id
       }
 
       if (editing) {
@@ -176,10 +198,16 @@ export default function CustomersIndex() {
         customer.name?.toLowerCase().includes(normalizedQuery) ||
         customer.phone?.includes(search) ||
         customer.wilaya?.toLowerCase().includes(normalizedQuery) ||
-        customer.zone?.name?.toLowerCase().includes(normalizedQuery)
+        customer.zone?.name?.toLowerCase().includes(normalizedQuery) ||
+        customer.owner?.name?.toLowerCase().includes(normalizedQuery) ||
+        customer.owner?.email?.toLowerCase().includes(normalizedQuery)
       )
     })
   }, [customers, search])
+
+  const assignableUsers = useMemo(() => (
+    users.filter((entry) => ['admin', 'developer', 'rep'].includes(entry.role))
+  ), [users])
 
   if (loading) {
     return <PageLoader />
@@ -217,7 +245,7 @@ export default function CustomersIndex() {
           <table className="w-full text-sm">
             <thead>
               <tr>
-                {['Nom', 'Telephone', 'Gouvernorat', 'Zone', 'Carte', 'Solde credit', 'Actions'].map((heading) => (
+                {['Nom', 'Telephone', 'Affecte a', 'Gouvernorat', 'Zone', 'Carte', 'Solde credit', 'Actions'].map((heading) => (
                   <th key={heading} className="pb-3 pr-4 text-left">
                     {heading}
                   </th>
@@ -232,6 +260,14 @@ export default function CustomersIndex() {
                   <tr key={customer.id} className="table-row">
                     <td className="py-3 pr-4 font-semibold text-base-color">{customer.name}</td>
                     <td className="py-3 pr-4 text-secondary-color font-mono text-xs">{customer.phone ?? '-'}</td>
+                    <td className="py-3 pr-4 text-secondary-color text-xs">
+                      {customer.owner ? (
+                        <div>
+                          <div className="font-medium text-base-color">{customer.owner.name}</div>
+                          <div className="text-[11px] uppercase tracking-wide text-muted-color">{customer.owner.role}</div>
+                        </div>
+                      ) : '-'}
+                    </td>
                     <td className="py-3 pr-4 text-secondary-color text-xs">{customer.wilaya ?? '-'}</td>
                     <td className="py-3 pr-4 text-secondary-color text-xs">{customer.zone?.name ?? '-'}</td>
                     <td className="py-3 pr-4">
@@ -270,7 +306,7 @@ export default function CustomersIndex() {
               })}
               {filteredCustomers.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center">
+                  <td colSpan={8} className="py-12 text-center">
                     <i className="fa-solid fa-users text-3xl text-muted-color opacity-30 mb-2 block" />
                     <p className="text-muted-color text-sm">Aucun client</p>
                   </td>
@@ -295,6 +331,19 @@ export default function CustomersIndex() {
               <input type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} placeholder="client@example.com" />
             </FormField>
           </div>
+
+          {canAssignOwner && (
+            <FormField label="Commercial affecte" error={errors.user_id?.[0]}>
+              <select value={form.user_id} onChange={(event) => setForm((current) => ({ ...current, user_id: event.target.value }))}>
+                <option value="">Moi (back office)</option>
+                {assignableUsers.map((entry) => (
+                  <option key={entry.id} value={entry.id}>
+                    {entry.name} - {entry.role}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          )}
 
           <FormField label="Adresse" error={errors.address?.[0]}>
             <input value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} placeholder="Adresse complete" />
