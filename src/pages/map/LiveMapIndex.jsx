@@ -155,7 +155,18 @@ function FitCustomersBounds({ customers }) {
   return null
 }
 
-function FitTerrainBounds({ reps, routeTrace }) {
+function distanceBetweenPointsKm([lat1, lng1], [lat2, lng2]) {
+  const toRadians = (value) => (value * Math.PI) / 180
+  const earthRadiusKm = 6371
+  const dLat = toRadians(lat2 - lat1)
+  const dLng = toRadians(lng2 - lng1)
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLng / 2) ** 2
+
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+function FitTerrainBounds({ reps, routeTrace, selectedRep }) {
   const map = useMap()
 
   useEffect(() => {
@@ -163,15 +174,27 @@ function FitTerrainBounds({ reps, routeTrace }) {
     const repPoints = reps
       .filter(rep => rep.map_position)
       .map(rep => [Number(rep.map_position.latitude), Number(rep.map_position.longitude)])
+    const selectedPoint = selectedRep?.map_position
+      ? [Number(selectedRep.map_position.latitude), Number(selectedRep.map_position.longitude)]
+      : null
 
-    const points = tracePoints.length > 1 ? tracePoints : repPoints
+    let points = tracePoints.length > 1 ? tracePoints : repPoints
+
+    if (selectedPoint && tracePoints.length <= 1) {
+      const nearbyPoints = repPoints.filter(point => distanceBetweenPointsKm(selectedPoint, point) <= 150)
+      points = nearbyPoints.length > 1 ? nearbyPoints : [selectedPoint]
+    }
 
     if (points.length > 0) {
       try {
-        map.fitBounds(points, { padding: [36, 36] })
+        if (points.length === 1) {
+          map.setView(points[0], Math.max(map.getZoom(), 13))
+        } else {
+          map.fitBounds(points, { padding: [36, 36], maxZoom: 13 })
+        }
       } catch {}
     }
-  }, [map, reps, routeTrace])
+  }, [map, reps, routeTrace, selectedRep])
 
   return null
 }
@@ -418,6 +441,7 @@ function TerrainTab({
   const routeMeta = getRouteMeta(selectedRep?.route_session)
   const routeTracePoints = routeTrace.map(item => [Number(item.latitude), Number(item.longitude)])
   const terrainPositions = (terrain.reps ?? []).filter(rep => rep.map_position)
+  const selectedRepHasMapPosition = Boolean(selectedRep?.map_position)
 
   if (terrainLoading && !terrain.reps?.length) {
     return <PageLoader />
@@ -652,7 +676,7 @@ function TerrainTab({
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-                <FitTerrainBounds reps={terrainPositions} routeTrace={routeTrace} />
+                <FitTerrainBounds reps={terrainPositions} routeTrace={routeTrace} selectedRep={selectedRep} />
 
                 {terrainPositions.map(rep => {
                   const presence = getPresenceMeta(rep)
@@ -699,6 +723,20 @@ function TerrainTab({
               </MapContainer>
             )}
           </div>
+
+          {selectedRep && !selectedRepHasMapPosition && (
+            <div className="card py-3 px-4">
+              <div className="flex items-start gap-3">
+                <i className="fa-solid fa-circle-info text-amber-500 mt-0.5" />
+                <div>
+                  <div className="text-sm font-semibold text-base-color">Position introuvable pour ce compte</div>
+                  <div className="text-xs text-muted-color mt-1">
+                    La carte reste focalisee sur les comptes qui ont une position valide. Verifiez le GPS ou ouvrez une session terrain sur le mobile concerne.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {selectedRep && (
             <>
@@ -957,9 +995,14 @@ export default function LiveMapIndex() {
       return
     }
 
-    const fallbackRep = terrain.reps.find(rep => rep.presence?.is_online && rep.map_position)
+    const repCandidates = terrain.reps.filter(rep => rep.role === 'rep')
+    const fallbackRep = repCandidates.find(rep => rep.route_session?.status === 'open' && rep.map_position)
+      || repCandidates.find(rep => rep.presence?.is_online && rep.map_position)
+      || repCandidates.find(rep => rep.map_position)
       || terrain.reps.find(rep => rep.route_session?.status === 'open' && rep.map_position)
+      || terrain.reps.find(rep => rep.presence?.is_online && rep.map_position)
       || terrain.reps.find(rep => rep.map_position)
+      || repCandidates.find(rep => rep.presence?.is_online)
       || terrain.reps.find(rep => rep.presence?.is_online)
       || terrain.reps.find(rep => rep.route_session?.status === 'open')
       || terrain.reps[0]
