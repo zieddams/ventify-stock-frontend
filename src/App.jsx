@@ -19,8 +19,7 @@ import ConfigIndex from './pages/config/ConfigIndex'
 import RouteSessionsIndex from './pages/routes/RouteSessionsIndex'
 import ExpensesIndex from './pages/expenses/ExpensesIndex'
 import InventaireIndex from './pages/inventory/InventaireIndex'
-import ImportIndex from './pages/import/ImportIndex'
-import ExportIndex from './pages/export/ExportIndex'
+import DataToolsIndex from './pages/data-tools/DataToolsIndex'
 import LiveMapIndex from './pages/map/LiveMapIndex'
 import { APP_BASE_PATH } from './utils/appPaths'
 
@@ -75,8 +74,9 @@ export default function App() {
             <Route path="config"    element={<RequireAdmin><ConfigIndex /></RequireAdmin>} />
             <Route path="map"       element={<RequireAdmin><LiveMapIndex /></RequireAdmin>} />
             <Route path="inventory" element={<RequireAdmin><InventaireIndex /></RequireAdmin>} />
-            <Route path="import"    element={<RequireAdmin><ImportIndex /></RequireAdmin>} />
-            <Route path="export"    element={<RequireAdmin><ExportIndex /></RequireAdmin>} />
+            <Route path="data-tools" element={<RequireAdmin><DataToolsIndex /></RequireAdmin>} />
+            <Route path="import"    element={<Navigate to="/data-tools" replace />} />
+            <Route path="export"    element={<Navigate to="/data-tools" replace />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

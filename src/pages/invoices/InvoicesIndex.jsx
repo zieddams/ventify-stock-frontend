@@ -1,27 +1,63 @@
 import { useDeferredValue, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import api from '../../services/api'
-import { StatusBadge, PaymentStatusBadge } from '../../components/Badge'
+import { PaymentStatusBadge, StatusBadge } from '../../components/Badge'
+import PageExportActions from '../../components/PageExportActions'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
+import api from '../../services/api'
 
 const DEFAULT_PERIOD = 'month'
 const PERIODS = [
   { key: 'today', label: "Aujourd'hui" },
-  { key: 'week',  label: 'Cette semaine' },
+  { key: 'week', label: 'Cette semaine' },
   { key: 'month', label: 'Ce mois' },
   { key: 'custom', label: 'Personnalise' },
-  { key: '',      label: 'Tout' },
+  { key: '', label: 'Tout' },
 ]
 
-function fmt(n) {
-  return new Intl.NumberFormat('fr-TN', { minimumFractionDigits: 3 }).format(n ?? 0)
+function fmt(value) {
+  return new Intl.NumberFormat('fr-TN', { minimumFractionDigits: 3 }).format(value ?? 0)
+}
+
+function toIsoDate(date) {
+  return date.toISOString().slice(0, 10)
+}
+
+function getPeriodDateRange(period, dateFrom, dateTo) {
+  const current = new Date()
+  const today = new Date(current.getFullYear(), current.getMonth(), current.getDate())
+
+  if (dateFrom || dateTo) {
+    return {
+      date_from: dateFrom || dateTo,
+      date_to: dateTo || dateFrom,
+    }
+  }
+
+  if (period === 'today') {
+    const iso = toIsoDate(today)
+    return { date_from: iso, date_to: iso }
+  }
+
+  if (period === 'week') {
+    const start = new Date(today)
+    const diff = start.getDay() === 0 ? 6 : start.getDay() - 1
+    start.setDate(start.getDate() - diff)
+    return { date_from: toIsoDate(start), date_to: toIsoDate(today) }
+  }
+
+  if (period === 'month') {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1)
+    return { date_from: toIsoDate(start), date_to: toIsoDate(today) }
+  }
+
+  return {}
 }
 
 export default function InvoicesIndex() {
   const [invoices, setInvoices] = useState([])
-  const [loading,  setLoading]  = useState(true)
-  const [period,   setPeriod]   = useState(DEFAULT_PERIOD)
+  const [loading, setLoading] = useState(true)
+  const [period, setPeriod] = useState(DEFAULT_PERIOD)
   const [paymentStatus, setPaymentStatus] = useState('')
   const [search, setSearch] = useState('')
   const [dateFrom, setDateFrom] = useState('')
@@ -32,6 +68,7 @@ export default function InvoicesIndex() {
 
   const load = async () => {
     setLoading(true)
+
     try {
       const params = {}
 
@@ -41,13 +78,16 @@ export default function InvoicesIndex() {
       if (dateTo) params.date_to = dateTo
       if (deferredSearch.trim()) params.q = deferredSearch.trim()
 
-      const res = await api.get('/invoices', { params })
-      setInvoices(Array.isArray(res.data) ? res.data : (res.data.data ?? []))
-    } catch {}
-    setLoading(false)
+      const response = await api.get('/invoices', { params })
+      setInvoices(Array.isArray(response.data) ? response.data : (response.data?.data ?? []))
+    } finally {
+      setLoading(false)
+    }
   }
 
-  useEffect(() => { load() }, [period, paymentStatus, dateFrom, dateTo, deferredSearch])
+  useEffect(() => {
+    load()
+  }, [period, paymentStatus, dateFrom, dateTo, deferredSearch])
 
   const handlePeriodChange = (nextPeriod) => {
     setPeriod(nextPeriod)
@@ -72,62 +112,66 @@ export default function InvoicesIndex() {
     setDateTo('')
   }
 
-  const del = async (inv) => {
-    if (!confirm(`Supprimer la facture ${inv.number} ?`)) return
-    await api.delete(`/invoices/${inv.id}`)
-    load()
+  const removeInvoice = async (invoice) => {
+    if (!confirm(`Supprimer la facture ${invoice.number} ?`)) {
+      return
+    }
+
+    await api.delete(`/invoices/${invoice.id}`)
+    await load()
   }
 
-  const total = invoices.filter(i => i.status !== 'cancelled').reduce((s, i) => s + parseFloat(i.total ?? 0), 0)
+  const total = invoices.filter((invoice) => invoice.status !== 'cancelled').reduce((sum, invoice) => sum + Number(invoice.total ?? 0), 0)
   const unpaid = invoices
-    .filter(i => i.payment_status !== 'paid')
-    .reduce((s, i) => s + Math.max(parseFloat(i.total ?? 0) - parseFloat(i.paid_amount ?? 0), 0), 0)
+    .filter((invoice) => invoice.payment_status !== 'paid')
+    .reduce((sum, invoice) => sum + Math.max(Number(invoice.total ?? 0) - Number(invoice.paid_amount ?? 0), 0), 0)
   const hasFilters = period !== DEFAULT_PERIOD || paymentStatus || search || dateFrom || dateTo
+  const exportParams = getPeriodDateRange(period, dateFrom, dateTo)
 
   return (
     <div>
-      {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-xl font-bold text-base-color tracking-tight">Factures</h1>
-          <p className="text-sm text-muted-color mt-0.5">{invoices.length} facture(s) · Total: {fmt(total)} TND</p>
+          <p className="text-sm text-muted-color mt-0.5">{invoices.length} facture(s) | Total: {fmt(total)} TND</p>
         </div>
-        <Link to="/invoices/create" className="btn-primary">
-          <i className="fa-solid fa-plus" /> Nouvelle facture
-        </Link>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <PageExportActions title="Factures" csvEntity="invoices" csvParams={exportParams} csvFilename="factures" />
+          <Link to="/invoices/create" className="btn-primary">
+            <i className="fa-solid fa-plus" /> Nouvelle facture
+          </Link>
+        </div>
       </div>
 
-      {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {[
-          { label: 'Total période', value: fmt(total) + ' TND', icon: 'fa-solid fa-sack-dollar', color: '#0d9488' },
-          { label: 'Impayées',      value: fmt(unpaid) + ' TND', icon: 'fa-solid fa-clock', color: '#dc2626' },
-          { label: 'Factures',      value: invoices.length, icon: 'fa-solid fa-file-invoice', color: '#3b82f6' },
-          { label: 'Payées',        value: invoices.filter(i => i.payment_status === 'paid').length, icon: 'fa-solid fa-circle-check', color: '#10b981' },
-        ].map(k => (
-          <div key={k.label} className="card py-3 px-4 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ background: k.color + '1a' }}>
-              <i className={`${k.icon} text-sm`} style={{ color: k.color }} />
+          { label: 'Total periode', value: `${fmt(total)} TND`, icon: 'fa-solid fa-sack-dollar', color: '#0d9488' },
+          { label: 'Impayees', value: `${fmt(unpaid)} TND`, icon: 'fa-solid fa-clock', color: '#dc2626' },
+          { label: 'Factures', value: invoices.length, icon: 'fa-solid fa-file-invoice', color: '#3b82f6' },
+          { label: 'Payees', value: invoices.filter((invoice) => invoice.payment_status === 'paid').length, icon: 'fa-solid fa-circle-check', color: '#10b981' },
+        ].map((kpi) => (
+          <div key={kpi.label} className="card py-3 px-4 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${kpi.color}1a` }}>
+              <i className={`${kpi.icon} text-sm`} style={{ color: kpi.color }} />
             </div>
             <div>
-              <div className="text-xs text-muted-color">{k.label}</div>
-              <div className="text-sm font-bold text-base-color">{k.value}</div>
+              <div className="text-xs text-muted-color">{kpi.label}</div>
+              <div className="text-sm font-bold text-base-color">{kpi.value}</div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Period filter */}
       <div className="flex gap-2 mb-4 flex-wrap">
-        {PERIODS.map(p => (
-          <button key={p.key} onClick={() => handlePeriodChange(p.key)}
+        {PERIODS.map((item) => (
+          <button
+            key={item.key}
+            onClick={() => handlePeriodChange(item.key)}
             className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors border ${
-              period === p.key
-                ? 'bg-teal-600 text-white border-teal-600'
-                : 'border-theme text-muted-color hover:text-base-color'
-            }`}>
-            {p.label}
+              period === item.key ? 'bg-teal-600 text-white border-teal-600' : 'border-theme text-muted-color hover:text-base-color'
+            }`}
+          >
+            {item.label}
           </button>
         ))}
       </div>
@@ -136,16 +180,11 @@ export default function InvoicesIndex() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div>
             <label className="block text-xs text-muted-color mb-1 font-medium">Recherche</label>
-            <input
-              type="search"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Numero, client ou commercial..."
-            />
+            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Numero, client ou commercial..." />
           </div>
           <div>
             <label className="block text-xs text-muted-color mb-1 font-medium">Paiement</label>
-            <select value={paymentStatus} onChange={e => setPaymentStatus(e.target.value)}>
+            <select value={paymentStatus} onChange={(event) => setPaymentStatus(event.target.value)}>
               <option value="">Tous</option>
               <option value="unpaid">Impaye</option>
               <option value="partial">Partiel</option>
@@ -157,8 +196,8 @@ export default function InvoicesIndex() {
             <input
               type="date"
               value={dateFrom}
-              onChange={e => {
-                setDateFrom(e.target.value)
+              onChange={(event) => {
+                setDateFrom(event.target.value)
                 setPeriod('custom')
               }}
             />
@@ -168,8 +207,8 @@ export default function InvoicesIndex() {
             <input
               type="date"
               value={dateTo}
-              onChange={e => {
-                setDateTo(e.target.value)
+              onChange={(event) => {
+                setDateTo(event.target.value)
                 setPeriod('custom')
               }}
             />
@@ -186,47 +225,42 @@ export default function InvoicesIndex() {
       </div>
 
       <div className="card">
-        {loading ? <PageLoader /> : (
+        {loading ? (
+          <PageLoader />
+        ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left" style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['N°', 'Client', ...(isAdmin() ? ['Commercial'] : []), 'Total', 'Paiement', 'Statut', 'Date', ''].map(h => (
-                    <th key={h} className="pb-3 pr-4 text-xs font-semibold text-muted-color uppercase tracking-wider">{h}</th>
+                  {['N°', 'Client', ...(isAdmin() ? ['Commercial'] : []), 'Total', 'Paiement', 'Statut', 'Date', ''].map((heading) => (
+                    <th key={heading} className="pb-3 pr-4 text-xs font-semibold text-muted-color uppercase tracking-wider">
+                      {heading}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {invoices.map(inv => (
-                  <tr key={inv.id} className="table-row">
+                {invoices.map((invoice) => (
+                  <tr key={invoice.id} className="table-row">
                     <td className="py-3 pr-4">
-                      <Link to={`/invoices/${inv.id}`}
-                        className="font-mono text-xs font-semibold"
-                        style={{ color: '#0d9488' }}>
-                        {inv.number}
+                      <Link to={`/invoices/${invoice.id}`} className="font-mono text-xs font-semibold" style={{ color: '#0d9488' }}>
+                        {invoice.number}
                       </Link>
                     </td>
-                    <td className="py-3 pr-4 font-medium text-base-color">{inv.customer_name}</td>
-                    {isAdmin() && <td className="py-3 pr-4 text-secondary-color">{inv.rep_name}</td>}
-                    <td className="py-3 pr-4 font-bold text-base-color">{fmt(inv.total)} TND</td>
-                    <td className="py-3 pr-4">
-                      {inv.payment_status && <PaymentStatusBadge status={inv.payment_status} />}
-                    </td>
-                    <td className="py-3 pr-4"><StatusBadge status={inv.status} /></td>
-                    <td className="py-3 pr-4 text-muted-color text-xs">
-                      {new Date(inv.created_at).toLocaleDateString('fr-FR')}
-                    </td>
+                    <td className="py-3 pr-4 font-medium text-base-color">{invoice.customer_name}</td>
+                    {isAdmin() && <td className="py-3 pr-4 text-secondary-color">{invoice.rep_name}</td>}
+                    <td className="py-3 pr-4 font-bold text-base-color">{fmt(invoice.total)} TND</td>
+                    <td className="py-3 pr-4">{invoice.payment_status && <PaymentStatusBadge status={invoice.payment_status} />}</td>
+                    <td className="py-3 pr-4"><StatusBadge status={invoice.status} /></td>
+                    <td className="py-3 pr-4 text-muted-color text-xs">{new Date(invoice.created_at).toLocaleDateString('fr-FR')}</td>
                     <td className="py-3">
                       <div className="flex items-center gap-3">
-                        <Link to={`/invoices/${inv.id}`}
-                          className="text-xs font-medium hover:underline"
-                          style={{ color: '#0d9488' }}>
-                          <i className="fa-solid fa-eye mr-1" />Voir
+                        <Link to={`/invoices/${invoice.id}`} className="text-xs font-medium hover:underline" style={{ color: '#0d9488' }}>
+                          <i className="fa-solid fa-eye mr-1" /> Voir
                         </Link>
                         {isAdmin() && (
-                          <button onClick={() => del(inv)}
-                            className="text-xs font-medium text-red-500 hover:text-red-700">
-                            <i className="fa-solid fa-trash-can mr-1" />Suppr.
+                          <button onClick={() => removeInvoice(invoice)} className="text-xs font-medium text-red-500 hover:text-red-700">
+                            <i className="fa-solid fa-trash-can mr-1" /> Suppr.
                           </button>
                         )}
                       </div>
@@ -237,7 +271,7 @@ export default function InvoicesIndex() {
                   <tr>
                     <td colSpan={isAdmin() ? 8 : 7} className="py-12 text-center">
                       <i className="fa-solid fa-file-invoice text-3xl text-muted-color opacity-30 mb-2 block" />
-                      <p className="text-muted-color text-sm">Aucune facture sur cette période</p>
+                      <p className="text-muted-color text-sm">Aucune facture sur cette periode</p>
                     </td>
                   </tr>
                 )}
@@ -249,4 +283,3 @@ export default function InvoicesIndex() {
     </div>
   )
 }
-

@@ -1,165 +1,241 @@
-import { useEffect, useState } from 'react'
-import api from '../../services/api'
-import PageHeader from '../../components/PageHeader'
+import { useEffect, useMemo, useState } from 'react'
 import Modal from '../../components/Modal'
+import PageExportActions from '../../components/PageExportActions'
+import PageHeader from '../../components/PageHeader'
+import { PageLoader } from '../../components/Spinner'
+import api from '../../services/api'
 
-function fmt(n) { return n != null ? Number(n).toFixed(3) : '—' }
+function fmt(value) {
+  return value != null ? Number(value).toFixed(3) : '-'
+}
 
 export default function InventaireIndex() {
   const [products, setProducts] = useState([])
-  const [loading,  setLoading]  = useState(true)
-  const [counts,   setCounts]   = useState({})   // { [product_id]: string }
-  const [saving,   setSaving]   = useState(false)
-  const [result,   setResult]   = useState(null)  // { adjustments: [] }
-  const [showModal,setShowModal]= useState(false)
-  const [search,   setSearch]   = useState('')
+  const [loading, setLoading] = useState(true)
+  const [counts, setCounts] = useState({})
+  const [saving, setSaving] = useState(false)
+  const [result, setResult] = useState(null)
+  const [showModal, setShowModal] = useState(false)
+  const [search, setSearch] = useState('')
+  const [note, setNote] = useState('')
+
+  const [history, setHistory] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(true)
+  const [historyPage, setHistoryPage] = useState(1)
+  const [historyMeta, setHistoryMeta] = useState(null)
+  const [historySearch, setHistorySearch] = useState('')
+  const [historyDateFrom, setHistoryDateFrom] = useState('')
+  const [historyDateTo, setHistoryDateTo] = useState('')
+
+  const loadProducts = async () => {
+    setLoading(true)
+
+    try {
+      const response = await api.get('/products')
+      const list = Array.isArray(response.data) ? response.data : (response.data?.data ?? [])
+      setProducts(list.filter((product) => product.active))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadHistory = async (page = historyPage) => {
+    setHistoryLoading(true)
+
+    try {
+      const response = await api.get('/inventory/history', {
+        params: {
+          page,
+          per_page: 15,
+          ...(historySearch.trim() ? { q: historySearch.trim() } : {}),
+          ...(historyDateFrom ? { date_from: historyDateFrom } : {}),
+          ...(historyDateTo ? { date_to: historyDateTo } : {}),
+        },
+      })
+
+      const payload = response.data
+      const items = Array.isArray(payload) ? payload : (payload.data ?? [])
+      const meta = payload?.meta ?? (
+        payload?.current_page
+          ? {
+              current_page: payload.current_page,
+              last_page: payload.last_page,
+              total: payload.total,
+              per_page: payload.per_page,
+            }
+          : null
+      )
+
+      setHistory(items)
+      setHistoryMeta(meta)
+      setHistoryPage(page)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
 
   useEffect(() => {
-    api.get('/products')
-      .then(r => {
-        const list = Array.isArray(r.data) ? r.data : (r.data.data ?? [])
-        setProducts(list.filter(p => p.active))
-      })
-      .finally(() => setLoading(false))
+    loadProducts()
   }, [])
 
-  const handleCount = (id, val) => {
-    setCounts(c => ({ ...c, [id]: val }))
+  useEffect(() => {
+    loadHistory(historyPage)
+  }, [historyPage, historySearch, historyDateFrom, historyDateTo])
+
+  const handleCount = (id, value) => {
+    setCounts((current) => ({ ...current, [id]: value }))
   }
 
-  const countedProducts = products.filter(p => counts[p.id] !== undefined && counts[p.id] !== '')
+  const countedProducts = useMemo(
+    () => products.filter((product) => counts[product.id] !== undefined && counts[product.id] !== ''),
+    [counts, products]
+  )
 
   const handleSubmit = async () => {
-    const lines = countedProducts.map(p => ({
-      product_id: p.id,
-      counted_qty: Number(counts[p.id]),
+    const lines = countedProducts.map((product) => ({
+      product_id: product.id,
+      counted_qty: Number(counts[product.id]),
     }))
-    if (lines.length === 0) return
+
+    if (lines.length === 0) {
+      return
+    }
+
     setSaving(true)
+
     try {
-      const r = await api.post('/inventory/count', { lines })
-      setResult(r.data)
+      const response = await api.post('/inventory/count', { lines, note: note || null })
+      setResult(response.data)
       setShowModal(true)
-    } catch (e) {
-      alert(e.response?.data?.message ?? 'Erreur lors de la soumission')
-    } finally { setSaving(false) }
+      setCounts({})
+      setNote('')
+      await Promise.all([loadProducts(), loadHistory(1)])
+    } catch (error) {
+      alert(error.response?.data?.message ?? "Erreur lors de l'enregistrement")
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const filtered = products.filter(p =>
-    !search || p.name.toLowerCase().includes(search.toLowerCase())
+  const filteredProducts = products.filter((product) =>
+    !search || product.name.toLowerCase().includes(search.toLowerCase()) || product.reference?.toLowerCase().includes(search.toLowerCase())
   )
+
+  if (loading) {
+    return <PageLoader />
+  }
 
   return (
     <div>
       <PageHeader
         title="Inventaire"
-        subtitle="Comptage physique du stock — saisir les quantités comptées"
-        action={
-          countedProducts.length > 0 && (
-            <button onClick={handleSubmit} disabled={saving} className="btn-primary">
-              {saving
-                ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement…</>
-                : <><i className="fa-solid fa-check" /> Valider {countedProducts.length} produit{countedProducts.length > 1 ? 's' : ''}</>
-              }
-            </button>
-          )
-        }
+        subtitle="Comptage physique du stock et historique d'ajustement"
+        action={(
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <PageExportActions
+              title="Inventaire"
+              csvEntity="stock_movements"
+              csvParams={{
+                ...(historyDateFrom ? { date_from: historyDateFrom } : {}),
+                ...(historyDateTo ? { date_to: historyDateTo } : {}),
+                type: 'adjustment',
+              }}
+              csvFilename="inventaire_audit"
+            />
+            {countedProducts.length > 0 && (
+              <button onClick={handleSubmit} disabled={saving} className="btn-primary">
+                {saving
+                  ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</>
+                  : <><i className="fa-solid fa-check" /> Valider {countedProducts.length} produit{countedProducts.length > 1 ? 's' : ''}</>
+                }
+              </button>
+            )}
+          </div>
+        )}
       />
 
-      {/* Info banner */}
-      <div className="mb-5 rounded-2xl p-4 border flex items-start gap-3"
-        style={{ background: 'rgba(59,130,246,0.04)', borderColor: 'rgba(59,130,246,0.18)' }}>
+      <div className="mb-5 rounded-2xl p-4 border flex items-start gap-3" style={{ background: 'rgba(59,130,246,0.04)', borderColor: 'rgba(59,130,246,0.18)' }}>
         <i className="fa-solid fa-circle-info mt-0.5 flex-shrink-0" style={{ color: '#3b82f6' }} />
         <div className="text-sm" style={{ color: '#2563eb' }}>
-          Saisissez uniquement les produits comptés. Les produits non renseignés ne seront pas affectés.
-          Un mouvement d'ajustement sera créé automatiquement pour chaque écart détecté.
+          Saisissez uniquement les produits comptes. Chaque ecart cree un mouvement d'ajustement historise avec l'utilisateur, la date et la note de batch.
         </div>
       </div>
 
-      <div className="card">
-        {/* Search */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="relative flex-1 max-w-sm">
-            <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-color" style={{ fontSize: 13 }} />
-            <input
-              type="text"
-              placeholder="Rechercher un produit…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{ paddingLeft: '2.25rem' }}
-            />
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-2 card">
+          <div className="flex flex-col lg:flex-row gap-3 mb-4">
+            <div className="relative flex-1 max-w-sm">
+              <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-color" style={{ fontSize: 13 }} />
+              <input type="text" placeholder="Rechercher un produit..." value={search} onChange={(event) => setSearch(event.target.value)} style={{ paddingLeft: '2.25rem' }} />
+            </div>
+            <div className="flex-1">
+              <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Note de batch (optionnel) : inventaire mensuel, correction depot..." />
+            </div>
+            {countedProducts.length > 0 && (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full h-fit" style={{ background: 'rgba(13,148,136,0.1)', color: '#0d9488' }}>
+                {countedProducts.length} saisi{countedProducts.length > 1 ? 's' : ''}
+              </span>
+            )}
           </div>
-          {countedProducts.length > 0 && (
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
-              style={{ background: 'rgba(13,148,136,0.1)', color: '#0d9488' }}>
-              {countedProducts.length} saisi{countedProducts.length > 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-16 text-muted-color gap-2">
-            <i className="fa-solid fa-spinner fa-spin" /> Chargement…
-          </div>
-        ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr>
                   <th className="text-left pb-3 pr-4">Produit</th>
-                  <th className="text-right pb-3 pr-4">Stock système</th>
+                  <th className="text-right pb-3 pr-4">Stock systeme</th>
                   <th className="text-right pb-3 pr-4">Stock min</th>
-                  <th className="pb-3 pr-4" style={{ width: 180 }}>Qté comptée</th>
-                  <th className="text-right pb-3">Écart</th>
+                  <th className="pb-3 pr-4" style={{ width: 180 }}>Qte comptee</th>
+                  <th className="text-right pb-3">Ecart</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 && (
-                  <tr><td colSpan={5} className="py-12 text-center">
-                    <i className="fa-solid fa-clipboard-list text-3xl text-muted-color opacity-30 mb-2 block" />
-                    <p className="text-muted-color text-sm">Aucun produit trouvé</p>
-                  </td></tr>
+                {filteredProducts.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center">
+                      <i className="fa-solid fa-clipboard-list text-3xl text-muted-color opacity-30 mb-2 block" />
+                      <p className="text-muted-color text-sm">Aucun produit trouve</p>
+                    </td>
+                  </tr>
                 )}
-                {filtered.map(p => {
-                  const counted = counts[p.id]
+                {filteredProducts.map((product) => {
+                  const counted = counts[product.id]
                   const hasCounted = counted !== undefined && counted !== ''
-                  const systemQty = Number(p.depot_qty ?? p.qty ?? 0)
+                  const systemQty = Number(product.depot_qty ?? product.qty ?? 0)
                   const countedQty = hasCounted ? Number(counted) : null
                   const delta = hasCounted ? countedQty - systemQty : null
+                  const minStock = Math.max(Number(product.min_stock ?? 1), 1)
 
                   return (
-                    <tr key={p.id} className="table-row">
+                    <tr key={product.id} className="table-row">
                       <td className="py-3 pr-4">
-                        <div className="font-semibold text-base-color text-sm">{p.name}</div>
-                        {p.unit && <div className="text-xs text-muted-color">{p.unit}</div>}
+                        <div className="font-semibold text-base-color text-sm">{product.name}</div>
+                        <div className="text-xs text-muted-color">
+                          {product.reference || '-'}{product.unit ? ` | ${product.unit}` : ''}
+                        </div>
                       </td>
-                      <td className="py-3 pr-4 text-right font-mono font-semibold text-base-color">
-                        {systemQty}
-                      </td>
+                      <td className="py-3 pr-4 text-right font-mono font-semibold text-base-color">{fmt(systemQty)}</td>
                       <td className="py-3 pr-4 text-right">
-                        {p.min_stock != null ? (
-                          <span className="text-xs font-mono" style={{ color: '#94a3b8' }}>{p.min_stock}</span>
-                        ) : <span className="text-muted-color">—</span>}
+                        <span className="text-xs font-mono" style={{ color: '#94a3b8' }}>{fmt(minStock)}</span>
                       </td>
                       <td className="py-3 pr-4">
                         <input
                           type="number"
                           min="0"
-                          step="1"
-                          placeholder="—"
+                          step="0.001"
+                          placeholder="-"
                           value={counted ?? ''}
-                          onChange={e => handleCount(p.id, e.target.value)}
+                          onChange={(event) => handleCount(product.id, event.target.value)}
                           style={{ textAlign: 'right', width: '100%', padding: '0.35rem 0.6rem' }}
                         />
                       </td>
                       <td className="py-3 text-right">
                         {delta !== null ? (
-                          <span className="text-sm font-bold font-mono"
-                            style={{ color: delta === 0 ? '#059669' : delta > 0 ? '#3b82f6' : '#dc2626' }}>
-                            {delta > 0 ? '+' : ''}{delta}
+                          <span className="text-sm font-bold font-mono" style={{ color: delta === 0 ? '#059669' : delta > 0 ? '#3b82f6' : '#dc2626' }}>
+                            {delta > 0 ? '+' : ''}{fmt(delta)}
                           </span>
                         ) : (
-                          <span className="text-muted-color">—</span>
+                          <span className="text-muted-color">-</span>
                         )}
                       </td>
                     </tr>
@@ -168,15 +244,87 @@ export default function InventaireIndex() {
               </tbody>
             </table>
           </div>
-        )}
+        </div>
+
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-sm font-semibold text-base-color">Historique audit</h2>
+              <p className="text-xs text-muted-color mt-0.5">Ajustements d'inventaire</p>
+            </div>
+          </div>
+
+          <div className="space-y-3 mb-4">
+            <input value={historySearch} onChange={(event) => { setHistoryPage(1); setHistorySearch(event.target.value) }} placeholder="Produit, note ou utilisateur..." />
+            <div className="grid grid-cols-2 gap-2">
+              <input type="date" value={historyDateFrom} onChange={(event) => { setHistoryPage(1); setHistoryDateFrom(event.target.value) }} />
+              <input type="date" value={historyDateTo} onChange={(event) => { setHistoryPage(1); setHistoryDateTo(event.target.value) }} />
+            </div>
+          </div>
+
+          {historyLoading ? (
+            <div className="flex items-center justify-center py-10 text-muted-color gap-2">
+              <i className="fa-solid fa-spinner fa-spin" /> Chargement...
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {history.length === 0 && (
+                <div className="rounded-xl border border-theme px-3 py-6 text-center text-sm text-muted-color">
+                  Aucun ajustement trouve.
+                </div>
+              )}
+              {history.map((movement) => (
+                <div key={movement.id} className="rounded-xl border border-theme px-3 py-3" style={{ background: 'var(--surface-2)' }}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-base-color">{movement.product?.name ?? 'Produit supprime'}</div>
+                      <div className="text-xs text-muted-color mt-0.5">
+                        {movement.product?.reference || '-'} | {movement.user?.name || '-'}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-bold font-mono" style={{ color: Number(movement.qty) >= 0 ? '#3b82f6' : '#dc2626' }}>
+                        {Number(movement.qty) >= 0 ? '+' : ''}{fmt(movement.qty)}
+                      </div>
+                      <div className="text-xs text-muted-color">
+                        {new Date(movement.created_at).toLocaleString('fr-FR')}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-secondary-color mt-2">{movement.note || 'Sans note'}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {historyMeta && historyMeta.last_page > 1 && (
+            <div className="flex items-center justify-between pt-4 mt-4" style={{ borderTop: '1px solid var(--border)' }}>
+              <span className="text-xs text-muted-color">Page {historyMeta.current_page} / {historyMeta.last_page}</span>
+              <div className="flex gap-2">
+                <button disabled={historyPage === 1} onClick={() => setHistoryPage((page) => page - 1)} className="btn-secondary text-xs disabled:opacity-40">
+                  <i className="fa-solid fa-chevron-left" />
+                </button>
+                <button disabled={historyPage === historyMeta.last_page} onClick={() => setHistoryPage((page) => page + 1)} className="btn-secondary text-xs disabled:opacity-40">
+                  <i className="fa-solid fa-chevron-right" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Result modal */}
-      <Modal open={showModal} onClose={() => { setShowModal(false); setResult(null); setCounts({}) }} title="Inventaire enregistré" size="md">
-        <div className="mb-4 flex items-center gap-2 text-sm font-semibold"
-          style={{ color: '#059669' }}>
+      <Modal
+        open={showModal}
+        onClose={() => {
+          setShowModal(false)
+          setResult(null)
+        }}
+        title="Inventaire enregistre"
+        size="md"
+      >
+        <div className="mb-4 flex items-center gap-2 text-sm font-semibold" style={{ color: '#059669' }}>
           <i className="fa-solid fa-circle-check text-lg" />
-          Ajustements de stock créés avec succès
+          Ajustements de stock crees avec succes
         </div>
 
         {result?.adjustments && result.adjustments.length > 0 ? (
@@ -186,19 +334,18 @@ export default function InventaireIndex() {
                 <tr>
                   <th className="text-left pb-2 pr-3">Produit</th>
                   <th className="text-right pb-2 pr-3">Avant</th>
-                  <th className="text-right pb-2 pr-3">Après</th>
-                  <th className="text-right pb-2">Écart</th>
+                  <th className="text-right pb-2 pr-3">Apres</th>
+                  <th className="text-right pb-2">Ecart</th>
                 </tr>
               </thead>
               <tbody>
-                {result.adjustments.map((a, i) => (
-                  <tr key={i} className="table-row">
-                    <td className="py-2 pr-3 font-medium text-base-color">{a.product_name}</td>
-                    <td className="py-2 pr-3 text-right font-mono text-muted-color">{a.before}</td>
-                    <td className="py-2 pr-3 text-right font-mono text-base-color">{a.after}</td>
-                    <td className="py-2 text-right font-mono font-bold"
-                      style={{ color: a.delta >= 0 ? '#3b82f6' : '#dc2626' }}>
-                      {a.delta >= 0 ? '+' : ''}{a.delta}
+                {result.adjustments.map((adjustment, index) => (
+                  <tr key={index} className="table-row">
+                    <td className="py-2 pr-3 font-medium text-base-color">{adjustment.product_name}</td>
+                    <td className="py-2 pr-3 text-right font-mono text-muted-color">{fmt(adjustment.before)}</td>
+                    <td className="py-2 pr-3 text-right font-mono text-base-color">{fmt(adjustment.after)}</td>
+                    <td className="py-2 text-right font-mono font-bold" style={{ color: adjustment.delta >= 0 ? '#3b82f6' : '#dc2626' }}>
+                      {adjustment.delta >= 0 ? '+' : ''}{fmt(adjustment.delta)}
                     </td>
                   </tr>
                 ))}
@@ -206,11 +353,11 @@ export default function InventaireIndex() {
             </table>
           </div>
         ) : (
-          <p className="text-muted-color text-sm">Aucun écart détecté — stock conforme.</p>
+          <p className="text-muted-color text-sm">Aucun ecart detecte. Le stock etait deja conforme.</p>
         )}
 
         <div className="mt-5 flex justify-end">
-          <button onClick={() => { setShowModal(false); setResult(null); setCounts({}) }} className="btn-primary">
+          <button onClick={() => { setShowModal(false); setResult(null) }} className="btn-primary">
             <i className="fa-solid fa-check" /> Fermer
           </button>
         </div>

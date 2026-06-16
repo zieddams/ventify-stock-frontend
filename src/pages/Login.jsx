@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-
-const APP_VERSION = '2.5.0'
+import { APP_VERSION } from '../config/appMeta'
 
 /* Floating orb — pure CSS animation, no library */
 function Orb({ size, color, top, left, delay, duration }) {

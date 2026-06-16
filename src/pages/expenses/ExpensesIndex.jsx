@@ -1,118 +1,171 @@
-import { useEffect, useState } from 'react'
-import api from '../../services/api'
+import { useEffect, useMemo, useState } from 'react'
+import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
+import { getConfigItemLabel, getDefaultConfigValue, useConfigItems } from '../../hooks/useConfigItems'
+import api from '../../services/api'
 
-const CATEGORIES = [
-  { value: 'sfbt',      label: 'SFBT',            color: '#0d9488' },
-  { value: 'sostem',    label: 'SOSTEM',           color: '#3b82f6' },
-  { value: 'huile',     label: 'Huile',            color: '#f59e0b' },
-  { value: 'eau_karim', label: 'Eau Karim',        color: '#06b6d4' },
-  { value: 'charges',   label: 'Charges (CNSS…)', color: '#8b5cf6' },
-  { value: 'divers',    label: 'Divers',           color: '#64748b' },
-]
-
-const EMPTY = {
-  expense_date: new Date().toISOString().slice(0, 10),
-  category: 'divers', label: '', amount: '',
-}
 const DEFAULT_MONTH = new Date().toISOString().slice(0, 7)
 
+function buildEmptyExpense(defaultCategory) {
+  return {
+    expense_date: new Date().toISOString().slice(0, 10),
+    category: defaultCategory,
+    label: '',
+    amount: '',
+  }
+}
+
 export default function ExpensesIndex() {
+  const { items: configItems } = useConfigItems('expense_category', { includeInactive: true })
+  const allCategories = configItems.expense_category ?? []
+  const activeCategories = allCategories.filter((item) => item.active !== false)
+  const defaultCategory = getDefaultConfigValue(activeCategories, allCategories[0]?.value ?? 'divers')
+
   const [expenses, setExpenses] = useState([])
-  const [loading,  setLoading]  = useState(true)
-  const [form,     setForm]     = useState(EMPTY)
-  const [saving,   setSaving]   = useState(false)
-  const [error,    setError]    = useState('')
-  const [month,    setMonth]    = useState(DEFAULT_MONTH)
+  const [loading, setLoading] = useState(true)
+  const [form, setForm] = useState(buildEmptyExpense(defaultCategory))
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [month, setMonth] = useState(DEFAULT_MONTH)
   const [categoryFilter, setCategoryFilter] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
 
-  const load = () => {
+  useEffect(() => {
+    setForm((current) => {
+      if (current.category) {
+        return current
+      }
+
+      return { ...current, category: defaultCategory }
+    })
+  }, [defaultCategory])
+
+  const load = async () => {
     setLoading(true)
+
     const params = {}
 
-    if (month && !dateFrom && !dateTo) params.month = month
-    if (categoryFilter) params.category = categoryFilter
-    if (dateFrom) params.date_from = dateFrom
-    if (dateTo) params.date_to = dateTo
+    if (month && !dateFrom && !dateTo) {
+      params.month = month
+    }
+    if (categoryFilter) {
+      params.category = categoryFilter
+    }
+    if (dateFrom) {
+      params.date_from = dateFrom
+    }
+    if (dateTo) {
+      params.date_to = dateTo
+    }
 
-    api.get('/expenses', { params })
-      .then(r => setExpenses(r.data))
-      .finally(() => setLoading(false))
+    try {
+      const response = await api.get('/expenses', { params })
+      setExpenses(response.data ?? [])
+    } finally {
+      setLoading(false)
+    }
   }
 
-  useEffect(() => { load() }, [month, categoryFilter, dateFrom, dateTo])
+  useEffect(() => {
+    load()
+  }, [month, categoryFilter, dateFrom, dateTo])
 
-  const total = expenses.reduce((s, e) => s + Number(e.amount), 0)
+  const total = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0)
 
-  const handleSubmit = async (ev) => {
-    ev.preventDefault(); setSaving(true); setError('')
+  const categoryMap = useMemo(() => {
+    return new Map(allCategories.map((item) => [String(item.value), item]))
+  }, [allCategories])
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    setSaving(true)
+    setError('')
+
     try {
-      await api.post('/expenses', form); setForm(EMPTY); load()
-    } catch (e) {
-      setError(e.response?.data?.message || 'Erreur lors de l\'enregistrement')
-    } finally { setSaving(false) }
+      await api.post('/expenses', form)
+      setForm(buildEmptyExpense(defaultCategory))
+      await load()
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || "Erreur lors de l'enregistrement")
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('Supprimer cette dépense ?')) return
-    await api.delete(`/expenses/${id}`); load()
+    if (!confirm('Supprimer cette depense ?')) {
+      return
+    }
+
+    await api.delete(`/expenses/${id}`)
+    await load()
   }
 
-  const catInfo = (val) => CATEGORIES.find(c => c.value === val) ?? { label: val, color: '#64748b' }
   const hasFilters = month !== DEFAULT_MONTH || categoryFilter || dateFrom || dateTo
+  const exportParams = dateFrom || dateTo
+    ? { date_from: dateFrom || dateTo, date_to: dateTo || dateFrom }
+    : month
+      ? {
+          date_from: `${month}-01`,
+          date_to: new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).toISOString().slice(0, 10),
+        }
+      : {}
 
   return (
     <div>
-      <PageHeader title="Dépenses" subtitle="Enregistrement et suivi des charges" />
+      <PageHeader
+        title="Depenses"
+        subtitle="Enregistrement et suivi des charges"
+        action={<PageExportActions title="Depenses" csvEntity="expenses" csvParams={exportParams} csvFilename="depenses" />}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Add form */}
         <div className="card">
           <h2 className="text-sm font-semibold text-base-color mb-4 flex items-center gap-2">
-            <i className="fa-solid fa-plus text-teal-500" /> Nouvelle dépense
+            <i className="fa-solid fa-plus text-teal-500" /> Nouvelle depense
           </h2>
           {error && (
-            <div className="text-sm mb-3 p-2.5 rounded-xl border"
-              style={{ color: '#dc2626', background: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.2)' }}>
+            <div
+              className="text-sm mb-3 p-2.5 rounded-xl border"
+              style={{ color: '#dc2626', background: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.2)' }}
+            >
               {error}
             </div>
           )}
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               <label className="block text-xs text-muted-color mb-1 font-medium">Date</label>
-              <input type="date" value={form.expense_date}
-                onChange={e => setForm(f => ({ ...f, expense_date: e.target.value }))} required />
+              <input type="date" value={form.expense_date} onChange={(event) => setForm((current) => ({ ...current, expense_date: event.target.value }))} required />
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Catégorie</label>
-              <select value={form.category}
-                onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
-                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              <label className="block text-xs text-muted-color mb-1 font-medium">Categorie</label>
+              <select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}>
+                {activeCategories.map((item) => (
+                  <option key={item.id} value={item.value}>
+                    {getConfigItemLabel(item)}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Libellé</label>
-              <input type="text" placeholder="Description…" value={form.label}
-                onChange={e => setForm(f => ({ ...f, label: e.target.value }))} required />
+              <label className="block text-xs text-muted-color mb-1 font-medium">Libelle</label>
+              <input type="text" placeholder="Description..." value={form.label} onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))} required />
             </div>
             <div>
               <label className="block text-xs text-muted-color mb-1 font-medium">Montant (TND)</label>
-              <input type="number" step="0.001" min="0" placeholder="0.000" value={form.amount}
-                onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} required />
+              <input type="number" step="0.001" min="0" placeholder="0.000" value={form.amount} onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))} required />
             </div>
             <button type="submit" disabled={saving} className="btn-primary w-full justify-center">
-              {saving ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement…</> : <><i className="fa-solid fa-check" /> Enregistrer</>}
+              {saving ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</> : <><i className="fa-solid fa-check" /> Enregistrer</>}
             </button>
           </form>
         </div>
 
-        {/* List */}
         <div className="lg:col-span-2 card">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-semibold text-base-color">Dépenses du mois</h2>
+              <h2 className="text-sm font-semibold text-base-color">Depenses</h2>
               <p className="text-xs text-muted-color mt-0.5">
                 Total: <span className="font-mono font-semibold" style={{ color: '#ea580c' }}>{total.toFixed(3)} TND</span>
               </p>
@@ -125,9 +178,9 @@ export default function ExpensesIndex() {
               <input
                 type="month"
                 value={month}
-                onChange={e => {
-                  setMonth(e.target.value)
-                  if (e.target.value) {
+                onChange={(event) => {
+                  setMonth(event.target.value)
+                  if (event.target.value) {
                     setDateFrom('')
                     setDateTo('')
                   }
@@ -136,10 +189,14 @@ export default function ExpensesIndex() {
               />
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">CatÃ©gorie</label>
-              <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Categorie</label>
+              <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
                 <option value="">Toutes</option>
-                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                {allCategories.map((item) => (
+                  <option key={item.id} value={item.value}>
+                    {getConfigItemLabel(item)}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -147,8 +204,8 @@ export default function ExpensesIndex() {
               <input
                 type="date"
                 value={dateFrom}
-                onChange={e => {
-                  setDateFrom(e.target.value)
+                onChange={(event) => {
+                  setDateFrom(event.target.value)
                   setMonth('')
                 }}
               />
@@ -158,8 +215,8 @@ export default function ExpensesIndex() {
               <input
                 type="date"
                 value={dateTo}
-                onChange={e => {
-                  setDateTo(e.target.value)
+                onChange={(event) => {
+                  setDateTo(event.target.value)
                   setMonth('')
                 }}
               />
@@ -184,45 +241,53 @@ export default function ExpensesIndex() {
 
           {loading ? (
             <div className="flex items-center justify-center py-12 text-muted-color">
-              <i className="fa-solid fa-spinner fa-spin mr-2" /> Chargement…
+              <i className="fa-solid fa-spinner fa-spin mr-2" /> Chargement...
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr>
-                    {['Date', 'Catégorie', 'Libellé', 'Montant', ''].map(h => (
-                      <th key={h} className={`pb-3 pr-3 ${h === 'Montant' ? 'text-right' : 'text-left'}`}>{h}</th>
+                    {['Date', 'Categorie', 'Libelle', 'Montant', ''].map((heading) => (
+                      <th key={heading} className={`pb-3 pr-3 ${heading === 'Montant' ? 'text-right' : 'text-left'}`}>
+                        {heading}
+                      </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {expenses.length === 0 && (
-                    <tr><td colSpan={5} className="py-12 text-center">
-                      <i className="fa-solid fa-receipt text-3xl text-muted-color opacity-30 mb-2 block" />
-                      <p className="text-muted-color text-sm">Aucune dépense ce mois</p>
-                    </td></tr>
+                    <tr>
+                      <td colSpan={5} className="py-12 text-center">
+                        <i className="fa-solid fa-receipt text-3xl text-muted-color opacity-30 mb-2 block" />
+                        <p className="text-muted-color text-sm">Aucune depense sur cette periode</p>
+                      </td>
+                    </tr>
                   )}
-                  {expenses.map(e => {
-                    const cat = catInfo(e.category?.value ?? e.category)
+                  {expenses.map((expense) => {
+                    const categoryValue = expense.category?.value ?? expense.category
+                    const categoryLabel = expense.category_label || getConfigItemLabel(categoryMap.get(String(categoryValue)), categoryValue)
+                    const categoryMeta = expense.category_meta ?? categoryMap.get(String(categoryValue))
+                    const badgeColor = categoryMeta?.color || '#64748b'
+                    const badgeIcon = categoryMeta?.icon || 'fa-solid fa-tag'
+
                     return (
-                      <tr key={e.id} className="table-row">
+                      <tr key={expense.id} className="table-row">
                         <td className="py-3 pr-3 text-secondary-color text-xs font-mono">
-                          {new Date(e.expense_date).toLocaleDateString('fr-FR')}
+                          {new Date(expense.expense_date).toLocaleDateString('fr-FR')}
                         </td>
                         <td className="py-3 pr-3">
-                          <span className="text-xs font-semibold px-2 py-1 rounded-lg"
-                            style={{ background: cat.color + '18', color: cat.color }}>
-                            {cat.label}
+                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-lg" style={{ background: `${badgeColor}18`, color: badgeColor }}>
+                            <i className={badgeIcon} />
+                            {categoryLabel}
                           </span>
                         </td>
-                        <td className="py-3 pr-3 text-base-color">{e.label}</td>
+                        <td className="py-3 pr-3 text-base-color">{expense.label}</td>
                         <td className="py-3 pr-3 text-right font-mono font-bold text-sm" style={{ color: '#ea580c' }}>
-                          {Number(e.amount).toFixed(3)}
+                          {Number(expense.amount).toFixed(3)}
                         </td>
                         <td className="py-3 text-right">
-                          <button onClick={() => handleDelete(e.id)}
-                            className="text-muted-color hover:text-red-500 transition-colors p-1">
+                          <button onClick={() => handleDelete(expense.id)} className="text-muted-color hover:text-red-500 transition-colors p-1">
                             <i className="fa-solid fa-trash text-xs" />
                           </button>
                         </td>

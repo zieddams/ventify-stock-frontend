@@ -375,3 +375,28 @@ html.dark {
   outline-offset: 2px;
   border-radius: 0.25rem;
 }
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body,
+  html {
+    background: #ffffff !important;
+  }
+
+  main {
+    overflow: visible !important;
+  }
+
+  table {
+    break-inside: auto;
+  }
+
+  tr,
+  td,
+  th {
+    break-inside: avoid;
+  }
+}
