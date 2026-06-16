@@ -177,8 +177,6 @@ function FitTerrainBounds({ reps, routeTrace }) {
 }
 
 function MetricCard({ label, value, icon, color, sub }) {
-  const terrainTrackedCount = terrain.stats?.users_total ?? terrain.stats?.reps_total ?? 0
-
   return (
     <div className="card py-3 px-4 flex items-center gap-3">
       <div
@@ -1002,6 +1000,7 @@ export default function LiveMapIndex() {
   }, [])
 
   const customerSubtitle = `${customers.length} clients · ${customers.filter(customer => customer.lat != null && customer.lng != null).length} geolocalises`
+  const terrainTrackedCount = terrain.stats?.users_total ?? terrain.stats?.reps_total ?? 0
   const terrainSubtitle = terrain.generated_at
     ? `${terrain.stats?.reps_total ?? 0} commerciaux suivis · MAJ ${formatDateTime(terrain.generated_at)}`
     : 'Suivi mobile, GPS et stock terrain'
@@ -1013,7 +1012,7 @@ export default function LiveMapIndex() {
         subtitle={activeTab === 'terrain'
           ? (terrain.generated_at
             ? `${terrainTrackedCount} comptes suivis - MAJ ${formatDateTime(terrain.generated_at)}`
-            : 'Suivi mobile, GPS et stock terrain')
+            : terrainSubtitle)
           : customerSubtitle}
         action={(
           <button
