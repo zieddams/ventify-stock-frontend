@@ -16,8 +16,39 @@ L.Icon.Default.mergeOptions({
 })
 
 const ZONE_COLORS = ['#0d9488', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#f97316', '#06b6d4', '#10b981']
-const DEFAULT_CENTER = [37.2744, 9.8739]
-const DEFAULT_ZOOM = 11
+const TUNISIA_BOUNDS = [
+  [30.0, 7.0],
+  [37.6, 11.8],
+]
+const DEFAULT_CENTER = [34.2, 9.6]
+const DEFAULT_ZOOM = 6
+
+function getTunisiaPoint(latitude, longitude) {
+  const lat = Number(latitude)
+  const lng = Number(longitude)
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return null
+  }
+
+  if (
+    lat < TUNISIA_BOUNDS[0][0]
+    || lat > TUNISIA_BOUNDS[1][0]
+    || lng < TUNISIA_BOUNDS[0][1]
+    || lng > TUNISIA_BOUNDS[1][1]
+  ) {
+    return null
+  }
+
+  return [lat, lng]
+}
+
+function fitMapToTunisia(map) {
+  map.fitBounds(TUNISIA_BOUNDS, {
+    padding: [18, 18],
+    maxZoom: DEFAULT_ZOOM,
+  })
+}
 
 function formatNumber(value) {
   return new Intl.NumberFormat('fr-TN', {
@@ -142,12 +173,16 @@ function FitCustomersBounds({ customers }) {
 
   useEffect(() => {
     const points = customers
-      .filter(customer => customer.lat != null && customer.lng != null)
-      .map(customer => [Number(customer.lat), Number(customer.lng)])
+      .map(customer => getTunisiaPoint(customer.lat, customer.lng))
+      .filter(Boolean)
 
     if (points.length > 0) {
       try {
-        map.fitBounds(points, { padding: [32, 32] })
+        map.fitBounds(points, { padding: [32, 32], maxZoom: 13 })
+      } catch {}
+    } else {
+      try {
+        fitMapToTunisia(map)
       } catch {}
     }
   }, [customers, map])
@@ -170,13 +205,13 @@ function FitTerrainBounds({ reps, routeTrace, selectedRep }) {
   const map = useMap()
 
   useEffect(() => {
-    const tracePoints = routeTrace.map(item => [Number(item.latitude), Number(item.longitude)])
+    const tracePoints = routeTrace
+      .map(item => getTunisiaPoint(item.latitude, item.longitude))
+      .filter(Boolean)
     const repPoints = reps
-      .filter(rep => rep.map_position)
-      .map(rep => [Number(rep.map_position.latitude), Number(rep.map_position.longitude)])
-    const selectedPoint = selectedRep?.map_position
-      ? [Number(selectedRep.map_position.latitude), Number(selectedRep.map_position.longitude)]
-      : null
+      .map(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
+      .filter(Boolean)
+    const selectedPoint = getTunisiaPoint(selectedRep?.map_position?.latitude, selectedRep?.map_position?.longitude)
 
     let points = tracePoints.length > 1 ? tracePoints : repPoints
 
@@ -192,6 +227,10 @@ function FitTerrainBounds({ reps, routeTrace, selectedRep }) {
         } else {
           map.fitBounds(points, { padding: [36, 36], maxZoom: 13 })
         }
+      } catch {}
+    } else {
+      try {
+        fitMapToTunisia(map)
       } catch {}
     }
   }, [map, reps, routeTrace, selectedRep])
@@ -274,8 +313,8 @@ function ClientsTab({
     return true
   })
 
-  const mapped = filtered.filter(customer => customer.lat != null && customer.lng != null)
-  const unmapped = filtered.filter(customer => customer.lat == null || customer.lng == null)
+  const mapped = filtered.filter(customer => getTunisiaPoint(customer.lat, customer.lng))
+  const unmapped = filtered.filter(customer => !getTunisiaPoint(customer.lat, customer.lng))
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -356,6 +395,9 @@ function ClientsTab({
             <MapContainer
               center={DEFAULT_CENTER}
               zoom={DEFAULT_ZOOM}
+              minZoom={DEFAULT_ZOOM}
+              maxBounds={TUNISIA_BOUNDS}
+              maxBoundsViscosity={1}
               style={{ height: '100%', width: '100%' }}
               zoomControl
             >
@@ -365,34 +407,39 @@ function ClientsTab({
               />
               <FitCustomersBounds customers={mapped} />
 
-              {mapped.map(customer => (
-                <Marker
-                  key={customer.id}
-                  position={[Number(customer.lat), Number(customer.lng)]}
-                  icon={makeDotIcon(zoneColor(customer.zone_id), selectedCustomerId === customer.id ? 14 : 10)}
-                  eventHandlers={{ click: () => onSelectCustomer(customer.id) }}
-                >
-                  <Popup>
-                    <div style={{ minWidth: 160 }}>
-                      <div style={{ fontWeight: 700, marginBottom: 4 }}>{customer.name}</div>
-                      {customer.phone && <div style={{ color: '#64748b', fontSize: 12 }}>{customer.phone}</div>}
-                      {customer.address && <div style={{ color: '#64748b', fontSize: 12 }}>{customer.address}</div>}
-                      {customer.credit_balance != null && Math.abs(customer.credit_balance) > 0 && (
-                        <div
-                          style={{
-                            marginTop: 6,
-                            fontWeight: 600,
-                            fontSize: 12,
-                            color: customer.credit_balance > 0 ? '#dc2626' : '#059669',
-                          }}
-                        >
-                          Credit: {Number(customer.credit_balance).toFixed(3)} TND
-                        </div>
-                      )}
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
+              {mapped.map(customer => {
+                const point = getTunisiaPoint(customer.lat, customer.lng)
+                if (!point) return null
+
+                return (
+                  <Marker
+                    key={customer.id}
+                    position={point}
+                    icon={makeDotIcon(zoneColor(customer.zone_id), selectedCustomerId === customer.id ? 14 : 10)}
+                    eventHandlers={{ click: () => onSelectCustomer(customer.id) }}
+                  >
+                    <Popup>
+                      <div style={{ minWidth: 160 }}>
+                        <div style={{ fontWeight: 700, marginBottom: 4 }}>{customer.name}</div>
+                        {customer.phone && <div style={{ color: '#64748b', fontSize: 12 }}>{customer.phone}</div>}
+                        {customer.address && <div style={{ color: '#64748b', fontSize: 12 }}>{customer.address}</div>}
+                        {customer.credit_balance != null && Math.abs(customer.credit_balance) > 0 && (
+                          <div
+                            style={{
+                              marginTop: 6,
+                              fontWeight: 600,
+                              fontSize: 12,
+                              color: customer.credit_balance > 0 ? '#dc2626' : '#059669',
+                            }}
+                          >
+                            Credit: {Number(customer.credit_balance).toFixed(3)} TND
+                          </div>
+                        )}
+                      </div>
+                    </Popup>
+                  </Marker>
+                )
+              })}
             </MapContainer>
           )}
         </div>
@@ -439,9 +486,11 @@ function TerrainTab({
   const selectedRep = (terrain.reps ?? []).find(rep => String(rep.id) === String(selectedRepId))
   const presenceMeta = getPresenceMeta(selectedRep)
   const routeMeta = getRouteMeta(selectedRep?.route_session)
-  const routeTracePoints = routeTrace.map(item => [Number(item.latitude), Number(item.longitude)])
-  const terrainPositions = (terrain.reps ?? []).filter(rep => rep.map_position)
-  const selectedRepHasMapPosition = Boolean(selectedRep?.map_position)
+  const routeTracePoints = routeTrace
+    .map(item => getTunisiaPoint(item.latitude, item.longitude))
+    .filter(Boolean)
+  const terrainPositions = (terrain.reps ?? []).filter(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
+  const selectedRepHasMapPosition = Boolean(getTunisiaPoint(selectedRep?.map_position?.latitude, selectedRep?.map_position?.longitude))
 
   if (terrainLoading && !terrain.reps?.length) {
     return <PageLoader />
@@ -669,6 +718,9 @@ function TerrainTab({
               <MapContainer
                 center={DEFAULT_CENTER}
                 zoom={DEFAULT_ZOOM}
+                minZoom={DEFAULT_ZOOM}
+                maxBounds={TUNISIA_BOUNDS}
+                maxBoundsViscosity={1}
                 style={{ height: '100%', width: '100%' }}
                 zoomControl
               >
@@ -681,11 +733,16 @@ function TerrainTab({
                 {terrainPositions.map(rep => {
                   const presence = getPresenceMeta(rep)
                   const selected = String(rep.id) === String(selectedRepId)
+                  const point = getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude)
+
+                  if (!point) {
+                    return null
+                  }
 
                   return (
                     <Marker
                       key={rep.id}
-                      position={[Number(rep.map_position.latitude), Number(rep.map_position.longitude)]}
+                      position={point}
                       icon={makeRepIcon(selected ? '#2563eb' : presence.color, selected)}
                       eventHandlers={{ click: () => onSelectRep(rep.id) }}
                     >
@@ -709,9 +766,9 @@ function TerrainTab({
                   )
                 })}
 
-                {selectedRep?.map_position && selectedRep.map_position.accuracy > 0 && (
+                {selectedRepHasMapPosition && selectedRep?.map_position && selectedRep.map_position.accuracy > 0 && (
                   <Circle
-                    center={[Number(selectedRep.map_position.latitude), Number(selectedRep.map_position.longitude)]}
+                    center={getTunisiaPoint(selectedRep.map_position.latitude, selectedRep.map_position.longitude)}
                     radius={Number(selectedRep.map_position.accuracy)}
                     pathOptions={{ color: '#2563eb', fillColor: '#2563eb', fillOpacity: 0.08 }}
                   />
@@ -731,7 +788,7 @@ function TerrainTab({
                 <div>
                   <div className="text-sm font-semibold text-base-color">Position introuvable pour ce compte</div>
                   <div className="text-xs text-muted-color mt-1">
-                    La carte reste focalisee sur les comptes qui ont une position valide. Verifiez le GPS ou ouvrez une session terrain sur le mobile concerne.
+                    La carte reste limitee a la Tunisie. Cette position est absente ou hors Tunisie, donc elle n'est pas affichee.
                   </div>
                 </div>
               </div>
@@ -996,12 +1053,12 @@ export default function LiveMapIndex() {
     }
 
     const repCandidates = terrain.reps.filter(rep => rep.role === 'rep')
-    const fallbackRep = repCandidates.find(rep => rep.route_session?.status === 'open' && rep.map_position)
-      || repCandidates.find(rep => rep.presence?.is_online && rep.map_position)
-      || repCandidates.find(rep => rep.map_position)
-      || terrain.reps.find(rep => rep.route_session?.status === 'open' && rep.map_position)
-      || terrain.reps.find(rep => rep.presence?.is_online && rep.map_position)
-      || terrain.reps.find(rep => rep.map_position)
+    const fallbackRep = repCandidates.find(rep => rep.route_session?.status === 'open' && getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
+      || repCandidates.find(rep => rep.presence?.is_online && getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
+      || repCandidates.find(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
+      || terrain.reps.find(rep => rep.route_session?.status === 'open' && getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
+      || terrain.reps.find(rep => rep.presence?.is_online && getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
+      || terrain.reps.find(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
       || repCandidates.find(rep => rep.presence?.is_online)
       || terrain.reps.find(rep => rep.presence?.is_online)
       || terrain.reps.find(rep => rep.route_session?.status === 'open')
@@ -1045,9 +1102,9 @@ export default function LiveMapIndex() {
     }
   }, [])
 
-  const customerSubtitle = `${customers.length} clients · ${customers.filter(customer => customer.lat != null && customer.lng != null).length} geolocalises`
+  const customerSubtitle = `${customers.length} clients · ${customers.filter(customer => getTunisiaPoint(customer.lat, customer.lng)).length} geolocalises`
   const terrainTrackedCount = terrain.stats?.users_total ?? terrain.stats?.reps_total ?? 0
-  const terrainMappedCount = terrain.reps.filter(rep => rep.map_position).length
+  const terrainMappedCount = terrain.reps.filter(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude)).length
   const terrainOnlineCount = terrain.stats?.online_users ?? terrain.stats?.online_reps ?? 0
   const terrainSubtitle = terrain.generated_at
     ? `${terrain.stats?.reps_total ?? 0} commerciaux suivis · MAJ ${formatDateTime(terrain.generated_at)}`
