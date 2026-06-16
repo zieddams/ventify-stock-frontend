@@ -1,21 +1,54 @@
-import { useEffect, useState, useRef } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { Circle, MapContainer, Marker, Popup, Polyline, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import api from '../../services/api'
 import PageHeader from '../../components/PageHeader'
+import { PageLoader } from '../../components/Spinner'
+import api from '../../services/api'
+import { subscribeToOpsMonitor } from '../../services/realtime'
 
-// Fix default leaflet marker icons in bundlers
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  iconUrl:       'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  shadowUrl:     'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 })
 
 const ZONE_COLORS = ['#0d9488', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#f97316', '#06b6d4', '#10b981']
+const DEFAULT_CENTER = [37.2744, 9.8739]
+const DEFAULT_ZOOM = 11
 
-function makeIcon(color, size = 10) {
+function formatNumber(value) {
+  return new Intl.NumberFormat('fr-TN', {
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  }).format(Number(value ?? 0))
+}
+
+function formatMoney(value) {
+  return `${formatNumber(value)} TND`
+}
+
+function formatDateTime(value) {
+  if (!value) return '—'
+  return new Date(value).toLocaleString('fr-FR')
+}
+
+function formatRelativeTime(value) {
+  if (!value) return 'Aucune activite'
+
+  const minutes = Math.floor((Date.now() - new Date(value).getTime()) / 60000)
+  if (minutes < 1) return 'A l\'instant'
+  if (minutes < 60) return `Il y a ${minutes} min`
+
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `Il y a ${hours}h`
+
+  return `Il y a ${Math.floor(hours / 24)}j`
+}
+
+function makeDotIcon(color, size = 10) {
   return L.divIcon({
     className: '',
     html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>`,
@@ -24,191 +57,1012 @@ function makeIcon(color, size = 10) {
   })
 }
 
-// Bizerte center (fallback)
-const DEFAULT_CENTER = [37.2744, 9.8739]
-const DEFAULT_ZOOM   = 11
+function makeRepIcon(color, selected = false) {
+  const size = selected ? 34 : 28
 
-function FitBoundsControl({ customers }) {
+  return L.divIcon({
+    className: '',
+    html: `
+      <div style="
+        width:${size}px;
+        height:${size}px;
+        border-radius:999px;
+        background:${color};
+        border:3px solid rgba(255,255,255,0.92);
+        box-shadow:0 8px 18px rgba(15,23,42,0.28);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        color:#fff;
+      ">
+        <i class="fa-solid fa-truck-fast" style="font-size:${selected ? 13 : 11}px;"></i>
+      </div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
+  })
+}
+
+function getPresenceMeta(rep) {
+  if (rep?.presence?.is_online) {
+    return {
+      label: 'En ligne',
+      color: '#059669',
+      bg: 'rgba(5,150,105,0.12)',
+      dot: 'bg-emerald-500',
+    }
+  }
+
+  return {
+    label: 'Hors ligne',
+    color: '#64748b',
+    bg: 'rgba(100,116,139,0.12)',
+    dot: 'bg-slate-400',
+  }
+}
+
+function getRouteMeta(session) {
+  if (!session) {
+    return {
+      label: 'Sans session',
+      color: '#64748b',
+      bg: 'rgba(100,116,139,0.12)',
+      icon: 'fa-solid fa-route',
+    }
+  }
+
+  if (session.status === 'open') {
+    return {
+      label: 'Session ouverte',
+      color: '#0d9488',
+      bg: 'rgba(13,148,136,0.12)',
+      icon: 'fa-solid fa-route',
+    }
+  }
+
+  return {
+    label: 'Session cloturee',
+    color: '#f97316',
+    bg: 'rgba(249,115,22,0.12)',
+    icon: 'fa-solid fa-flag-checkered',
+  }
+}
+
+function FitCustomersBounds({ customers }) {
   const map = useMap()
+
   useEffect(() => {
-    if (customers.length === 0) return
-    const pts = customers.filter(c => c.lat && c.lng).map(c => [c.lat, c.lng])
-    if (pts.length > 0) {
-      try { map.fitBounds(pts, { padding: [32, 32] }) } catch {}
+    const points = customers
+      .filter(customer => customer.lat != null && customer.lng != null)
+      .map(customer => [Number(customer.lat), Number(customer.lng)])
+
+    if (points.length > 0) {
+      try {
+        map.fitBounds(points, { padding: [32, 32] })
+      } catch {}
     }
   }, [customers, map])
+
   return null
 }
 
-export default function LiveMapIndex() {
-  const [customers, setCustomers] = useState([])
-  const [zones,     setZones]     = useState([])
-  const [loading,   setLoading]   = useState(true)
-  const [selected,  setSelected]  = useState(null)
-  const [filterZone,setFilterZone]= useState('')
-  const [search,    setSearch]    = useState('')
+function FitTerrainBounds({ reps, routeTrace }) {
+  const map = useMap()
 
   useEffect(() => {
-    Promise.all([
-      api.get('/customers'),
-      api.get('/zones'),
-    ]).then(([cRes, zRes]) => {
-      setCustomers(cRes.data ?? [])
-      setZones(zRes.data ?? [])
-    }).finally(() => setLoading(false))
-  }, [])
+    const tracePoints = routeTrace.map(item => [Number(item.latitude), Number(item.longitude)])
+    const repPoints = reps
+      .filter(rep => rep.map_position)
+      .map(rep => [Number(rep.map_position.latitude), Number(rep.map_position.longitude)])
 
+    const points = tracePoints.length > 1 ? tracePoints : repPoints
+
+    if (points.length > 0) {
+      try {
+        map.fitBounds(points, { padding: [36, 36] })
+      } catch {}
+    }
+  }, [map, reps, routeTrace])
+
+  return null
+}
+
+function MetricCard({ label, value, icon, color, sub }) {
+  return (
+    <div className="card py-3 px-4 flex items-center gap-3">
+      <div
+        className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ background: `${color}1a` }}
+      >
+        <i className={`${icon} text-sm`} style={{ color }} />
+      </div>
+      <div className="min-w-0">
+        <div className="text-xs text-muted-color">{label}</div>
+        <div className="text-sm font-bold text-base-color">{value}</div>
+        {sub && <div className="text-[11px] text-muted-color mt-0.5">{sub}</div>}
+      </div>
+    </div>
+  )
+}
+
+function DetailRow({ label, value }) {
+  return (
+    <div className="flex items-start justify-between gap-3 py-2">
+      <span className="text-xs text-muted-color">{label}</span>
+      <span className="text-xs font-medium text-base-color text-right">{value ?? '—'}</span>
+    </div>
+  )
+}
+
+function TabButton({ active, icon, label, count, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2"
+      style={active
+        ? { background: 'rgba(13,148,136,0.12)', color: '#0d9488', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)' }
+        : { background: 'var(--surface)', color: 'var(--text-secondary)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+    >
+      <i className={icon} />
+      <span>{label}</span>
+      {count != null && (
+        <span
+          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+          style={active
+            ? { background: 'rgba(13,148,136,0.18)', color: '#0d9488' }
+            : { background: 'rgba(100,116,139,0.12)', color: '#64748b' }}
+        >
+          {count}
+        </span>
+      )}
+    </button>
+  )
+}
+
+function ClientsTab({
+  customers,
+  zones,
+  loading,
+  selectedCustomerId,
+  onSelectCustomer,
+  filterZone,
+  onFilterZone,
+  search,
+  onSearch,
+}) {
   const zoneColor = (zoneId) => {
     if (!zoneId) return '#94a3b8'
-    const idx = zones.findIndex(z => z.id === zoneId)
-    return ZONE_COLORS[idx % ZONE_COLORS.length] ?? '#94a3b8'
+    const index = zones.findIndex(zone => zone.id === zoneId)
+    return ZONE_COLORS[index % ZONE_COLORS.length] ?? '#94a3b8'
   }
 
-  const filtered = customers.filter(c => {
-    if (filterZone && String(c.zone_id) !== String(filterZone)) return false
-    if (search && !c.name?.toLowerCase().includes(search.toLowerCase())) return false
+  const filtered = customers.filter(customer => {
+    if (filterZone && String(customer.zone_id) !== String(filterZone)) return false
+    if (search && !customer.name?.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
 
-  const mapped   = filtered.filter(c => c.lat && c.lng)
-  const unmapped = filtered.filter(c => !c.lat && !c.lng)
+  const mapped = filtered.filter(customer => customer.lat != null && customer.lng != null)
+  const unmapped = filtered.filter(customer => customer.lat == null || customer.lng == null)
 
   return (
-    <div>
-      <PageHeader
-        title="Carte clients"
-        subtitle={`${customers.length} clients · ${mapped.length} géolocalisés`}
-      />
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <div className="lg:col-span-1 space-y-3">
+        <div className="card">
+          <h2 className="text-sm font-semibold text-base-color mb-3">
+            <i className="fa-solid fa-filter text-teal-500 mr-2" />
+            Filtres
+          </h2>
+          <div className="space-y-2">
+            <input
+              placeholder="Rechercher un client..."
+              value={search}
+              onChange={event => onSearch(event.target.value)}
+            />
+            <select value={filterZone} onChange={event => onFilterZone(event.target.value)}>
+              <option value="">Toutes les zones</option>
+              {zones.map(zone => (
+                <option key={zone.id} value={zone.id}>{zone.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        {/* Sidebar */}
-        <div className="lg:col-span-1 space-y-3">
-          {/* Filters */}
+        {zones.length > 0 && (
           <div className="card">
-            <h2 className="text-sm font-semibold text-base-color mb-3">
-              <i className="fa-solid fa-filter text-teal-500 mr-2" />Filtres
+            <h2 className="text-sm font-semibold text-base-color mb-3">Zones</h2>
+            <div className="space-y-1.5">
+              {zones.map((zone, index) => (
+                <button
+                  key={zone.id}
+                  onClick={() => onFilterZone(filterZone === String(zone.id) ? '' : String(zone.id))}
+                  className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs font-medium text-left transition-colors"
+                  style={filterZone === String(zone.id)
+                    ? { background: `${ZONE_COLORS[index % ZONE_COLORS.length]}15`, color: ZONE_COLORS[index % ZONE_COLORS.length] }
+                    : { color: 'var(--text-secondary)' }}
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    style={{ background: ZONE_COLORS[index % ZONE_COLORS.length] }}
+                  />
+                  {zone.name}
+                  <span className="ml-auto text-muted-color font-normal">
+                    {customers.filter(customer => customer.zone_id === zone.id).length}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {unmapped.length > 0 && (
+          <div className="card">
+            <h2 className="text-sm font-semibold text-base-color mb-2 flex items-center gap-2">
+              <i className="fa-solid fa-location-dot-slash text-amber-500" />
+              Non geolocalises ({unmapped.length})
             </h2>
-            <div className="space-y-2">
-              <input placeholder="Rechercher un client…" value={search}
-                onChange={e => setSearch(e.target.value)} />
-              <select value={filterZone} onChange={e => setFilterZone(e.target.value)}>
-                <option value="">Toutes les zones</option>
-                {zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
-              </select>
+            <div className="space-y-1 max-h-48 overflow-y-auto">
+              {unmapped.map(customer => (
+                <div key={customer.id} className="flex items-center gap-2 py-1.5 px-2 rounded-lg text-xs text-secondary-color">
+                  <span
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ background: zoneColor(customer.zone_id) }}
+                  />
+                  {customer.name}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="lg:col-span-3">
+        <div className="card overflow-hidden p-0" style={{ height: 560 }}>
+          {loading ? (
+            <PageLoader />
+          ) : (
+            <MapContainer
+              center={DEFAULT_CENTER}
+              zoom={DEFAULT_ZOOM}
+              style={{ height: '100%', width: '100%' }}
+              zoomControl
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <FitCustomersBounds customers={mapped} />
+
+              {mapped.map(customer => (
+                <Marker
+                  key={customer.id}
+                  position={[Number(customer.lat), Number(customer.lng)]}
+                  icon={makeDotIcon(zoneColor(customer.zone_id), selectedCustomerId === customer.id ? 14 : 10)}
+                  eventHandlers={{ click: () => onSelectCustomer(customer.id) }}
+                >
+                  <Popup>
+                    <div style={{ minWidth: 160 }}>
+                      <div style={{ fontWeight: 700, marginBottom: 4 }}>{customer.name}</div>
+                      {customer.phone && <div style={{ color: '#64748b', fontSize: 12 }}>{customer.phone}</div>}
+                      {customer.address && <div style={{ color: '#64748b', fontSize: 12 }}>{customer.address}</div>}
+                      {customer.credit_balance != null && Math.abs(customer.credit_balance) > 0 && (
+                        <div
+                          style={{
+                            marginTop: 6,
+                            fontWeight: 600,
+                            fontSize: 12,
+                            color: customer.credit_balance > 0 ? '#dc2626' : '#059669',
+                          }}
+                        >
+                          Credit: {Number(customer.credit_balance).toFixed(3)} TND
+                        </div>
+                      )}
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
+            </MapContainer>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+          <MetricCard label="Total clients" value={customers.length} color="#0d9488" icon="fa-solid fa-users" />
+          <MetricCard label="Sur la carte" value={mapped.length} color="#3b82f6" icon="fa-solid fa-location-dot" />
+          <MetricCard label="Sans position" value={unmapped.length} color="#f59e0b" icon="fa-solid fa-location-dot-slash" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TerrainTab({
+  terrain,
+  terrainLoading,
+  terrainError,
+  repSearch,
+  onRepSearch,
+  onlineOnly,
+  onOnlineOnly,
+  selectedRepId,
+  onSelectRep,
+  routeTrace,
+  traceLoading,
+}) {
+  const filteredReps = (terrain.reps ?? []).filter(rep => {
+    if (onlineOnly && !rep.presence?.is_online) return false
+
+    const needle = repSearch.trim().toLowerCase()
+    if (!needle) return true
+
+    return [
+      rep.name,
+      rep.email,
+      rep.zone?.name,
+      rep.device?.brand,
+      rep.device?.model,
+      rep.device?.app_version,
+    ].some(value => String(value ?? '').toLowerCase().includes(needle))
+  })
+
+  const selectedRep = (terrain.reps ?? []).find(rep => String(rep.id) === String(selectedRepId))
+  const presenceMeta = getPresenceMeta(selectedRep)
+  const routeMeta = getRouteMeta(selectedRep?.route_session)
+  const routeTracePoints = routeTrace.map(item => [Number(item.latitude), Number(item.longitude)])
+  const terrainPositions = (terrain.reps ?? []).filter(rep => rep.map_position)
+
+  if (terrainLoading && !terrain.reps?.length) {
+    return <PageLoader />
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+        <MetricCard
+          label="Commerciaux en ligne"
+          value={terrain.stats?.online_reps ?? 0}
+          sub={`${terrain.stats?.active_reps ?? 0} actifs`}
+          icon="fa-solid fa-signal"
+          color="#0d9488"
+        />
+        <MetricCard
+          label="Sessions ouvertes"
+          value={terrain.stats?.open_sessions ?? 0}
+          sub={`${terrain.stats?.reps_total ?? 0} commerciaux suivis`}
+          icon="fa-solid fa-route"
+          color="#3b82f6"
+        />
+        <MetricCard
+          label="Factures du jour"
+          value={terrain.stats?.today_invoices ?? 0}
+          sub={formatMoney(terrain.stats?.today_revenue ?? 0)}
+          icon="fa-solid fa-file-invoice"
+          color="#8b5cf6"
+        />
+        <MetricCard
+          label="Alertes camion"
+          value={terrain.stats?.camion_low_stock ?? 0}
+          sub="References a surveiller"
+          icon="fa-solid fa-triangle-exclamation"
+          color="#f59e0b"
+        />
+        <MetricCard
+          label="Derniere mise a jour"
+          value={formatRelativeTime(terrain.generated_at)}
+          sub={formatDateTime(terrain.generated_at)}
+          icon="fa-solid fa-tower-broadcast"
+          color="#10b981"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+        <div className="xl:col-span-4 space-y-4">
+          <div className="card">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
+                <i className="fa-solid fa-mobile-screen-button text-teal-500" />
+                Sessions terrain
+              </h2>
+              <label className="flex items-center gap-2 text-xs text-muted-color cursor-pointer">
+                <input type="checkbox" checked={onlineOnly} onChange={event => onOnlineOnly(event.target.checked)} />
+                En ligne seulement
+              </label>
+            </div>
+            <input
+              placeholder="Rechercher un commercial ou une version app..."
+              value={repSearch}
+              onChange={event => onRepSearch(event.target.value)}
+            />
+            <div className="mt-3 space-y-2 max-h-[26rem] overflow-y-auto">
+              {filteredReps.map(rep => {
+                const repPresence = getPresenceMeta(rep)
+                const repRoute = getRouteMeta(rep.route_session)
+                const selected = String(rep.id) === String(selectedRepId)
+
+                return (
+                  <button
+                    key={rep.id}
+                    onClick={() => onSelectRep(rep.id)}
+                    className="w-full text-left rounded-2xl px-3 py-3 transition-all"
+                    style={selected
+                      ? { background: 'rgba(13,148,136,0.10)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)' }
+                      : { background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-base-color truncate">{rep.name}</div>
+                        <div className="text-xs text-muted-color truncate">
+                          {rep.zone?.name ?? 'Zone non definie'} · {rep.device?.brand || rep.device?.model
+                            ? `${rep.device?.brand ?? ''} ${rep.device?.model ?? ''}`.trim()
+                            : 'Aucun appareil remonte'}
+                        </div>
+                      </div>
+                      <div
+                        className="text-[11px] font-semibold px-2 py-1 rounded-full flex-shrink-0"
+                        style={{ background: repPresence.bg, color: repPresence.color }}
+                      >
+                        {repPresence.label}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2 text-[11px] text-muted-color">
+                      <span className={`w-2 h-2 rounded-full ${repPresence.dot}`} />
+                      <span>{formatRelativeTime(rep.presence?.last_seen)}</span>
+                      <span>·</span>
+                      <span style={{ color: repRoute.color }}>{repRoute.label}</span>
+                    </div>
+                  </button>
+                )
+              })}
+
+              {filteredReps.length === 0 && (
+                <div className="rounded-2xl px-4 py-8 text-center" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                  <i className="fa-solid fa-magnifying-glass text-muted-color opacity-50 mb-2 block" />
+                  <p className="text-sm text-muted-color">Aucun commercial ne correspond aux filtres.</p>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Zone legend */}
-          {zones.length > 0 && (
-            <div className="card">
-              <h2 className="text-sm font-semibold text-base-color mb-3">Zones</h2>
-              <div className="space-y-1.5">
-                {zones.map((z, i) => (
-                  <button key={z.id}
-                    onClick={() => setFilterZone(filterZone === String(z.id) ? '' : String(z.id))}
-                    className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs font-medium text-left transition-colors"
-                    style={filterZone === String(z.id)
-                      ? { background: ZONE_COLORS[i % ZONE_COLORS.length] + '15', color: ZONE_COLORS[i % ZONE_COLORS.length] }
-                      : { color: 'var(--text-secondary)' }
-                    }>
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                      style={{ background: ZONE_COLORS[i % ZONE_COLORS.length] }} />
-                    {z.name}
-                    <span className="ml-auto text-muted-color font-normal">
-                      {customers.filter(c => c.zone_id === z.id).length}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Non-geolocated customers */}
-          {unmapped.length > 0 && (
-            <div className="card">
-              <h2 className="text-sm font-semibold text-base-color mb-2 flex items-center gap-2">
-                <i className="fa-solid fa-location-dot-slash text-amber-500" />
-                Non géolocalisés ({unmapped.length})
-              </h2>
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                {unmapped.map(c => (
-                  <div key={c.id} className="flex items-center gap-2 py-1.5 px-2 rounded-lg text-xs text-secondary-color">
-                    <span className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ background: zoneColor(c.zone_id) }} />
-                    {c.name}
+          {selectedRep ? (
+            <>
+              <div className="card">
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <div>
+                    <div className="text-lg font-bold text-base-color">{selectedRep.name}</div>
+                    <div className="text-sm text-muted-color">
+                      {selectedRep.zone?.name ?? 'Zone non definie'} · {selectedRep.email}
+                    </div>
                   </div>
-                ))}
+                  <div className="flex flex-col items-end gap-2">
+                    <span
+                      className="text-xs font-semibold px-2 py-1 rounded-full"
+                      style={{ background: presenceMeta.bg, color: presenceMeta.color }}
+                    >
+                      {presenceMeta.label}
+                    </span>
+                    <span
+                      className="text-xs font-semibold px-2 py-1 rounded-full"
+                      style={{ background: routeMeta.bg, color: routeMeta.color }}
+                    >
+                      <i className={`${routeMeta.icon} mr-1`} />
+                      {routeMeta.label}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="divide-y" style={{ '--tw-divide-opacity': 1 }}>
+                  <DetailRow label="Dernier ping" value={`${formatRelativeTime(selectedRep.presence?.last_seen)} · ${formatDateTime(selectedRep.presence?.last_seen)}`} />
+                  <DetailRow label="Appareil" value={selectedRep.device?.device_name || `${selectedRep.device?.brand ?? ''} ${selectedRep.device?.model ?? ''}`.trim() || 'Non remonte'} />
+                  <DetailRow label="Version mobile" value={selectedRep.device?.app_version || 'Non remontee'} />
+                  <DetailRow label="OS / API" value={selectedRep.device?.os_version ? `Android ${selectedRep.device.os_version}${selectedRep.device.api_level ? ` (API ${selectedRep.device.api_level})` : ''}` : 'Non remonte'} />
+                  <DetailRow label="Ecran / locale" value={[selectedRep.device?.screen_res, selectedRep.device?.locale, selectedRep.device?.timezone].filter(Boolean).join(' · ') || 'Non remonte'} />
+                  <DetailRow label="Adresse IP" value={selectedRep.device?.ip || 'Non remontee'} />
+                </div>
               </div>
+
+              <div className="card">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
+                    <i className="fa-solid fa-box-open text-amber-500" />
+                    Stock embarque
+                  </h2>
+                  <span className="text-xs text-muted-color">
+                    {selectedRep.camion_stock?.items?.length ?? 0} reference(s)
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="rounded-2xl px-3 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                    <div className="text-[11px] text-muted-color">Quantite restante</div>
+                    <div className="text-sm font-bold text-base-color mt-1">{formatNumber(selectedRep.camion_stock?.total_qty ?? 0)}</div>
+                  </div>
+                  <div className="rounded-2xl px-3 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                    <div className="text-[11px] text-muted-color">Valeur camion</div>
+                    <div className="text-sm font-bold text-base-color mt-1">{formatMoney(selectedRep.camion_stock?.total_value ?? 0)}</div>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-muted-color mb-2">
+                  Camion physique: {selectedRep.camion_stock?.configured_camion?.name ?? 'a configurer plus tard'}
+                </div>
+
+                <div className="space-y-2 max-h-72 overflow-y-auto">
+                  {(selectedRep.camion_stock?.items ?? []).map(item => (
+                    <div key={item.product_id} className="rounded-2xl px-3 py-2.5 flex items-center gap-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-base-color truncate">{item.product?.name}</div>
+                        <div className="text-[11px] text-muted-color truncate">
+                          {item.product?.reference || 'Sans reference'} · {item.product?.unit || 'u'}
+                          {item.product?.min_stock != null && ` · min ${formatNumber(item.product.min_stock)}`}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-bold" style={{ color: item.is_low ? '#f59e0b' : '#0d9488' }}>
+                          {formatNumber(item.qty)}
+                        </div>
+                        <div className="text-[11px] text-muted-color">{formatMoney(item.value)}</div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {(selectedRep.camion_stock?.items ?? []).length === 0 && (
+                    <div className="rounded-2xl px-4 py-6 text-center" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                      <p className="text-sm text-muted-color">Aucun stock embarque pour ce commercial.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="card text-center py-10">
+              <i className="fa-solid fa-location-dot text-3xl text-muted-color opacity-30 mb-3 block" />
+              <p className="text-sm text-muted-color">Selectionnez un commercial pour afficher ses details terrain.</p>
             </div>
           )}
         </div>
 
-        {/* Map */}
-        <div className="lg:col-span-3">
+        <div className="xl:col-span-8 space-y-4">
           <div className="card overflow-hidden p-0" style={{ height: 560 }}>
-            {loading ? (
-              <div className="flex items-center justify-center h-full text-muted-color gap-2">
-                <i className="fa-solid fa-spinner fa-spin" /> Chargement de la carte…
+            {terrainError ? (
+              <div className="flex items-center justify-center h-full text-center px-6">
+                <div>
+                  <i className="fa-solid fa-tower-broadcast text-2xl text-red-400 mb-3 block" />
+                  <p className="text-sm text-base-color font-semibold">Impossible de charger le suivi terrain</p>
+                  <p className="text-xs text-muted-color mt-1">{terrainError}</p>
+                </div>
               </div>
             ) : (
               <MapContainer
                 center={DEFAULT_CENTER}
                 zoom={DEFAULT_ZOOM}
                 style={{ height: '100%', width: '100%' }}
-                zoomControl={true}
+                zoomControl
               >
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-                <FitBoundsControl customers={mapped} />
+                <FitTerrainBounds reps={terrainPositions} routeTrace={routeTrace} />
 
-                {mapped.map(c => (
-                  <Marker
-                    key={c.id}
-                    position={[c.lat, c.lng]}
-                    icon={makeIcon(zoneColor(c.zone_id), selected?.id === c.id ? 14 : 10)}
-                    eventHandlers={{ click: () => setSelected(c) }}
-                  >
-                    <Popup>
-                      <div style={{ minWidth: 160 }}>
-                        <div style={{ fontWeight: 700, marginBottom: 4 }}>{c.name}</div>
-                        {c.phone   && <div style={{ color: '#64748b', fontSize: 12 }}>{c.phone}</div>}
-                        {c.address && <div style={{ color: '#64748b', fontSize: 12 }}>{c.address}</div>}
-                        {c.credit_balance != null && Math.abs(c.credit_balance) > 0 && (
-                          <div style={{ marginTop: 6, fontWeight: 600, fontSize: 12, color: c.credit_balance > 0 ? '#dc2626' : '#059669' }}>
-                            Crédit: {Number(c.credit_balance).toFixed(3)} TND
+                {terrainPositions.map(rep => {
+                  const presence = getPresenceMeta(rep)
+                  const selected = String(rep.id) === String(selectedRepId)
+
+                  return (
+                    <Marker
+                      key={rep.id}
+                      position={[Number(rep.map_position.latitude), Number(rep.map_position.longitude)]}
+                      icon={makeRepIcon(selected ? '#2563eb' : presence.color, selected)}
+                      eventHandlers={{ click: () => onSelectRep(rep.id) }}
+                    >
+                      <Popup>
+                        <div style={{ minWidth: 180 }}>
+                          <div style={{ fontWeight: 700 }}>{rep.name}</div>
+                          <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
+                            {presence.label} · {formatRelativeTime(rep.presence?.last_seen)}
                           </div>
-                        )}
-                      </div>
-                    </Popup>
-                  </Marker>
-                ))}
+                          <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
+                            {rep.route_session?.status === 'open' ? 'Session ouverte' : 'Pas de session active'}
+                          </div>
+                          {rep.device?.app_version && (
+                            <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
+                              App v{rep.device.app_version}
+                            </div>
+                          )}
+                        </div>
+                      </Popup>
+                    </Marker>
+                  )
+                })}
+
+                {selectedRep?.map_position && selectedRep.map_position.accuracy > 0 && (
+                  <Circle
+                    center={[Number(selectedRep.map_position.latitude), Number(selectedRep.map_position.longitude)]}
+                    radius={Number(selectedRep.map_position.accuracy)}
+                    pathOptions={{ color: '#2563eb', fillColor: '#2563eb', fillOpacity: 0.08 }}
+                  />
+                )}
+
+                {routeTracePoints.length > 1 && (
+                  <Polyline positions={routeTracePoints} pathOptions={{ color: '#0d9488', weight: 4, opacity: 0.85 }} />
+                )}
               </MapContainer>
             )}
           </div>
 
-          {/* Stats row */}
-          <div className="grid grid-cols-3 gap-3 mt-3">
-            {[
-              { label: 'Total clients',   value: customers.length,  color: '#0d9488', icon: 'fa-solid fa-users' },
-              { label: 'Sur la carte',    value: mapped.length,     color: '#3b82f6', icon: 'fa-solid fa-location-dot' },
-              { label: 'Sans position',   value: unmapped.length,   color: '#f59e0b', icon: 'fa-solid fa-location-dot-slash' },
-            ].map(s => (
-              <div key={s.label} className="card py-3 px-4 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ background: s.color + '1a' }}>
-                  <i className={`${s.icon} text-sm`} style={{ color: s.color }} />
+          {selectedRep && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                <MetricCard
+                  label="CA du jour"
+                  value={formatMoney(selectedRep.today?.invoices_total ?? 0)}
+                  sub={`${selectedRep.today?.invoices_count ?? 0} facture(s)`}
+                  icon="fa-solid fa-sack-dollar"
+                  color="#0d9488"
+                />
+                <MetricCard
+                  label="Charge du jour"
+                  value={formatNumber(selectedRep.route_session?.loaded_qty_total ?? 0)}
+                  sub={formatMoney(selectedRep.route_session?.loaded_value_total ?? 0)}
+                  icon="fa-solid fa-truck-ramp-box"
+                  color="#3b82f6"
+                />
+                <MetricCard
+                  label="Derniere recharge"
+                  value={selectedRep.route_session?.last_load?.qty_total != null
+                    ? formatNumber(selectedRep.route_session.last_load.qty_total)
+                    : 'Aucune'}
+                  sub={selectedRep.route_session?.last_load?.at
+                    ? `${formatDateTime(selectedRep.route_session.last_load.at)} · ${formatMoney(selectedRep.route_session.last_load.value_total ?? 0)}`
+                    : 'Pas de mouvement depot > camion'}
+                  icon="fa-solid fa-boxes-stacked"
+                  color="#8b5cf6"
+                />
+                <MetricCard
+                  label="Points GPS"
+                  value={selectedRep.route_session?.locations_count ?? 0}
+                  sub={traceLoading ? 'Trace en cours...' : `${routeTrace.length} point(s) charges`}
+                  icon="fa-solid fa-location-crosshairs"
+                  color="#f59e0b"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="card">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
+                      <i className="fa-solid fa-route text-teal-500" />
+                      Session du jour
+                    </h2>
+                    <span className="text-xs text-muted-color">
+                      {selectedRep.route_session?.session_date || 'Aucune session'}
+                    </span>
+                  </div>
+                  <div className="divide-y" style={{ '--tw-divide-opacity': 1 }}>
+                    <DetailRow label="Ouverture" value={formatDateTime(selectedRep.route_session?.opened_at)} />
+                    <DetailRow label="Cloture" value={formatDateTime(selectedRep.route_session?.closed_at)} />
+                    <DetailRow label="Zone session" value={selectedRep.route_session?.zone?.name || selectedRep.zone?.name || '—'} />
+                    <DetailRow label="Chargee / vendue / retour" value={`${formatNumber(selectedRep.route_session?.loaded_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.sold_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.returned_qty_total ?? 0)}`} />
+                    <DetailRow label="Reste camion" value={formatNumber(selectedRep.route_session?.remaining_qty_total ?? 0)} />
+                    <DetailRow label="Cash / credit" value={`${formatMoney(selectedRep.route_session?.cash_collected ?? 0)} / ${formatMoney(selectedRep.route_session?.credit_given ?? 0)}`} />
+                    <DetailRow label="Dernier point carte" value={selectedRep.map_position ? `${selectedRep.map_position.source === 'gps' ? 'GPS' : 'Facture'} · ${formatDateTime(selectedRep.map_position.recorded_at)}` : 'Aucun point'} />
+                  </div>
                 </div>
-                <div>
-                  <div className="text-xs text-muted-color">{s.label}</div>
-                  <div className="text-sm font-bold text-base-color">{s.value}</div>
+
+                <div className="card">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
+                      <i className="fa-solid fa-file-invoice text-indigo-500" />
+                      Derniere facture / session terrain
+                    </h2>
+                    {selectedRep.today?.last_invoice && (
+                      <span className="text-xs text-muted-color">{formatDateTime(selectedRep.today.last_invoice.created_at)}</span>
+                    )}
+                  </div>
+
+                  {selectedRep.today?.last_invoice ? (
+                    <div className="space-y-3">
+                      <div className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-semibold text-base-color">{selectedRep.today.last_invoice.number}</div>
+                            <div className="text-xs text-muted-color mt-0.5">
+                              {selectedRep.today.last_invoice.customer_name || 'Client non defini'}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-bold text-base-color">{formatMoney(selectedRep.today.last_invoice.total)}</div>
+                            <div className="text-[11px] text-muted-color mt-0.5">
+                              {selectedRep.today.last_invoice.payment_status || '—'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="divide-y" style={{ '--tw-divide-opacity': 1 }}>
+                        <DetailRow label="Factures aujourd'hui" value={selectedRep.today.invoices_count} />
+                        <DetailRow label="CA du terrain" value={formatMoney(selectedRep.today.invoices_total)} />
+                        <DetailRow label="Version app" value={selectedRep.device?.app_version || 'Non remontee'} />
+                        <DetailRow label="Dernier ping" value={formatDateTime(selectedRep.presence?.last_seen)} />
+                        <DetailRow label="Trace chargee" value={routeTrace.length > 0 ? `${routeTrace.length} point(s)` : 'Aucune trace pour le moment'} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl px-4 py-8 text-center" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                      <i className="fa-solid fa-file-circle-xmark text-muted-color opacity-40 mb-2 block" />
+                      <p className="text-sm text-muted-color">Aucune facture du jour pour ce commercial.</p>
+                    </div>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
       </div>
+    </div>
+  )
+}
+
+export default function LiveMapIndex() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [customers, setCustomers] = useState([])
+  const [zones, setZones] = useState([])
+  const [loadingClients, setLoadingClients] = useState(true)
+  const [selectedCustomerId, setSelectedCustomerId] = useState(null)
+  const [filterZone, setFilterZone] = useState('')
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [terrain, setTerrain] = useState({ generated_at: null, stats: {}, reps: [] })
+  const [loadingTerrain, setLoadingTerrain] = useState(true)
+  const [terrainError, setTerrainError] = useState('')
+  const [repSearch, setRepSearch] = useState('')
+  const [onlineOnly, setOnlineOnly] = useState(false)
+  const [routeTrace, setRouteTrace] = useState([])
+  const [traceLoading, setTraceLoading] = useState(false)
+  const initialClientsLoaded = useRef(false)
+  const initialTerrainLoaded = useRef(false)
+  const terrainReloadTimerRef = useRef(null)
+  const traceReloadTimerRef = useRef(null)
+
+  const activeTab = searchParams.get('tab') === 'terrain' ? 'terrain' : 'clients'
+  const selectedRepId = searchParams.get('rep') || ''
+
+  const patchSearchParams = useCallback((patch) => {
+    const next = new URLSearchParams(searchParams)
+
+    Object.entries(patch).forEach(([key, value]) => {
+      if (value == null || value === '') {
+        next.delete(key)
+      } else {
+        next.set(key, String(value))
+      }
+    })
+
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
+
+  const loadClients = useCallback(async () => {
+    if (!initialClientsLoaded.current) {
+      setLoadingClients(true)
+    }
+
+    try {
+      const [customersResponse, zonesResponse] = await Promise.all([
+        api.get('/customers'),
+        api.get('/zones'),
+      ])
+
+      setCustomers(customersResponse.data ?? [])
+      setZones(zonesResponse.data ?? [])
+      initialClientsLoaded.current = true
+    } finally {
+      setLoadingClients(false)
+    }
+  }, [])
+
+  const loadTerrain = useCallback(async () => {
+    if (!initialTerrainLoaded.current) {
+      setLoadingTerrain(true)
+    }
+
+    try {
+      const response = await api.get('/monitor/terrain')
+      setTerrain(response.data ?? { generated_at: null, stats: {}, reps: [] })
+      setTerrainError('')
+      initialTerrainLoaded.current = true
+    } catch {
+      setTerrainError('Le flux terrain n\'est pas encore disponible.')
+    } finally {
+      setLoadingTerrain(false)
+    }
+  }, [])
+
+  const loadRouteTrace = useCallback(async (routeSessionId) => {
+    if (!routeSessionId) {
+      setRouteTrace([])
+      return
+    }
+
+    setTraceLoading(true)
+
+    try {
+      const response = await api.get(`/route-sessions/${routeSessionId}/locations`, {
+        params: { limit: 250 },
+      })
+      setRouteTrace(response.data ?? [])
+    } catch {
+      setRouteTrace([])
+    } finally {
+      setTraceLoading(false)
+    }
+  }, [])
+
+  const queueTerrainReload = useCallback(() => {
+    if (terrainReloadTimerRef.current) return
+
+    terrainReloadTimerRef.current = window.setTimeout(() => {
+      terrainReloadTimerRef.current = null
+      loadTerrain()
+    }, 1200)
+  }, [loadTerrain])
+
+  const queueTraceReload = useCallback((routeSessionId) => {
+    if (!routeSessionId || traceReloadTimerRef.current) return
+
+    traceReloadTimerRef.current = window.setTimeout(() => {
+      traceReloadTimerRef.current = null
+      loadRouteTrace(routeSessionId)
+    }, 900)
+  }, [loadRouteTrace])
+
+  useEffect(() => {
+    loadClients()
+    loadTerrain()
+  }, [loadClients, loadTerrain])
+
+  useEffect(() => {
+    if (activeTab !== 'terrain') {
+      return undefined
+    }
+
+    const intervalId = window.setInterval(() => {
+      loadTerrain()
+      if (selectedRepId) {
+        const selectedRep = (terrain.reps ?? []).find(rep => String(rep.id) === String(selectedRepId))
+        if (selectedRep?.route_session?.id) {
+          loadRouteTrace(selectedRep.route_session.id)
+        }
+      }
+    }, 30000)
+
+    return () => window.clearInterval(intervalId)
+  }, [activeTab, loadRouteTrace, loadTerrain, selectedRepId, terrain.reps])
+
+  useEffect(() => {
+    if (activeTab !== 'terrain' || terrain.reps.length === 0) {
+      return
+    }
+
+    const selectedRepExists = terrain.reps.some(rep => String(rep.id) === String(selectedRepId))
+    if (selectedRepExists) {
+      return
+    }
+
+    const fallbackRep = terrain.reps.find(rep => rep.presence?.is_online)
+      || terrain.reps.find(rep => rep.route_session?.status === 'open')
+      || terrain.reps[0]
+
+    if (fallbackRep) {
+      patchSearchParams({ tab: 'terrain', rep: fallbackRep.id })
+    }
+  }, [activeTab, patchSearchParams, selectedRepId, terrain.reps])
+
+  useEffect(() => {
+    if (activeTab !== 'terrain') {
+      return
+    }
+
+    const selectedRep = terrain.reps.find(rep => String(rep.id) === String(selectedRepId))
+    loadRouteTrace(selectedRep?.route_session?.id)
+  }, [activeTab, loadRouteTrace, selectedRepId, terrain.reps])
+
+  useEffect(() => {
+    if (activeTab !== 'terrain') {
+      return undefined
+    }
+
+    return subscribeToOpsMonitor((event) => {
+      queueTerrainReload()
+
+      const selectedRep = terrain.reps.find(rep => String(rep.id) === String(selectedRepId))
+      if (selectedRep?.route_session?.id && String(selectedRep.route_session.id) === String(event.route_session_id)) {
+        queueTraceReload(selectedRep.route_session.id)
+      }
+    })
+  }, [activeTab, queueTerrainReload, queueTraceReload, selectedRepId, terrain.reps])
+
+  useEffect(() => () => {
+    if (terrainReloadTimerRef.current) {
+      window.clearTimeout(terrainReloadTimerRef.current)
+    }
+    if (traceReloadTimerRef.current) {
+      window.clearTimeout(traceReloadTimerRef.current)
+    }
+  }, [])
+
+  const customerSubtitle = `${customers.length} clients · ${customers.filter(customer => customer.lat != null && customer.lng != null).length} geolocalises`
+  const terrainSubtitle = terrain.generated_at
+    ? `${terrain.stats?.reps_total ?? 0} commerciaux suivis · MAJ ${formatDateTime(terrain.generated_at)}`
+    : 'Suivi mobile, GPS et stock terrain'
+
+  return (
+    <div>
+      <PageHeader
+        title="Carte & terrain"
+        subtitle={activeTab === 'terrain' ? terrainSubtitle : customerSubtitle}
+        action={(
+          <button
+            onClick={() => {
+              if (activeTab === 'terrain') {
+                loadTerrain()
+                const selectedRep = terrain.reps.find(rep => String(rep.id) === String(selectedRepId))
+                if (selectedRep?.route_session?.id) {
+                  loadRouteTrace(selectedRep.route_session.id)
+                }
+              } else {
+                loadClients()
+              }
+            }}
+            className="btn-secondary text-xs py-2"
+          >
+            <i className="fa-solid fa-rotate-right" /> Actualiser
+          </button>
+        )}
+      />
+
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <TabButton
+          active={activeTab === 'clients'}
+          icon="fa-solid fa-users"
+          label="Clients"
+          count={customers.length}
+          onClick={() => patchSearchParams({ tab: 'clients' })}
+        />
+        <TabButton
+          active={activeTab === 'terrain'}
+          icon="fa-solid fa-tower-broadcast"
+          label="Terrain mobile"
+          count={terrain.stats?.reps_total ?? 0}
+          onClick={() => patchSearchParams({ tab: 'terrain' })}
+        />
+      </div>
+
+      {activeTab === 'terrain' ? (
+        <TerrainTab
+          terrain={terrain}
+          terrainLoading={loadingTerrain}
+          terrainError={terrainError}
+          repSearch={repSearch}
+          onRepSearch={setRepSearch}
+          onlineOnly={onlineOnly}
+          onOnlineOnly={setOnlineOnly}
+          selectedRepId={selectedRepId}
+          onSelectRep={(repId) => patchSearchParams({ tab: 'terrain', rep: repId })}
+          routeTrace={routeTrace}
+          traceLoading={traceLoading}
+        />
+      ) : (
+        <ClientsTab
+          customers={customers}
+          zones={zones}
+          loading={loadingClients}
+          selectedCustomerId={selectedCustomerId}
+          onSelectCustomer={setSelectedCustomerId}
+          filterZone={filterZone}
+          onFilterZone={setFilterZone}
+          search={customerSearch}
+          onSearch={setCustomerSearch}
+        />
+      )}
     </div>
   )
 }

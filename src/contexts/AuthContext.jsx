@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import api from '../services/api'
+import { closeEcho } from '../services/realtime'
 
 const AuthContext = createContext(null)
 
@@ -10,6 +11,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(false)
 
   const login = async (email, password) => {
+    closeEcho()
     const res = await api.post('/auth/login', { email, password })
     const { token, user } = res.data
     localStorage.setItem('ventify_token', token)
@@ -20,6 +22,7 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try { await api.post('/auth/logout') } catch {}
+    closeEcho()
     localStorage.removeItem('ventify_token')
     localStorage.removeItem('ventify_user')
     setUser(null)
