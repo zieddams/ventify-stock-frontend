@@ -5,127 +5,82 @@ import { APP_VERSION } from '../config/appMeta'
 
 const AMBIENT_ORBS = [
   {
-    size: '34rem',
-    color: 'radial-gradient(circle, rgba(20,184,166,0.44) 0%, rgba(20,184,166,0) 72%)',
-    top: '-14%',
+    size: '32rem',
+    color: 'radial-gradient(circle, rgba(20,184,166,0.42) 0%, rgba(20,184,166,0) 72%)',
+    top: '-12%',
     left: '-10%',
     delay: 0,
-    duration: 10,
-  },
-  {
-    size: '28rem',
-    color: 'radial-gradient(circle, rgba(59,130,246,0.4) 0%, rgba(59,130,246,0) 72%)',
-    top: '12%',
-    left: '62%',
-    delay: 2,
-    duration: 11,
-  },
-  {
-    size: '22rem',
-    color: 'radial-gradient(circle, rgba(168,85,247,0.34) 0%, rgba(168,85,247,0) 70%)',
-    top: '58%',
-    left: '-2%',
-    delay: 1,
     duration: 9,
   },
   {
-    size: '16rem',
-    color: 'radial-gradient(circle, rgba(45,212,191,0.3) 0%, rgba(45,212,191,0) 70%)',
-    top: '62%',
-    left: '74%',
-    delay: 3,
+    size: '26rem',
+    color: 'radial-gradient(circle, rgba(14,165,233,0.36) 0%, rgba(14,165,233,0) 72%)',
+    top: '14%',
+    left: '68%',
+    delay: 2,
+    duration: 10,
+  },
+  {
+    size: '20rem',
+    color: 'radial-gradient(circle, rgba(99,102,241,0.28) 0%, rgba(99,102,241,0) 72%)',
+    top: '68%',
+    left: '-4%',
+    delay: 1,
     duration: 8,
   },
+  {
+    size: '16rem',
+    color: 'radial-gradient(circle, rgba(45,212,191,0.26) 0%, rgba(45,212,191,0) 72%)',
+    top: '66%',
+    left: '76%',
+    delay: 3,
+    duration: 7,
+  },
 ]
 
-const PARTICLES = Array.from({ length: 18 }, (_, index) => ({
-  left: `${5 + (index * 11) % 90}%`,
-  top: `${8 + (index * 17) % 82}%`,
-  size: `${index % 3 === 0 ? 0.95 : index % 3 === 1 ? 0.7 : 0.5}rem`,
-  duration: `${12 + (index % 5) * 3}s`,
-  delay: `${(index % 6) * 0.7}s`,
-  opacity: 0.16 + (index % 4) * 0.07,
+const PARTICLES = Array.from({ length: 22 }, (_, index) => ({
+  left: `${4 + (index * 13) % 92}%`,
+  top: `${6 + (index * 19) % 86}%`,
+  size: `${index % 3 === 0 ? 0.9 : index % 3 === 1 ? 0.65 : 0.45}rem`,
+  duration: `${11 + (index % 5) * 2.5}s`,
+  delay: `${(index % 6) * 0.6}s`,
+  opacity: 0.12 + (index % 4) * 0.05,
 }))
 
-const SUITE_STATUS = [
+const PLATFORM_PILLS = [
   {
-    label: 'Web platform',
-    value: 'Production OVH',
-    note: '/web-platform active',
+    icon: 'fa-warehouse',
+    label: 'Realtime stock',
   },
   {
-    label: 'API metier',
-    value: 'Routes v1 alignees',
-    note: 'Exports et config sync',
+    icon: 'fa-file-invoice',
+    label: 'Smart invoicing',
   },
   {
-    label: 'Mobile app',
-    value: 'Correctifs en cours',
-    note: 'Meme coeur metier',
-  },
-]
-
-const FEATURE_HIGHLIGHTS = [
-  {
-    icon: 'fa-sliders',
-    title: 'Configuration dynamique',
-    description: 'Paiements, categories de depense et gouvernorats restent pilotables depuis la plateforme.',
-    background: 'linear-gradient(135deg, rgba(20,184,166,0.22), rgba(20,184,166,0.06))',
-    iconColor: '#99f6e4',
+    icon: 'fa-route',
+    label: 'Field tracking',
   },
   {
-    icon: 'fa-boxes-stacked',
-    title: 'Inventaire auditable',
-    description: 'Les mouvements, ajustements et seuils mini produits restent visibles et traces.',
-    background: 'linear-gradient(135deg, rgba(59,130,246,0.22), rgba(59,130,246,0.06))',
-    iconColor: '#bfdbfe',
-  },
-  {
-    icon: 'fa-file-arrow-down',
-    title: 'Exports et impressions',
-    description: 'PDF, Excel et impression rapide couvrent les listings et rapports les plus utilises.',
-    background: 'linear-gradient(135deg, rgba(234,179,8,0.22), rgba(234,179,8,0.06))',
-    iconColor: '#fde68a',
-  },
-  {
-    icon: 'fa-mobile-screen-button',
-    title: 'Suite connectee',
-    description: 'Web, API et mobile partagent la meme logique metier et la meme base de reference.',
-    background: 'linear-gradient(135deg, rgba(168,85,247,0.22), rgba(168,85,247,0.06))',
-    iconColor: '#ddd6fe',
+    icon: 'fa-chart-line',
+    label: 'Live reporting',
   },
 ]
 
-const CURRENT_STATUS = [
+const FEATURE_LINES = [
   {
-    icon: 'fa-globe',
-    label: 'Web platform',
-    state: 'Live',
-    detail: 'Production OVH active sur /web-platform avec la version courante.',
-    iconBg: 'rgba(20,184,166,0.16)',
-    iconColor: '#5eead4',
-    badgeBg: 'rgba(20,184,166,0.16)',
-    badgeColor: '#ccfbf1',
-  },
-  {
-    icon: 'fa-server',
-    label: 'API metier',
-    state: 'Alignee',
-    detail: 'Routes v1, exports et configuration dynamique restent synchronises.',
-    iconBg: 'rgba(56,189,248,0.16)',
-    iconColor: '#7dd3fc',
-    badgeBg: 'rgba(56,189,248,0.16)',
-    badgeColor: '#e0f2fe',
+    icon: 'fa-layer-group',
+    title: 'One commercial workspace',
+    detail: 'Depot, customers, invoices, expenses and exports stay connected in the same flow.',
   },
   {
     icon: 'fa-mobile-screen-button',
-    label: 'Mobile app',
-    state: 'Suivi',
-    detail: 'Correctifs et prochaines releases continuent sur le meme socle metier.',
-    iconBg: 'rgba(168,85,247,0.16)',
-    iconColor: '#c4b5fd',
-    badgeBg: 'rgba(168,85,247,0.16)',
-    badgeColor: '#ede9fe',
+    title: 'Web, API and mobile sync',
+    detail: 'The platform keeps one shared data spine for the office team and the field team.',
+  },
+  {
+    icon: 'fa-sparkles',
+    title: '2030-ready SaaS messaging',
+    detail: 'Clear product language focused on speed, visibility, control and connected operations.',
   },
 ]
 
@@ -139,9 +94,9 @@ function Orb({ size, color, top, left, delay, duration }) {
         background: color,
         top,
         left,
-        filter: 'blur(72px)',
+        filter: 'blur(68px)',
         mixBlendMode: 'screen',
-        opacity: 0.8,
+        opacity: 0.78,
         animation: `orbFloat ${duration}s ease-in-out ${delay}s infinite alternate`,
       }}
     />
@@ -174,15 +129,15 @@ export default function Login() {
 
   return (
     <div
-      className="relative min-h-screen overflow-hidden px-4 py-10 sm:px-6 lg:px-8"
+      className="relative min-h-screen overflow-hidden px-4 py-10 sm:px-6"
       style={{
-        background: 'linear-gradient(140deg, #020617 0%, #082032 34%, #0f172a 66%, #08131f 100%)',
+        background: 'linear-gradient(145deg, #04101f 0%, #081827 38%, #0b1f2d 70%, #06111d 100%)',
       }}
     >
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: 'radial-gradient(circle at top, rgba(56,189,248,0.16) 0%, rgba(56,189,248,0) 44%)',
+          background: 'radial-gradient(circle at top, rgba(56,189,248,0.14) 0%, rgba(56,189,248,0) 42%)',
         }}
       />
 
@@ -194,8 +149,8 @@ export default function Login() {
         className="pointer-events-none absolute inset-0"
         style={{
           backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)',
-          backgroundSize: '52px 52px',
+            'linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px)',
+          backgroundSize: '50px 50px',
         }}
       />
 
@@ -217,262 +172,205 @@ export default function Login() {
         ))}
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-6xl items-center">
-        <div className="grid w-full gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(360px,420px)] lg:gap-10">
-          <section
-            className="order-2 overflow-hidden rounded-[32px] border border-white/10 p-6 sm:p-8 lg:order-1 lg:p-10"
+      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-5xl items-center justify-center">
+        <div
+          className="relative w-full max-w-lg overflow-hidden rounded-[30px] border border-white/10 p-6 sm:p-8"
+          style={{
+            background: 'linear-gradient(180deg, rgba(9,18,30,0.7) 0%, rgba(9,18,30,0.54) 100%)',
+            backdropFilter: 'blur(30px)',
+            WebkitBackdropFilter: 'blur(30px)',
+            boxShadow: '0 34px 100px rgba(2,6,23,0.54), inset 0 1px 0 rgba(255,255,255,0.12)',
+            animation: 'loginReveal 0.6s cubic-bezier(0.16,1,0.3,1) both',
+          }}
+        >
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-40"
             style={{
-              background: 'linear-gradient(180deg, rgba(15,23,42,0.58) 0%, rgba(15,23,42,0.34) 100%)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-              boxShadow: '0 24px 80px rgba(2,6,23,0.42)',
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 100%)',
             }}
-          >
-            <div className="relative z-10">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.26em] text-teal-100/90">
+          />
+
+          <div className="relative z-10">
+            <div className="text-center">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-teal-100/90">
                 <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.9)]" />
-                Suite commerciale connectee
+                Connected commerce workspace
               </div>
 
-              <h1 className="mt-6 max-w-2xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-                Stocks, facturation et operations terrain dans un seul cockpit.
-              </h1>
+              <div className="mt-6 inline-flex h-16 w-16 items-center justify-center rounded-[22px] relative"
+                style={{
+                  background: 'linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%)',
+                  boxShadow: '0 16px 38px rgba(13,148,136,0.36)',
+                }}>
+                <i className="fa-solid fa-droplet text-2xl text-white" />
+                <div
+                  className="absolute inset-0 rounded-[22px]"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 62%)',
+                  }}
+                />
+              </div>
 
-              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
-                El Irtiwaa centralise depot, ventes, paiements, depenses, routes et reporting pour la
-                web platform, l&apos;API metier et les prochaines releases mobiles.
+              <div className="mt-5 flex items-center justify-center gap-3">
+                <h1 className="text-3xl font-bold tracking-tight text-white sm:text-[2.1rem]">
+                  El Irtiwaa
+                </h1>
+                <span className="rounded-full border border-teal-400/20 bg-teal-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-teal-50">
+                  v{APP_VERSION}
+                </span>
+              </div>
+
+              <p className="mt-4 text-base leading-7 text-slate-300 sm:text-[1.05rem]">
+                One secure login for stock control, invoicing, route activity, mobile sync and live reporting.
               </p>
 
-              <div className="mt-8 grid gap-3 sm:grid-cols-3">
-                {SUITE_STATUS.map((item) => (
-                  <div
-                    key={item.label}
-                    className="rounded-[24px] border border-white/10 bg-white/5 p-4 backdrop-blur-xl"
-                  >
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">{item.label}</p>
-                    <p className="mt-2 text-sm font-semibold text-white">{item.value}</p>
-                    <p className="mt-1 text-xs text-slate-400">{item.note}</p>
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                Modern B2B SaaS positioning for a beverage distribution platform built around speed,
+                visibility and connected field operations.
+              </p>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-2 sm:gap-3">
+              {PLATFORM_PILLS.map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-2xl border border-white/10 px-3 py-3 text-sm text-slate-200"
+                  style={{
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.03) 100%)',
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <i className={`fa-solid ${item.icon} text-teal-300`} />
+                    <span className="font-medium">{item.label}</span>
                   </div>
-                ))}
+                </div>
+              ))}
+            </div>
+
+            {error && (
+              <div
+                role="alert"
+                className="mt-6 flex items-start gap-3 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
+              >
+                <i className="fa-solid fa-circle-exclamation mt-0.5 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                  Email
+                </label>
+                <div className="relative">
+                  <i className="fa-regular fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-500" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="admin@irtiwaa.tn"
+                    autoComplete="email"
+                    required
+                    autoFocus
+                    className="login-input"
+                  />
+                </div>
               </div>
 
-              <div className="mt-8 grid gap-4 md:grid-cols-2">
-                {FEATURE_HIGHLIGHTS.map((item) => (
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                  Mot de passe
+                </label>
+                <div className="relative">
+                  <i className="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-500" />
+                  <input
+                    type={showPwd ? 'text' : 'password'}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="********"
+                    autoComplete="current-password"
+                    required
+                    className="login-input pr-12"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowPwd((current) => !current)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-2 text-slate-400 transition hover:bg-white/5 hover:text-slate-100"
+                  >
+                    <i className={`fa-solid ${showPwd ? 'fa-eye-slash' : 'fa-eye'} text-sm`} />
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" disabled={loading} className="login-submit mt-2">
+                {loading ? (
+                  <>
+                    <i className="fa-solid fa-spinner fa-spin" />
+                    Connexion en cours...
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-right-to-bracket" />
+                    Acceder a la plateforme
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-6 rounded-[24px] border border-white/10 bg-slate-950/25 p-4 sm:p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+                    Product narrative
+                  </p>
+                  <h2 className="mt-1 text-sm font-semibold text-white">
+                    Cleaner, simpler, sharper
+                  </h2>
+                </div>
+                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-slate-200">
+                  Simple login
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {FEATURE_LINES.map((item) => (
                   <div
                     key={item.title}
-                    className="h-full rounded-[26px] border border-white/10 p-5"
-                    style={{ background: item.background }}
+                    className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3"
                   >
-                    <div
-                      className="flex h-12 w-12 items-center justify-center rounded-2xl"
-                      style={{ background: 'rgba(15,23,42,0.34)', color: item.iconColor }}
-                    >
-                      <i className={`fa-solid ${item.icon} text-base`} />
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-white/5 text-teal-300">
+                      <i className={`fa-solid ${item.icon} text-sm`} />
                     </div>
-                    <h2 className="mt-4 text-lg font-semibold text-white">{item.title}</h2>
-                    <p className="mt-2 text-sm leading-6 text-slate-300">{item.description}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-slate-100">{item.title}</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-400">{item.detail}</p>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
-          </section>
 
-          <section
-            className="order-1 w-full max-w-md justify-self-center lg:order-2 lg:max-w-none"
-            style={{ animation: 'loginReveal 0.65s cubic-bezier(0.16,1,0.3,1) both' }}
-          >
-            <div
-              className="relative overflow-hidden rounded-[30px] border border-white/10 p-6 sm:p-7"
-              style={{
-                background: 'linear-gradient(180deg, rgba(15,23,42,0.72) 0%, rgba(15,23,42,0.56) 100%)',
-                backdropFilter: 'blur(28px)',
-                WebkitBackdropFilter: 'blur(28px)',
-                boxShadow: '0 30px 90px rgba(2,6,23,0.55), inset 0 1px 0 rgba(255,255,255,0.12)',
-              }}
-            >
-              <div
-                className="pointer-events-none absolute inset-x-0 top-0 h-36"
-                style={{
-                  background: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 100%)',
-                }}
-              />
-
-              <div className="relative z-10">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="relative flex h-14 w-14 items-center justify-center rounded-2xl"
-                      style={{
-                        background: 'linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%)',
-                        boxShadow: '0 16px 36px rgba(13,148,136,0.35)',
-                      }}
-                    >
-                      <i className="fa-solid fa-droplet text-xl text-white" />
-                      <div
-                        className="absolute inset-0 rounded-2xl"
-                        style={{
-                          background: 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 62%)',
-                        }}
-                      />
-                    </div>
-
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-teal-100/80">
-                        El Irtiwaa
-                      </p>
-                      <h2 className="text-lg font-semibold text-white">Web platform & API</h2>
-                    </div>
-                  </div>
-
-                  <span className="rounded-full border border-teal-400/20 bg-teal-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-teal-50">
-                    v{APP_VERSION}
-                  </span>
-                </div>
-
-                <div className="mt-8">
-                  <h3 className="text-2xl font-semibold tracking-tight text-white">Connexion securisee</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-300">
-                    Accedez au depot, a la facturation, aux exports et au suivi des operations depuis la
-                    meme interface.
-                  </p>
-                </div>
-
-                {error && (
-                  <div
-                    role="alert"
-                    className="mt-5 flex items-start gap-3 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
-                  >
-                    <i className="fa-solid fa-circle-exclamation mt-0.5 flex-shrink-0" />
-                    <span>{error}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-                  <div>
-                    <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                      Email
-                    </label>
-                    <div className="relative">
-                      <i className="fa-regular fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-500" />
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        placeholder="admin@irtiwaa.tn"
-                        autoComplete="email"
-                        required
-                        autoFocus
-                        className="login-input"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                      Mot de passe
-                    </label>
-                    <div className="relative">
-                      <i className="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-500" />
-                      <input
-                        type={showPwd ? 'text' : 'password'}
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        placeholder="********"
-                        autoComplete="current-password"
-                        required
-                        className="login-input pr-12"
-                      />
-                      <button
-                        type="button"
-                        tabIndex={-1}
-                        onClick={() => setShowPwd((current) => !current)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-2 text-slate-400 transition hover:bg-white/5 hover:text-slate-100"
-                      >
-                        <i className={`fa-solid ${showPwd ? 'fa-eye-slash' : 'fa-eye'} text-sm`} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <button type="submit" disabled={loading} className="login-submit mt-2">
-                    {loading ? (
-                      <>
-                        <i className="fa-solid fa-spinner fa-spin" />
-                        Connexion en cours...
-                      </>
-                    ) : (
-                      <>
-                        <i className="fa-solid fa-right-to-bracket" />
-                        Acceder a la plateforme
-                      </>
-                    )}
-                  </button>
-                </form>
-
-                <div className="mt-6 rounded-[22px] border border-white/10 bg-slate-950/25 p-4 sm:p-5">
-                  <div className="mb-4 flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
-                        Etat actuel
-                      </p>
-                      <h4 className="mt-1 text-sm font-semibold text-white">Suite produit alignee</h4>
-                    </div>
-                    <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-50">
-                      Maj {APP_VERSION}
-                    </span>
-                  </div>
-
-                  <div className="space-y-3">
-                    {CURRENT_STATUS.map((item) => (
-                      <div
-                        key={item.label}
-                        className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3"
-                      >
-                        <div
-                          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl"
-                          style={{ background: item.iconBg, color: item.iconColor }}
-                        >
-                          <i className={`fa-solid ${item.icon} text-sm`} />
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-sm font-semibold text-slate-100">{item.label}</p>
-                            <span
-                              className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em]"
-                              style={{ background: item.badgeBg, color: item.badgeColor }}
-                            >
-                              {item.state}
-                            </span>
-                          </div>
-                          <p className="mt-1 text-xs leading-5 text-slate-400">{item.detail}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs text-slate-400">
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-xs text-slate-400">
               <span>El Irtiwaa</span>
               <span className="h-1 w-1 rounded-full bg-slate-600" />
-              <span>Distribution de boissons</span>
+              <span>Beverage distribution platform</span>
               <span className="h-1 w-1 rounded-full bg-slate-600" />
-              <span>Production OVH synchronisee</span>
+              <span>Web + API + mobile sync</span>
             </div>
-          </section>
+          </div>
         </div>
       </div>
 
       <style>{`
         @keyframes orbFloat {
           from { transform: translate3d(0, 0, 0) scale(0.96); }
-          to { transform: translate3d(0, -34px, 0) scale(1.06); }
+          to { transform: translate3d(0, -32px, 0) scale(1.06); }
         }
 
         @keyframes particleDrift {
-          from { transform: translate3d(0, 0, 0) scale(0.9); }
-          to { transform: translate3d(0, -22px, 0) scale(1.08); }
+          from { transform: translate3d(0, 0, 0) scale(0.88); }
+          to { transform: translate3d(0, -20px, 0) scale(1.08); }
         }
 
         @keyframes loginReveal {
@@ -483,8 +381,8 @@ export default function Login() {
         .login-particle {
           position: absolute;
           border-radius: 999px;
-          background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(125,211,252,0.6) 36%, rgba(45,212,191,0) 74%);
-          box-shadow: 0 0 24px rgba(56,189,248,0.28);
+          background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(125,211,252,0.62) 38%, rgba(45,212,191,0) 76%);
+          box-shadow: 0 0 22px rgba(56,189,248,0.24);
           opacity: var(--particle-opacity);
           animation: particleDrift var(--particle-duration) ease-in-out var(--particle-delay) infinite alternate;
         }
@@ -492,23 +390,23 @@ export default function Login() {
         .login-input {
           width: 100%;
           border-radius: 1rem;
-          border: 1px solid rgba(148,163,184,0.2) !important;
-          background: rgba(15,23,42,0.52) !important;
+          border: 1px solid rgba(148,163,184,0.18) !important;
+          background: rgba(15,23,42,0.48) !important;
           color: #f8fafc !important;
           padding: 0.88rem 0.95rem 0.88rem 2.9rem;
           transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-          backdrop-filter: blur(18px);
-          -webkit-backdrop-filter: blur(18px);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
         }
 
         .login-input:focus {
           border-color: rgba(45,212,191,0.72) !important;
-          box-shadow: 0 0 0 4px rgba(13,148,136,0.16) !important;
-          background: rgba(15,23,42,0.68) !important;
+          box-shadow: 0 0 0 4px rgba(13,148,136,0.14) !important;
+          background: rgba(15,23,42,0.62) !important;
         }
 
         .login-input::placeholder {
-          color: rgba(148,163,184,0.62) !important;
+          color: rgba(148,163,184,0.6) !important;
         }
 
         .login-submit {
@@ -526,13 +424,13 @@ export default function Login() {
           font-size: 0.95rem;
           font-weight: 600;
           letter-spacing: 0.01em;
-          box-shadow: 0 18px 40px rgba(13,148,136,0.28);
+          box-shadow: 0 18px 40px rgba(13,148,136,0.26);
           transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
         }
 
         .login-submit:hover:not(:disabled) {
           transform: translateY(-1px);
-          box-shadow: 0 22px 46px rgba(14,165,233,0.28);
+          box-shadow: 0 22px 46px rgba(14,165,233,0.26);
           filter: saturate(1.05);
         }
 
