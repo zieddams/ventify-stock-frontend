@@ -833,7 +833,7 @@ export default function LiveMapIndex() {
   const terrainReloadTimerRef = useRef(null)
   const traceReloadTimerRef = useRef(null)
 
-  const activeTab = searchParams.get('tab') === 'terrain' ? 'terrain' : 'clients'
+  const activeTab = searchParams.get('tab') === 'clients' ? 'clients' : 'terrain'
   const selectedRepId = searchParams.get('rep') || ''
 
   const patchSearchParams = useCallback((patch) => {
@@ -957,7 +957,10 @@ export default function LiveMapIndex() {
       return
     }
 
-    const fallbackRep = terrain.reps.find(rep => rep.presence?.is_online)
+    const fallbackRep = terrain.reps.find(rep => rep.presence?.is_online && rep.map_position)
+      || terrain.reps.find(rep => rep.route_session?.status === 'open' && rep.map_position)
+      || terrain.reps.find(rep => rep.map_position)
+      || terrain.reps.find(rep => rep.presence?.is_online)
       || terrain.reps.find(rep => rep.route_session?.status === 'open')
       || terrain.reps[0]
 
@@ -1001,6 +1004,8 @@ export default function LiveMapIndex() {
 
   const customerSubtitle = `${customers.length} clients · ${customers.filter(customer => customer.lat != null && customer.lng != null).length} geolocalises`
   const terrainTrackedCount = terrain.stats?.users_total ?? terrain.stats?.reps_total ?? 0
+  const terrainMappedCount = terrain.reps.filter(rep => rep.map_position).length
+  const terrainOnlineCount = terrain.stats?.online_users ?? terrain.stats?.online_reps ?? 0
   const terrainSubtitle = terrain.generated_at
     ? `${terrain.stats?.reps_total ?? 0} commerciaux suivis · MAJ ${formatDateTime(terrain.generated_at)}`
     : 'Suivi mobile, GPS et stock terrain'
@@ -1011,7 +1016,7 @@ export default function LiveMapIndex() {
         title="Carte & terrain"
         subtitle={activeTab === 'terrain'
           ? (terrain.generated_at
-            ? `${terrainTrackedCount} comptes suivis - MAJ ${formatDateTime(terrain.generated_at)}`
+            ? `${terrainMappedCount}/${terrainTrackedCount} comptes positionnes - ${terrainOnlineCount} en ligne - MAJ ${formatDateTime(terrain.generated_at)}`
             : terrainSubtitle)
           : customerSubtitle}
         action={(
@@ -1046,7 +1051,7 @@ export default function LiveMapIndex() {
           active={activeTab === 'terrain'}
           icon="fa-solid fa-tower-broadcast"
           label="Terrain mobile"
-          count={terrainTrackedCount}
+          count={terrainMappedCount}
           onClick={() => patchSearchParams({ tab: 'terrain' })}
         />
       </div>
