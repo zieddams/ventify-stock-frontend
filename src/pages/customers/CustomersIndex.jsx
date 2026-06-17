@@ -26,12 +26,13 @@ function fmt(value) {
 }
 
 export default function CustomersIndex() {
-  const { user, isAdmin } = useAuth()
+  const { user, canManageAllCustomers } = useAuth()
   const [customers, setCustomers] = useState([])
   const [zones, setZones] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [ownerFilter, setOwnerFilter] = useState('')
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState(EMPTY)
   const [editing, setEditing] = useState(null)
@@ -45,14 +46,16 @@ export default function CustomersIndex() {
   const defaultPaymentMethod = getDefaultConfigValue(paymentMethods, 'cash')
   const [pay, setPay] = useState({ amount: '', method: defaultPaymentMethod, invoice_id: '', note: '' })
   const [paying, setPaying] = useState(false)
-  const canAssignOwner = isAdmin()
+  const canAssignOwner = canManageAllCustomers()
 
   const load = async () => {
     setLoading(true)
 
     try {
       const requests = [
-        api.get('/customers'),
+        canAssignOwner && ownerFilter
+          ? api.get('/customers', { params: { user_id: Number(ownerFilter) } })
+          : api.get('/customers'),
         api.get('/zones'),
       ]
 
@@ -72,7 +75,7 @@ export default function CustomersIndex() {
 
   useEffect(() => {
     load()
-  }, [canAssignOwner])
+  }, [canAssignOwner, ownerFilter])
 
   useEffect(() => {
     setPay((current) => {
@@ -88,7 +91,7 @@ export default function CustomersIndex() {
     setEditing(null)
     setForm({
       ...EMPTY,
-      user_id: canAssignOwner ? String(user?.id ?? '') : '',
+      user_id: canAssignOwner ? String(ownerFilter || user?.id || '') : '',
     })
     setErrors({})
     setModal(true)
@@ -105,7 +108,7 @@ export default function CustomersIndex() {
       email: customer.email ?? '',
       zone_id: customer.zone_id ?? '',
       credit_limit: customer.credit_limit ?? '',
-      user_id: customer.user_id ?? '',
+      user_id: customer.user_id ? String(customer.user_id) : '',
     })
     setErrors({})
     setModal(true)
@@ -206,8 +209,24 @@ export default function CustomersIndex() {
   }, [customers, search])
 
   const assignableUsers = useMemo(() => (
-    users.filter((entry) => ['admin', 'developer', 'rep'].includes(entry.role))
+    users.filter((entry) => entry.active && ['admin', 'developer', 'rep', 'comptable'].includes(entry.role))
   ), [users])
+
+  const selectedOwner = useMemo(() => (
+    assignableUsers.find((entry) => String(entry.id) === String(ownerFilter))
+  ), [assignableUsers, ownerFilter])
+
+  const subtitle = useMemo(() => {
+    if (!canAssignOwner) {
+      return `${customers.length} client(s) sur votre portefeuille`
+    }
+
+    if (selectedOwner) {
+      return `${customers.length} client(s) affecte(s) a ${selectedOwner.name}`
+    }
+
+    return `${customers.length} client(s) sur tous les portefeuilles`
+  }, [canAssignOwner, customers.length, selectedOwner])
 
   if (loading) {
     return <PageLoader />
@@ -217,7 +236,7 @@ export default function CustomersIndex() {
     <div>
       <PageHeader
         title="Clients"
-        subtitle={`${customers.length} client(s)`}
+        subtitle={subtitle}
         action={(
           <div className="flex flex-wrap items-center justify-end gap-2">
             <PageExportActions title="Clients" csvEntity="customers" csvFilename="clients" />
@@ -230,15 +249,33 @@ export default function CustomersIndex() {
 
       <div className="card">
         <div className="mb-4">
-          <div className="relative">
-            <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-color text-sm" />
-            <input
-              placeholder="Rechercher un client..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              style={{ paddingLeft: '2.25rem' }}
-            />
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_260px]">
+            <div className="relative">
+              <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-color text-sm" />
+              <input
+                placeholder="Rechercher un client..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                style={{ paddingLeft: '2.25rem' }}
+              />
+            </div>
+
+            {canAssignOwner && (
+              <select value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)}>
+                <option value="">Tous les comptes</option>
+                {assignableUsers.map((entry) => (
+                  <option key={entry.id} value={entry.id}>
+                    {entry.name} - {entry.role}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
+          {canAssignOwner && (
+            <p className="text-xs text-muted-color mt-2">
+              Chaque client reste rattache a un seul compte. Les roles globaux voient toute la base, les autres comptes voient seulement leur liste.
+            </p>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -333,9 +370,9 @@ export default function CustomersIndex() {
           </div>
 
           {canAssignOwner && (
-            <FormField label="Commercial affecte" error={errors.user_id?.[0]}>
+            <FormField label="Compte proprietaire" error={errors.user_id?.[0]}>
               <select value={form.user_id} onChange={(event) => setForm((current) => ({ ...current, user_id: event.target.value }))}>
-                <option value="">Moi (back office)</option>
+                <option value="">Mon compte ({user?.name || 'courant'})</option>
                 {assignableUsers.map((entry) => (
                   <option key={entry.id} value={entry.id}>
                     {entry.name} - {entry.role}
