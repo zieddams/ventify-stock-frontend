@@ -21,6 +21,9 @@ import ExpensesIndex from './pages/expenses/ExpensesIndex'
 import InventaireIndex from './pages/inventory/InventaireIndex'
 import DataToolsIndex from './pages/data-tools/DataToolsIndex'
 import LiveMapIndex from './pages/map/LiveMapIndex'
+import HelpCenterIndex from './pages/help/HelpCenterIndex'
+import NotificationsCenterIndex from './pages/notifications/NotificationsCenterIndex'
+import BugReportsIndex from './pages/support/BugReportsIndex'
 import { APP_BASE_PATH } from './utils/appPaths'
 
 function RequireAuth({ children }) {
@@ -75,6 +78,9 @@ export default function App() {
             <Route path="map"       element={<RequireAdmin><LiveMapIndex /></RequireAdmin>} />
             <Route path="inventory" element={<RequireAdmin><InventaireIndex /></RequireAdmin>} />
             <Route path="data-tools" element={<RequireAdmin><DataToolsIndex /></RequireAdmin>} />
+            <Route path="help" element={<HelpCenterIndex />} />
+            <Route path="notifications-center" element={<NotificationsCenterIndex />} />
+            <Route path="bug-reports" element={<BugReportsIndex />} />
             <Route path="import"    element={<Navigate to="/data-tools" replace />} />
             <Route path="export"    element={<Navigate to="/data-tools" replace />} />
           </Route>

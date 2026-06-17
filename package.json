@@ -1,6 +1,6 @@
 {
   "name": "ventify-stock-frontend",
-  "version": "2.7.4",
+  "version": "2.8.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,6 +11,7 @@
     "axios": "^1.7.2",
     "laravel-echo": "^2.3.7",
     "leaflet": "^1.9.4",
+    "leaflet.gridlayer.googlemutant": "^0.16.0",
     "pusher-js": "^8.5.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

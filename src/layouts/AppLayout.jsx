@@ -5,8 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { APP_VERSION } from '../config/appMeta'
 
-const MAIN_NAV = [
-  { to: '/', icon: 'fa-solid fa-chart-pie', label: 'Tableau de bord', exact: true },
+const CORE_NAV = [
   { to: '/invoices', icon: 'fa-solid fa-file-invoice', label: 'Factures' },
   { to: '/customers', icon: 'fa-solid fa-users', label: 'Clients' },
   { to: '/products', icon: 'fa-solid fa-box-open', label: 'Produits' },
@@ -17,17 +16,25 @@ const FINANCE_NAV = [
   { to: '/expenses', icon: 'fa-solid fa-receipt', label: 'Depenses' },
 ]
 
-const ADMIN_NAV = [
+const OPERATIONS_NAV = [
   { to: '/routes', icon: 'fa-solid fa-truck-fast', label: 'Sorties journee' },
   { to: '/depot', icon: 'fa-solid fa-warehouse', label: 'Depot' },
   { to: '/camions', icon: 'fa-solid fa-truck', label: 'Camions' },
-  { to: '/map', icon: 'fa-solid fa-map-pin', label: 'Carte & terrain' },
+  { to: '/map', icon: 'fa-solid fa-map-location-dot', label: 'Carte & terrain' },
   { to: '/inventory', icon: 'fa-solid fa-clipboard-list', label: 'Inventaire' },
   { to: '/reports', icon: 'fa-solid fa-chart-line', label: 'Rapports' },
   { to: '/data-tools', icon: 'fa-solid fa-file-arrow-up', label: 'Import / Export' },
+]
+
+const MANAGEMENT_NAV = [
   { to: '/users', icon: 'fa-solid fa-user-gear', label: 'Utilisateurs' },
   { to: '/zones', icon: 'fa-solid fa-map-location-dot', label: 'Zones et tarifs' },
-  { to: '/config', icon: 'fa-solid fa-sliders', label: 'Configuration' },
+]
+
+const SUPPORT_NAV = [
+  { to: '/help', icon: 'fa-solid fa-circle-question', label: 'Aide' },
+  { to: '/notifications-center', icon: 'fa-solid fa-bell', label: 'Notifications' },
+  { to: '/bug-reports', icon: 'fa-solid fa-bug', label: 'Support & bugs' },
 ]
 
 const PAGE_TITLES = {
@@ -44,18 +51,22 @@ const PAGE_TITLES = {
   '/users': { label: 'Utilisateurs', icon: 'fa-solid fa-user-gear' },
   '/zones': { label: 'Zones et tarifs', icon: 'fa-solid fa-map-location-dot' },
   '/config': { label: 'Configuration', icon: 'fa-solid fa-sliders' },
-  '/map': { label: 'Carte & terrain', icon: 'fa-solid fa-map-pin' },
+  '/map': { label: 'Carte & terrain', icon: 'fa-solid fa-map-location-dot' },
   '/inventory': { label: 'Inventaire', icon: 'fa-solid fa-clipboard-list' },
   '/data-tools': { label: 'Import / Export', icon: 'fa-solid fa-file-arrow-up' },
   '/import': { label: 'Import / Export', icon: 'fa-solid fa-file-arrow-up' },
   '/export': { label: 'Import / Export', icon: 'fa-solid fa-file-arrow-up' },
+  '/help': { label: 'Aide & documentation', icon: 'fa-solid fa-circle-question' },
+  '/notifications-center': { label: 'Centre de notifications', icon: 'fa-solid fa-bell' },
+  '/bug-reports': { label: 'Support & bugs', icon: 'fa-solid fa-bug' },
 }
 
-function RailLink({ to, icon, label, exact, expanded = false }) {
+function RailLink({ to, icon, label, exact, expanded = false, onClick }) {
   return (
     <NavLink
       to={to}
       end={exact}
+      onClick={onClick}
       className={({ isActive }) => `rail-link${expanded ? ' expanded' : ''}${isActive ? ' active' : ''}`}
       title={label}
     >
@@ -72,6 +83,37 @@ function RailDivider({ expanded = false }) {
 
 function RailSectionTitle({ children }) {
   return <div className="rail-section-title">{children}</div>
+}
+
+function NavSection({ title, items, expanded, onClick }) {
+  return (
+    <div className="space-y-1">
+      {expanded && <RailSectionTitle>{title}</RailSectionTitle>}
+      <RailDivider expanded={expanded} />
+      {items.map((item) => (
+        <RailLink key={item.to} {...item} expanded={expanded} onClick={onClick} />
+      ))}
+    </div>
+  )
+}
+
+function TopbarLink({ to, icon, label }) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `hidden lg:inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
+          isActive
+            ? 'bg-teal-500/10 text-teal-600 dark:text-teal-300'
+            : 'text-muted-color hover:bg-surface-2 hover:text-base-color'
+        }`
+      }
+      title={label}
+    >
+      <i className={icon} />
+      <span className="hidden xl:inline">{label}</span>
+    </NavLink>
+  )
 }
 
 function UserMenu({ user, onLogout }) {
@@ -92,7 +134,7 @@ function UserMenu({ user, onLogout }) {
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen(value => !value)}
+        onClick={() => setOpen((value) => !value)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-xl transition-colors hover:bg-surface-2"
         title={user?.name}
       >
@@ -107,11 +149,25 @@ function UserMenu({ user, onLogout }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-52 bg-surface border border-theme rounded-xl shadow-md z-50 py-1 animate-fade-in">
+        <div className="absolute right-0 top-full mt-2 w-56 bg-surface border border-theme rounded-xl shadow-md z-50 py-1 animate-fade-in">
           <div className="px-3 py-2 border-b border-theme">
             <div className="text-sm font-semibold text-base-color">{user?.name}</div>
             <div className="text-xs text-muted-color">{user?.email}</div>
           </div>
+          <NavLink
+            to="/notifications-center"
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-secondary-color hover:bg-surface-2 transition-colors"
+          >
+            <i className="fa-solid fa-bell w-4" />
+            Notifications
+          </NavLink>
+          <NavLink
+            to="/bug-reports"
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-secondary-color hover:bg-surface-2 transition-colors"
+          >
+            <i className="fa-solid fa-bug w-4" />
+            Support & bugs
+          </NavLink>
           <button
             onClick={onLogout}
             className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
@@ -133,7 +189,7 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance }) {
   return (
     <div className="fixed inset-0 z-50 md:hidden no-print">
       <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="absolute left-0 top-0 bottom-0 w-72 rail flex flex-col animate-slide-in shadow-xl">
+      <div className="absolute left-0 top-0 bottom-0 w-80 rail flex flex-col animate-slide-in shadow-xl">
         <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center shadow">
@@ -149,63 +205,69 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance }) {
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-0.5">
-          {MAIN_NAV.map(item => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.exact}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  isActive ? 'bg-teal-600/30 text-teal-300' : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`
-              }
-            >
-              <i className={`${item.icon} w-4 text-center`} />
-              {item.label}
-            </NavLink>
-          ))}
+        <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-4">
+          <NavLink
+            to="/"
+            onClick={onClose}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                isActive ? 'bg-teal-600/30 text-teal-300' : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`
+            }
+          >
+            <i className="fa-solid fa-chart-pie w-4 text-center" />
+            Tableau de bord
+          </NavLink>
+
+          <div>
+            <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Operation</div>
+            <div className="space-y-0.5">
+              {CORE_NAV.map((item) => (
+                <RailLink key={item.to} {...item} expanded onClick={onClose} />
+              ))}
+            </div>
+          </div>
 
           {(isFinance() || isAdmin()) && (
-            <>
-              <div className="section-label mt-4" style={{ color: 'rgba(148,163,184,0.6)' }}>Finance</div>
-              {FINANCE_NAV.map(item => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  onClick={onClose}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                      isActive ? 'bg-teal-600/30 text-teal-300' : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`
-                  }
-                >
-                  <i className={`${item.icon} w-4 text-center`} />
-                  {item.label}
-                </NavLink>
-              ))}
-            </>
+            <div>
+              <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Finance</div>
+              <div className="space-y-0.5">
+                {FINANCE_NAV.map((item) => (
+                  <RailLink key={item.to} {...item} expanded onClick={onClose} />
+                ))}
+              </div>
+            </div>
           )}
 
           {isAdmin() && (
             <>
-              <div className="section-label mt-4" style={{ color: 'rgba(148,163,184,0.6)' }}>Administration</div>
-              {ADMIN_NAV.map(item => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  onClick={onClose}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                      isActive ? 'bg-teal-600/30 text-teal-300' : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`
-                  }
-                >
-                  <i className={`${item.icon} w-4 text-center`} />
-                  {item.label}
-                </NavLink>
-              ))}
+              <div>
+                <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Terrain & stock</div>
+                <div className="space-y-0.5">
+                  {OPERATIONS_NAV.map((item) => (
+                    <RailLink key={item.to} {...item} expanded onClick={onClose} />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Administration</div>
+                <div className="space-y-0.5">
+                  {MANAGEMENT_NAV.map((item) => (
+                    <RailLink key={item.to} {...item} expanded onClick={onClose} />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Support</div>
+                <div className="space-y-0.5">
+                  {SUPPORT_NAV.map((item) => (
+                    <RailLink key={item.to} {...item} expanded onClick={onClose} />
+                  ))}
+                  <RailLink to="/config" icon="fa-solid fa-sliders" label="Configuration" expanded onClick={onClose} />
+                </div>
+              </div>
             </>
           )}
         </nav>
@@ -236,7 +298,7 @@ export default function AppLayout() {
     navigate('/login')
   }
 
-  const pageKey = Object.keys(PAGE_TITLES).find(key =>
+  const pageKey = Object.keys(PAGE_TITLES).find((key) =>
     location.pathname === key || (key !== '/' && location.pathname.startsWith(`${key}/`))
   ) ?? '/'
 
@@ -245,7 +307,7 @@ export default function AppLayout() {
   return (
     <div className="flex h-screen overflow-hidden bg-app">
       <aside
-        className={`hidden md:flex flex-col rail flex-shrink-0 py-3 gap-1 border-r no-print${isSidebarExpanded ? ' expanded w-64 px-3' : ' compact w-16 items-center'}`}
+        className={`hidden md:flex flex-col rail flex-shrink-0 py-3 gap-3 border-r no-print ${isSidebarExpanded ? 'expanded w-72 px-3' : 'compact w-16 px-2 items-center'}`}
         style={{ borderColor: 'var(--rail-border)' }}
       >
         <div className={`rail-brand${isSidebarExpanded ? ' expanded' : ''}`}>
@@ -259,35 +321,40 @@ export default function AppLayout() {
           {isSidebarExpanded && (
             <div className="min-w-0">
               <div className="rail-brand-title">El Irtiwaa</div>
-              <div className="rail-brand-subtitle">Gestion commerciale</div>
+              <div className="rail-brand-subtitle">Stock, terrain, facturation</div>
             </div>
           )}
         </div>
 
-        {isSidebarExpanded && <RailSectionTitle>Navigation</RailSectionTitle>}
-        <RailDivider expanded={isSidebarExpanded} />
-        {MAIN_NAV.map(item => <RailLink key={item.to} {...item} expanded={isSidebarExpanded} />)}
+        <div className="flex-1 min-h-0 w-full overflow-y-auto">
+          <div className="space-y-4 pb-3">
+            <NavSection title="Operation" items={CORE_NAV} expanded={isSidebarExpanded} />
 
-        {(isFinance() || isAdmin()) && (
-          <>
-            {isSidebarExpanded && <RailSectionTitle>Finance</RailSectionTitle>}
-            <RailDivider expanded={isSidebarExpanded} />
-            {FINANCE_NAV.map(item => <RailLink key={item.to} {...item} expanded={isSidebarExpanded} />)}
-          </>
-        )}
+            {(isFinance() || isAdmin()) && (
+              <NavSection title="Finance" items={FINANCE_NAV} expanded={isSidebarExpanded} />
+            )}
 
-        {isAdmin() && (
-          <>
-            {isSidebarExpanded && <RailSectionTitle>Administration</RailSectionTitle>}
-            <RailDivider expanded={isSidebarExpanded} />
-            {ADMIN_NAV.map(item => <RailLink key={item.to} {...item} expanded={isSidebarExpanded} />)}
-          </>
-        )}
+            {isAdmin() && (
+              <>
+                <NavSection title="Terrain & stock" items={OPERATIONS_NAV} expanded={isSidebarExpanded} />
+                <NavSection title="Administration" items={MANAGEMENT_NAV} expanded={isSidebarExpanded} />
+                <NavSection title="Support" items={SUPPORT_NAV} expanded={isSidebarExpanded} />
+              </>
+            )}
+          </div>
+        </div>
 
-        <div className="mt-auto pb-2" />
         {isSidebarExpanded && (
           <div className="rail-footer">
-            <div className="text-xs text-muted-color">Version web</div>
+            <div className="text-xs text-muted-color">Configuration rapide</div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <NavLink to="/config" className="btn-secondary text-xs">
+                <i className="fa-solid fa-sliders" /> Config
+              </NavLink>
+              <NavLink to="/help" className="btn-secondary text-xs">
+                <i className="fa-solid fa-circle-question" /> Aide
+              </NavLink>
+            </div>
             <div className="rail-footer-version">v{APP_VERSION}</div>
           </div>
         )}
@@ -316,13 +383,29 @@ export default function AppLayout() {
               </div>
               <span className="font-bold text-sm text-base-color">El Irtiwaa</span>
             </div>
-            <h1 className="hidden md:block text-sm font-semibold text-base-color truncate">{pageInfo.label}</h1>
+            <div className="min-w-0">
+              <h1 className="hidden md:block text-sm font-semibold text-base-color truncate">{pageInfo.label}</h1>
+              <div className="hidden xl:block text-xs text-muted-color truncate">v{APP_VERSION}</div>
+            </div>
           </div>
 
           <div className="flex-1" />
 
           <div className="flex items-center gap-1">
+            <TopbarLink to="/help" icon="fa-solid fa-circle-question" label="Aide" />
+            <TopbarLink to="/bug-reports" icon="fa-solid fa-bug" label="Support" />
             <NotificationBell />
+            {isAdmin() && (
+              <NavLink
+                to="/config"
+                className={({ isActive }) =>
+                  `btn-ghost p-2 ${isActive ? 'bg-teal-500/10 text-teal-600 dark:text-teal-300' : ''}`
+                }
+                title="Configuration"
+              >
+                <i className="fa-solid fa-sliders text-base text-muted-color" />
+              </NavLink>
+            )}
             <button
               className="btn-ghost p-2"
               onClick={toggle}

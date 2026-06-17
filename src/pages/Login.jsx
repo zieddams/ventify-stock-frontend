@@ -1,107 +1,35 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useTheme } from '../contexts/ThemeContext'
 import { APP_VERSION } from '../config/appMeta'
 
-const AMBIENT_ORBS = [
-  {
-    size: '32rem',
-    color: 'radial-gradient(circle, rgba(20,184,166,0.42) 0%, rgba(20,184,166,0) 72%)',
-    top: '-12%',
-    left: '-10%',
-    delay: 0,
-    duration: 9,
-  },
-  {
-    size: '26rem',
-    color: 'radial-gradient(circle, rgba(14,165,233,0.36) 0%, rgba(14,165,233,0) 72%)',
-    top: '14%',
-    left: '68%',
-    delay: 2,
-    duration: 10,
-  },
-  {
-    size: '20rem',
-    color: 'radial-gradient(circle, rgba(99,102,241,0.28) 0%, rgba(99,102,241,0) 72%)',
-    top: '68%',
-    left: '-4%',
-    delay: 1,
-    duration: 8,
-  },
-  {
-    size: '16rem',
-    color: 'radial-gradient(circle, rgba(45,212,191,0.26) 0%, rgba(45,212,191,0) 72%)',
-    top: '66%',
-    left: '76%',
-    delay: 3,
-    duration: 7,
-  },
-]
-
-const PARTICLES = Array.from({ length: 22 }, (_, index) => ({
-  left: `${4 + (index * 13) % 92}%`,
-  top: `${6 + (index * 19) % 86}%`,
-  size: `${index % 3 === 0 ? 0.9 : index % 3 === 1 ? 0.65 : 0.45}rem`,
-  duration: `${11 + (index % 5) * 2.5}s`,
-  delay: `${(index % 6) * 0.6}s`,
-  opacity: 0.12 + (index % 4) * 0.05,
+const PARTICLES = Array.from({ length: 18 }, (_, index) => ({
+  left: `${6 + ((index * 17) % 86)}%`,
+  top: `${8 + ((index * 13) % 78)}%`,
+  size: `${index % 3 === 0 ? 12 : index % 3 === 1 ? 9 : 6}px`,
+  delay: `${(index % 6) * 0.55}s`,
+  duration: `${7 + (index % 5) * 1.4}s`,
+  opacity: 0.14 + (index % 4) * 0.04,
 }))
 
-const PLATFORM_PILLS = [
+const FEATURE_CARDS = [
   {
-    icon: 'fa-warehouse',
-    label: 'Realtime stock',
+    icon: 'fa-solid fa-file-invoice',
+    title: 'Factures & paiements',
+    detail: 'Facturation terrain, credit client, impressions et suivi des encaissements.',
   },
   {
-    icon: 'fa-file-invoice',
-    label: 'Smart invoicing',
+    icon: 'fa-solid fa-truck-fast',
+    title: 'Sessions & camions',
+    detail: 'Affectation terrain, chargements, retours, stock embarque et suivi quotidien.',
   },
   {
-    icon: 'fa-route',
-    label: 'Field tracking',
-  },
-  {
-    icon: 'fa-chart-line',
-    label: 'Live reporting',
-  },
-]
-
-const FEATURE_LINES = [
-  {
-    icon: 'fa-layer-group',
-    title: 'One commercial workspace',
-    detail: 'Depot, customers, invoices, expenses and exports stay connected in the same flow.',
-  },
-  {
-    icon: 'fa-mobile-screen-button',
-    title: 'Web, API and mobile sync',
-    detail: 'The platform keeps one shared data spine for the office team and the field team.',
-  },
-  {
-    icon: 'fa-sparkles',
-    title: '2030-ready SaaS messaging',
-    detail: 'Clear product language focused on speed, visibility, control and connected operations.',
+    icon: 'fa-solid fa-bell',
+    title: 'Carte & alertes',
+    detail: 'Notifications, remontes mobiles, exports et controle temps reel des operations.',
   },
 ]
-
-function Orb({ size, color, top, left, delay, duration }) {
-  return (
-    <div
-      className="pointer-events-none absolute rounded-full"
-      style={{
-        width: size,
-        height: size,
-        background: color,
-        top,
-        left,
-        filter: 'blur(68px)',
-        mixBlendMode: 'screen',
-        opacity: 0.78,
-        animation: `orbFloat ${duration}s ease-in-out ${delay}s infinite alternate`,
-      }}
-    />
-  )
-}
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -110,6 +38,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
+  const { isDark } = useTheme()
   const navigate = useNavigate()
 
   const handleSubmit = async (event) => {
@@ -131,26 +60,17 @@ export default function Login() {
     <div
       className="relative min-h-screen overflow-hidden px-4 py-10 sm:px-6"
       style={{
-        background: 'linear-gradient(145deg, #04101f 0%, #081827 38%, #0b1f2d 70%, #06111d 100%)',
+        background: isDark
+          ? 'linear-gradient(160deg, #07131d 0%, #0c1b26 42%, #112435 100%)'
+          : 'linear-gradient(160deg, #ecf7f6 0%, #f8fbfd 45%, #eef4ff 100%)',
       }}
     >
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: 'radial-gradient(circle at top, rgba(56,189,248,0.14) 0%, rgba(56,189,248,0) 42%)',
-        }}
-      />
-
-      {AMBIENT_ORBS.map((orb, index) => (
-        <Orb key={index} {...orb} />
-      ))}
-
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px)',
-          backgroundSize: '50px 50px',
+          background: isDark
+            ? 'radial-gradient(circle at top left, rgba(45,212,191,0.16) 0%, rgba(45,212,191,0) 42%)'
+            : 'radial-gradient(circle at top left, rgba(20,184,166,0.16) 0%, rgba(20,184,166,0) 42%)',
         }}
       />
 
@@ -160,97 +80,65 @@ export default function Login() {
             key={index}
             className="login-particle"
             style={{
-              width: particle.size,
-              height: particle.size,
               left: particle.left,
               top: particle.top,
-              '--particle-duration': particle.duration,
+              width: particle.size,
+              height: particle.size,
+              opacity: particle.opacity,
               '--particle-delay': particle.delay,
-              '--particle-opacity': particle.opacity,
+              '--particle-duration': particle.duration,
             }}
           />
         ))}
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-5xl items-center justify-center">
-        <div
-          className="relative w-full max-w-lg overflow-hidden rounded-[30px] border border-white/10 p-6 sm:p-8"
-          style={{
-            background: 'linear-gradient(180deg, rgba(9,18,30,0.7) 0%, rgba(9,18,30,0.54) 100%)',
-            backdropFilter: 'blur(30px)',
-            WebkitBackdropFilter: 'blur(30px)',
-            boxShadow: '0 34px 100px rgba(2,6,23,0.54), inset 0 1px 0 rgba(255,255,255,0.12)',
-            animation: 'loginReveal 0.6s cubic-bezier(0.16,1,0.3,1) both',
-          }}
-        >
+      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl items-center justify-center">
+        <div className="grid w-full grid-cols-1 overflow-hidden rounded-[32px] border border-white/30 shadow-[0_30px_80px_rgba(15,23,42,0.14)] lg:grid-cols-[0.95fr,1.05fr]">
           <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-40"
+            className="px-6 py-8 sm:px-8 lg:px-10"
             style={{
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 100%)',
+              background: isDark
+                ? 'linear-gradient(180deg, rgba(7,18,28,0.84) 0%, rgba(9,22,33,0.78) 100%)'
+                : 'linear-gradient(180deg, rgba(255,255,255,0.86) 0%, rgba(255,255,255,0.78) 100%)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
             }}
-          />
-
-          <div className="relative z-10">
-            <div className="text-center">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-teal-100/90">
-                <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.9)]" />
-                Connected commerce workspace
-              </div>
-
-              <div className="mt-6 inline-flex h-16 w-16 items-center justify-center rounded-[22px] relative"
-                style={{
-                  background: 'linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%)',
-                  boxShadow: '0 16px 38px rgba(13,148,136,0.36)',
-                }}>
-                <i className="fa-solid fa-droplet text-2xl text-white" />
+          >
+            <div className="flex items-center gap-3">
+              <div className="relative flex h-14 w-14 items-center justify-center rounded-[20px] bg-gradient-to-br from-teal-500 to-teal-700 shadow-[0_18px_40px_rgba(13,148,136,0.26)]">
+                <i className="fa-solid fa-droplet text-xl text-white" />
                 <div
-                  className="absolute inset-0 rounded-[22px]"
+                  className="absolute inset-0 rounded-[20px]"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 62%)',
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0) 62%)',
                   }}
                 />
               </div>
-
-              <div className="mt-5 flex items-center justify-center gap-3">
-                <h1 className="text-3xl font-bold tracking-tight text-white sm:text-[2.1rem]">
-                  El Irtiwaa
-                </h1>
-                <span className="rounded-full border border-teal-400/20 bg-teal-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-teal-50">
-                  v{APP_VERSION}
-                </span>
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-color">El Irtiwaa</div>
+                <div className="text-xl font-bold text-base-color">Connexion plateforme</div>
               </div>
-
-              <p className="mt-4 text-base leading-7 text-slate-300 sm:text-[1.05rem]">
-                One secure login for stock control, invoicing, route activity, mobile sync and live reporting.
-              </p>
-
-              <p className="mt-2 text-sm leading-6 text-slate-400">
-                Modern B2B SaaS positioning for a beverage distribution platform built around speed,
-                visibility and connected field operations.
-              </p>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-2 sm:gap-3">
-              {PLATFORM_PILLS.map((item) => (
-                <div
-                  key={item.label}
-                  className="rounded-2xl border border-white/10 px-3 py-3 text-sm text-slate-200"
-                  style={{
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.03) 100%)',
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <i className={`fa-solid ${item.icon} text-teal-300`} />
-                    <span className="font-medium">{item.label}</span>
-                  </div>
-                </div>
-              ))}
+            <div className="mt-6 flex flex-wrap items-center gap-2">
+              <span className="rounded-full border px-3 py-1 text-[11px] font-semibold" style={{ borderColor: 'rgba(13,148,136,0.18)', background: 'rgba(13,148,136,0.08)', color: '#0d9488' }}>
+                Web + API + mobile
+              </span>
+              <span className="rounded-full border px-3 py-1 text-[11px] font-semibold" style={{ borderColor: 'rgba(59,130,246,0.14)', background: 'rgba(59,130,246,0.08)', color: '#2563eb' }}>
+                v{APP_VERSION}
+              </span>
             </div>
+
+            <p className="mt-5 text-sm leading-7 text-secondary-color">
+              Connectez-vous pour gerer le stock, la facturation, les sessions terrain, les notifications
+              et le suivi operationnel depuis une meme interface.
+            </p>
 
             {error && (
               <div
                 role="alert"
-                className="mt-6 flex items-start gap-3 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
+                className="mt-6 flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm"
+                style={{ borderColor: 'rgba(239,68,68,0.18)', background: 'rgba(239,68,68,0.08)', color: '#b91c1c' }}
               >
                 <i className="fa-solid fa-circle-exclamation mt-0.5 flex-shrink-0" />
                 <span>{error}</span>
@@ -259,11 +147,11 @@ export default function Login() {
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-muted-color">
                   Email
                 </label>
                 <div className="relative">
-                  <i className="fa-regular fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-500" />
+                  <i className="fa-regular fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-color" />
                   <input
                     type="email"
                     value={email}
@@ -278,11 +166,11 @@ export default function Login() {
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-muted-color">
                   Mot de passe
                 </label>
                 <div className="relative">
-                  <i className="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-500" />
+                  <i className="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-color" />
                   <input
                     type={showPwd ? 'text' : 'password'}
                     value={password}
@@ -296,7 +184,7 @@ export default function Login() {
                     type="button"
                     tabIndex={-1}
                     onClick={() => setShowPwd((current) => !current)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-2 text-slate-400 transition hover:bg-white/5 hover:text-slate-100"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-2 text-muted-color transition hover:bg-black/5 dark:hover:bg-white/5 hover:text-base-color"
                   >
                     <i className={`fa-solid ${showPwd ? 'fa-eye-slash' : 'fa-eye'} text-sm`} />
                   </button>
@@ -317,96 +205,97 @@ export default function Login() {
                 )}
               </button>
             </form>
+          </div>
 
-            <div className="mt-6 rounded-[24px] border border-white/10 bg-slate-950/25 p-4 sm:p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
-                    Product narrative
-                  </p>
-                  <h2 className="mt-1 text-sm font-semibold text-white">
-                    Cleaner, simpler, sharper
-                  </h2>
-                </div>
-                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-slate-200">
-                  Simple login
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                {FEATURE_LINES.map((item) => (
-                  <div
-                    key={item.title}
-                    className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3"
-                  >
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-white/5 text-teal-300">
-                      <i className={`fa-solid ${item.icon} text-sm`} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-100">{item.title}</p>
-                      <p className="mt-1 text-xs leading-5 text-slate-400">{item.detail}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          <div
+            className="px-6 py-8 sm:px-8 lg:px-10"
+            style={{
+              background: isDark
+                ? 'linear-gradient(180deg, rgba(11,29,43,0.74) 0%, rgba(10,24,37,0.70) 100%)'
+                : 'linear-gradient(180deg, rgba(244,250,255,0.86) 0%, rgba(239,247,252,0.84) 100%)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+              borderLeft: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.55)',
+            }}
+          >
+            <div className="rounded-[28px] border px-5 py-5" style={{ borderColor: 'rgba(255,255,255,0.22)', background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.58)' }}>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-color">Fonctionnalites</div>
+              <h2 className="mt-2 text-2xl font-bold text-base-color">Un acces simple a l essentiel</h2>
+              <p className="mt-3 text-sm leading-7 text-secondary-color">
+                Cette page reste volontairement sobre: juste la connexion, le contexte produit et les blocs utiles
+                pour rappeler les capacites actives de la plateforme.
+              </p>
             </div>
 
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-xs text-slate-400">
-              <span>El Irtiwaa</span>
-              <span className="h-1 w-1 rounded-full bg-slate-600" />
-              <span>Beverage distribution platform</span>
-              <span className="h-1 w-1 rounded-full bg-slate-600" />
-              <span>Web + API + mobile sync</span>
+            <div className="mt-5 space-y-4">
+              {FEATURE_CARDS.map((item) => (
+                <div
+                  key={item.title}
+                  className="rounded-[24px] border px-5 py-5"
+                  style={{
+                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.55)',
+                    background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.58)',
+                  }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl" style={{ background: 'rgba(13,148,136,0.10)', color: '#0d9488' }}>
+                      <i className={item.icon} />
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-base-color">{item.title}</div>
+                      <div className="mt-2 text-sm leading-6 text-secondary-color">{item.detail}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 rounded-[24px] border px-5 py-4 text-sm text-secondary-color" style={{ borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.55)', background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.58)' }}>
+              Besoin d un diagnostic rapide apres connexion ? Le centre de notifications, la page support et la carte terrain
+              sont accessibles directement depuis l en-tete de l application.
             </div>
           </div>
         </div>
       </div>
 
       <style>{`
-        @keyframes orbFloat {
-          from { transform: translate3d(0, 0, 0) scale(0.96); }
-          to { transform: translate3d(0, -32px, 0) scale(1.06); }
-        }
-
         @keyframes particleDrift {
-          from { transform: translate3d(0, 0, 0) scale(0.88); }
-          to { transform: translate3d(0, -20px, 0) scale(1.08); }
-        }
-
-        @keyframes loginReveal {
-          from { opacity: 0; transform: translateY(18px) scale(0.98); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
+          from { transform: translate3d(0, 0, 0) scale(0.95); }
+          to { transform: translate3d(0, -18px, 0) scale(1.08); }
         }
 
         .login-particle {
           position: absolute;
           border-radius: 999px;
-          background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(125,211,252,0.62) 38%, rgba(45,212,191,0) 76%);
-          box-shadow: 0 0 22px rgba(56,189,248,0.24);
-          opacity: var(--particle-opacity);
+          background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(125,211,252,0.54) 38%, rgba(45,212,191,0) 76%);
+          box-shadow: 0 0 18px rgba(56,189,248,0.16);
           animation: particleDrift var(--particle-duration) ease-in-out var(--particle-delay) infinite alternate;
         }
 
         .login-input {
           width: 100%;
           border-radius: 1rem;
-          border: 1px solid rgba(148,163,184,0.18) !important;
-          background: rgba(15,23,42,0.48) !important;
+          padding: 0.9rem 0.95rem 0.9rem 2.9rem;
+          background: rgba(255,255,255,0.66) !important;
+          border: 1px solid rgba(148,163,184,0.22) !important;
+          color: #0f172a !important;
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+        }
+
+        html.dark .login-input {
+          background: rgba(15,23,42,0.42) !important;
+          border-color: rgba(148,163,184,0.18) !important;
           color: #f8fafc !important;
-          padding: 0.88rem 0.95rem 0.88rem 2.9rem;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
         }
 
         .login-input:focus {
-          border-color: rgba(45,212,191,0.72) !important;
-          box-shadow: 0 0 0 4px rgba(13,148,136,0.14) !important;
-          background: rgba(15,23,42,0.62) !important;
+          border-color: rgba(13,148,136,0.64) !important;
+          box-shadow: 0 0 0 4px rgba(13,148,136,0.12) !important;
         }
 
         .login-input::placeholder {
-          color: rgba(148,163,184,0.6) !important;
+          color: rgba(100,116,139,0.78) !important;
         }
 
         .login-submit {
@@ -417,25 +306,20 @@ export default function Login() {
           gap: 0.7rem;
           border: none;
           border-radius: 1rem;
-          background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);
+          background: linear-gradient(135deg, #14b8a6 0%, #0f766e 100%);
           color: #ffffff;
           cursor: pointer;
-          padding: 0.92rem 1.25rem;
+          padding: 0.95rem 1.25rem;
           font-size: 0.95rem;
           font-weight: 600;
-          letter-spacing: 0.01em;
-          box-shadow: 0 18px 40px rgba(13,148,136,0.26);
+          box-shadow: 0 18px 40px rgba(13,148,136,0.24);
           transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
         }
 
         .login-submit:hover:not(:disabled) {
           transform: translateY(-1px);
-          box-shadow: 0 22px 46px rgba(14,165,233,0.26);
-          filter: saturate(1.05);
-        }
-
-        .login-submit:active:not(:disabled) {
-          transform: translateY(1px) scale(0.995);
+          box-shadow: 0 22px 44px rgba(13,148,136,0.28);
+          filter: saturate(1.03);
         }
 
         .login-submit:disabled {

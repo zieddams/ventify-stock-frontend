@@ -72,6 +72,12 @@ const ACTIVITY_KIND_CONFIG = {
     bg: 'rgba(16,185,129,0.12)',
     label: 'Paiement recu',
   },
+  'bug.report.created': {
+    icon: 'fa-solid fa-bug',
+    color: '#ef4444',
+    bg: 'rgba(239,68,68,0.12)',
+    label: 'Nouveau bug',
+  },
 }
 
 const NOTIFICATION_EVENT_KINDS = new Set(Object.keys(ACTIVITY_KIND_CONFIG))
@@ -293,17 +299,25 @@ export default function NotificationBell() {
             )}
           </div>
 
-          {notifs.length > 0 && (
-            <div className="px-4 py-3 text-center" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-              <button
-                onClick={() => setOpen(false)}
-                className="text-xs"
-                style={{ color: 'rgba(100,116,139,0.7)', background: 'none', border: 'none', cursor: 'pointer' }}
-              >
-                Fermer
-              </button>
-            </div>
-          )}
+          <div className="px-4 py-3 flex items-center justify-between gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <button
+              onClick={() => {
+                setOpen(false)
+                navigate('/notifications-center')
+              }}
+              className="text-xs font-medium"
+              style={{ color: '#2dd4bf', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              Voir le centre
+            </button>
+            <button
+              onClick={() => setOpen(false)}
+              className="text-xs"
+              style={{ color: 'rgba(100,116,139,0.7)', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              Fermer
+            </button>
+          </div>
         </div>
       )}
     </div>

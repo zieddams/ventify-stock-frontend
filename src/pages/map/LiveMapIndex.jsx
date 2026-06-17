@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Circle, MapContainer, Marker, Popup, Polyline, TileLayer, useMap } from 'react-leaflet'
+import { Circle, MapContainer, Marker, Popup, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import 'leaflet.gridlayer.googlemutant'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
 import api from '../../services/api'
@@ -22,6 +23,221 @@ const TUNISIA_BOUNDS = [
 ]
 const DEFAULT_CENTER = [34.2, 9.6]
 const DEFAULT_ZOOM = 6
+const GOOGLE_MAP_PROVIDERS = new Set(['google_roadmap', 'google_satellite'])
+const GOOGLE_MAP_TYPES = new Set(['roadmap', 'satellite', 'terrain', 'hybrid'])
+const GOOGLE_MAPS_SCRIPT_ID = 'irtiwaa-google-maps-sdk'
+const MAP_PROVIDER_CONFIG = {
+  openstreetmap: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    options: { subdomains: ['a', 'b', 'c'] },
+  },
+  carto_light: {
+    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    options: { subdomains: ['a', 'b', 'c', 'd'] },
+  },
+  open_topo_map: {
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap',
+    options: { subdomains: ['a', 'b', 'c'] },
+  },
+  esri_world_imagery: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri',
+    options: {},
+  },
+}
+let googleMapsLoaderPromise = null
+let googleMapsLoaderKey = ''
+
+function usesGoogleProvider(mapSettings) {
+  return GOOGLE_MAP_PROVIDERS.has(mapSettings.provider)
+}
+
+function resolveGoogleMapType(mapSettings) {
+  const fallbackType = mapSettings.provider === 'google_satellite' ? 'satellite' : 'roadmap'
+  const requestedType = String(mapSettings.googleMapType || fallbackType).toLowerCase()
+
+  return GOOGLE_MAP_TYPES.has(requestedType) ? requestedType : fallbackType
+}
+
+function loadGoogleMapsApi(apiKey) {
+  if (!apiKey) {
+    return Promise.reject(new Error('missing_google_maps_api_key'))
+  }
+
+  if (window.google?.maps) {
+    return Promise.resolve(window.google)
+  }
+
+  if (googleMapsLoaderPromise && googleMapsLoaderKey === apiKey) {
+    return googleMapsLoaderPromise
+  }
+
+  googleMapsLoaderKey = apiKey
+  googleMapsLoaderPromise = new Promise((resolve, reject) => {
+    const handleSuccess = (script) => {
+      script.dataset.loaded = '1'
+
+      if (window.google?.maps) {
+        resolve(window.google)
+        return
+      }
+
+      googleMapsLoaderPromise = null
+      reject(new Error('google_maps_not_available'))
+    }
+
+    const handleFailure = () => {
+      googleMapsLoaderPromise = null
+      reject(new Error('google_maps_load_failed'))
+    }
+
+    const existingScript = document.getElementById(GOOGLE_MAPS_SCRIPT_ID)
+
+    if (existingScript) {
+      if (window.google?.maps || existingScript.dataset.loaded === '1') {
+        handleSuccess(existingScript)
+        return
+      }
+
+      existingScript.addEventListener('load', () => handleSuccess(existingScript), { once: true })
+      existingScript.addEventListener('error', handleFailure, { once: true })
+      return
+    }
+
+    const query = new URLSearchParams({
+      key: apiKey,
+      v: 'weekly',
+      loading: 'async',
+    })
+
+    const script = document.createElement('script')
+    script.id = GOOGLE_MAPS_SCRIPT_ID
+    script.src = `https://maps.googleapis.com/maps/api/js?${query.toString()}`
+    script.async = true
+    script.defer = true
+    script.addEventListener('load', () => handleSuccess(script), { once: true })
+    script.addEventListener('error', handleFailure, { once: true })
+    document.head.appendChild(script)
+  })
+
+  return googleMapsLoaderPromise
+}
+
+function normalizeMapSettings(settings = []) {
+  const byKey = Array.isArray(settings)
+    ? settings.reduce((carry, item) => {
+      carry[item.key] = item.value
+      return carry
+    }, {})
+    : {}
+
+  return {
+    provider: byKey['map.provider'] || 'openstreetmap',
+    googleMapsApiKey: byKey['map.google_maps_api_key'] || '',
+    googleMapType: byKey['map.google_map_type'] || 'roadmap',
+    googleMapId: byKey['map.google_map_id'] || '',
+    customTileUrl: byKey['map.custom_tile_url'] || '',
+    customTileAttribution: byKey['map.custom_tile_attribution'] || '',
+  }
+}
+
+function resolveProviderConfig(mapSettings) {
+  if (mapSettings.provider === 'custom' && mapSettings.customTileUrl) {
+    return {
+      provider: 'custom',
+      url: mapSettings.customTileUrl,
+      attribution: mapSettings.customTileAttribution || '&copy; Provider personnalise',
+      options: {},
+      warning: '',
+    }
+  }
+
+  if (mapSettings.provider === 'custom') {
+    return {
+      provider: 'custom',
+      ...MAP_PROVIDER_CONFIG.openstreetmap,
+      warning: 'Le mode personnalise demande une URL de tuiles valide. La carte reste sur OpenStreetMap tant que le champ est vide.',
+    }
+  }
+
+  if (usesGoogleProvider(mapSettings)) {
+    return {
+      provider: mapSettings.provider,
+      ...MAP_PROVIDER_CONFIG.openstreetmap,
+      warning: mapSettings.googleMapsApiKey
+        ? ''
+        : 'Google Maps demande une cle navigateur Google Maps JavaScript API et un projet de facturation actif. La carte utilise OpenStreetMap tant qu aucune cle n est configuree.',
+    }
+  }
+
+  const fallback = MAP_PROVIDER_CONFIG[mapSettings.provider] ?? MAP_PROVIDER_CONFIG.openstreetmap
+
+  return {
+    provider: mapSettings.provider,
+    ...fallback,
+    warning: '',
+  }
+}
+
+function MapBaseLayer({ mapSettings }) {
+  const map = useMap()
+
+  useEffect(() => {
+    const config = resolveProviderConfig(mapSettings)
+    const fallbackConfig = MAP_PROVIDER_CONFIG.openstreetmap
+    let layer = null
+    let disposed = false
+
+    const attachLayer = async () => {
+      try {
+        if (usesGoogleProvider(mapSettings) && mapSettings.googleMapsApiKey) {
+          await loadGoogleMapsApi(mapSettings.googleMapsApiKey)
+
+          if (disposed) {
+            return
+          }
+
+          layer = L.gridLayer.googleMutant({
+            type: resolveGoogleMapType(mapSettings),
+            maxZoom: 21,
+            ...(mapSettings.googleMapId ? { mapId: mapSettings.googleMapId } : {}),
+          })
+        } else {
+          layer = L.tileLayer(config.url, {
+            attribution: config.attribution,
+            ...(config.options ?? {}),
+          })
+        }
+      } catch {
+        if (disposed) {
+          return
+        }
+
+        layer = L.tileLayer(fallbackConfig.url, {
+          attribution: fallbackConfig.attribution,
+          ...(fallbackConfig.options ?? {}),
+        })
+      }
+
+      layer.addTo(map)
+    }
+
+    attachLayer()
+
+    return () => {
+      disposed = true
+
+      if (layer && map.hasLayer(layer)) {
+        map.removeLayer(layer)
+      }
+    }
+  }, [map, mapSettings])
+
+  return null
+}
 
 function getTunisiaPoint(latitude, longitude) {
   const lat = Number(latitude)
@@ -294,6 +510,7 @@ function ClientsTab({
   customers,
   zones,
   loading,
+  mapSettings,
   selectedCustomerId,
   onSelectCustomer,
   filterZone,
@@ -401,10 +618,7 @@ function ClientsTab({
               style={{ height: '100%', width: '100%' }}
               zoomControl
             >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
+              <MapBaseLayer mapSettings={mapSettings} />
               <FitCustomersBounds customers={mapped} />
 
               {mapped.map(customer => {
@@ -458,6 +672,7 @@ function TerrainTab({
   terrain,
   terrainLoading,
   terrainError,
+  mapSettings,
   repSearch,
   onRepSearch,
   onlineOnly,
@@ -727,10 +942,7 @@ function TerrainTab({
                 style={{ height: '100%', width: '100%' }}
                 zoomControl
               >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
+                <MapBaseLayer mapSettings={mapSettings} />
                 <FitTerrainBounds reps={terrainPositions} routeTrace={routeTrace} selectedRep={selectedRep} />
 
                 {terrainPositions.map(rep => {
@@ -922,6 +1134,7 @@ export default function LiveMapIndex() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [customers, setCustomers] = useState([])
   const [zones, setZones] = useState([])
+  const [mapSettings, setMapSettings] = useState(() => normalizeMapSettings())
   const [loadingClients, setLoadingClients] = useState(true)
   const [selectedCustomerId, setSelectedCustomerId] = useState(null)
   const [filterZone, setFilterZone] = useState('')
@@ -971,6 +1184,17 @@ export default function LiveMapIndex() {
       initialClientsLoaded.current = true
     } finally {
       setLoadingClients(false)
+    }
+  }, [])
+
+  const loadMapSettings = useCallback(async () => {
+    try {
+      const response = await api.get('/settings', {
+        params: { group: 'map' },
+      })
+      setMapSettings(normalizeMapSettings(response.data ?? []))
+    } catch {
+      setMapSettings(normalizeMapSettings())
     }
   }, [])
 
@@ -1032,7 +1256,8 @@ export default function LiveMapIndex() {
   useEffect(() => {
     loadClients()
     loadTerrain()
-  }, [loadClients, loadTerrain])
+    loadMapSettings()
+  }, [loadClients, loadMapSettings, loadTerrain])
 
   useEffect(() => {
     if (activeTab !== 'terrain') {
@@ -1116,6 +1341,7 @@ export default function LiveMapIndex() {
   const terrainTrackedCount = terrain.stats?.users_total ?? terrain.stats?.reps_total ?? 0
   const terrainMappedCount = terrain.reps.filter(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude)).length
   const terrainOnlineCount = terrain.stats?.online_users ?? terrain.stats?.online_reps ?? 0
+  const providerConfig = resolveProviderConfig(mapSettings)
   const terrainSubtitle = terrain.generated_at
     ? `${terrain.stats?.reps_total ?? 0} commerciaux suivis · MAJ ${formatDateTime(terrain.generated_at)}`
     : 'Suivi mobile, GPS et stock terrain'
@@ -1132,6 +1358,7 @@ export default function LiveMapIndex() {
         action={(
           <button
             onClick={() => {
+              loadMapSettings()
               if (activeTab === 'terrain') {
                 loadTerrain()
                 const selectedRep = terrain.reps.find(rep => String(rep.id) === String(selectedRepId))
@@ -1166,11 +1393,24 @@ export default function LiveMapIndex() {
         />
       </div>
 
+      {providerConfig.warning && (
+        <div className="card py-3 px-4 mb-4">
+          <div className="flex items-start gap-3">
+            <i className="fa-solid fa-circle-info text-amber-500 mt-0.5" />
+            <div>
+              <div className="text-sm font-semibold text-base-color">Provider carte</div>
+              <div className="text-xs text-secondary-color mt-1">{providerConfig.warning}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'terrain' ? (
         <TerrainTab
           terrain={terrain}
           terrainLoading={loadingTerrain}
           terrainError={terrainError}
+          mapSettings={mapSettings}
           repSearch={repSearch}
           onRepSearch={setRepSearch}
           onlineOnly={onlineOnly}
@@ -1185,6 +1425,7 @@ export default function LiveMapIndex() {
           customers={customers}
           zones={zones}
           loading={loadingClients}
+          mapSettings={mapSettings}
           selectedCustomerId={selectedCustomerId}
           onSelectCustomer={setSelectedCustomerId}
           filterZone={filterZone}
