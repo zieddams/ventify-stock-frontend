@@ -665,9 +665,12 @@ function TerrainTab({
                   </div>
                 </div>
 
-                <div className="text-[11px] text-muted-color mb-2">
-                  Camion physique: {selectedRep.camion_stock?.configured_camion?.name ?? 'a configurer plus tard'}
-                </div>
+                  <div className="text-[11px] text-muted-color mb-2">
+                    Camion physique: {selectedRep.camion_stock?.configured_camion?.name ?? 'aucun camion assigne'}
+                    {selectedRep.camion_stock?.configured_camion?.plate
+                      ? ` - ${selectedRep.camion_stock.configured_camion.plate}`
+                      : ''}
+                  </div>
 
                 <div className="space-y-2 max-h-72 overflow-y-auto">
                   {(selectedRep.camion_stock?.items ?? []).map(item => (
@@ -848,6 +851,7 @@ function TerrainTab({
                     <DetailRow label="Ouverture" value={formatDateTime(selectedRep.route_session?.opened_at)} />
                     <DetailRow label="Cloture" value={formatDateTime(selectedRep.route_session?.closed_at)} />
                     <DetailRow label="Zone session" value={selectedRep.route_session?.zone?.name || selectedRep.zone?.name || '—'} />
+                    <DetailRow label="Camion assigne" value={selectedRep.route_session?.camion?.name || selectedRep.camion_stock?.configured_camion?.name || 'Aucun'} />
                     <DetailRow label="Chargee / vendue / retour" value={`${formatNumber(selectedRep.route_session?.loaded_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.sold_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.returned_qty_total ?? 0)}`} />
                     <DetailRow label="Reste camion" value={formatNumber(selectedRep.route_session?.remaining_qty_total ?? 0)} />
                     <DetailRow label="Cash / credit" value={`${formatMoney(selectedRep.route_session?.cash_collected ?? 0)} / ${formatMoney(selectedRep.route_session?.credit_given ?? 0)}`} />

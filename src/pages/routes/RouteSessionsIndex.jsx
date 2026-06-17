@@ -175,7 +175,7 @@ export default function RouteSessionsIndex() {
             <table className="w-full text-sm">
               <thead>
                 <tr>
-                  {['Date', 'Commercial', 'Zone', 'Total vendu', 'Benefice', 'Credit accorde', 'Statut'].map((heading) => (
+                  {['Date', 'Commercial', 'Zone', 'Camion', 'Total vendu', 'Benefice', 'Credit accorde', 'Statut'].map((heading) => (
                     <th key={heading} className={`pb-3 pr-4 ${['Total vendu', 'Benefice', 'Credit accorde'].includes(heading) ? 'text-right' : 'text-left'}`}>
                       {heading}
                     </th>
@@ -185,7 +185,7 @@ export default function RouteSessionsIndex() {
               <tbody>
                 {sessions.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center">
+                    <td colSpan={8} className="py-12 text-center">
                       <i className="fa-solid fa-truck-fast text-3xl text-muted-color opacity-30 mb-2 block" />
                       <p className="text-muted-color text-sm">Aucune session trouvee</p>
                     </td>
@@ -196,6 +196,16 @@ export default function RouteSessionsIndex() {
                     <td className="py-3 pr-4 font-semibold text-base-color">{fmtDate(session.session_date)}</td>
                     <td className="py-3 pr-4 text-secondary-color">{session.rep?.name ?? '-'}</td>
                     <td className="py-3 pr-4 text-muted-color text-xs">{session.zone?.name ?? '-'}</td>
+                    <td className="py-3 pr-4 text-muted-color text-xs">
+                      {session.camion?.name ? (
+                        <div>
+                          <div className="font-medium text-base-color">{session.camion.name}</div>
+                          <div className="text-[11px] text-muted-color mt-0.5">{session.camion.plate ?? 'Sans plaque'}</div>
+                        </div>
+                      ) : (
+                        'Non assigne'
+                      )}
+                    </td>
                     <td className="py-3 pr-4 text-right font-mono font-semibold text-base-color">{fmt(session.total_sold)}</td>
                     <td className="py-3 pr-4 text-right font-mono font-bold" style={{ color: '#059669' }}>{fmt(session.profit_total)}</td>
                     <td className="py-3 pr-4 text-right font-mono" style={{ color: '#d97706' }}>{fmt(session.credit_given)}</td>
