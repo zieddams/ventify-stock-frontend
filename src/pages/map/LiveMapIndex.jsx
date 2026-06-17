@@ -844,12 +844,15 @@ function TerrainTab({
                     </span>
                   </div>
                   <div className="divide-y" style={{ '--tw-divide-opacity': 1 }}>
+                    <DetailRow label="Session #" value={selectedRep.route_session?.id ? `#${selectedRep.route_session.id}` : 'Aucune'} />
                     <DetailRow label="Ouverture" value={formatDateTime(selectedRep.route_session?.opened_at)} />
                     <DetailRow label="Cloture" value={formatDateTime(selectedRep.route_session?.closed_at)} />
                     <DetailRow label="Zone session" value={selectedRep.route_session?.zone?.name || selectedRep.zone?.name || '—'} />
                     <DetailRow label="Chargee / vendue / retour" value={`${formatNumber(selectedRep.route_session?.loaded_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.sold_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.returned_qty_total ?? 0)}`} />
                     <DetailRow label="Reste camion" value={formatNumber(selectedRep.route_session?.remaining_qty_total ?? 0)} />
                     <DetailRow label="Cash / credit" value={`${formatMoney(selectedRep.route_session?.cash_collected ?? 0)} / ${formatMoney(selectedRep.route_session?.credit_given ?? 0)}`} />
+                    <DetailRow label="Precision GPS" value={selectedRep.map_position?.accuracy != null ? `${formatNumber(selectedRep.map_position.accuracy)} m` : '--'} />
+                    <DetailRow label="Vitesse" value={selectedRep.map_position?.speed != null ? `${formatNumber(selectedRep.map_position.speed)} km/h` : '--'} />
                     <DetailRow label="Dernier point carte" value={selectedRep.map_position ? `${selectedRep.map_position.source === 'gps' ? 'GPS' : 'Facture'} · ${formatDateTime(selectedRep.map_position.recorded_at)}` : 'Aucun point'} />
                   </div>
                 </div>
@@ -887,8 +890,11 @@ function TerrainTab({
                       <div className="divide-y" style={{ '--tw-divide-opacity': 1 }}>
                         <DetailRow label="Factures aujourd'hui" value={selectedRep.today.invoices_count} />
                         <DetailRow label="CA du terrain" value={formatMoney(selectedRep.today.invoices_total)} />
-                        <DetailRow label="Version app" value={selectedRep.device?.app_version || 'Non remontee'} />
-                        <DetailRow label="Dernier ping" value={formatDateTime(selectedRep.presence?.last_seen)} />
+                        <DetailRow label="Version app" value={selectedRep.device?.app_version || selectedRep.device?.native_app_version || 'Non remontee'} />
+                        <DetailRow label="Plateforme / build" value={[selectedRep.device?.platform, selectedRep.device?.native_build_version].filter(Boolean).join(' · ') || 'Non remonte'} />
+                        <DetailRow label="Execution" value={[selectedRep.device?.app_ownership, selectedRep.device?.execution_environment].filter(Boolean).join(' · ') || 'Non remontee'} />
+                        <DetailRow label="Dernier ping" value={selectedRep.presence?.last_seen ? `${formatRelativeTime(selectedRep.presence.last_seen)} · ${formatDateTime(selectedRep.presence.last_seen)}` : 'Aucune remontee'} />
+                        <DetailRow label="Ecran / locale" value={[selectedRep.device?.screen_res, selectedRep.device?.locale].filter(Boolean).join(' · ') || 'Non remonte'} />
                         <DetailRow label="Trace chargee" value={routeTrace.length > 0 ? `${routeTrace.length} point(s)` : 'Aucune trace pour le moment'} />
                       </div>
                     </div>

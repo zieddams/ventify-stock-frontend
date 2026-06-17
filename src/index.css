@@ -15,10 +15,15 @@
   --text-muted:    #94a3b8;
   --shadow:        0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md:     0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
-  --rail-bg:       #0f172a;
+  --rail-bg-start: #ffffff;
+  --rail-bg-end:   #f8fafc;
   --rail-text:     #64748b;
-  --rail-hover:    rgba(255,255,255,0.07);
-  --rail-active:   rgba(13,148,136,0.25);
+  --rail-hover:    rgba(15,23,42,0.05);
+  --rail-active:   rgba(13,148,136,0.12);
+  --rail-active-text:#0f766e;
+  --rail-border:   rgba(15,23,42,0.08);
+  --rail-tooltip-bg:#0f172a;
+  --rail-tooltip-text:#e2e8f0;
   --topbar-bg:     #ffffff;
   --topbar-border: #e2e8f0;
   --plastique-surface-wash: rgba(14,165,233,0.05);
@@ -39,6 +44,15 @@ html.dark {
   --text-muted:    #64748b;
   --shadow:        0 1px 3px rgba(0,0,0,0.4);
   --shadow-md:     0 4px 12px rgba(0,0,0,0.4);
+  --rail-bg-start: #0f172a;
+  --rail-bg-end:   #111827;
+  --rail-text:     #64748b;
+  --rail-hover:    rgba(255,255,255,0.07);
+  --rail-active:   rgba(13,148,136,0.25);
+  --rail-active-text:#2dd4bf;
+  --rail-border:   rgba(255,255,255,0.07);
+  --rail-tooltip-bg:#0f172a;
+  --rail-tooltip-text:#e2e8f0;
   --topbar-bg:     #1e293b;
   --topbar-border: #334155;
   --plastique-surface-wash: rgba(255,255,255,0.05);
@@ -327,7 +341,54 @@ html.dark {
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 /* ─── Rail navigation (always dark) ──────────────────────────────────────── */
-.rail { background-color: var(--rail-bg); position: relative; z-index: 40; overflow: visible; }
+.rail {
+  background: linear-gradient(180deg, var(--rail-bg-start), var(--rail-bg-end));
+  position: relative;
+  z-index: 40;
+  overflow: visible;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.rail.expanded {
+  align-items: stretch;
+}
+.rail-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 0.15rem 0 0.75rem;
+}
+.rail-brand.expanded {
+  justify-content: flex-start;
+  padding: 0 0.25rem;
+}
+.rail-brand-title {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--text-base);
+  line-height: 1.1;
+}
+.rail-brand-subtitle {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+.rail-section-title {
+  padding: 0.35rem 0.8rem 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.rail-divider {
+  height: 1px;
+  background: var(--rail-border);
+  margin: 6px 12px;
+}
+.rail-divider.expanded {
+  margin: 6px 4px 8px;
+}
 .rail-link {
   display: flex;
   align-items: center;
@@ -341,20 +402,39 @@ html.dark {
   cursor: pointer;
   text-decoration: none;
 }
+.rail-link.expanded {
+  width: 100%;
+  min-height: 44px;
+  height: auto;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+}
 .rail-link:hover {
   background-color: var(--rail-hover);
-  color: #e2e8f0;
+  color: var(--text-base);
   transform: scale(1.06);
 }
+.rail-link.expanded:hover {
+  transform: translateX(2px);
+}
 .rail-link:active { transform: scale(0.95); }
-.rail-link.active { background-color: var(--rail-active) !important; color: #2dd4bf !important; }
+.rail-link.active { background-color: var(--rail-active) !important; color: var(--rail-active-text) !important; }
+.rail-link-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
 .rail-link .rail-tooltip {
   position: absolute;
   left: calc(100% + 12px);
   top: 50%;
   transform: translateY(-50%);
-  background-color: #0f172a;
-  color: #e2e8f0;
+  background-color: var(--rail-tooltip-bg);
+  color: var(--rail-tooltip-text);
   font-size: 0.75rem;
   font-weight: 500;
   padding: 0.3rem 0.65rem;
@@ -365,10 +445,32 @@ html.dark {
   transition: opacity 0.12s;
   z-index: 100;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--rail-border);
   z-index: 9999;
 }
 .rail-link:hover .rail-tooltip { opacity: 1; }
+.rail-footer {
+  margin: 0.5rem 0.25rem 0;
+  padding: 0.9rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--rail-border);
+  background: rgba(255,255,255,0.04);
+}
+html:not(.dark) .rail-footer {
+  background: rgba(15,23,42,0.03);
+}
+.rail-footer-version {
+  margin-top: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #0f766e;
+  background: rgba(13,148,136,0.08);
+  border: 1px solid rgba(13,148,136,0.16);
+}
 
 /* ─── Top bar ─────────────────────────────────────────────────────────────── */
 .topbar {

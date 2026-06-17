@@ -1,6 +1,12 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import api from '../../services/api'
 import PageHeader from '../../components/PageHeader'
+import { APP_VERSION } from '../../config/appMeta'
+import {
+  appendDataTransferHistory,
+  clearDataTransferHistory,
+  readDataTransferHistory,
+} from '../../utils/dataTransferHistory'
 import { downloadCsvExport } from '../../utils/exporting'
 
 const IMPORT_TYPES = [
@@ -79,6 +85,128 @@ function DownloadExampleBtn({ entity }) {
   )
 }
 
+function formatHistoryDate(value) {
+  if (!value) return 'Date inconnue'
+  return new Date(value).toLocaleString('fr-FR')
+}
+
+function HistoryTab({ entries, onClear }) {
+  const importCount = entries.filter(item => item.direction === 'import').length
+  const exportCount = entries.filter(item => item.direction === 'export').length
+
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+      <div className="space-y-4">
+        <div className="card">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <h2 className="text-sm font-semibold text-base-color">
+              <i className="fa-solid fa-clock-rotate-left text-teal-500 mr-2" />
+              Historique local
+            </h2>
+            {entries.length > 0 && (
+              <button onClick={onClear} className="btn-secondary text-xs">
+                <i className="fa-solid fa-trash-can" /> Effacer
+              </button>
+            )}
+          </div>
+          <p className="text-sm text-secondary-color">
+            Les imports et exports effectues sur ce navigateur sont conserves ici pour le suivi operateur.
+          </p>
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            <div className="rounded-2xl p-3 border" style={{ background: 'rgba(13,148,136,0.05)', borderColor: 'rgba(13,148,136,0.18)' }}>
+              <div className="text-xs text-muted-color">Imports</div>
+              <div className="text-2xl font-bold" style={{ color: '#0d9488' }}>{importCount}</div>
+            </div>
+            <div className="rounded-2xl p-3 border" style={{ background: 'rgba(59,130,246,0.05)', borderColor: 'rgba(59,130,246,0.18)' }}>
+              <div className="text-xs text-muted-color">Exports</div>
+              <div className="text-2xl font-bold" style={{ color: '#2563eb' }}>{exportCount}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <h2 className="text-sm font-semibold text-base-color mb-2">
+            <i className="fa-solid fa-code-branch text-indigo-500 mr-2" />
+            Version web active
+          </h2>
+          <div className="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold" style={{ color: '#0f766e', background: 'rgba(13,148,136,0.08)' }}>
+            v{APP_VERSION}
+          </div>
+          <p className="text-xs text-muted-color mt-3">
+            Utilisez cet historique pour verifier rapidement les derniers fichiers traites apres une mise a jour.
+          </p>
+        </div>
+      </div>
+
+      <div className="xl:col-span-3 card">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h2 className="text-sm font-semibold text-base-color">
+            <i className="fa-solid fa-list-check text-teal-500 mr-2" />
+            Derniers transferts
+          </h2>
+          <span className="text-xs text-muted-color">{entries.length} element(s)</span>
+        </div>
+
+        {entries.length === 0 ? (
+          <div
+            className="rounded-2xl py-14 px-6 text-center border"
+            style={{ background: 'var(--surface-2)', borderColor: 'var(--border)' }}
+          >
+            <i className="fa-solid fa-folder-open text-3xl text-muted-color opacity-40" />
+            <div className="text-sm font-semibold text-base-color mt-4">Aucun historique pour le moment</div>
+            <div className="text-xs text-muted-color mt-1">
+              Lancez un import CSV ou un export CSV depuis cette page pour commencer a tracer les operations.
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {entries.map(entry => {
+              const isImport = entry.direction === 'import'
+              const accent = isImport ? '#0d9488' : '#2563eb'
+              const summary = isImport
+                ? `${entry.summary.imported ?? 0} importes · ${entry.summary.skipped ?? 0} ignores · ${entry.summary.errorCount ?? 0} erreurs`
+                : entry.filters?.dateFrom || entry.filters?.dateTo
+                  ? `Periode ${entry.filters?.dateFrom || '...'} → ${entry.filters?.dateTo || '...'}`
+                  : 'Export complet sans filtre date'
+
+              return (
+                <div
+                  key={entry.id}
+                  className="rounded-2xl border px-4 py-4"
+                  style={{ background: `${accent}08`, borderColor: `${accent}22` }}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide"
+                          style={{ color: accent, background: `${accent}14` }}
+                        >
+                          <i className={`fa-solid ${isImport ? 'fa-file-import' : 'fa-file-export'}`} />
+                          {isImport ? 'Import' : 'Export'}
+                        </span>
+                        <span className="text-sm font-semibold text-base-color">{entry.entityLabel}</span>
+                      </div>
+                      <div className="text-xs text-muted-color mt-2">{summary}</div>
+                      {entry.fileName && (
+                        <div className="text-xs font-mono text-secondary-color mt-2">{entry.fileName}</div>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-semibold text-base-color">{formatHistoryDate(entry.createdAt)}</div>
+                      <div className="text-[11px] text-muted-color mt-1">Historique navigateur</div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function DataToolsIndex() {
   const [tab, setTab] = useState('import')
 
@@ -96,9 +224,14 @@ export default function DataToolsIndex() {
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState('')
   const [lastExport, setLastExport] = useState(null)
+  const [transferHistory, setTransferHistory] = useState(() => readDataTransferHistory())
 
   const selectedImport = IMPORT_TYPES.find(item => item.value === importType)
   const selectedExport = EXPORT_TYPES.find(item => item.value === exportType)
+  const historyEntries = useMemo(
+    () => transferHistory.slice().sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()),
+    [transferHistory],
+  )
 
   const resetImport = () => {
     setFile(null)
@@ -148,7 +281,19 @@ export default function DataToolsIndex() {
       const response = await api.post('/import/csv', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      setImportResult(response.data)
+      const result = response.data
+      setImportResult(result)
+      setTransferHistory(appendDataTransferHistory({
+        direction: 'import',
+        entityType: importType,
+        entityLabel: selectedImport.label,
+        fileName: file.name,
+        summary: {
+          imported: result.imported ?? 0,
+          skipped: result.skipped ?? 0,
+          errorCount: result.errors?.length ?? 0,
+        },
+      }))
     } catch (error) {
       setImportError(error.response?.data?.message || "Erreur lors de l'import")
     } finally {
@@ -169,6 +314,19 @@ export default function DataToolsIndex() {
         filename,
         time: new Date().toLocaleTimeString('fr-FR'),
       })
+      setTransferHistory(appendDataTransferHistory({
+        direction: 'export',
+        entityType: exportType,
+        entityLabel: selectedExport.label,
+        fileName: filename,
+        summary: {
+          exported: true,
+        },
+        filters: selectedExport.hasDateRange ? {
+          dateFrom,
+          dateTo,
+        } : null,
+      }))
     } catch (error) {
       if (error.response?.data instanceof Blob) {
         const text = await error.response.data.text()
@@ -196,6 +354,7 @@ export default function DataToolsIndex() {
         {[
           { key: 'import', label: 'Import CSV', icon: 'fa-solid fa-file-import' },
           { key: 'export', label: 'Export CSV', icon: 'fa-solid fa-file-export' },
+          { key: 'history', label: 'Historique', icon: 'fa-solid fa-clock-rotate-left' },
         ].map(item => (
           <button
             key={item.key}
@@ -502,6 +661,13 @@ export default function DataToolsIndex() {
             </div>
           </div>
         </div>
+      )}
+
+      {tab === 'history' && (
+        <HistoryTab
+          entries={historyEntries}
+          onClear={() => setTransferHistory(clearDataTransferHistory())}
+        />
       )}
     </div>
   )

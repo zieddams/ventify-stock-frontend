@@ -51,22 +51,27 @@ const PAGE_TITLES = {
   '/export': { label: 'Import / Export', icon: 'fa-solid fa-file-arrow-up' },
 }
 
-function RailLink({ to, icon, label, exact }) {
+function RailLink({ to, icon, label, exact, expanded = false }) {
   return (
     <NavLink
       to={to}
       end={exact}
-      className={({ isActive }) => `rail-link${isActive ? ' active' : ''}`}
+      className={({ isActive }) => `rail-link${expanded ? ' expanded' : ''}${isActive ? ' active' : ''}`}
       title={label}
     >
       <i className={`${icon} text-base`} />
-      <span className="rail-tooltip">{label}</span>
+      {expanded && <span className="rail-link-label">{label}</span>}
+      {!expanded && <span className="rail-tooltip">{label}</span>}
     </NavLink>
   )
 }
 
-function RailDivider() {
-  return <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '6px 12px' }} />
+function RailDivider({ expanded = false }) {
+  return <div className={`rail-divider${expanded ? ' expanded' : ''}`} />
+}
+
+function RailSectionTitle({ children }) {
+  return <div className="rail-section-title">{children}</div>
 }
 
 function UserMenu({ user, onLogout }) {
@@ -221,7 +226,7 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance }) {
 
 export default function AppLayout() {
   const { user, logout, isAdmin, isFinance } = useAuth()
-  const { toggle, isDark } = useTheme()
+  const { toggle, isDark, toggleSidebarMode, isSidebarExpanded } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -240,43 +245,65 @@ export default function AppLayout() {
   return (
     <div className="flex h-screen overflow-hidden bg-app">
       <aside
-        className="hidden md:flex flex-col items-center rail w-16 flex-shrink-0 py-3 gap-1 border-r no-print"
-        style={{ borderColor: 'rgba(255,255,255,0.07)' }}
+        className={`hidden md:flex flex-col rail flex-shrink-0 py-3 gap-1 border-r no-print${isSidebarExpanded ? ' expanded w-64 px-3' : ' compact w-16 items-center'}`}
+        style={{ borderColor: 'var(--rail-border)' }}
       >
-        <div className="mb-3">
+        <div className={`rail-brand${isSidebarExpanded ? ' expanded' : ''}`}>
           <div
-            className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center shadow-lg cursor-pointer"
+            className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center shadow-lg cursor-pointer flex-shrink-0"
             onClick={() => navigate('/')}
             title="El Irtiwaa"
           >
             <i className="fa-solid fa-droplet text-white" />
           </div>
+          {isSidebarExpanded && (
+            <div className="min-w-0">
+              <div className="rail-brand-title">El Irtiwaa</div>
+              <div className="rail-brand-subtitle">Gestion commerciale</div>
+            </div>
+          )}
         </div>
 
-        <RailDivider />
-        {MAIN_NAV.map(item => <RailLink key={item.to} {...item} />)}
+        {isSidebarExpanded && <RailSectionTitle>Navigation</RailSectionTitle>}
+        <RailDivider expanded={isSidebarExpanded} />
+        {MAIN_NAV.map(item => <RailLink key={item.to} {...item} expanded={isSidebarExpanded} />)}
 
         {(isFinance() || isAdmin()) && (
           <>
-            <RailDivider />
-            {FINANCE_NAV.map(item => <RailLink key={item.to} {...item} />)}
+            {isSidebarExpanded && <RailSectionTitle>Finance</RailSectionTitle>}
+            <RailDivider expanded={isSidebarExpanded} />
+            {FINANCE_NAV.map(item => <RailLink key={item.to} {...item} expanded={isSidebarExpanded} />)}
           </>
         )}
 
         {isAdmin() && (
           <>
-            <RailDivider />
-            {ADMIN_NAV.map(item => <RailLink key={item.to} {...item} />)}
+            {isSidebarExpanded && <RailSectionTitle>Administration</RailSectionTitle>}
+            <RailDivider expanded={isSidebarExpanded} />
+            {ADMIN_NAV.map(item => <RailLink key={item.to} {...item} expanded={isSidebarExpanded} />)}
           </>
         )}
 
         <div className="mt-auto pb-2" />
+        {isSidebarExpanded && (
+          <div className="rail-footer">
+            <div className="text-xs text-muted-color">Version web</div>
+            <div className="rail-footer-version">v{APP_VERSION}</div>
+          </div>
+        )}
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="topbar flex items-center gap-3 px-4 h-14 flex-shrink-0 z-10 no-print">
           <button className="md:hidden btn-ghost p-2" onClick={() => setDrawerOpen(true)}>
             <i className="fa-solid fa-bars text-base" />
+          </button>
+          <button
+            className="hidden md:inline-flex btn-ghost p-2"
+            onClick={toggleSidebarMode}
+            title={isSidebarExpanded ? 'Mode compact' : 'Mode etendu'}
+          >
+            <i className={`fa-solid ${isSidebarExpanded ? 'fa-angles-left' : 'fa-angles-right'} text-base`} />
           </button>
 
           <div className="flex items-center gap-2.5 min-w-0">
