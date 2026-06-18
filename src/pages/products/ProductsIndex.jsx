@@ -46,6 +46,11 @@ export default function ProductsIndex() {
   const [editing, setEditing] = useState(null)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
+  const [restockProduct, setRestockProduct] = useState(null)
+  const [restockQty, setRestockQty] = useState('1')
+  const [restockNote, setRestockNote] = useState('')
+  const [restockSaving, setRestockSaving] = useState(false)
+  const [restockError, setRestockError] = useState('')
   const { isAdmin } = useAuth()
   const { items: configItems } = useConfigItems(['category', 'unit'])
 
@@ -155,6 +160,37 @@ export default function ProductsIndex() {
     await load()
   }
 
+  const openRestock = (product) => {
+    setRestockProduct(product)
+    setRestockQty('1')
+    setRestockNote('')
+    setRestockError('')
+  }
+
+  const submitRestock = async () => {
+    if (!restockProduct) {
+      return
+    }
+
+    setRestockSaving(true)
+    setRestockError('')
+
+    try {
+      await api.post('/depot/receive', {
+        product_id: restockProduct.id,
+        qty: Number(restockQty),
+        note: restockNote || `Reapprovisionnement rapide depuis la fiche produit: ${restockProduct.name}`,
+      })
+
+      setRestockProduct(null)
+      await load()
+    } catch (error) {
+      setRestockError(error.response?.data?.message || 'Impossible d enregistrer le reapprovisionnement.')
+    } finally {
+      setRestockSaving(false)
+    }
+  }
+
   const filteredProducts = useMemo(() => {
     const normalizedQuery = search.trim().toLowerCase()
 
@@ -246,6 +282,11 @@ export default function ProductsIndex() {
                     Min obligatoire: <span className="font-mono">{fmt(min)}</span>
                     {product.unit ? ` ${product.unit}` : ''}
                   </div>
+                  {isAdmin() && (
+                    <button onClick={() => openRestock(product)} className="btn-secondary text-xs mt-3">
+                      <i className="fa-solid fa-plus" /> Reappro.
+                    </button>
+                  )}
                 </div>
               )
             })}
@@ -323,7 +364,10 @@ export default function ProductsIndex() {
                     <td className="py-3 pr-4 text-muted-color text-xs">{unitLabel}</td>
                     {isAdmin() && (
                       <td className="py-3">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <button onClick={() => openRestock(product)} className="text-xs font-medium hover:underline" style={{ color: '#2563eb' }}>
+                            <i className="fa-solid fa-boxes-stacked mr-1" /> Reappro.
+                          </button>
                           <button onClick={() => openEdit(product)} className="text-xs font-medium hover:underline" style={{ color: '#0d9488' }}>
                             <i className="fa-solid fa-pen mr-1" /> Modifier
                           </button>
@@ -470,6 +514,51 @@ export default function ProductsIndex() {
             <button onClick={() => setModal(false)} className="btn-secondary">Annuler</button>
             <button onClick={save} disabled={saving} className="btn-primary">
               {saving ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</> : 'Enregistrer'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(restockProduct)}
+        onClose={() => setRestockProduct(null)}
+        title={restockProduct ? `Reapprovisionnement - ${restockProduct.name}` : 'Reapprovisionnement'}
+      >
+        <div className="space-y-4">
+          <div className="rounded-xl border border-theme px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
+            Cette action ajoute du stock au depot et cree automatiquement un mouvement <strong className="text-base-color">depot_in</strong>.
+          </div>
+
+          {restockError && (
+            <div className="rounded-xl px-4 py-3 text-sm text-red-600" style={{ background: 'rgba(239,68,68,0.08)' }}>
+              {restockError}
+            </div>
+          )}
+
+          <FormField label="Quantite a ajouter" required>
+            <input
+              type="number"
+              step="0.001"
+              min="0.001"
+              value={restockQty}
+              onChange={(event) => setRestockQty(event.target.value)}
+              placeholder="1.000"
+            />
+          </FormField>
+
+          <FormField label="Note mouvement">
+            <textarea
+              rows="3"
+              value={restockNote}
+              onChange={(event) => setRestockNote(event.target.value)}
+              placeholder="Optionnel: origine du reapprovisionnement ou precision interne"
+            />
+          </FormField>
+
+          <div className="flex justify-end gap-3 pt-1">
+            <button onClick={() => setRestockProduct(null)} className="btn-secondary">Annuler</button>
+            <button onClick={submitRestock} disabled={restockSaving} className="btn-primary">
+              {restockSaving ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</> : <><i className="fa-solid fa-check" /> Confirmer</>}
             </button>
           </div>
         </div>

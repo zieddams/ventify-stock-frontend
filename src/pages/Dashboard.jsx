@@ -1,12 +1,24 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
+import L from 'leaflet'
+import { Circle, MapContainer, Marker, TileLayer } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import api from '../services/api'
 import { PageLoader } from '../components/Spinner'
 import { useAuth } from '../contexts/AuthContext'
 import QuantityInput from '../components/QuantityInput'
+import { APP_VERSION } from '../config/appMeta'
 
 const HEARTBEAT_REFRESH_MS = 20 * 1000
+const TUNISIA_BOUNDS = [[30.0, 7.0], [38.5, 12.5]]
+const MINI_MAP_CENTER = [34.0, 9.5]
+const SESSION_MAP_ICON = L.divIcon({
+  className: '',
+  html: '<div style="width:14px;height:14px;border-radius:999px;background:#0d9488;border:2px solid #ffffff;box-shadow:0 3px 10px rgba(15,23,42,0.28)"></div>',
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
+})
 
 function fmt(n) {
   return new Intl.NumberFormat('fr-TN', { minimumFractionDigits: 3 }).format(n ?? 0)
@@ -84,6 +96,109 @@ function formatLastSeenAge(seconds) {
 
   const years = Math.floor(days / 365)
   return `${years} an${years > 1 ? 's' : ''}`
+}
+
+function getSessionMapPoint(session) {
+  const lat = Number(session?.latest_location?.latitude)
+  const lng = Number(session?.latest_location?.longitude)
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return null
+  }
+
+  if (
+    lat < TUNISIA_BOUNDS[0][0]
+    || lat > TUNISIA_BOUNDS[1][0]
+    || lng < TUNISIA_BOUNDS[0][1]
+    || lng > TUNISIA_BOUNDS[1][1]
+  ) {
+    return null
+  }
+
+  return [lat, lng]
+}
+
+function SessionPreviewPanel({ session, pinned, onTogglePin }) {
+  const point = getSessionMapPoint(session)
+  const lastSeenAge = formatLastSeenAge(session?.presence?.last_seen_age_seconds)
+
+  return (
+    <div className="rounded-2xl border border-theme p-4 h-full" style={{ background: 'var(--surface-2)' }}>
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-base-color truncate">
+            {session?.user?.name ?? 'Apercu carte'}
+          </div>
+          <div className="text-xs text-muted-color mt-1">
+            {session?.app_version || session?.native_app_version || 'Version non remontee'}
+            {lastSeenAge ? ` · ${lastSeenAge}` : ''}
+          </div>
+        </div>
+        {session && (
+          <button onClick={onTogglePin} className="btn-secondary text-xs flex-shrink-0">
+            <i className={`fa-solid ${pinned ? 'fa-thumbtack-slash' : 'fa-thumbtack'}`} /> {pinned ? 'Detacher' : 'Epingler'}
+          </button>
+        )}
+      </div>
+
+      {!session ? (
+        <div className="h-[260px] rounded-2xl border border-theme flex items-center justify-center text-center px-5 text-sm text-muted-color">
+          Survolez une session commerciale pour afficher sa position recente.
+        </div>
+      ) : !point ? (
+        <div className="h-[260px] rounded-2xl border border-theme flex items-center justify-center text-center px-5">
+          <div>
+            <i className="fa-solid fa-location-slash text-amber-500 text-xl mb-3 block" />
+            <div className="text-sm font-semibold text-base-color">Aucune position exploitable</div>
+            <div className="text-xs text-muted-color mt-2">
+              Ce compte n a pas encore remonte de point GPS valide pour la carte.
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="overflow-hidden rounded-2xl border border-theme" style={{ height: 260 }}>
+            <MapContainer
+              center={point}
+              zoom={13}
+              dragging={false}
+              doubleClickZoom={false}
+              scrollWheelZoom={false}
+              touchZoom={false}
+              zoomControl={false}
+              attributionControl={false}
+              style={{ height: '100%', width: '100%' }}
+            >
+              <TileLayer
+                attribution="&copy; OpenStreetMap contributors"
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <Marker position={point} icon={SESSION_MAP_ICON} />
+              {Number(session?.latest_location?.accuracy) > 0 && (
+                <Circle
+                  center={point}
+                  radius={Number(session.latest_location.accuracy)}
+                  pathOptions={{ color: '#0d9488', fillColor: '#0d9488', fillOpacity: 0.08 }}
+                />
+              )}
+            </MapContainer>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="rounded-xl border border-theme px-3 py-3">
+              <div className="text-muted-color">Coordonnees</div>
+              <div className="text-base-color font-medium mt-1">{point[0].toFixed(5)}, {point[1].toFixed(5)}</div>
+            </div>
+            <div className="rounded-xl border border-theme px-3 py-3">
+              <div className="text-muted-color">Precision</div>
+              <div className="text-base-color font-medium mt-1">
+                {session?.latest_location?.accuracy != null ? `${Number(session.latest_location.accuracy).toFixed(0)} m` : 'Non remontee'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 /* ─── KPI Card ─────────────────────────────────────────────────────────────── */
@@ -283,6 +398,8 @@ export default function Dashboard() {
   const [demoState, setDemoState] = useState({ hasDemoData: false, count: 0 })
   const [seeding, setSeeding]   = useState(false)
   const [clearing, setClearing] = useState(false)
+  const [hoveredSessionId, setHoveredSessionId] = useState(null)
+  const [pinnedSessionId, setPinnedSessionId] = useState(null)
   const { isAdmin }             = useAuth()
 
   const load = useCallback(async () => {
@@ -309,6 +426,12 @@ export default function Dashboard() {
     const id = setInterval(load, HEARTBEAT_REFRESH_MS)
     return () => clearInterval(id)
   }, [load])
+
+  useEffect(() => {
+    if (pinnedSessionId && !sessions.some((session) => String(session.id) === String(pinnedSessionId))) {
+      setPinnedSessionId(null)
+    }
+  }, [pinnedSessionId, sessions])
 
   const handleSeed = async () => {
     setSeeding(true)
@@ -341,13 +464,26 @@ export default function Dashboard() {
   const marginPct = stats?.month_revenue > 0
     ? ((stats.month_profit / stats.month_revenue) * 100).toFixed(1)
     : '0.0'
+  const previewSessionId = pinnedSessionId ?? hoveredSessionId
+  const previewSession = sessions.find((session) => String(session.id) === String(previewSessionId)) ?? null
 
   return (
     <div>
       {/* ── Page header ─────────────────────────────────────────────────── */}
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-base-color tracking-tight">Tableau de bord</h1>
-        <p className="text-sm text-muted-color mt-0.5">El Irtiwaa — vue en temps réel <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-1 mb-0.5" /></p>
+      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-base-color tracking-tight">Tableau de bord</h1>
+          <p className="text-sm text-muted-color mt-0.5">El Irtiwaa — vue en temps réel <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-1 mb-0.5" /></p>
+        </div>
+        <div className="dashboard-version-chip self-start md:self-auto">
+          <span className="dashboard-version-chip__icon" aria-hidden="true">
+            <i className="fa-solid fa-cubes-stacked" />
+          </span>
+          <div className="min-w-0">
+            <div className="dashboard-version-chip__label">Version plateforme</div>
+            <div className="dashboard-version-chip__value">El Irtiwaa v{APP_VERSION}</div>
+          </div>
+        </div>
       </div>
 
       {/* ── Admin view ──────────────────────────────────────────────────── */}
@@ -462,48 +598,84 @@ export default function Dashboard() {
 
           {/* Sessions table */}
           <div className="card">
-            <h2 className="text-sm font-semibold text-base-color mb-4 flex items-center gap-2">
-              <i className="fa-solid fa-mobile-screen text-muted-color text-sm" />
-              Sessions commerciaux
-            </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left" style={{ borderBottom: '1px solid var(--border)' }}>
-                    {['Commercial', 'Appareil', 'Version', 'Statut', 'Dernière activité'].map(h => (
-                      <th key={h} className="pb-3 pr-4 text-xs font-semibold text-muted-color uppercase tracking-wider">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sessions.map(s => {
-                    const presenceMeta = getSessionPresenceMeta(s)
-                    const lastSeenAge = formatLastSeenAge(s.presence?.last_seen_age_seconds)
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
+                <i className="fa-solid fa-mobile-screen text-muted-color text-sm" />
+                Sessions commerciaux
+              </h2>
+              <div className="text-xs text-muted-color">
+                Survol pour apercu carte, epingle pour garder le suivi visible.
+              </div>
+            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.45fr)_360px] gap-4">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left" style={{ borderBottom: '1px solid var(--border)' }}>
+                      {['Commercial', 'Appareil', 'Version', 'Statut', 'Dernière activité'].map(h => (
+                        <th key={h} className="pb-3 pr-4 text-xs font-semibold text-muted-color uppercase tracking-wider">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sessions.map(s => {
+                      const presenceMeta = getSessionPresenceMeta(s)
+                      const lastSeenAge = formatLastSeenAge(s.presence?.last_seen_age_seconds)
+                      const isPinned = String(pinnedSessionId) === String(s.id)
+                      const hasMapPoint = Boolean(getSessionMapPoint(s))
 
-                    return (
-                      <tr key={s.id} className="table-row">
-                        <td className="py-3 pr-4 font-semibold text-base-color">{s.user?.name ?? '—'}</td>
-                        <td className="py-3 pr-4 text-secondary-color">{s.brand} {s.model}</td>
-                        <td className="py-3 pr-4 text-muted-color">{s.app_version || s.native_app_version || '—'}</td>
-                        <td className="py-3 pr-4">
-                          <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${presenceMeta.textClassName}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${presenceMeta.dotClassName}`} />
-                            {presenceMeta.label}
-                          </span>
-                        </td>
-                        <td className="py-3 text-muted-color text-xs">
-                          {s.last_seen
-                            ? `${new Date(s.last_seen).toLocaleString('fr-FR')}${lastSeenAge ? ` · ${lastSeenAge}` : ''}`
-                            : '—'}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                  {sessions.length === 0 && (
-                    <tr><td colSpan={5} className="py-8 text-center text-muted-color text-sm">Aucune session active</td></tr>
-                  )}
-                </tbody>
-              </table>
+                      return (
+                        <tr
+                          key={s.id}
+                          className="table-row"
+                          onMouseEnter={() => setHoveredSessionId(s.id)}
+                          onMouseLeave={() => setHoveredSessionId((current) => (String(current) === String(s.id) ? null : current))}
+                        >
+                          <td className="py-3 pr-4 font-semibold text-base-color">
+                            <div className="flex items-center gap-2">
+                              <span>{s.user?.name ?? '—'}</span>
+                              <button
+                                type="button"
+                                onClick={() => setPinnedSessionId((current) => (String(current) === String(s.id) ? null : s.id))}
+                                className="text-muted-color hover:text-base-color transition-colors"
+                                title={isPinned ? 'Detacher la carte' : 'Epingler la carte'}
+                              >
+                                <i className={`fa-solid ${isPinned ? 'fa-thumbtack text-teal-600' : 'fa-thumbtack opacity-50'}`} />
+                              </button>
+                              {!hasMapPoint && <i className="fa-solid fa-location-slash text-[11px] text-amber-500" title="Aucun point carte exploitable" />}
+                            </div>
+                          </td>
+                          <td className="py-3 pr-4 text-secondary-color">{s.brand} {s.model}</td>
+                          <td className="py-3 pr-4 text-muted-color">{s.app_version || s.native_app_version || '—'}</td>
+                          <td className="py-3 pr-4">
+                            <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${presenceMeta.textClassName}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${presenceMeta.dotClassName}`} />
+                              {presenceMeta.label}
+                            </span>
+                          </td>
+                          <td className="py-3 text-muted-color text-xs">
+                            {s.last_seen
+                              ? `${new Date(s.last_seen).toLocaleString('fr-FR')}${lastSeenAge ? ` · ${lastSeenAge}` : ''}`
+                              : '—'}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                    {sessions.length === 0 && (
+                      <tr><td colSpan={5} className="py-8 text-center text-muted-color text-sm">Aucune session active</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <SessionPreviewPanel
+                session={previewSession}
+                pinned={Boolean(pinnedSessionId && previewSession && String(previewSession.id) === String(pinnedSessionId))}
+                onTogglePin={() => {
+                  if (!previewSession) return
+                  setPinnedSessionId((current) => (String(current) === String(previewSession.id) ? null : previewSession.id))
+                }}
+              />
             </div>
           </div>
         </>

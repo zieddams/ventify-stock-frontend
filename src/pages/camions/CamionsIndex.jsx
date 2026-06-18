@@ -147,6 +147,10 @@ export default function CamionsIndex() {
     }
   }, [camions, reps])
 
+  const sessionLoadProducts = useMemo(() => (
+    products.filter((product) => Number(product.depot_qty ?? 0) > 0)
+  ), [products])
+
   const availableCamions = useMemo(() => (
     camions.filter((camion) => camion.active && camion.operational_status === 'ready' && camion.workflow_status !== 'in_session')
   ), [camions])
@@ -904,7 +908,9 @@ export default function CamionsIndex() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold text-base-color">Chargement initial</div>
-                <div className="text-xs text-muted-color mt-1">Ajoutez au moins une ligne de stock pour ouvrir la session correctement.</div>
+                <div className="text-xs text-muted-color mt-1">
+                  Seuls les produits avec stock depot disponible sont proposes ici pour eviter une ouverture incoherente.
+                </div>
               </div>
               <button onClick={addSessionLine} className="btn-secondary text-xs">
                 <i className="fa-solid fa-plus" /> Ligne
@@ -932,9 +938,9 @@ export default function CamionsIndex() {
                       onChange={(event) => updateSessionLine(index, 'product_id', event.target.value)}
                     >
                       <option value="">Selectionner un produit...</option>
-                      {products.map((product) => (
+                      {sessionLoadProducts.map((product) => (
                         <option key={product.id} value={product.id}>
-                          {product.name} - {product.reference}
+                          {product.name} - {product.reference} - depot {Number(product.depot_qty ?? 0).toFixed(3)}
                         </option>
                       ))}
                     </select>
@@ -959,6 +965,12 @@ export default function CamionsIndex() {
                 </div>
               ))}
             </div>
+
+            {sessionLoadProducts.length === 0 && (
+              <div className="rounded-2xl px-4 py-3 text-sm text-amber-700" style={{ background: 'rgba(245,158,11,0.10)' }}>
+                Aucun produit n a de stock depot disponible pour un chargement initial.
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-2">

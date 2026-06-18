@@ -51,37 +51,31 @@ const MODULES = [
     key: 'catalog',
     label: 'Catalogues',
     icon: 'fa-solid fa-layer-group',
-    description: 'Produits, categories et unites',
+    description: 'Produits, categories, unites et structure metier du depot.',
   },
   {
     key: 'payments',
     label: 'Paiements',
     icon: 'fa-solid fa-wallet',
-    description: 'Cash systeme et autres moyens',
+    description: 'Cash systeme, virements et moyens de reglement utiles a Irtiwaa.',
   },
   {
     key: 'expenses',
     label: 'Depenses',
     icon: 'fa-solid fa-receipt',
-    description: 'Motifs dynamiques et pilotage finance',
-  },
-  {
-    key: 'map',
-    label: 'Carte & integr.',
-    icon: 'fa-solid fa-map-location-dot',
-    description: 'Providers, Google Maps et tuiles',
+    description: 'Motifs dynamiques, libelles finance et pilotage depenses.',
   },
   {
     key: 'documents',
     label: 'Documents',
     icon: 'fa-solid fa-print',
-    description: 'PDF, impression et champs visibles',
+    description: 'PDF, impression, champs visibles et modele de sortie.',
   },
   {
     key: 'system',
     label: 'Systeme',
     icon: 'fa-solid fa-server',
-    description: 'Support, URLs et etat applicatif',
+    description: 'Support, notifications, taches de fond et etat applicatif.',
   },
 ]
 
@@ -120,20 +114,6 @@ const SETUP_SECTIONS = [
     title: 'Documents PDF & impression',
     description: 'Choix des champs et orientations par entite document.',
     icon: 'fa-solid fa-print',
-  },
-  {
-    key: 'map-provider',
-    module: 'map',
-    title: 'Provider carte',
-    description: 'OpenStreetMap, Google Maps et tuiles personnalisees.',
-    icon: 'fa-solid fa-map-location-dot',
-  },
-  {
-    key: 'map-status',
-    module: 'map',
-    title: 'Etat & raccourcis carte',
-    description: 'Verification du provider actif, de la cle et des acces terrain.',
-    icon: 'fa-solid fa-satellite-dish',
   },
   {
     key: 'system-support',
@@ -348,6 +328,70 @@ function SetupSectionCard({ section, count, onClick }) {
         </div>
       </div>
     </button>
+  )
+}
+
+function ModuleHubCard({ module, onOpen }) {
+  const primarySection = module.sections[0] ?? null
+
+  return (
+    <div
+      className="rounded-[28px] border px-5 py-5 transition-all"
+      style={{ background: 'var(--surface)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3 min-w-0">
+          <div
+            className="w-12 h-12 rounded-[18px] flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(13,148,136,0.12)', color: '#0d9488' }}
+          >
+            <i className={`${module.icon} text-lg`} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-base font-semibold text-base-color">{module.label}</div>
+            <div className="text-sm text-secondary-color mt-1">{module.description}</div>
+          </div>
+        </div>
+        <span
+          className="text-[11px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
+          style={{ background: 'rgba(59,130,246,0.10)', color: '#2563eb' }}
+        >
+          {module.sections.length} bloc{module.sections.length > 1 ? 's' : ''}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 mt-5">
+        {module.sections.map((section) => (
+          <button
+            key={section.key}
+            onClick={() => onOpen(section.key)}
+            className="w-full rounded-2xl px-4 py-3 text-left transition-all hover:-translate-y-[1px]"
+            style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(13,148,136,0.10)', color: '#0d9488' }}>
+                <i className={section.icon} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold text-base-color">{section.title}</div>
+                <div className="text-xs text-muted-color mt-0.5">{section.description}</div>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {primarySection && (
+        <div className="flex items-center justify-between gap-3 mt-5 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+          <div className="text-xs text-muted-color">
+            Ouvrir la configuration prioritaire de ce module.
+          </div>
+          <button onClick={() => onOpen(primarySection.key)} className="btn-secondary text-xs">
+            <i className="fa-solid fa-arrow-right" /> Ouvrir
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -898,7 +942,7 @@ export default function ConfigIndex() {
         title={setupSection ? setupSection.title : 'Configuration'}
         subtitle={setupSection
           ? setupSection.description
-          : 'Hub de configuration modulaire pour le catalogue, les paiements, les documents, la carte et le systeme.'}
+          : 'Hub de configuration pour le depot Irtiwaa: catalogues, paiements, documents, support et taches systeme.'}
         action={setupSection ? (
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => navigate('/config')} className="btn-secondary text-xs">
@@ -918,30 +962,35 @@ export default function ConfigIndex() {
 
       {!setupSection ? (
         <div className="space-y-6">
-          {setupSectionsByModule.map((module) => (
-            <div key={module.key} className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(13,148,136,0.12)', color: '#0d9488' }}>
-                  <i className={module.icon} />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-base-color">{module.label}</div>
-                  <div className="text-xs text-muted-color">{module.description}</div>
+          <div className="card">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+              <div className="max-w-3xl">
+                <div className="text-sm font-semibold text-base-color">Pilotage central</div>
+                <div className="text-sm text-secondary-color mt-1">
+                  Cette page sert de hub. Chaque grand bloc ouvre une configuration cible, avec un rangement plus clair
+                  pour les besoins du depot, du terrain, de la facturation et du support.
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                {module.sections.map((section) => (
-                  <SetupSectionCard
-                    key={section.key}
-                    section={section}
-                    count={sectionCount(section.key)}
-                    onClick={(key) => navigate(`/config/${key}`)}
-                  />
-                ))}
+              <div className="flex flex-wrap gap-2">
+                <Link to="/notifications-center" className="btn-secondary text-xs">
+                  <i className="fa-solid fa-bell" /> Centre notifications
+                </Link>
+                <Link to="/bug-reports" className="btn-secondary text-xs">
+                  <i className="fa-solid fa-bug" /> Support
+                </Link>
               </div>
             </div>
-          ))}
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            {setupSectionsByModule.map((module) => (
+              <ModuleHubCard
+                key={module.key}
+                module={module}
+                onOpen={(key) => navigate(`/config/${key}`)}
+              />
+            ))}
+          </div>
         </div>
       ) : (
         <section className="space-y-6">

@@ -128,57 +128,20 @@ function loadGoogleMapsApi(apiKey) {
 }
 
 function normalizeMapSettings(settings = []) {
-  const byKey = Array.isArray(settings)
-    ? settings.reduce((carry, item) => {
-      carry[item.key] = item.value
-      return carry
-    }, {})
-    : {}
-
   return {
-    provider: byKey['map.provider'] || 'openstreetmap',
-    googleMapsApiKey: byKey['map.google_maps_api_key'] || '',
-    googleMapType: byKey['map.google_map_type'] || 'roadmap',
-    googleMapId: byKey['map.google_map_id'] || '',
-    customTileUrl: byKey['map.custom_tile_url'] || '',
-    customTileAttribution: byKey['map.custom_tile_attribution'] || '',
+    provider: 'openstreetmap',
+    googleMapsApiKey: '',
+    googleMapType: 'roadmap',
+    googleMapId: '',
+    customTileUrl: '',
+    customTileAttribution: '',
   }
 }
 
 function resolveProviderConfig(mapSettings) {
-  if (mapSettings.provider === 'custom' && mapSettings.customTileUrl) {
-    return {
-      provider: 'custom',
-      url: mapSettings.customTileUrl,
-      attribution: mapSettings.customTileAttribution || '&copy; Provider personnalise',
-      options: {},
-      warning: '',
-    }
-  }
-
-  if (mapSettings.provider === 'custom') {
-    return {
-      provider: 'custom',
-      ...MAP_PROVIDER_CONFIG.openstreetmap,
-      warning: 'Le mode personnalise demande une URL de tuiles valide. La carte reste sur OpenStreetMap tant que le champ est vide.',
-    }
-  }
-
-  if (usesGoogleProvider(mapSettings)) {
-    return {
-      provider: mapSettings.provider,
-      ...MAP_PROVIDER_CONFIG.openstreetmap,
-      warning: mapSettings.googleMapsApiKey
-        ? ''
-        : 'Google Maps demande une cle navigateur Google Maps JavaScript API et un projet de facturation actif. La carte utilise OpenStreetMap tant qu aucune cle n est configuree.',
-    }
-  }
-
-  const fallback = MAP_PROVIDER_CONFIG[mapSettings.provider] ?? MAP_PROVIDER_CONFIG.openstreetmap
-
   return {
-    provider: mapSettings.provider,
-    ...fallback,
+    provider: 'openstreetmap',
+    ...MAP_PROVIDER_CONFIG.openstreetmap,
     warning: '',
   }
 }
@@ -727,6 +690,11 @@ function TerrainTab({
     .filter(Boolean)
   const terrainPositions = (terrain.reps ?? []).filter(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
   const selectedRepHasMapPosition = Boolean(getTunisiaPoint(selectedRep?.map_position?.latitude, selectedRep?.map_position?.longitude))
+  const mapDisabledReason = selectedRep && !selectedRepHasMapPosition
+    ? (selectedRep.presence?.last_seen
+      ? 'Aucun point GPS exploitable en Tunisie n a encore ete remonte pour ce compte.'
+      : 'Ce compte n a pas encore partage de position exploitable pour la carte terrain.')
+    : ''
 
   if (terrainLoading && !terrain.reps?.length) {
     return <PageLoader />
@@ -951,6 +919,17 @@ function TerrainTab({
                   <i className="fa-solid fa-tower-broadcast text-2xl text-red-400 mb-3 block" />
                   <p className="text-sm text-base-color font-semibold">Impossible de charger le suivi terrain</p>
                   <p className="text-xs text-muted-color mt-1">{terrainError}</p>
+                </div>
+              </div>
+            ) : mapDisabledReason ? (
+              <div className="flex items-center justify-center h-full text-center px-6">
+                <div className="max-w-md">
+                  <i className="fa-solid fa-location-slash text-2xl text-amber-500 mb-3 block" />
+                  <p className="text-sm text-base-color font-semibold">Carte desactive pour ce commercial</p>
+                  <p className="text-xs text-muted-color mt-1">{mapDisabledReason}</p>
+                  <p className="text-xs text-secondary-color mt-3">
+                    Le suivi restera sur OpenStreetMap et se reactivera automatiquement des qu un point GPS valide sera recu.
+                  </p>
                 </div>
               </div>
             ) : (
@@ -1209,14 +1188,7 @@ export default function LiveMapIndex() {
   }, [])
 
   const loadMapSettings = useCallback(async () => {
-    try {
-      const response = await api.get('/settings', {
-        params: { group: 'map' },
-      })
-      setMapSettings(normalizeMapSettings(response.data ?? []))
-    } catch {
-      setMapSettings(normalizeMapSettings())
-    }
+    setMapSettings(normalizeMapSettings())
   }, [])
 
   const loadTerrain = useCallback(async () => {
@@ -1331,6 +1303,11 @@ export default function LiveMapIndex() {
     }
 
     const selectedRep = terrain.reps.find(rep => String(rep.id) === String(selectedRepId))
+    if (!getTunisiaPoint(selectedRep?.map_position?.latitude, selectedRep?.map_position?.longitude)) {
+      setRouteTrace([])
+      return
+    }
+
     loadRouteTrace(selectedRep?.route_session?.id)
   }, [activeTab, loadRouteTrace, selectedRepId, terrain.reps])
 

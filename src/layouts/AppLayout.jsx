@@ -28,6 +28,7 @@ const OPERATIONS_NAV = [
 const MANAGEMENT_NAV = [
   { to: '/users', icon: 'fa-solid fa-user-gear', label: 'Utilisateurs' },
   { to: '/zones', icon: 'fa-solid fa-map-location-dot', label: 'Zones et tarifs' },
+  { to: '/config', icon: 'fa-solid fa-sliders', label: 'Configuration' },
 ]
 
 const SUPPORT_NAV = [
@@ -281,7 +282,6 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, statusLabel
                   {SUPPORT_NAV.map((item) => (
                     <RailLink key={item.to} {...item} expanded onClick={onClose} />
                   ))}
-                  <RailLink to="/config" icon="fa-solid fa-sliders" label="Configuration" expanded onClick={onClose} />
                 </div>
               </div>
             </>
