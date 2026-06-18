@@ -23,6 +23,7 @@ const TUNISIA_BOUNDS = [
 ]
 const DEFAULT_CENTER = [34.2, 9.6]
 const DEFAULT_ZOOM = 6
+const HEARTBEAT_REFRESH_MS = 20 * 1000
 const GOOGLE_MAP_PROVIDERS = new Set(['google_roadmap', 'google_satellite'])
 const GOOGLE_MAP_TYPES = new Set(['roadmap', 'satellite', 'terrain', 'hybrid'])
 const GOOGLE_MAPS_SCRIPT_ID = 'irtiwaa-google-maps-sdk'
@@ -340,12 +341,32 @@ function makeRepIcon(color, selected = false) {
 }
 
 function getPresenceMeta(rep) {
-  if (rep?.presence?.is_online) {
+  const state = rep?.presence?.state
+
+  if (state === 'online' || rep?.presence?.is_online) {
     return {
       label: 'En ligne',
       color: '#059669',
       bg: 'rgba(5,150,105,0.12)',
       dot: 'bg-emerald-500',
+    }
+  }
+
+  if (state === 'stale' || (rep?.presence?.alive && rep?.presence?.last_seen)) {
+    return {
+      label: 'Heartbeat en retard',
+      color: '#d97706',
+      bg: 'rgba(217,119,6,0.12)',
+      dot: 'bg-amber-500',
+    }
+  }
+
+  if (state === 'never_seen') {
+    return {
+      label: 'Aucune remontee',
+      color: '#94a3b8',
+      bg: 'rgba(148,163,184,0.14)',
+      dot: 'bg-slate-300',
     }
   }
 
@@ -1272,7 +1293,7 @@ export default function LiveMapIndex() {
           loadRouteTrace(selectedRep.route_session.id)
         }
       }
-    }, 30000)
+    }, HEARTBEAT_REFRESH_MS)
 
     return () => window.clearInterval(intervalId)
   }, [activeTab, loadRouteTrace, loadTerrain, selectedRepId, terrain.reps])

@@ -6,8 +6,44 @@ import { PageLoader } from '../components/Spinner'
 import { useAuth } from '../contexts/AuthContext'
 import QuantityInput from '../components/QuantityInput'
 
+const HEARTBEAT_REFRESH_MS = 20 * 1000
+
 function fmt(n) {
   return new Intl.NumberFormat('fr-TN', { minimumFractionDigits: 3 }).format(n ?? 0)
+}
+
+function getSessionPresenceMeta(session) {
+  const state = session?.presence?.state
+
+  if (state === 'online' || session?.is_online) {
+    return {
+      label: 'En ligne',
+      textClassName: 'text-emerald-600',
+      dotClassName: 'bg-emerald-500 animate-pulse',
+    }
+  }
+
+  if (state === 'stale' || (session?.alive && session?.last_seen)) {
+    return {
+      label: 'Heartbeat en retard',
+      textClassName: 'text-amber-600',
+      dotClassName: 'bg-amber-500',
+    }
+  }
+
+  if (state === 'never_seen') {
+    return {
+      label: 'Aucune remontee',
+      textClassName: 'text-muted-color',
+      dotClassName: 'bg-slate-300',
+    }
+  }
+
+  return {
+    label: 'Hors ligne',
+    textClassName: 'text-muted-color',
+    dotClassName: 'bg-slate-300',
+  }
 }
 
 /* ─── KPI Card ─────────────────────────────────────────────────────────────── */
@@ -230,7 +266,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     load()
-    const id = setInterval(load, 30000)
+    const id = setInterval(load, HEARTBEAT_REFRESH_MS)
     return () => clearInterval(id)
   }, [load])
 
@@ -400,22 +436,28 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sessions.map(s => (
-                    <tr key={s.id} className="table-row">
-                      <td className="py-3 pr-4 font-semibold text-base-color">{s.user?.name ?? '—'}</td>
-                      <td className="py-3 pr-4 text-secondary-color">{s.brand} {s.model}</td>
-                      <td className="py-3 pr-4 text-muted-color">{s.app_version}</td>
-                      <td className="py-3 pr-4">
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${s.alive ? 'text-emerald-600' : 'text-muted-color'}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.alive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
-                          {s.alive ? 'En ligne' : 'Hors ligne'}
-                        </span>
-                      </td>
-                      <td className="py-3 text-muted-color text-xs">
-                        {s.last_seen ? new Date(s.last_seen).toLocaleString('fr-FR') : '—'}
-                      </td>
-                    </tr>
-                  ))}
+                  {sessions.map(s => {
+                    const presenceMeta = getSessionPresenceMeta(s)
+
+                    return (
+                      <tr key={s.id} className="table-row">
+                        <td className="py-3 pr-4 font-semibold text-base-color">{s.user?.name ?? '—'}</td>
+                        <td className="py-3 pr-4 text-secondary-color">{s.brand} {s.model}</td>
+                        <td className="py-3 pr-4 text-muted-color">{s.app_version || s.native_app_version || '—'}</td>
+                        <td className="py-3 pr-4">
+                          <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${presenceMeta.textClassName}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${presenceMeta.dotClassName}`} />
+                            {presenceMeta.label}
+                          </span>
+                        </td>
+                        <td className="py-3 text-muted-color text-xs">
+                          {s.last_seen
+                            ? `${new Date(s.last_seen).toLocaleString('fr-FR')}${s.presence?.last_seen_age_seconds != null ? ` · ${s.presence.last_seen_age_seconds}s` : ''}`
+                            : '—'}
+                        </td>
+                      </tr>
+                    )
+                  })}
                   {sessions.length === 0 && (
                     <tr><td colSpan={5} className="py-8 text-center text-muted-color text-sm">Aucune session active</td></tr>
                   )}
