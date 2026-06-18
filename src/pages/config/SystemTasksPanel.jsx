@@ -20,7 +20,7 @@ const STATUS_META = {
     icon: 'fa-solid fa-circle-xmark',
   },
   idle: {
-    label: 'Jamais lancee',
+    label: 'En attente',
     color: '#64748b',
     background: 'rgba(100,116,139,0.12)',
     icon: 'fa-solid fa-clock',
@@ -44,6 +44,22 @@ function formatDuration(durationMs) {
   if (durationMs < 1000) return `${durationMs} ms`
   if (durationMs < 60000) return `${(durationMs / 1000).toFixed(1)} s`
   return `${(durationMs / 60000).toFixed(1)} min`
+}
+
+function formatNextDue(value) {
+  if (!value) return 'Non disponible'
+
+  const diffMs = new Date(value).getTime() - Date.now()
+  if (diffMs <= 0) return `${formatDateTime(value)} · imminent`
+
+  const diffMinutes = Math.round(diffMs / 60000)
+  if (diffMinutes < 60) return `${formatDateTime(value)} · dans ${diffMinutes} min`
+
+  const diffHours = Math.round(diffMinutes / 60)
+  if (diffHours < 24) return `${formatDateTime(value)} · dans ${diffHours} h`
+
+  const diffDays = Math.round(diffHours / 24)
+  return `${formatDateTime(value)} · dans ${diffDays} j`
 }
 
 function formatTrigger(run) {
@@ -112,6 +128,7 @@ export default function SystemTasksPanel({
   const stats = snapshot?.stats ?? {}
   const tasks = snapshot?.tasks ?? []
   const recentRuns = snapshot?.recent_runs ?? []
+  const historyStartedAt = snapshot?.history_started_at
 
   return (
     <div className="space-y-6">
@@ -123,6 +140,12 @@ export default function SystemTasksPanel({
               Liste des taches planifiees cote serveur, dernier etat d execution et relance manuelle pour les admins
               et developpeurs. Les relances s executent directement sur le VPS et attendent la fin avant de repondre.
             </p>
+            {historyStartedAt && (
+              <p className="text-[11px] text-secondary-color mt-2">
+                Historique de suivi disponible depuis {formatDateTime(historyStartedAt)}. Si une tache est marquee
+                "En attente", cela veut surtout dire qu elle n a pas encore eu de passage enregistre depuis cette date.
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={onRefresh} className="btn-secondary text-xs">
@@ -205,6 +228,7 @@ export default function SystemTasksPanel({
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                       <TaskRow label="Planification" value={task.schedule_label || 'Non planifie'} />
+                      <TaskRow label="Prochaine execution" value={formatNextDue(task.next_due_at)} />
                       <TaskRow label="Dernier declenchement" value={formatTrigger(latestRun)} />
                       <TaskRow label="Dernier debut" value={formatDateTime(latestRun?.started_at)} />
                       <TaskRow label="Derniere fin" value={formatDateTime(latestRun?.finished_at)} />
@@ -217,7 +241,7 @@ export default function SystemTasksPanel({
                       <TaskRow label="Cle technique" value={task.key} mono />
                       <TaskRow label="Statut courant" value={runMeta.label} />
                       <TaskRow label="Autorise en manuel" value={task.manual_allowed ? 'Oui' : 'Non'} />
-                      <TaskRow label="Historique dispo" value={latestRun ? 'Oui' : 'Pas encore'} />
+                      <TaskRow label="Historique dispo" value={latestRun ? 'Oui' : 'En attente du premier passage'} />
                       <TaskRow label="Rafraichi a" value={formatDateTime(snapshot?.generated_at)} />
                     </div>
                   </div>
