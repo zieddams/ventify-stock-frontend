@@ -5,6 +5,7 @@ import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
+import SystemTasksPanel from './SystemTasksPanel'
 import { DOCUMENT_LAYOUT_SETTING_KEY, normalizeDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 import {
@@ -109,6 +110,7 @@ const MODULE_SECTION_TABS = {
   })),
   system: [
     { key: 'system_support', label: 'Support', icon: 'fa-solid fa-life-ring' },
+    { key: 'system_tasks', label: 'Taches de fond', icon: 'fa-solid fa-clock-rotate-left' },
     { key: 'system_status', label: 'Etat systeme', icon: 'fa-solid fa-server' },
   ],
 }
@@ -419,6 +421,12 @@ export default function ConfigIndex() {
   const [loading, setLoading] = useState(true)
   const [systemInfo, setSystemInfo] = useState(null)
   const [systemLoading, setSystemLoading] = useState(true)
+  const [taskSnapshot, setTaskSnapshot] = useState({ generated_at: null, stats: {}, tasks: [], recent_runs: [] })
+  const [taskLoading, setTaskLoading] = useState(true)
+  const [taskLoadError, setTaskLoadError] = useState('')
+  const [taskActionError, setTaskActionError] = useState('')
+  const [runningTaskKey, setRunningTaskKey] = useState('')
+  const [taskNotice, setTaskNotice] = useState('')
   const [savingSettings, setSavingSettings] = useState('')
   const [modalType, setModalType] = useState(null)
   const [editing, setEditing] = useState(null)
@@ -461,9 +469,26 @@ export default function ConfigIndex() {
     }
   }
 
+  const loadBackgroundTasks = async () => {
+    setTaskLoading(true)
+    setTaskLoadError('')
+
+    try {
+      const response = await api.get('/system/tasks', {
+        params: { history_limit: 20 },
+      })
+      setTaskSnapshot(response.data ?? { generated_at: null, stats: {}, tasks: [], recent_runs: [] })
+    } catch (error) {
+      setTaskLoadError(error.response?.data?.message || 'Impossible de charger les taches de fond.')
+    } finally {
+      setTaskLoading(false)
+    }
+  }
+
   useEffect(() => {
     loadConfig()
     loadSystemInfo()
+    loadBackgroundTasks()
   }, [])
 
   useEffect(() => {
@@ -517,6 +542,26 @@ export default function ConfigIndex() {
       )
     } finally {
       setSavingSettings('')
+    }
+  }
+
+  const runBackgroundTask = async (taskKey) => {
+    setRunningTaskKey(taskKey)
+    setTaskNotice('')
+    setTaskActionError('')
+
+    try {
+      const response = await api.post(`/system/tasks/${taskKey}/run`)
+      setTaskSnapshot(response.data?.snapshot ?? { generated_at: null, stats: {}, tasks: [], recent_runs: [] })
+      setTaskNotice(response.data?.message || 'Tache executee avec succes.')
+    } catch (error) {
+      setTaskActionError(error.response?.data?.message || 'La tache a echoue.')
+
+      if (error.response?.data?.snapshot) {
+        setTaskSnapshot(error.response.data.snapshot)
+      }
+    } finally {
+      setRunningTaskKey('')
     }
   }
 
@@ -1035,6 +1080,19 @@ export default function ConfigIndex() {
                 </div>
               </div>
             </div>
+          )}
+
+          {moduleKey === 'system' && sectionKey === 'system_tasks' && (
+            <SystemTasksPanel
+              snapshot={taskSnapshot}
+              loading={taskLoading}
+              error={taskLoadError}
+              runningTaskKey={runningTaskKey}
+              actionMessage={taskNotice}
+              actionError={taskActionError}
+              onRefresh={loadBackgroundTasks}
+              onRunTask={runBackgroundTask}
+            />
           )}
 
           {moduleKey === 'system' && sectionKey === 'system_status' && (
