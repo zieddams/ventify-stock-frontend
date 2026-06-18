@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
@@ -10,10 +10,8 @@ import { DOCUMENT_LAYOUT_SETTING_KEY, normalizeDocumentLayouts } from '../../hoo
 import api from '../../services/api'
 import {
   DOCUMENT_DEFINITIONS,
-  DOCUMENT_TEMPLATE_SECTIONS,
   getDefaultDocumentFieldKeys,
   getDocumentDefinition,
-  getDocumentDefinitionsBySection,
 } from '../../utils/documentDefinitions'
 import { resolveDocumentLayout } from '../../utils/documents'
 
@@ -65,7 +63,7 @@ const MODULES = [
     key: 'expenses',
     label: 'Depenses',
     icon: 'fa-solid fa-receipt',
-    description: 'Motifs dynamiques et gouvernorats',
+    description: 'Motifs dynamiques et pilotage finance',
   },
   {
     key: 'map',
@@ -87,37 +85,130 @@ const MODULES = [
   },
 ]
 
-const MODULE_SECTION_TABS = {
-  catalog: [
-    { key: 'category', label: 'Categories', icon: 'fa-solid fa-tags' },
-    { key: 'unit', label: 'Unites', icon: 'fa-solid fa-ruler-combined' },
-  ],
-  payments: [
-    { key: 'payment_method', label: 'Methodes', icon: 'fa-solid fa-wallet' },
-  ],
-  expenses: [
-    { key: 'expense_category', label: 'Motifs', icon: 'fa-solid fa-receipt' },
-    { key: 'expenses_governorates', label: 'Gouvernorats', icon: 'fa-solid fa-location-dot' },
-  ],
-  map: [
-    { key: 'map_provider', label: 'Provider', icon: 'fa-solid fa-map-location-dot' },
-    { key: 'map_status', label: 'Etat', icon: 'fa-solid fa-satellite-dish' },
-  ],
-  documents: DOCUMENT_TEMPLATE_SECTIONS.map((section) => ({
-    key: `documents_${section.key}`,
-    label: section.label,
-    icon: section.icon,
-  })),
-  system: [
-    { key: 'system_support', label: 'Support', icon: 'fa-solid fa-life-ring' },
-    { key: 'system_tasks', label: 'Taches de fond', icon: 'fa-solid fa-clock-rotate-left' },
-    { key: 'system_status', label: 'Etat systeme', icon: 'fa-solid fa-server' },
-  ],
-}
+const SETUP_SECTIONS = [
+  {
+    key: 'categories',
+    module: 'catalog',
+    title: 'Categories produits',
+    description: 'Liste dynamique des categories visibles a la creation et a l import produit.',
+    icon: 'fa-solid fa-tags',
+  },
+  {
+    key: 'units',
+    module: 'catalog',
+    title: 'Unites',
+    description: 'Unites disponibles pour les produits, impressions et exports.',
+    icon: 'fa-solid fa-ruler-combined',
+  },
+  {
+    key: 'payment-methods',
+    module: 'payments',
+    title: 'Methodes de paiement',
+    description: 'Cash systeme, virements, banques et autres moyens utilises sur les factures.',
+    icon: 'fa-solid fa-wallet',
+  },
+  {
+    key: 'expense-categories',
+    module: 'expenses',
+    title: 'Categories de depenses',
+    description: 'Motifs dynamiques avec libelle, couleur, icone et activation.',
+    icon: 'fa-solid fa-receipt',
+  },
+  {
+    key: 'documents',
+    module: 'documents',
+    title: 'Documents PDF & impression',
+    description: 'Choix des champs et orientations par entite document.',
+    icon: 'fa-solid fa-print',
+  },
+  {
+    key: 'map-provider',
+    module: 'map',
+    title: 'Provider carte',
+    description: 'OpenStreetMap, Google Maps et tuiles personnalisees.',
+    icon: 'fa-solid fa-map-location-dot',
+  },
+  {
+    key: 'map-status',
+    module: 'map',
+    title: 'Etat & raccourcis carte',
+    description: 'Verification du provider actif, de la cle et des acces terrain.',
+    icon: 'fa-solid fa-satellite-dish',
+  },
+  {
+    key: 'system-support',
+    module: 'system',
+    title: 'Support & circulation',
+    description: 'Adresse de signalement bug et contact d aide interne.',
+    icon: 'fa-solid fa-life-ring',
+  },
+  {
+    key: 'background-tasks',
+    module: 'system',
+    title: 'Taches de fond',
+    description: 'Planification, historique et declenchement manuel des routines backend.',
+    icon: 'fa-solid fa-clock-rotate-left',
+  },
+  {
+    key: 'system-status',
+    module: 'system',
+    title: 'Etat systeme',
+    description: 'Informations d environnement, PHP, Laravel, queue et mail.',
+    icon: 'fa-solid fa-server',
+  },
+]
 
-const DEFAULT_MODULE_SECTION = Object.fromEntries(
-  Object.entries(MODULE_SECTION_TABS).map(([moduleKey, sections]) => [moduleKey, sections[0]?.key ?? ''])
-)
+const DOCUMENT_ENTITY_GROUPS = [
+  {
+    key: 'customers',
+    label: 'Clients',
+    description: 'Listes clients et affectation portefeuille.',
+    icon: 'fa-solid fa-users',
+    definitionKeys: ['customers_list'],
+  },
+  {
+    key: 'products',
+    label: 'Produits',
+    description: 'Catalogue, prix et stocks minimums.',
+    icon: 'fa-solid fa-box-open',
+    definitionKeys: ['products_list'],
+  },
+  {
+    key: 'invoices',
+    label: 'Factures',
+    description: 'Liste facture, piece simple et detail complet.',
+    icon: 'fa-solid fa-file-invoice',
+    definitionKeys: ['invoices_list', 'invoice_item', 'invoice_detail'],
+  },
+  {
+    key: 'expenses',
+    label: 'Depenses',
+    description: 'Listes et fiches unitaires de depenses.',
+    icon: 'fa-solid fa-receipt',
+    definitionKeys: ['expenses_list', 'expense_item'],
+  },
+  {
+    key: 'route-sessions',
+    label: 'Sessions terrain',
+    description: 'Sorties journee et fiches unitaires de session.',
+    icon: 'fa-solid fa-route',
+    definitionKeys: ['route_sessions_list', 'route_session_item'],
+  },
+  {
+    key: 'depot',
+    label: 'Depot & mouvements',
+    description: 'Stocks depot et journal des mouvements.',
+    icon: 'fa-solid fa-warehouse',
+    definitionKeys: ['depot_stock_list', 'stock_movements_list', 'stock_movement_item'],
+  },
+  {
+    key: 'inventory',
+    label: 'Inventaire',
+    description: 'Historique des ajustements et audits inventaire.',
+    icon: 'fa-solid fa-boxes-stacked',
+    definitionKeys: ['inventory_history_list'],
+  },
+]
 
 const MAP_PROVIDERS = [
   {
@@ -233,46 +324,29 @@ function SummaryCard({ label, value, color, icon }) {
   )
 }
 
-function ModuleCard({ module, active, onClick, count }) {
+function SetupSectionCard({ section, count, onClick }) {
   return (
     <button
-      onClick={() => onClick(module.key)}
+      onClick={() => onClick(section.key)}
       className="w-full text-left rounded-2xl px-4 py-4 transition-all"
-      style={active
-        ? { background: 'rgba(13,148,136,0.10)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)' }
-        : { background: 'var(--surface)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+      style={{ background: 'var(--surface)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
     >
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: active ? 'rgba(13,148,136,0.14)' : 'rgba(100,116,139,0.10)', color: active ? '#0d9488' : '#64748b' }}>
-          <i className={module.icon} />
+        <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(13,148,136,0.12)', color: '#0d9488' }}>
+          <i className={section.icon} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <div className="text-sm font-semibold text-base-color">{module.label}</div>
+            <div className="text-sm font-semibold text-base-color">{section.title}</div>
             {count != null && (
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(59,130,246,0.10)', color: '#2563eb' }}>
                 {count}
               </span>
             )}
           </div>
-          <div className="text-xs text-secondary-color mt-1">{module.description}</div>
+          <div className="text-xs text-secondary-color mt-1">{section.description}</div>
         </div>
       </div>
-    </button>
-  )
-}
-
-function SectionTab({ section, active, onClick }) {
-  return (
-    <button
-      onClick={() => onClick(section.key)}
-      className="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all"
-      style={active
-        ? { background: 'rgba(13,148,136,0.10)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)', color: '#0f766e' }
-        : { background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)', color: 'var(--text-secondary)' }}
-    >
-      <i className={section.icon} />
-      <span>{section.label}</span>
     </button>
   )
 }
@@ -414,8 +488,9 @@ function DocumentTemplateCard({
 }
 
 export default function ConfigIndex() {
-  const [moduleKey, setModuleKey] = useState('catalog')
-  const [sectionKey, setSectionKey] = useState(DEFAULT_MODULE_SECTION.catalog)
+  const navigate = useNavigate()
+  const { sectionKey: routeSectionKey } = useParams()
+  const [documentEntityKey, setDocumentEntityKey] = useState(DOCUMENT_ENTITY_GROUPS[0].key)
   const [itemsByType, setItemsByType] = useState({})
   const [settingsByKey, setSettingsByKey] = useState({})
   const [loading, setLoading] = useState(true)
@@ -491,24 +566,26 @@ export default function ConfigIndex() {
     loadBackgroundTasks()
   }, [])
 
-  useEffect(() => {
-    setSectionKey(DEFAULT_MODULE_SECTION[moduleKey] ?? '')
-  }, [moduleKey])
-
   const summary = useMemo(() => ({
     category: itemsByType.category?.length ?? 0,
     unit: itemsByType.unit?.length ?? 0,
     payment_method: itemsByType.payment_method?.length ?? 0,
     expense_category: itemsByType.expense_category?.length ?? 0,
   }), [itemsByType])
-  const moduleSections = MODULE_SECTION_TABS[moduleKey] ?? []
+  const setupSection = routeSectionKey ? SETUP_SECTIONS.find((item) => item.key === routeSectionKey) ?? null : null
+  const setupSectionsByModule = useMemo(() => (
+    MODULES.map((module) => ({
+      ...module,
+      sections: SETUP_SECTIONS.filter((section) => section.module === module.key),
+    }))
+  ), [])
   const documentLayouts = normalizeDocumentLayouts(settingsByKey[DOCUMENT_LAYOUT_SETTING_KEY]?.value)
-  const activeDocumentSection = sectionKey.startsWith('documents_')
-    ? sectionKey.replace('documents_', '')
-    : (DOCUMENT_TEMPLATE_SECTIONS[0]?.key ?? 'sales')
+  const activeDocumentEntity = DOCUMENT_ENTITY_GROUPS.find((item) => item.key === documentEntityKey) ?? DOCUMENT_ENTITY_GROUPS[0]
   const documentDefinitions = useMemo(() => (
-    getDocumentDefinitionsBySection(activeDocumentSection)
-  ), [activeDocumentSection])
+    activeDocumentEntity.definitionKeys
+      .map((key) => getDocumentDefinition(key))
+      .filter(Boolean)
+  ), [activeDocumentEntity])
 
   const settingValue = (key, fallback = '') => String(settingsByKey[key]?.value ?? fallback)
 
@@ -696,6 +773,10 @@ export default function ConfigIndex() {
     return <PageLoader />
   }
 
+  if (routeSectionKey && !setupSection) {
+    return <Navigate to="/config" replace />
+  }
+
   const currentTypeConfig = MANAGED_TYPES.find((item) => item.key === modalType)
   const isSystemItem = editing?.is_system === true
   const currentProvider = settingValue('map.provider', 'openstreetmap')
@@ -703,13 +784,129 @@ export default function ConfigIndex() {
   const unitConfig = MANAGED_TYPES.find((item) => item.key === 'unit')
   const paymentMethodConfig = MANAGED_TYPES.find((item) => item.key === 'payment_method')
   const expenseCategoryConfig = MANAGED_TYPES.find((item) => item.key === 'expense_category')
+  const detailSections = setupSection
+    ? setupSectionsByModule.find((module) => module.key === setupSection.module)?.sections ?? []
+    : []
+  const sectionCount = (key) => {
+    if (key === 'categories') return summary.category
+    if (key === 'units') return summary.unit
+    if (key === 'payment-methods') return summary.payment_method
+    if (key === 'expense-categories') return summary.expense_category
+    if (key === 'documents') return DOCUMENT_DEFINITIONS.length
+    if (key === 'background-tasks') return taskSnapshot.tasks?.length ?? 0
+    return null
+  }
+
+  if (setupSection?.key === 'documents') {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Documents PDF & impression"
+          subtitle="Configuration par entite pour les listes, fiches unitaires et impressions reutilisables partout dans l application."
+          action={(
+            <div className="flex flex-wrap items-center gap-2">
+              <button onClick={() => navigate('/config')} className="btn-secondary text-xs">
+                <i className="fa-solid fa-arrow-left" /> Retour au hub
+              </button>
+              <button
+                onClick={() => saveSettings(DOCUMENT_SETTING_KEYS, 'documents')}
+                disabled={savingSettings === 'documents'}
+                className="btn-primary text-xs"
+              >
+                {savingSettings === 'documents'
+                  ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</>
+                  : <><i className="fa-solid fa-floppy-disk" /> Sauver</>
+                }
+              </button>
+            </div>
+          )}
+        />
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <SummaryCard label="Categories produits" value={summary.category} color="#0d9488" icon="fa-solid fa-boxes-stacked" />
+          <SummaryCard label="Unites" value={summary.unit} color="#3b82f6" icon="fa-solid fa-ruler-combined" />
+          <SummaryCard label="Paiements" value={summary.payment_method} color="#8b5cf6" icon="fa-solid fa-wallet" />
+          <SummaryCard label="Documents" value={DOCUMENT_DEFINITIONS.length} color="#f59e0b" icon="fa-solid fa-print" />
+        </div>
+
+        <div className="card">
+          <div className="flex items-start gap-3 mb-4">
+            <i className="fa-solid fa-diagram-project mt-0.5" style={{ color: '#0d9488' }} />
+            <div>
+              <div className="text-sm font-semibold text-base-color">Choix de l entite</div>
+              <div className="text-xs text-muted-color mt-1">
+                Selectionnez l entite metier, puis ajustez les champs visibles pour les listes et fiches qui lui appartiennent.
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {DOCUMENT_ENTITY_GROUPS.map((item) => (
+              <button
+                key={item.key}
+                onClick={() => setDocumentEntityKey(item.key)}
+                className="rounded-2xl px-4 py-4 text-left transition-all"
+                style={documentEntityKey === item.key
+                  ? { background: 'rgba(13,148,136,0.10)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)' }
+                  : { background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <i className={item.icon} style={{ color: '#0d9488' }} />
+                  <div className="text-sm font-semibold text-base-color">{item.label}</div>
+                </div>
+                <div className="text-xs text-secondary-color">{item.description}</div>
+                <div className="text-xs text-muted-color mt-2">{item.definitionKeys.length} modele(s)</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(13,148,136,0.12)', color: '#0d9488' }}>
+              <i className={activeDocumentEntity.icon} />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-base-color">{activeDocumentEntity.label}</div>
+              <div className="text-xs text-muted-color mt-1">{activeDocumentEntity.description}</div>
+            </div>
+          </div>
+        </div>
+
+        {documentDefinitions.map((definition) => {
+          const resolvedLayout = resolveDocumentLayout(definition, documentLayouts)
+
+          return (
+            <DocumentTemplateCard
+              key={definition.key}
+              definition={definition}
+              selectedFieldKeys={resolvedLayout.fieldKeys}
+              orientation={resolvedLayout.orientation}
+              onToggleField={toggleDocumentField}
+              onOrientationChange={changeDocumentOrientation}
+              onReset={resetDocumentLayout}
+            />
+          )
+        })}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Configuration"
-        subtitle="Modules dynamiques pour les catalogues, paiements, depenses, documents, cartes, support et etat systeme."
-        action={<PageExportActions title="Configuration" />}
+        title={setupSection ? setupSection.title : 'Configuration'}
+        subtitle={setupSection
+          ? setupSection.description
+          : 'Hub de configuration modulaire pour le catalogue, les paiements, les documents, la carte et le systeme.'}
+        action={setupSection ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={() => navigate('/config')} className="btn-secondary text-xs">
+              <i className="fa-solid fa-arrow-left" /> Retour au hub
+            </button>
+            <PageExportActions title={setupSection.title} />
+          </div>
+        ) : <PageExportActions title="Configuration" />}
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -719,47 +916,56 @@ export default function ConfigIndex() {
         <SummaryCard label="Depenses" value={summary.expense_category} color="#f59e0b" icon="fa-solid fa-receipt" />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[290px,1fr] gap-6">
-        <aside className="space-y-3">
-          {MODULES.map((module) => (
-            <ModuleCard
-              key={module.key}
-              module={module}
-              active={moduleKey === module.key}
-              onClick={setModuleKey}
-              count={module.key === 'catalog'
-                ? summary.category + summary.unit
-                : module.key === 'payments'
-                  ? summary.payment_method
-                  : module.key === 'expenses'
-                    ? summary.expense_category
-                    : module.key === 'documents'
-                      ? DOCUMENT_DEFINITIONS.length
-                    : null}
-            />
-          ))}
-        </aside>
+      {!setupSection ? (
+        <div className="space-y-6">
+          {setupSectionsByModule.map((module) => (
+            <div key={module.key} className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(13,148,136,0.12)', color: '#0d9488' }}>
+                  <i className={module.icon} />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-base-color">{module.label}</div>
+                  <div className="text-xs text-muted-color">{module.description}</div>
+                </div>
+              </div>
 
-        <section className="space-y-6">
-          {moduleSections.length > 1 && (
-            <div className="card">
-              <div className="flex flex-wrap gap-2">
-                {moduleSections.map((section) => (
-                  <SectionTab
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {module.sections.map((section) => (
+                  <SetupSectionCard
                     key={section.key}
                     section={section}
-                    active={sectionKey === section.key}
-                    onClick={setSectionKey}
+                    count={sectionCount(section.key)}
+                    onClick={(key) => navigate(`/config/${key}`)}
                   />
                 ))}
               </div>
-              <div className="text-xs text-muted-color mt-3">
-                Selectionnez une sous-section pour travailler sur un seul bloc metier a la fois.
+            </div>
+          ))}
+        </div>
+      ) : (
+        <section className="space-y-6">
+          {detailSections.length > 1 && (
+            <div className="card">
+              <div className="flex flex-wrap gap-2">
+                {detailSections.map((section) => (
+                  <Link
+                    key={section.key}
+                    to={`/config/${section.key}`}
+                    className="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all"
+                    style={setupSection.key === section.key
+                      ? { background: 'rgba(13,148,136,0.10)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)', color: '#0f766e' }
+                      : { background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)', color: 'var(--text-secondary)' }}
+                  >
+                    <i className={section.icon} />
+                    <span>{section.title}</span>
+                  </Link>
+                ))}
               </div>
             </div>
           )}
 
-          {moduleKey === 'catalog' && sectionKey === 'category' && (
+          {setupSection?.key === 'categories' && (
             <ConfigSection
               config={categoryConfig}
               items={itemsByType.category ?? []}
@@ -770,7 +976,7 @@ export default function ConfigIndex() {
             />
           )}
 
-          {moduleKey === 'catalog' && sectionKey === 'unit' && (
+          {setupSection?.key === 'units' && (
             <ConfigSection
               config={unitConfig}
               items={itemsByType.unit ?? []}
@@ -781,7 +987,7 @@ export default function ConfigIndex() {
             />
           )}
 
-          {moduleKey === 'payments' && sectionKey === 'payment_method' && (
+          {setupSection?.key === 'payment-methods' && (
             <div className="space-y-6">
               <div className="card">
                 <div className="flex items-start gap-3">
@@ -807,7 +1013,7 @@ export default function ConfigIndex() {
             </div>
           )}
 
-          {moduleKey === 'expenses' && sectionKey === 'expense_category' && (
+          {setupSection?.key === 'expense-categories' && (
             <div className="space-y-6">
               <div className="card">
                 <div className="flex items-start gap-3">
@@ -833,22 +1039,8 @@ export default function ConfigIndex() {
             </div>
           )}
 
-          {moduleKey === 'expenses' && sectionKey === 'expenses_governorates' && (
-            <div className="card">
-              <div className="flex items-start gap-3">
-                <i className="fa-solid fa-location-dot mt-0.5" style={{ color: '#0d9488' }} />
-                <div>
-                  <div className="text-sm font-semibold text-base-color">Gouvernorats</div>
-                  <div className="text-sm text-secondary-color mt-1">
-                    Le referentiel gouvernorat reste configurable dans la base et l API, mais son edition directe est
-                    volontairement masquee ici pour garder une page de configuration plus lisible.
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {moduleKey === 'documents' && (
+          {/* Legacy documents branch kept unreachable; the dedicated early-return above owns the entity-first document setup UI. */}
+          {false && (
             <div className="space-y-6">
               <div className="card">
                 <div className="flex items-start justify-between gap-4 mb-4">
@@ -905,7 +1097,7 @@ export default function ConfigIndex() {
             </div>
           )}
 
-          {moduleKey === 'map' && sectionKey === 'map_provider' && (
+          {setupSection?.key === 'map-provider' && (
             <div className="space-y-6">
               <div className="card">
                 <div className="flex items-center justify-between gap-3 mb-4">
@@ -999,7 +1191,7 @@ export default function ConfigIndex() {
             </div>
           )}
 
-          {moduleKey === 'map' && sectionKey === 'map_status' && (
+          {setupSection?.key === 'map-status' && (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <div className="card">
                 <div className="flex items-center gap-2 mb-3">
@@ -1029,7 +1221,7 @@ export default function ConfigIndex() {
             </div>
           )}
 
-          {moduleKey === 'system' && sectionKey === 'system_support' && (
+          {setupSection?.key === 'system-support' && (
             <div className="card">
               <div className="flex items-center justify-between gap-3 mb-4">
                 <div>
@@ -1082,7 +1274,7 @@ export default function ConfigIndex() {
             </div>
           )}
 
-          {moduleKey === 'system' && sectionKey === 'system_tasks' && (
+          {setupSection?.key === 'background-tasks' && (
             <SystemTasksPanel
               snapshot={taskSnapshot}
               loading={taskLoading}
@@ -1095,7 +1287,7 @@ export default function ConfigIndex() {
             />
           )}
 
-          {moduleKey === 'system' && sectionKey === 'system_status' && (
+          {setupSection?.key === 'system-status' && (
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
@@ -1135,7 +1327,7 @@ export default function ConfigIndex() {
             </div>
           )}
         </section>
-      </div>
+      )}
 
       <Modal
         open={!!modalType}

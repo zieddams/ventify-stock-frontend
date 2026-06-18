@@ -47,6 +47,7 @@ function emptyFleetForm() {
     plate: '',
     note: '',
     active: true,
+    operational_status: 'ready',
     sort_order: 0,
   }
 }
@@ -60,6 +61,29 @@ function emptyTransferForm() {
   }
 }
 
+function emptySessionLine() {
+  return {
+    product_id: '',
+    qty_loaded: '',
+  }
+}
+
+function emptySessionForm() {
+  return {
+    rep_id: '',
+    camion_id: '',
+    lines: [emptySessionLine()],
+  }
+}
+
+function emptyCloseForm() {
+  return {
+    route_session_id: '',
+    cash_collected: '',
+    credit_collected: '',
+  }
+}
+
 export default function CamionsIndex() {
   const [camions, setCamions] = useState([])
   const [reps, setReps] = useState([])
@@ -67,12 +91,20 @@ export default function CamionsIndex() {
   const [loading, setLoading] = useState(true)
   const [fleetModal, setFleetModal] = useState(false)
   const [transferModal, setTransferModal] = useState(false)
+  const [sessionModal, setSessionModal] = useState(false)
+  const [closeModal, setCloseModal] = useState(false)
   const [fleetForm, setFleetForm] = useState(emptyFleetForm())
   const [transferForm, setTransferForm] = useState(emptyTransferForm())
+  const [sessionForm, setSessionForm] = useState(emptySessionForm())
+  const [closeForm, setCloseForm] = useState(emptyCloseForm())
   const [fleetErrors, setFleetErrors] = useState({})
   const [transferErrors, setTransferErrors] = useState({})
+  const [sessionErrors, setSessionErrors] = useState({})
+  const [closeErrors, setCloseErrors] = useState({})
   const [savingFleet, setSavingFleet] = useState(false)
   const [savingTransfer, setSavingTransfer] = useState(false)
+  const [savingSession, setSavingSession] = useState(false)
+  const [closingSession, setClosingSession] = useState(false)
   const [expanded, setExpanded] = useState({})
 
   const load = async ({ keepLoading = false } = {}) => {
@@ -115,6 +147,14 @@ export default function CamionsIndex() {
     }
   }, [camions, reps])
 
+  const availableCamions = useMemo(() => (
+    camions.filter((camion) => camion.active && camion.operational_status === 'ready' && camion.workflow_status !== 'in_session')
+  ), [camions])
+
+  const selectedRep = useMemo(() => (
+    reps.find((entry) => String(entry.user?.id) === String(sessionForm.rep_id))
+  ), [reps, sessionForm.rep_id])
+
   const openCreateFleetModal = () => {
     setFleetForm(emptyFleetForm())
     setFleetErrors({})
@@ -128,6 +168,7 @@ export default function CamionsIndex() {
       plate: camion.plate ?? '',
       note: camion.note ?? '',
       active: camion.active !== false,
+      operational_status: camion.operational_status ?? 'ready',
       sort_order: camion.sort_order ?? 0,
     })
     setFleetErrors({})
@@ -175,6 +216,116 @@ export default function CamionsIndex() {
     setTransferModal(true)
   }
 
+  const openSession = ({ rep = null, camion = null } = {}) => {
+    setSessionForm({
+      rep_id: rep?.user?.id ? String(rep.user.id) : '',
+      camion_id: camion?.id ? String(camion.id) : '',
+      lines: [emptySessionLine()],
+    })
+    setSessionErrors({})
+    setSessionModal(true)
+  }
+
+  const addSessionLine = () => {
+    setSessionForm((current) => ({
+      ...current,
+      lines: [...current.lines, emptySessionLine()],
+    }))
+  }
+
+  const updateSessionLine = (index, field, value) => {
+    setSessionForm((current) => ({
+      ...current,
+      lines: current.lines.map((line, lineIndex) => (
+        lineIndex === index ? { ...line, [field]: value } : line
+      )),
+    }))
+  }
+
+  const removeSessionLine = (index) => {
+    setSessionForm((current) => ({
+      ...current,
+      lines: current.lines.length === 1
+        ? [emptySessionLine()]
+        : current.lines.filter((_, lineIndex) => lineIndex !== index),
+    }))
+  }
+
+  const saveSession = async () => {
+    const validLines = sessionForm.lines
+      .filter((line) => line.product_id && Number(line.qty_loaded) > 0)
+      .map((line) => ({
+        product_id: Number(line.product_id),
+        qty_loaded: Number(line.qty_loaded),
+      }))
+
+    if (!sessionForm.rep_id || !sessionForm.camion_id || validLines.length === 0) {
+      setSessionErrors({
+        rep_id: !sessionForm.rep_id ? ['Le commercial est obligatoire.'] : undefined,
+        camion_id: !sessionForm.camion_id ? ['Le camion est obligatoire.'] : undefined,
+        lines: validLines.length === 0 ? ['Ajoutez au moins une ligne de chargement initial.'] : undefined,
+      })
+      return
+    }
+
+    setSavingSession(true)
+    setSessionErrors({})
+
+    try {
+      await api.post('/route-sessions', {
+        rep_id: Number(sessionForm.rep_id),
+        camion_id: Number(sessionForm.camion_id),
+        lines: validLines,
+      })
+
+      setSessionModal(false)
+      setSessionForm(emptySessionForm())
+      await load({ keepLoading: true })
+    } catch (error) {
+      setSessionErrors(error.response?.data?.errors ?? {
+        general: [error.response?.data?.message || 'Impossible d ouvrir la session.'],
+      })
+    } finally {
+      setSavingSession(false)
+    }
+  }
+
+  const openCloseSession = (rep) => {
+    setCloseForm({
+      route_session_id: String(rep?.route_session?.id ?? ''),
+      cash_collected: '',
+      credit_collected: '',
+    })
+    setCloseErrors({})
+    setCloseModal(true)
+  }
+
+  const saveCloseSession = async () => {
+    if (!closeForm.route_session_id) {
+      return
+    }
+
+    setClosingSession(true)
+    setCloseErrors({})
+
+    try {
+      await api.post(`/route-sessions/${closeForm.route_session_id}/close`, {
+        cash_collected: closeForm.cash_collected === '' ? 0 : Number(closeForm.cash_collected),
+        credit_collected: closeForm.credit_collected === '' ? 0 : Number(closeForm.credit_collected),
+      })
+
+      setCloseModal(false)
+      setCloseForm(emptyCloseForm())
+      await load({ keepLoading: true })
+    } catch (error) {
+      setCloseErrors(error.response?.data?.errors ?? {
+        general: [error.response?.data?.message || 'Impossible de cloturer la session.'],
+      })
+    } finally {
+      setClosingSession(false)
+    }
+  }
+
   const saveTransfer = async () => {
     setSavingTransfer(true)
     setTransferErrors({})
@@ -207,6 +358,9 @@ export default function CamionsIndex() {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <button onClick={() => openSession()} className="btn-secondary">
+            <i className="fa-solid fa-play" /> Demarrer une session
+          </button>
           <button onClick={() => openTransfer()} className="btn-secondary">
             <i className="fa-solid fa-truck-ramp-box" /> Charger un commercial
           </button>
@@ -313,6 +467,27 @@ export default function CamionsIndex() {
                           >
                             {camion.active ? 'Actif' : 'Inactif'}
                           </span>
+                          <span
+                            className="px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                            style={{
+                              background: camion.workflow_status === 'free'
+                                ? 'rgba(5,150,105,0.10)'
+                                : camion.workflow_status === 'in_session'
+                                  ? 'rgba(37,99,235,0.10)'
+                                  : camion.workflow_status === 'maintenance'
+                                    ? 'rgba(217,119,6,0.10)'
+                                    : 'rgba(100,116,139,0.10)',
+                              color: camion.workflow_status === 'free'
+                                ? '#059669'
+                                : camion.workflow_status === 'in_session'
+                                  ? '#2563eb'
+                                  : camion.workflow_status === 'maintenance'
+                                    ? '#d97706'
+                                    : '#64748b',
+                            }}
+                          >
+                            {camion.workflow_status_label}
+                          </span>
                         </div>
                         <div className="text-xs text-muted-color mt-1">
                           {camion.plate || 'Immatriculation non renseignee'}
@@ -326,6 +501,11 @@ export default function CamionsIndex() {
                     </div>
 
                     <div className="flex gap-2">
+                      {camion.is_available && (
+                        <button onClick={() => openSession({ camion })} className="btn-secondary text-xs">
+                          <i className="fa-solid fa-play" />
+                        </button>
+                      )}
                       <button onClick={() => openEditFleetModal(camion)} className="btn-secondary text-xs">
                         <i className="fa-solid fa-pen" />
                       </button>
@@ -336,6 +516,10 @@ export default function CamionsIndex() {
                   </div>
 
                   <div className="mt-4 pt-4 space-y-2 text-xs" style={{ borderTop: '1px solid var(--border)' }}>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-muted-color">Etat flotte</span>
+                      <span className="font-medium text-base-color">{camion.operational_status_label}</span>
+                    </div>
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted-color">Session en cours</span>
                       <span className="font-medium text-base-color">
@@ -447,6 +631,15 @@ export default function CamionsIndex() {
                   </div>
 
                   <div className="flex flex-wrap gap-2">
+                    {session?.status === 'open' ? (
+                      <button onClick={() => openCloseSession(rep)} className="btn-secondary text-xs">
+                        <i className="fa-solid fa-flag-checkered" /> Cloturer
+                      </button>
+                    ) : (
+                      <button onClick={() => openSession({ rep })} className="btn-secondary text-xs">
+                        <i className="fa-solid fa-play" /> Ouvrir session
+                      </button>
+                    )}
                     <button onClick={() => openTransfer(rep)} className="btn-secondary text-xs">
                       <i className="fa-solid fa-truck-ramp-box" /> Charger
                     </button>
@@ -548,16 +741,26 @@ export default function CamionsIndex() {
               />
             </FormField>
 
-            <div className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)' }}>
-              <label className="flex items-center gap-3 text-sm text-base-color cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={fleetForm.active}
-                  onChange={(event) => setFleetForm((current) => ({ ...current, active: event.target.checked }))}
-                />
-                Camion actif pour les prochaines sessions
-              </label>
-            </div>
+            <FormField label="Etat flotte" error={fleetErrors.operational_status?.[0]}>
+              <select
+                value={fleetForm.operational_status}
+                onChange={(event) => setFleetForm((current) => ({ ...current, operational_status: event.target.value }))}
+              >
+                <option value="ready">Pret</option>
+                <option value="maintenance">En panne / maintenance</option>
+              </select>
+            </FormField>
+          </div>
+
+          <div className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)' }}>
+            <label className="flex items-center gap-3 text-sm text-base-color cursor-pointer">
+              <input
+                type="checkbox"
+                checked={fleetForm.active}
+                onChange={(event) => setFleetForm((current) => ({ ...current, active: event.target.checked }))}
+              />
+              Camion actif pour les prochaines sessions
+            </label>
           </div>
 
           <FormField label="Note" error={fleetErrors.note?.[0]}>
@@ -649,6 +852,174 @@ export default function CamionsIndex() {
                 <><i className="fa-solid fa-spinner fa-spin" /> Transfert...</>
               ) : (
                 <><i className="fa-solid fa-truck-arrow-right" /> Transferer</>
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={sessionModal}
+        onClose={() => setSessionModal(false)}
+        title="Demarrer une session terrain"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label="Commercial" error={sessionErrors.rep_id?.[0]} required>
+              <select
+                value={sessionForm.rep_id}
+                onChange={(event) => setSessionForm((current) => ({ ...current, rep_id: event.target.value }))}
+              >
+                <option value="">Selectionner un commercial...</option>
+                {reps.map((rep) => (
+                  <option key={rep.user?.id} value={rep.user?.id} disabled={rep.route_session?.status === 'open'}>
+                    {rep.user?.name}
+                    {rep.route_session?.status === 'open' ? ' - session deja ouverte' : ''}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+
+            <FormField label="Camion" error={sessionErrors.camion_id?.[0]} required>
+              <select
+                value={sessionForm.camion_id}
+                onChange={(event) => setSessionForm((current) => ({ ...current, camion_id: event.target.value }))}
+              >
+                <option value="">Selectionner un camion...</option>
+                {availableCamions.map((camion) => (
+                  <option key={camion.id} value={camion.id}>
+                    {camion.name} {camion.plate ? `- ${camion.plate}` : ''}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          </div>
+
+          <div className="rounded-2xl px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
+            Zone appliquee: {selectedRep?.user?.zone?.name || 'Zone non definie pour ce commercial'}.
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-base-color">Chargement initial</div>
+                <div className="text-xs text-muted-color mt-1">Ajoutez au moins une ligne de stock pour ouvrir la session correctement.</div>
+              </div>
+              <button onClick={addSessionLine} className="btn-secondary text-xs">
+                <i className="fa-solid fa-plus" /> Ligne
+              </button>
+            </div>
+
+            {sessionErrors.general?.[0] && (
+              <div className="rounded-2xl px-4 py-3 text-sm text-red-600" style={{ background: 'rgba(239,68,68,0.08)' }}>
+                {sessionErrors.general[0]}
+              </div>
+            )}
+
+            {sessionErrors.lines?.[0] && (
+              <div className="rounded-2xl px-4 py-3 text-sm text-red-600" style={{ background: 'rgba(239,68,68,0.08)' }}>
+                {sessionErrors.lines[0]}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {sessionForm.lines.map((line, index) => (
+                <div key={`line-${index}`} className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_160px_auto] gap-3">
+                  <FormField label={index === 0 ? 'Produit' : `Produit ${index + 1}`}>
+                    <select
+                      value={line.product_id}
+                      onChange={(event) => updateSessionLine(index, 'product_id', event.target.value)}
+                    >
+                      <option value="">Selectionner un produit...</option>
+                      {products.map((product) => (
+                        <option key={product.id} value={product.id}>
+                          {product.name} - {product.reference}
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
+
+                  <FormField label={index === 0 ? 'Quantite' : `Quantite ${index + 1}`}>
+                    <input
+                      type="number"
+                      step="0.001"
+                      min="0.001"
+                      value={line.qty_loaded}
+                      onChange={(event) => updateSessionLine(index, 'qty_loaded', event.target.value)}
+                      placeholder="0.000"
+                    />
+                  </FormField>
+
+                  <div className="flex items-end">
+                    <button onClick={() => removeSessionLine(index)} className="btn-secondary text-xs w-full">
+                      <i className="fa-solid fa-trash-can" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button onClick={() => setSessionModal(false)} className="btn-secondary">Annuler</button>
+            <button onClick={saveSession} disabled={savingSession} className="btn-primary">
+              {savingSession ? (
+                <><i className="fa-solid fa-spinner fa-spin" /> Ouverture...</>
+              ) : (
+                <><i className="fa-solid fa-play" /> Ouvrir la session</>
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={closeModal}
+        onClose={() => setCloseModal(false)}
+        title="Cloturer une session terrain"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="rounded-2xl px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
+            Renseignez les montants deja recuperes si vous souhaitez les consolider au moment de la cloture.
+          </div>
+
+          {closeErrors.general?.[0] && (
+            <div className="rounded-2xl px-4 py-3 text-sm text-red-600" style={{ background: 'rgba(239,68,68,0.08)' }}>
+              {closeErrors.general[0]}
+            </div>
+          )}
+
+          <FormField label="Cash collecte" error={closeErrors.cash_collected?.[0]}>
+            <input
+              type="number"
+              step="0.001"
+              min="0"
+              value={closeForm.cash_collected}
+              onChange={(event) => setCloseForm((current) => ({ ...current, cash_collected: event.target.value }))}
+              placeholder="0.000"
+            />
+          </FormField>
+
+          <FormField label="Credit collecte" error={closeErrors.credit_collected?.[0]}>
+            <input
+              type="number"
+              step="0.001"
+              min="0"
+              value={closeForm.credit_collected}
+              onChange={(event) => setCloseForm((current) => ({ ...current, credit_collected: event.target.value }))}
+              placeholder="0.000"
+            />
+          </FormField>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button onClick={() => setCloseModal(false)} className="btn-secondary">Annuler</button>
+            <button onClick={saveCloseSession} disabled={closingSession} className="btn-primary">
+              {closingSession ? (
+                <><i className="fa-solid fa-spinner fa-spin" /> Cloture...</>
+              ) : (
+                <><i className="fa-solid fa-flag-checkered" /> Cloturer la session</>
               )}
             </button>
           </div>

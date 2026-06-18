@@ -3,103 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { subscribeToOpsMonitor } from '../services/realtime'
-
-function timeAgo(dateStr) {
-  if (!dateStr) return 'A l\'instant'
-
-  const minutes = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000)
-  if (minutes < 1) return 'A l\'instant'
-  if (minutes < 60) return `Il y a ${minutes} min`
-
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `Il y a ${hours}h`
-
-  return `Il y a ${Math.floor(hours / 24)}j`
-}
-
-const TYPE_CONFIG = {
-  LowStockNotification: {
-    icon: 'fa-solid fa-triangle-exclamation',
-    color: '#f59e0b',
-    bg: 'rgba(245,158,11,0.12)',
-    label: 'Stock bas',
-    route: '/depot',
-  },
-  DailySummaryNotification: {
-    icon: 'fa-solid fa-chart-line',
-    color: '#0d9488',
-    bg: 'rgba(13,148,136,0.12)',
-    label: 'Rapport',
-    route: '/reports',
-  },
-  default: {
-    icon: 'fa-solid fa-bell',
-    color: '#64748b',
-    bg: 'rgba(100,116,139,0.1)',
-    label: 'Notification',
-    route: null,
-  },
-}
-
-const ACTIVITY_KIND_CONFIG = {
-  'route.session.opened': {
-    icon: 'fa-solid fa-truck-fast',
-    color: '#0d9488',
-    bg: 'rgba(13,148,136,0.12)',
-    label: 'Session ouverte',
-  },
-  'route.session.closed': {
-    icon: 'fa-solid fa-flag-checkered',
-    color: '#f97316',
-    bg: 'rgba(249,115,22,0.12)',
-    label: 'Session cloturee',
-  },
-  'route.load.updated': {
-    icon: 'fa-solid fa-boxes-stacked',
-    color: '#3b82f6',
-    bg: 'rgba(59,130,246,0.12)',
-    label: 'Chargement camion',
-  },
-  'invoice.created': {
-    icon: 'fa-solid fa-file-circle-plus',
-    color: '#8b5cf6',
-    bg: 'rgba(139,92,246,0.12)',
-    label: 'Nouvelle facture',
-  },
-  'invoice.payment.recorded': {
-    icon: 'fa-solid fa-money-bill-wave',
-    color: '#10b981',
-    bg: 'rgba(16,185,129,0.12)',
-    label: 'Paiement recu',
-  },
-  'bug.report.created': {
-    icon: 'fa-solid fa-bug',
-    color: '#ef4444',
-    bg: 'rgba(239,68,68,0.12)',
-    label: 'Nouveau bug',
-  },
-}
-
-const NOTIFICATION_EVENT_KINDS = new Set(Object.keys(ACTIVITY_KIND_CONFIG))
-
-function resolveConfig(notification) {
-  if (notification.type === 'OpsActivityNotification') {
-    const activity = ACTIVITY_KIND_CONFIG[notification.data?.kind]
-    if (activity) {
-      return {
-        ...activity,
-        route: notification.data?.route ?? null,
-      }
-    }
-  }
-
-  const cfg = TYPE_CONFIG[notification.type] ?? TYPE_CONFIG.default
-
-  return {
-    ...cfg,
-    route: notification.data?.route ?? cfg.route,
-  }
-}
+import {
+  formatNotificationAge,
+  LIVE_NOTIFICATION_EVENT_KINDS,
+  notificationChanges,
+  resolveNotificationConfig,
+} from '../utils/notificationActivity'
 
 export default function NotificationBell() {
   const [open, setOpen] = useState(false)
@@ -135,16 +44,16 @@ export default function NotificationBell() {
   }, [])
 
   useEffect(() => {
-    if (!['admin', 'developer'].includes(user?.role)) {
+    if (!user?.id) {
       return undefined
     }
 
     return subscribeToOpsMonitor((event) => {
-      if (NOTIFICATION_EVENT_KINDS.has(event.kind)) {
+      if (LIVE_NOTIFICATION_EVENT_KINDS.has(event.kind)) {
         load()
       }
     })
-  }, [load, user?.role])
+  }, [load, user?.id])
 
   const markAll = async () => {
     await api.post('/notifications/read-all')
@@ -161,7 +70,7 @@ export default function NotificationBell() {
       setUnread(value => Math.max(0, value - 1))
     }
 
-    const cfg = resolveConfig(notification)
+    const cfg = resolveNotificationConfig(notification)
     setOpen(false)
 
     if (cfg.route) {
@@ -247,7 +156,8 @@ export default function NotificationBell() {
               </div>
             ) : (
               notifs.map(notification => {
-                const cfg = resolveConfig(notification)
+                const cfg = resolveNotificationConfig(notification)
+                const changes = notificationChanges(notification, 2)
                 const isNew = !notification.read_at
 
                 return (
@@ -275,9 +185,18 @@ export default function NotificationBell() {
                       <p className="text-xs font-medium line-clamp-2" style={{ color: 'rgba(241,245,249,0.9)' }}>
                         {notification.data?.message ?? cfg.label}
                       </p>
+                      {changes.length > 0 && (
+                        <div className="mt-1.5 space-y-1">
+                          {changes.map((change) => (
+                            <div key={change} className="text-[11px] line-clamp-1" style={{ color: 'rgba(148,163,184,0.9)' }}>
+                              {change}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[10px]" style={{ color: 'rgba(100,116,139,0.7)' }}>
-                          {timeAgo(notification.created_at)}
+                          {formatNotificationAge(notification.created_at)}
                         </span>
                         {cfg.route && (
                           <span className="text-[10px] font-medium" style={{ color: cfg.color }}>

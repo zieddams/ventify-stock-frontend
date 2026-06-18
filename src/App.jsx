@@ -75,6 +75,7 @@ export default function App() {
             <Route path="expenses"  element={<RequireFinance><ExpensesIndex /></RequireFinance>} />
             <Route path="routes"    element={<RequireAdmin><RouteSessionsIndex /></RequireAdmin>} />
             <Route path="config"    element={<RequireAdmin><ConfigIndex /></RequireAdmin>} />
+            <Route path="config/:sectionKey" element={<RequireAdmin><ConfigIndex /></RequireAdmin>} />
             <Route path="map"       element={<RequireAdmin><LiveMapIndex /></RequireAdmin>} />
             <Route path="inventory" element={<RequireAdmin><InventaireIndex /></RequireAdmin>} />
             <Route path="data-tools" element={<RequireAdmin><DataToolsIndex /></RequireAdmin>} />

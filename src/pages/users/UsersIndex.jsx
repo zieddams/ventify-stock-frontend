@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
 import PageHeader from '../../components/PageHeader'
@@ -18,9 +18,34 @@ export default function UsersIndex() {
   const [editing, setEditing] = useState(null)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
+  const [assignmentModal, setAssignmentModal] = useState(false)
+  const [assignmentUser, setAssignmentUser] = useState(null)
+  const [assignmentCustomers, setAssignmentCustomers] = useState([])
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState([])
+  const [assignmentSearch, setAssignmentSearch] = useState('')
+  const [assignmentLoading, setAssignmentLoading] = useState(false)
+  const [assignmentSaving, setAssignmentSaving] = useState(false)
   const { user: me } = useAuth()
 
+  const canManageUsers = ['admin', 'developer'].includes(me?.role)
+  const canManageAssignments = ['admin', 'developer', 'comptable'].includes(me?.role)
   const totalAssignedCustomers = users.reduce((sum, entry) => sum + Number(entry.customers_count ?? 0), 0)
+  const filteredAssignmentCustomers = useMemo(() => {
+    const query = assignmentSearch.trim().toLowerCase()
+
+    return assignmentCustomers.filter((customer) => {
+      if (!query) {
+        return true
+      }
+
+      return (
+        customer.name?.toLowerCase().includes(query) ||
+        customer.phone?.includes(assignmentSearch) ||
+        customer.wilaya?.toLowerCase().includes(query) ||
+        customer.owner?.name?.toLowerCase().includes(query)
+      )
+    })
+  }, [assignmentCustomers, assignmentSearch])
 
   const load = async () => {
     const [usersResponse, zonesResponse] = await Promise.all([api.get('/users'), api.get('/zones')])
@@ -54,6 +79,7 @@ export default function UsersIndex() {
   }
 
   const zoneName = (id) => zones.find((zone) => zone.id === id)?.name ?? '--'
+  const canManageList = (entry) => ['rep', 'comptable'].includes(entry.role)
 
   const save = async () => {
     setSaving(true)
@@ -90,6 +116,66 @@ export default function UsersIndex() {
     await load()
   }
 
+  const closeAssignments = () => {
+    setAssignmentModal(false)
+    setAssignmentUser(null)
+    setAssignmentCustomers([])
+    setSelectedCustomerIds([])
+    setAssignmentSearch('')
+  }
+
+  const openAssignments = async (entry) => {
+    setAssignmentUser(entry)
+    setAssignmentModal(true)
+    setAssignmentLoading(true)
+    setAssignmentSearch('')
+
+    try {
+      const [customersResponse, assignedResponse] = await Promise.all([
+        api.get('/customers'),
+        api.get(`/users/${entry.id}/customers`),
+      ])
+
+      const allCustomers = Array.isArray(customersResponse.data) ? customersResponse.data : []
+      const assignedCustomers = Array.isArray(assignedResponse.data) ? assignedResponse.data : []
+
+      setAssignmentCustomers(
+        [...allCustomers]
+          .sort((left, right) => String(left.name ?? '').localeCompare(String(right.name ?? ''), 'fr'))
+      )
+      setSelectedCustomerIds(assignedCustomers.map((customer) => Number(customer.id)))
+    } finally {
+      setAssignmentLoading(false)
+    }
+  }
+
+  const toggleCustomerSelection = (customerId) => {
+    setSelectedCustomerIds((current) => (
+      current.includes(customerId)
+        ? current.filter((value) => value !== customerId)
+        : [...current, customerId]
+    ))
+  }
+
+  const saveAssignments = async () => {
+    if (!assignmentUser) {
+      return
+    }
+
+    setAssignmentSaving(true)
+
+    try {
+      await api.put(`/users/${assignmentUser.id}/customers`, {
+        customer_ids: selectedCustomerIds,
+      })
+
+      closeAssignments()
+      await load()
+    } finally {
+      setAssignmentSaving(false)
+    }
+  }
+
   if (loading) {
     return <PageLoader />
   }
@@ -99,7 +185,7 @@ export default function UsersIndex() {
       <PageHeader
         title="Utilisateurs"
         subtitle={`${users.length} utilisateur(s) enregistres · ${totalAssignedCustomers} client(s) affectes`}
-        action={<button onClick={openCreate} className="btn-primary"><i className="fa-solid fa-plus" /> Nouvel utilisateur</button>}
+        action={canManageUsers ? <button onClick={openCreate} className="btn-primary"><i className="fa-solid fa-plus" /> Nouvel utilisateur</button> : null}
       />
 
       <div className="card">
@@ -141,19 +227,32 @@ export default function UsersIndex() {
                   </td>
                   <td className="py-3">
                     <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => openEdit(entry)}
-                        className="text-xs font-medium"
-                        style={{ color: '#0d9488' }}
-                      >
-                        <i className="fa-solid fa-pen mr-1" /> Modifier
-                      </button>
-                      <button
-                        onClick={() => toggle(entry)}
-                        className={`text-xs font-medium ${entry.active ? 'text-amber-600' : 'text-emerald-600'}`}
-                      >
-                        {entry.active ? 'Desactiver' : 'Activer'}
-                      </button>
+                      {canManageAssignments && canManageList(entry) && (
+                        <button
+                          onClick={() => openAssignments(entry)}
+                          className="text-xs font-medium"
+                          style={{ color: '#2563eb' }}
+                        >
+                          <i className="fa-solid fa-list-check mr-1" /> Clients
+                        </button>
+                      )}
+                      {canManageUsers && (
+                        <>
+                          <button
+                            onClick={() => openEdit(entry)}
+                            className="text-xs font-medium"
+                            style={{ color: '#0d9488' }}
+                          >
+                            <i className="fa-solid fa-pen mr-1" /> Modifier
+                          </button>
+                          <button
+                            onClick={() => toggle(entry)}
+                            className={`text-xs font-medium ${entry.active ? 'text-amber-600' : 'text-emerald-600'}`}
+                          >
+                            {entry.active ? 'Desactiver' : 'Activer'}
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -210,6 +309,90 @@ export default function UsersIndex() {
             <button onClick={() => setModal(false)} className="btn-secondary">Annuler</button>
             <button onClick={save} disabled={saving} className="btn-primary">
               {saving ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</> : 'Enregistrer'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={assignmentModal}
+        onClose={closeAssignments}
+        title={assignmentUser ? `Liste clients - ${assignmentUser.name}` : 'Liste clients'}
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div className="rounded-2xl px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
+            Cette liste pilote les clients visibles sur le web et le mobile pour ce compte. Un client selectionne ici sera rattache a ce compte.
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+            <input
+              value={assignmentSearch}
+              onChange={(event) => setAssignmentSearch(event.target.value)}
+              placeholder="Rechercher un client..."
+            />
+            <div className="rounded-2xl px-4 py-3 text-xs font-semibold text-base-color" style={{ background: 'var(--surface-2)' }}>
+              {selectedCustomerIds.length} selection(s)
+            </div>
+          </div>
+
+          {assignmentLoading ? (
+            <div className="py-12 text-center text-muted-color">
+              <i className="fa-solid fa-spinner fa-spin mr-2" /> Chargement de la liste...
+            </div>
+          ) : (
+            <div className="max-h-[420px] overflow-y-auto rounded-2xl" style={{ boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+              <div className="divide-y divide-theme">
+                {filteredAssignmentCustomers.map((customer) => {
+                  const checked = selectedCustomerIds.includes(Number(customer.id))
+
+                  return (
+                    <label
+                      key={customer.id}
+                      className="flex items-start gap-3 px-4 py-3 cursor-pointer"
+                      style={{ background: checked ? 'rgba(13,148,136,0.06)' : 'transparent' }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleCustomerSelection(Number(customer.id))}
+                        style={{ width: 16, height: 16, marginTop: 3 }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="text-sm font-semibold text-base-color">{customer.name}</div>
+                          {checked && (
+                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(13,148,136,0.12)', color: '#0d9488' }}>
+                              Affecte
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-secondary-color mt-1">
+                          {customer.phone || 'Sans telephone'}
+                          {customer.wilaya ? ` · ${customer.wilaya}` : ''}
+                          {customer.zone?.name ? ` · ${customer.zone.name}` : ''}
+                        </div>
+                        <div className="text-[11px] text-muted-color mt-1">
+                          Proprietaire actuel: {customer.owner?.name || 'Aucun'}
+                        </div>
+                      </div>
+                    </label>
+                  )
+                })}
+
+                {filteredAssignmentCustomers.length === 0 && (
+                  <div className="px-4 py-12 text-center text-sm text-muted-color">
+                    Aucun client ne correspond a la recherche.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button onClick={closeAssignments} className="btn-secondary">Annuler</button>
+            <button onClick={saveAssignments} disabled={assignmentLoading || assignmentSaving} className="btn-primary">
+              {assignmentSaving ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</> : 'Sauver la liste'}
             </button>
           </div>
         </div>

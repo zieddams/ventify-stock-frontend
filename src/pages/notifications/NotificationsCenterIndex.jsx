@@ -3,89 +3,12 @@ import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
 import { subscribeToOpsMonitor } from '../../services/realtime'
-
-const TYPE_CONFIG = {
-  LowStockNotification: {
-    icon: 'fa-solid fa-triangle-exclamation',
-    color: '#f59e0b',
-    bg: 'rgba(245,158,11,0.12)',
-    label: 'Stock bas',
-  },
-  DailySummaryNotification: {
-    icon: 'fa-solid fa-chart-line',
-    color: '#0d9488',
-    bg: 'rgba(13,148,136,0.12)',
-    label: 'Rapport',
-  },
-  default: {
-    icon: 'fa-solid fa-bell',
-    color: '#64748b',
-    bg: 'rgba(100,116,139,0.1)',
-    label: 'Notification',
-  },
-}
-
-const ACTIVITY_KIND_CONFIG = {
-  'route.session.opened': {
-    icon: 'fa-solid fa-truck-fast',
-    color: '#0d9488',
-    bg: 'rgba(13,148,136,0.12)',
-    label: 'Session ouverte',
-  },
-  'route.session.closed': {
-    icon: 'fa-solid fa-flag-checkered',
-    color: '#f97316',
-    bg: 'rgba(249,115,22,0.12)',
-    label: 'Session cloturee',
-  },
-  'route.load.updated': {
-    icon: 'fa-solid fa-boxes-stacked',
-    color: '#3b82f6',
-    bg: 'rgba(59,130,246,0.12)',
-    label: 'Chargement camion',
-  },
-  'invoice.created': {
-    icon: 'fa-solid fa-file-circle-plus',
-    color: '#8b5cf6',
-    bg: 'rgba(139,92,246,0.12)',
-    label: 'Nouvelle facture',
-  },
-  'invoice.payment.recorded': {
-    icon: 'fa-solid fa-money-bill-wave',
-    color: '#10b981',
-    bg: 'rgba(16,185,129,0.12)',
-    label: 'Paiement recu',
-  },
-  'bug.report.created': {
-    icon: 'fa-solid fa-bug',
-    color: '#ef4444',
-    bg: 'rgba(239,68,68,0.12)',
-    label: 'Nouveau bug',
-  },
-}
-
-const LIVE_EVENT_KINDS = new Set(Object.keys(ACTIVITY_KIND_CONFIG))
-
-function timeAgo(dateStr) {
-  if (!dateStr) return 'A l instant'
-
-  const minutes = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000)
-  if (minutes < 1) return 'A l instant'
-  if (minutes < 60) return `Il y a ${minutes} min`
-
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `Il y a ${hours}h`
-
-  return `Il y a ${Math.floor(hours / 24)}j`
-}
-
-function resolveConfig(notification) {
-  if (notification.type === 'OpsActivityNotification') {
-    return ACTIVITY_KIND_CONFIG[notification.data?.kind] ?? TYPE_CONFIG.default
-  }
-
-  return TYPE_CONFIG[notification.type] ?? TYPE_CONFIG.default
-}
+import {
+  formatNotificationAge,
+  LIVE_NOTIFICATION_EVENT_KINDS,
+  notificationChanges,
+  resolveNotificationConfig,
+} from '../../utils/notificationActivity'
 
 export default function NotificationsCenterIndex() {
   const { user } = useAuth()
@@ -120,16 +43,16 @@ export default function NotificationsCenterIndex() {
   }, [load])
 
   useEffect(() => {
-    if (!['admin', 'developer'].includes(user?.role)) {
+    if (!user?.id) {
       return undefined
     }
 
     return subscribeToOpsMonitor((event) => {
-      if (LIVE_EVENT_KINDS.has(event.kind)) {
+      if (LIVE_NOTIFICATION_EVENT_KINDS.has(event.kind)) {
         load()
       }
     })
-  }, [load, user?.role])
+  }, [load, user?.id])
 
   const markAll = async () => {
     await api.post('/notifications/read-all')
@@ -247,7 +170,8 @@ export default function NotificationsCenterIndex() {
           ) : (
             <div className="space-y-3">
               {notifications.map((notification) => {
-                const config = resolveConfig(notification)
+                const config = resolveNotificationConfig(notification)
+                const changes = notificationChanges(notification, 6)
                 const unread = !notification.read_at
 
                 return (
@@ -268,8 +192,21 @@ export default function NotificationsCenterIndex() {
                         <div className="text-sm text-secondary-color mt-1">
                           {notification.data?.message || 'Aucun message detaille'}
                         </div>
+                        {changes.length > 0 && (
+                          <div className="mt-3 space-y-1.5">
+                            {changes.map((change) => (
+                              <div
+                                key={change}
+                                className="rounded-xl px-3 py-2 text-xs text-secondary-color"
+                                style={{ background: 'rgba(148,163,184,0.08)' }}
+                              >
+                                {change}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         <div className="text-xs text-muted-color mt-2">
-                          {timeAgo(notification.created_at)}
+                          {formatNotificationAge(notification.created_at)}
                         </div>
                       </div>
                       {unread && (
