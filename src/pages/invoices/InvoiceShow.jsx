@@ -4,6 +4,7 @@ import { PaymentStatusBadge, StatusBadge } from '../../components/Badge'
 import PageExportActions from '../../components/PageExportActions'
 import { PageLoader } from '../../components/Spinner'
 import { getConfigItemLabel, getDefaultConfigValue, useConfigItems } from '../../hooks/useConfigItems'
+import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
 
@@ -22,6 +23,7 @@ export default function InvoiceShow() {
   const [updating, setUpdating] = useState(false)
   const [payAmount, setPayAmount] = useState('')
   const { items: configItems } = useConfigItems('payment_method')
+  const { layouts: documentLayouts } = useDocumentLayouts()
   const paymentMethods = configItems.payment_method ?? []
   const defaultPaymentMethod = getDefaultConfigValue(paymentMethods, 'cash')
   const [payMethod, setPayMethod] = useState(defaultPaymentMethod)
@@ -102,7 +104,14 @@ export default function InvoiceShow() {
           <span className="text-muted-color">/</span>
           <span className="font-mono text-secondary-color">{invoice.number}</span>
         </div>
-        <PageExportActions title={`Facture ${invoice.number}`} />
+        <PageExportActions
+          title={`Facture ${invoice.number}`}
+          subtitle={invoice.customer_name ? `Client: ${invoice.customer_name}` : ''}
+          filename={`facture_${invoice.number}`}
+          documentKey="invoice_detail"
+          record={invoice}
+          documentLayouts={documentLayouts}
+        />
       </div>
 
       <div className="card mb-4">

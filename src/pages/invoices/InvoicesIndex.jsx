@@ -2,8 +2,10 @@ import { useDeferredValue, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PaymentStatusBadge, StatusBadge } from '../../components/Badge'
 import PageExportActions from '../../components/PageExportActions'
+import RowDocumentActions from '../../components/RowDocumentActions'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
+import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 
 const DEFAULT_PERIOD = 'month'
@@ -63,6 +65,7 @@ export default function InvoicesIndex() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const { isAdmin } = useAuth()
+  const { layouts: documentLayouts } = useDocumentLayouts()
   const deferredSearch = useDeferredValue(search)
   const today = new Date().toISOString().slice(0, 10)
 
@@ -136,7 +139,15 @@ export default function InvoicesIndex() {
           <p className="text-sm text-muted-color mt-0.5">{invoices.length} facture(s) | Total: {fmt(total)} TND</p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <PageExportActions title="Factures" csvEntity="invoices" csvParams={exportParams} csvFilename="factures" />
+          <PageExportActions
+            title="Factures"
+            csvEntity="invoices"
+            csvParams={exportParams}
+            csvFilename="factures"
+            documentKey="invoices_list"
+            records={invoices}
+            documentLayouts={documentLayouts}
+          />
           <Link to="/invoices/create" className="btn-primary">
             <i className="fa-solid fa-plus" /> Nouvelle facture
           </Link>
@@ -254,7 +265,14 @@ export default function InvoicesIndex() {
                     <td className="py-3 pr-4"><StatusBadge status={invoice.status} /></td>
                     <td className="py-3 pr-4 text-muted-color text-xs">{new Date(invoice.created_at).toLocaleDateString('fr-FR')}</td>
                     <td className="py-3">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <RowDocumentActions
+                          documentKey="invoice_item"
+                          record={invoice}
+                          documentLayouts={documentLayouts}
+                          title={`Facture ${invoice.number}`}
+                          filename={`facture_${invoice.number}`}
+                        />
                         <Link to={`/invoices/${invoice.id}`} className="text-xs font-medium hover:underline" style={{ color: '#0d9488' }}>
                           <i className="fa-solid fa-eye mr-1" /> Voir
                         </Link>

@@ -221,7 +221,7 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, statusLabel
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-4">
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 px-3 space-y-4">
           <NavLink
             to="/"
             onClick={onClose}
@@ -390,7 +390,7 @@ export default function AppLayout() {
           )}
         </div>
 
-        <div className="flex-1 min-h-0 w-full overflow-y-auto">
+        <div className={`flex-1 min-h-0 w-full overflow-y-auto ${isSidebarExpanded ? 'overflow-x-hidden' : 'overflow-x-visible'}`}>
           <div className="space-y-4 pb-3">
             <NavSection title="Operation" items={CORE_NAV} expanded={isSidebarExpanded} />
 

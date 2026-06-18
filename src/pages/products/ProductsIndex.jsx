@@ -6,6 +6,7 @@ import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
 import { findConfigItem, getConfigItemLabel, useConfigItems } from '../../hooks/useConfigItems'
+import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 
 const EMPTY = {
@@ -35,6 +36,7 @@ function clampMinStock(value) {
 }
 
 export default function ProductsIndex() {
+  const { layouts: documentLayouts } = useDocumentLayouts()
   const [products, setProducts] = useState([])
   const [zones, setZones] = useState([])
   const [loading, setLoading] = useState(true)
@@ -189,7 +191,14 @@ export default function ProductsIndex() {
         subtitle={`${products.length} produit(s)`}
         action={(
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <PageExportActions title="Produits" csvEntity="products" csvFilename="produits" />
+            <PageExportActions
+              title="Produits"
+              csvEntity="products"
+              csvFilename="produits"
+              documentKey="products_list"
+              records={filteredProducts}
+              documentLayouts={documentLayouts}
+            />
             {isAdmin() && (
               <button onClick={openCreate} className="btn-primary">
                 <i className="fa-solid fa-plus" /> Nouveau produit

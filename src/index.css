@@ -372,6 +372,9 @@ html.dark {
   font-size: 0.72rem;
   color: var(--text-muted);
   margin-top: 0.15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .rail-section-title {
   padding: 0.35rem 0.8rem 0.25rem;
@@ -421,6 +424,7 @@ html.dark {
 .rail-link:active { transform: scale(0.95); }
 .rail-link.active { background-color: var(--rail-active) !important; color: var(--rail-active-text) !important; }
 .rail-link-label {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;

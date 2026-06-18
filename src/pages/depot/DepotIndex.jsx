@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
+import RowDocumentActions from '../../components/RowDocumentActions'
 import { PageLoader } from '../../components/Spinner'
+import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 
 function fmt(value) {
@@ -38,6 +40,7 @@ const MOVEMENT_CONFIG = {
 }
 
 export default function DepotIndex() {
+  const { layouts: documentLayouts } = useDocumentLayouts()
   const [stock, setStock] = useState([])
   const [movements, setMovements] = useState([])
   const [products, setProducts] = useState([])
@@ -154,6 +157,24 @@ export default function DepotIndex() {
     ...(movementDateTo ? { date_to: movementDateTo } : {}),
     ...(movementType ? { type: movementType } : {}),
   }
+  const currentExportAction = tab === 'stock'
+    ? {
+        title: 'Stock depot',
+        csvEntity: 'products',
+        csvFilename: 'stock_depot',
+        documentKey: 'depot_stock_list',
+        records: filteredStock,
+        documentLayouts,
+      }
+    : {
+        title: 'Mouvements stock',
+        csvEntity: 'stock_movements',
+        csvParams: exportParams,
+        csvFilename: 'mouvements_depot',
+        documentKey: 'stock_movements_list',
+        records: movements,
+        documentLayouts,
+      }
 
   if (loading) {
     return <PageLoader />
@@ -167,7 +188,7 @@ export default function DepotIndex() {
           <p className="text-sm text-muted-color mt-0.5">Stock central, receptions et mouvements</p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <PageExportActions title="Depot" csvEntity="stock_movements" csvParams={exportParams} csvFilename="mouvements_depot" />
+          <PageExportActions {...currentExportAction} />
           <button onClick={() => { setForm({ product_id: '', qty: '', note: '' }); setErrors({}); setModal(true) }} className="btn-primary">
             <i className="fa-solid fa-plus" /> Receptionner
           </button>
@@ -324,7 +345,7 @@ export default function DepotIndex() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left" style={{ borderBottom: '1px solid var(--border)' }}>
-                    {['Type', 'Produit', 'Utilisateur', 'Quantite', 'Note', 'Date / heure'].map((heading) => (
+                    {['Type', 'Produit', 'Utilisateur', 'Quantite', 'Note', 'Date / heure', ''].map((heading) => (
                       <th key={heading} className="pb-3 pr-4 text-xs font-semibold text-muted-color uppercase tracking-wider">
                         {heading}
                       </th>
@@ -354,12 +375,21 @@ export default function DepotIndex() {
                         </td>
                         <td className="py-3 pr-4 text-muted-color text-xs">{movement.note ?? '-'}</td>
                         <td className="py-3 text-muted-color text-xs">{fmtDateTime(movement.created_at)}</td>
+                        <td className="py-3">
+                          <RowDocumentActions
+                            documentKey="stock_movement_item"
+                            record={movement}
+                            documentLayouts={documentLayouts}
+                            title={`Mouvement ${movement.id}`}
+                            filename={`mouvement_${movement.id}`}
+                          />
+                        </td>
                       </tr>
                     )
                   })}
                   {movements.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="py-10 text-center text-muted-color">Aucun mouvement</td>
+                      <td colSpan={7} className="py-10 text-center text-muted-color">Aucun mouvement</td>
                     </tr>
                   )}
                 </tbody>

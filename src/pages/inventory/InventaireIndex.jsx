@@ -3,6 +3,7 @@ import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
+import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 
 function fmt(value) {
@@ -10,6 +11,7 @@ function fmt(value) {
 }
 
 export default function InventaireIndex() {
+  const { layouts: documentLayouts } = useDocumentLayouts()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [counts, setCounts] = useState({})
@@ -141,6 +143,9 @@ export default function InventaireIndex() {
                 type: 'adjustment',
               }}
               csvFilename="inventaire_audit"
+              documentKey="inventory_history_list"
+              records={history}
+              documentLayouts={documentLayouts}
             />
             {countedProducts.length > 0 && (
               <button onClick={handleSubmit} disabled={saving} className="btn-primary">

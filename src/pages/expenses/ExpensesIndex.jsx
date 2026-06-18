@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
+import RowDocumentActions from '../../components/RowDocumentActions'
 import { getConfigItemLabel, getDefaultConfigValue, useConfigItems } from '../../hooks/useConfigItems'
+import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 
 const DEFAULT_MONTH = new Date().toISOString().slice(0, 7)
@@ -17,6 +19,7 @@ function buildEmptyExpense(defaultCategory) {
 
 export default function ExpensesIndex() {
   const { items: configItems } = useConfigItems('expense_category', { includeInactive: true })
+  const { layouts: documentLayouts } = useDocumentLayouts()
   const allCategories = configItems.expense_category ?? []
   const activeCategories = allCategories.filter((item) => item.active !== false)
   const defaultCategory = getDefaultConfigValue(activeCategories, allCategories[0]?.value ?? 'divers')
@@ -117,7 +120,17 @@ export default function ExpensesIndex() {
       <PageHeader
         title="Depenses"
         subtitle="Enregistrement et suivi des charges"
-        action={<PageExportActions title="Depenses" csvEntity="expenses" csvParams={exportParams} csvFilename="depenses" />}
+        action={(
+          <PageExportActions
+            title="Depenses"
+            csvEntity="expenses"
+            csvParams={exportParams}
+            csvFilename="depenses"
+            documentKey="expenses_list"
+            records={expenses}
+            documentLayouts={documentLayouts}
+          />
+        )}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -287,9 +300,18 @@ export default function ExpensesIndex() {
                           {Number(expense.amount).toFixed(3)}
                         </td>
                         <td className="py-3 text-right">
-                          <button onClick={() => handleDelete(expense.id)} className="text-muted-color hover:text-red-500 transition-colors p-1">
-                            <i className="fa-solid fa-trash text-xs" />
-                          </button>
+                          <div className="flex items-center justify-end gap-1">
+                            <RowDocumentActions
+                              documentKey="expense_item"
+                              record={expense}
+                              documentLayouts={documentLayouts}
+                              title={`Depense ${expense.label || expense.id}`}
+                              filename={`depense_${expense.id}`}
+                            />
+                            <button onClick={() => handleDelete(expense.id)} className="text-muted-color hover:text-red-500 transition-colors p-1">
+                              <i className="fa-solid fa-trash text-xs" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     )

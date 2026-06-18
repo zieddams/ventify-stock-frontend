@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
+import RowDocumentActions from '../../components/RowDocumentActions'
 import { PageLoader } from '../../components/Spinner'
+import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 
 function fmt(value) {
@@ -29,6 +31,7 @@ function StatusBadge({ status }) {
 }
 
 export default function RouteSessionsIndex() {
+  const { layouts: documentLayouts } = useDocumentLayouts()
   const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
@@ -85,7 +88,17 @@ export default function RouteSessionsIndex() {
       <PageHeader
         title="Sorties journee"
         subtitle="BON DE SORTIE - sessions journalieres par commercial"
-        action={<PageExportActions title="Sorties journee" csvEntity="route_sessions" csvParams={exportParams} csvFilename="sorties_journee" />}
+        action={(
+          <PageExportActions
+            title="Sorties journee"
+            csvEntity="route_sessions"
+            csvParams={exportParams}
+            csvFilename="sorties_journee"
+            documentKey="route_sessions_list"
+            records={sessions}
+            documentLayouts={documentLayouts}
+          />
+        )}
       />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
@@ -173,19 +186,19 @@ export default function RouteSessionsIndex() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr>
-                  {['Date', 'Commercial', 'Zone', 'Camion', 'Total vendu', 'Benefice', 'Credit accorde', 'Statut'].map((heading) => (
-                    <th key={heading} className={`pb-3 pr-4 ${['Total vendu', 'Benefice', 'Credit accorde'].includes(heading) ? 'text-right' : 'text-left'}`}>
-                      {heading}
-                    </th>
+                <thead>
+                  <tr>
+                    {['Date', 'Commercial', 'Zone', 'Camion', 'Total vendu', 'Benefice', 'Credit accorde', 'Statut', ''].map((heading) => (
+                      <th key={heading} className={`pb-3 pr-4 ${['Total vendu', 'Benefice', 'Credit accorde'].includes(heading) ? 'text-right' : 'text-left'}`}>
+                        {heading}
+                      </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {sessions.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center">
+                    <td colSpan={9} className="py-12 text-center">
                       <i className="fa-solid fa-truck-fast text-3xl text-muted-color opacity-30 mb-2 block" />
                       <p className="text-muted-color text-sm">Aucune session trouvee</p>
                     </td>
@@ -210,6 +223,15 @@ export default function RouteSessionsIndex() {
                     <td className="py-3 pr-4 text-right font-mono font-bold" style={{ color: '#059669' }}>{fmt(session.profit_total)}</td>
                     <td className="py-3 pr-4 text-right font-mono" style={{ color: '#d97706' }}>{fmt(session.credit_given)}</td>
                     <td className="py-3"><StatusBadge status={session.status} /></td>
+                    <td className="py-3">
+                      <RowDocumentActions
+                        documentKey="route_session_item"
+                        record={session}
+                        documentLayouts={documentLayouts}
+                        title={`Session ${fmtDate(session.session_date)}`}
+                        filename={`session_${session.id}`}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>

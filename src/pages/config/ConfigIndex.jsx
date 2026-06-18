@@ -5,7 +5,16 @@ import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
+import { DOCUMENT_LAYOUT_SETTING_KEY, normalizeDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
+import {
+  DOCUMENT_DEFINITIONS,
+  DOCUMENT_TEMPLATE_SECTIONS,
+  getDefaultDocumentFieldKeys,
+  getDocumentDefinition,
+  getDocumentDefinitionsBySection,
+} from '../../utils/documentDefinitions'
+import { resolveDocumentLayout } from '../../utils/documents'
 
 const MANAGED_TYPES = [
   {
@@ -64,6 +73,12 @@ const MODULES = [
     description: 'Providers, Google Maps et tuiles',
   },
   {
+    key: 'documents',
+    label: 'Documents',
+    icon: 'fa-solid fa-print',
+    description: 'PDF, impression et champs visibles',
+  },
+  {
     key: 'system',
     label: 'Systeme',
     icon: 'fa-solid fa-server',
@@ -87,6 +102,11 @@ const MODULE_SECTION_TABS = {
     { key: 'map_provider', label: 'Provider', icon: 'fa-solid fa-map-location-dot' },
     { key: 'map_status', label: 'Etat', icon: 'fa-solid fa-satellite-dish' },
   ],
+  documents: DOCUMENT_TEMPLATE_SECTIONS.map((section) => ({
+    key: `documents_${section.key}`,
+    label: section.label,
+    icon: section.icon,
+  })),
   system: [
     { key: 'system_support', label: 'Support', icon: 'fa-solid fa-life-ring' },
     { key: 'system_status', label: 'Etat systeme', icon: 'fa-solid fa-server' },
@@ -148,6 +168,8 @@ const SYSTEM_SETTING_KEYS = [
   'support.bug_report_email',
   'support.help_contact_label',
 ]
+
+const DOCUMENT_SETTING_KEYS = [DOCUMENT_LAYOUT_SETTING_KEY]
 
 const EMPTY_FORM = {
   value: '',
@@ -316,6 +338,79 @@ function ConfigSection({ config, items, onAdd, onEdit, onToggle, onDelete }) {
   )
 }
 
+function DocumentTemplateCard({
+  definition,
+  selectedFieldKeys,
+  orientation,
+  onToggleField,
+  onOrientationChange,
+  onReset,
+}) {
+  const selectedCount = selectedFieldKeys.length
+
+  return (
+    <div className="card">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-sm font-semibold text-base-color">{definition.label}</h2>
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(59,130,246,0.10)', color: '#2563eb' }}>
+              {definition.scope === 'item' ? 'Fiche unitaire' : 'Liste'}
+            </span>
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(13,148,136,0.12)', color: '#0d9488' }}>
+              {selectedCount}/{definition.fields.length} champs actifs
+            </span>
+          </div>
+          <p className="text-xs text-muted-color mt-1">{definition.description}</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <select value={orientation} onChange={(event) => onOrientationChange(definition, event.target.value)} className="text-xs">
+            <option value="portrait">Portrait</option>
+            <option value="landscape">Paysage</option>
+          </select>
+          <button onClick={() => onReset(definition)} className="btn-secondary text-xs">
+            <i className="fa-solid fa-rotate-left" /> Defaut
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        {definition.fields.map((item) => {
+          const checked = selectedFieldKeys.includes(item.key)
+          const disabled = checked && selectedCount === 1
+
+          return (
+            <label
+              key={item.key}
+              className="rounded-2xl px-3 py-3 border flex items-start gap-3 cursor-pointer"
+              style={{ background: checked ? 'rgba(13,148,136,0.06)' : 'var(--surface-2)', borderColor: checked ? 'rgba(13,148,136,0.18)' : 'var(--border)' }}
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                disabled={disabled}
+                onChange={() => onToggleField(definition, item.key)}
+                style={{ width: 16, height: 16, marginTop: 2 }}
+              />
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-base-color">{item.label}</div>
+                <div className="text-xs text-muted-color mt-0.5">{item.description || 'Champ disponible dans le document.'}</div>
+              </div>
+            </label>
+          )
+        })}
+      </div>
+
+      {definition.alwaysVisibleNote && (
+        <div className="rounded-2xl px-4 py-3 text-xs text-secondary-color mt-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+          {definition.alwaysVisibleNote}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ConfigIndex() {
   const [moduleKey, setModuleKey] = useState('catalog')
   const [sectionKey, setSectionKey] = useState(DEFAULT_MODULE_SECTION.catalog)
@@ -382,6 +477,13 @@ export default function ConfigIndex() {
     expense_category: itemsByType.expense_category?.length ?? 0,
   }), [itemsByType])
   const moduleSections = MODULE_SECTION_TABS[moduleKey] ?? []
+  const documentLayouts = normalizeDocumentLayouts(settingsByKey[DOCUMENT_LAYOUT_SETTING_KEY]?.value)
+  const activeDocumentSection = sectionKey.startsWith('documents_')
+    ? sectionKey.replace('documents_', '')
+    : (DOCUMENT_TEMPLATE_SECTIONS[0]?.key ?? 'sales')
+  const documentDefinitions = useMemo(() => (
+    getDocumentDefinitionsBySection(activeDocumentSection)
+  ), [activeDocumentSection])
 
   const settingValue = (key, fallback = '') => String(settingsByKey[key]?.value ?? fallback)
 
@@ -416,6 +518,48 @@ export default function ConfigIndex() {
     } finally {
       setSavingSettings('')
     }
+  }
+
+  const updateDocumentLayouts = (nextLayouts) => {
+    updateSetting(DOCUMENT_LAYOUT_SETTING_KEY, nextLayouts)
+  }
+
+  const updateDocumentLayout = (definition, nextValue) => {
+    updateDocumentLayouts({
+      ...documentLayouts,
+      [definition.key]: nextValue,
+    })
+  }
+
+  const toggleDocumentField = (definition, fieldKey) => {
+    const currentLayout = resolveDocumentLayout(definition, documentLayouts)
+    const selectedKeys = currentLayout.fieldKeys
+    const enabledFieldKeys = selectedKeys.includes(fieldKey)
+      ? selectedKeys.filter((item) => item !== fieldKey)
+      : definition.fields
+        .filter((item) => selectedKeys.includes(item.key) || item.key === fieldKey)
+        .map((item) => item.key)
+    const nextFieldKeys = enabledFieldKeys.length > 0 ? enabledFieldKeys : getDefaultDocumentFieldKeys(definition)
+
+    updateDocumentLayout(definition, {
+      ...(documentLayouts[definition.key] ?? {}),
+      fields: nextFieldKeys,
+      orientation: currentLayout.orientation,
+    })
+  }
+
+  const changeDocumentOrientation = (definition, orientation) => {
+    updateDocumentLayout(definition, {
+      ...(documentLayouts[definition.key] ?? {}),
+      fields: resolveDocumentLayout(definition, documentLayouts).fieldKeys,
+      orientation,
+    })
+  }
+
+  const resetDocumentLayout = (definition) => {
+    const nextLayouts = { ...documentLayouts }
+    delete nextLayouts[definition.key]
+    updateDocumentLayouts(nextLayouts)
   }
 
   const openCreate = (type) => {
@@ -519,7 +663,7 @@ export default function ConfigIndex() {
     <div className="space-y-6">
       <PageHeader
         title="Configuration"
-        subtitle="Modules dynamiques pour les catalogues, paiements, depenses, cartes, support et etat systeme."
+        subtitle="Modules dynamiques pour les catalogues, paiements, depenses, documents, cartes, support et etat systeme."
         action={<PageExportActions title="Configuration" />}
       />
 
@@ -544,6 +688,8 @@ export default function ConfigIndex() {
                   ? summary.payment_method
                   : module.key === 'expenses'
                     ? summary.expense_category
+                    : module.key === 'documents'
+                      ? DOCUMENT_DEFINITIONS.length
                     : null}
             />
           ))}
@@ -654,6 +800,63 @@ export default function ConfigIndex() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {moduleKey === 'documents' && (
+            <div className="space-y-6">
+              <div className="card">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <h2 className="text-sm font-semibold text-base-color">Documents PDF & impression</h2>
+                    <p className="text-xs text-muted-color mt-1">
+                      Choisissez les champs visibles par type de document. Les boutons PDF / imprimer des pages concernées
+                      reutiliseront cette configuration sans recoder chaque mise en page.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => saveSettings(DOCUMENT_SETTING_KEYS, 'documents')}
+                    disabled={savingSettings === 'documents'}
+                    className="btn-primary text-xs"
+                  >
+                    {savingSettings === 'documents'
+                      ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</>
+                      : <><i className="fa-solid fa-floppy-disk" /> Sauver</>
+                    }
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {DOCUMENT_TEMPLATE_SECTIONS.map((item) => (
+                    <div key={item.key} className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <i className={item.icon} style={{ color: '#0d9488' }} />
+                        <div className="text-sm font-semibold text-base-color">{item.label}</div>
+                      </div>
+                      <div className="text-xs text-secondary-color mb-2">{item.description}</div>
+                      <div className="text-xs text-muted-color">
+                        {getDocumentDefinitionsBySection(item.key).length} modele(s)
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {documentDefinitions.map((definition) => {
+                const resolvedLayout = resolveDocumentLayout(definition, documentLayouts)
+
+                return (
+                  <DocumentTemplateCard
+                    key={definition.key}
+                    definition={definition}
+                    selectedFieldKeys={resolvedLayout.fieldKeys}
+                    orientation={resolvedLayout.orientation}
+                    onToggleField={toggleDocumentField}
+                    onOrientationChange={changeDocumentOrientation}
+                    onReset={resetDocumentLayout}
+                  />
+                )
+              })}
             </div>
           )}
 

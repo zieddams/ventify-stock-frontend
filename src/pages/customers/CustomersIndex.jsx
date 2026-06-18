@@ -7,6 +7,7 @@ import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
 import { getConfigItemLabel, getDefaultConfigValue, useConfigItems } from '../../hooks/useConfigItems'
+import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 
 const EMPTY = {
@@ -27,6 +28,7 @@ function fmt(value) {
 
 export default function CustomersIndex() {
   const { user, canManageAllCustomers } = useAuth()
+  const { layouts: documentLayouts } = useDocumentLayouts()
   const [customers, setCustomers] = useState([])
   const [zones, setZones] = useState([])
   const [users, setUsers] = useState([])
@@ -239,7 +241,14 @@ export default function CustomersIndex() {
         subtitle={subtitle}
         action={(
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <PageExportActions title="Clients" csvEntity="customers" csvFilename="clients" />
+            <PageExportActions
+              title="Clients"
+              csvEntity="customers"
+              csvFilename="clients"
+              documentKey="customers_list"
+              records={filteredCustomers}
+              documentLayouts={documentLayouts}
+            />
             <button onClick={openCreate} className="btn-primary">
               <i className="fa-solid fa-plus" /> Nouveau client
             </button>
