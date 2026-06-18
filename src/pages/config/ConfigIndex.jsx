@@ -71,6 +71,32 @@ const MODULES = [
   },
 ]
 
+const MODULE_SECTION_TABS = {
+  catalog: [
+    { key: 'category', label: 'Categories', icon: 'fa-solid fa-tags' },
+    { key: 'unit', label: 'Unites', icon: 'fa-solid fa-ruler-combined' },
+  ],
+  payments: [
+    { key: 'payment_method', label: 'Methodes', icon: 'fa-solid fa-wallet' },
+  ],
+  expenses: [
+    { key: 'expense_category', label: 'Motifs', icon: 'fa-solid fa-receipt' },
+    { key: 'expenses_governorates', label: 'Gouvernorats', icon: 'fa-solid fa-location-dot' },
+  ],
+  map: [
+    { key: 'map_provider', label: 'Provider', icon: 'fa-solid fa-map-location-dot' },
+    { key: 'map_status', label: 'Etat', icon: 'fa-solid fa-satellite-dish' },
+  ],
+  system: [
+    { key: 'system_support', label: 'Support', icon: 'fa-solid fa-life-ring' },
+    { key: 'system_status', label: 'Etat systeme', icon: 'fa-solid fa-server' },
+  ],
+}
+
+const DEFAULT_MODULE_SECTION = Object.fromEntries(
+  Object.entries(MODULE_SECTION_TABS).map(([moduleKey, sections]) => [moduleKey, sections[0]?.key ?? ''])
+)
+
 const MAP_PROVIDERS = [
   {
     key: 'openstreetmap',
@@ -212,6 +238,21 @@ function ModuleCard({ module, active, onClick, count }) {
   )
 }
 
+function SectionTab({ section, active, onClick }) {
+  return (
+    <button
+      onClick={() => onClick(section.key)}
+      className="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all"
+      style={active
+        ? { background: 'rgba(13,148,136,0.10)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)', color: '#0f766e' }
+        : { background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)', color: 'var(--text-secondary)' }}
+    >
+      <i className={section.icon} />
+      <span>{section.label}</span>
+    </button>
+  )
+}
+
 function ConfigSection({ config, items, onAdd, onEdit, onToggle, onDelete }) {
   return (
     <div className="card">
@@ -277,6 +318,7 @@ function ConfigSection({ config, items, onAdd, onEdit, onToggle, onDelete }) {
 
 export default function ConfigIndex() {
   const [moduleKey, setModuleKey] = useState('catalog')
+  const [sectionKey, setSectionKey] = useState(DEFAULT_MODULE_SECTION.catalog)
   const [itemsByType, setItemsByType] = useState({})
   const [settingsByKey, setSettingsByKey] = useState({})
   const [loading, setLoading] = useState(true)
@@ -329,14 +371,17 @@ export default function ConfigIndex() {
     loadSystemInfo()
   }, [])
 
+  useEffect(() => {
+    setSectionKey(DEFAULT_MODULE_SECTION[moduleKey] ?? '')
+  }, [moduleKey])
+
   const summary = useMemo(() => ({
     category: itemsByType.category?.length ?? 0,
     unit: itemsByType.unit?.length ?? 0,
     payment_method: itemsByType.payment_method?.length ?? 0,
     expense_category: itemsByType.expense_category?.length ?? 0,
   }), [itemsByType])
-
-  const visibleSections = MANAGED_TYPES.filter((item) => item.module === moduleKey)
+  const moduleSections = MODULE_SECTION_TABS[moduleKey] ?? []
 
   const settingValue = (key, fallback = '') => String(settingsByKey[key]?.value ?? fallback)
 
@@ -465,6 +510,10 @@ export default function ConfigIndex() {
   const currentTypeConfig = MANAGED_TYPES.find((item) => item.key === modalType)
   const isSystemItem = editing?.is_system === true
   const currentProvider = settingValue('map.provider', 'openstreetmap')
+  const categoryConfig = MANAGED_TYPES.find((item) => item.key === 'category')
+  const unitConfig = MANAGED_TYPES.find((item) => item.key === 'unit')
+  const paymentMethodConfig = MANAGED_TYPES.find((item) => item.key === 'payment_method')
+  const expenseCategoryConfig = MANAGED_TYPES.find((item) => item.key === 'expense_category')
 
   return (
     <div className="space-y-6">
@@ -501,23 +550,47 @@ export default function ConfigIndex() {
         </aside>
 
         <section className="space-y-6">
-          {moduleKey === 'catalog' && (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              {visibleSections.map((section) => (
-                <ConfigSection
-                  key={section.key}
-                  config={section}
-                  items={itemsByType[section.key] ?? []}
-                  onAdd={openCreate}
-                  onEdit={openEdit}
-                  onToggle={toggleItem}
-                  onDelete={deleteItem}
-                />
-              ))}
+          {moduleSections.length > 1 && (
+            <div className="card">
+              <div className="flex flex-wrap gap-2">
+                {moduleSections.map((section) => (
+                  <SectionTab
+                    key={section.key}
+                    section={section}
+                    active={sectionKey === section.key}
+                    onClick={setSectionKey}
+                  />
+                ))}
+              </div>
+              <div className="text-xs text-muted-color mt-3">
+                Selectionnez une sous-section pour travailler sur un seul bloc metier a la fois.
+              </div>
             </div>
           )}
 
-          {moduleKey === 'payments' && (
+          {moduleKey === 'catalog' && sectionKey === 'category' && (
+            <ConfigSection
+              config={categoryConfig}
+              items={itemsByType.category ?? []}
+              onAdd={openCreate}
+              onEdit={openEdit}
+              onToggle={toggleItem}
+              onDelete={deleteItem}
+            />
+          )}
+
+          {moduleKey === 'catalog' && sectionKey === 'unit' && (
+            <ConfigSection
+              config={unitConfig}
+              items={itemsByType.unit ?? []}
+              onAdd={openCreate}
+              onEdit={openEdit}
+              onToggle={toggleItem}
+              onDelete={deleteItem}
+            />
+          )}
+
+          {moduleKey === 'payments' && sectionKey === 'payment_method' && (
             <div className="space-y-6">
               <div className="card">
                 <div className="flex items-start gap-3">
@@ -533,7 +606,7 @@ export default function ConfigIndex() {
               </div>
 
               <ConfigSection
-                config={MANAGED_TYPES.find((item) => item.key === 'payment_method')}
+                config={paymentMethodConfig}
                 items={itemsByType.payment_method ?? []}
                 onAdd={openCreate}
                 onEdit={openEdit}
@@ -543,7 +616,7 @@ export default function ConfigIndex() {
             </div>
           )}
 
-          {moduleKey === 'expenses' && (
+          {moduleKey === 'expenses' && sectionKey === 'expense_category' && (
             <div className="space-y-6">
               <div className="card">
                 <div className="flex items-start gap-3">
@@ -558,21 +631,8 @@ export default function ConfigIndex() {
                 </div>
               </div>
 
-              <div className="card">
-                <div className="flex items-start gap-3">
-                  <i className="fa-solid fa-location-dot mt-0.5" style={{ color: '#0d9488' }} />
-                  <div>
-                    <div className="text-sm font-semibold text-base-color">Gouvernorats</div>
-                    <div className="text-sm text-secondary-color mt-1">
-                      Le referentiel gouvernorat reste configurable dans la base et l API, mais son edition directe est
-                      volontairement masquee ici pour eviter de surcharger l ecran principal de configuration.
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               <ConfigSection
-                config={MANAGED_TYPES.find((item) => item.key === 'expense_category')}
+                config={expenseCategoryConfig}
                 items={itemsByType.expense_category ?? []}
                 onAdd={openCreate}
                 onEdit={openEdit}
@@ -582,220 +642,235 @@ export default function ConfigIndex() {
             </div>
           )}
 
-          {moduleKey === 'map' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 xl:grid-cols-[1.2fr,0.8fr] gap-6">
-                <div className="card">
-                  <div className="flex items-center justify-between gap-3 mb-4">
-                    <div>
-                      <h2 className="text-sm font-semibold text-base-color">Provider carte</h2>
-                      <p className="text-xs text-muted-color mt-1">Choisissez le moteur principal pour la page carte & terrain.</p>
-                    </div>
-                    <button
-                      onClick={() => saveSettings(MAP_SETTING_KEYS, 'map')}
-                      disabled={savingSettings === 'map'}
-                      className="btn-primary text-xs"
-                    >
-                      {savingSettings === 'map'
-                        ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</>
-                        : <><i className="fa-solid fa-floppy-disk" /> Sauver</>
-                      }
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {MAP_PROVIDERS.map((provider) => (
-                      <button
-                        key={provider.key}
-                        onClick={() => updateSetting('map.provider', provider.key)}
-                        className="rounded-2xl px-4 py-4 text-left transition-all"
-                        style={currentProvider === provider.key
-                          ? { background: 'rgba(13,148,136,0.10)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)' }
-                          : { background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
-                      >
-                        <div className="text-sm font-semibold text-base-color">{provider.label}</div>
-                        <div className="text-xs text-secondary-color mt-1">{provider.description}</div>
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
-                    <FormField label="Cle Google Maps JS">
-                      <input
-                        value={settingValue('map.google_maps_api_key')}
-                        onChange={(event) => updateSetting('map.google_maps_api_key', event.target.value)}
-                        placeholder="AIza..."
-                      />
-                    </FormField>
-
-                    <FormField label="Google Map ID">
-                      <input
-                        value={settingValue('map.google_map_id')}
-                        onChange={(event) => updateSetting('map.google_map_id', event.target.value)}
-                        placeholder="Map ID optionnel"
-                      />
-                    </FormField>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                    <FormField label="Type Google Maps">
-                      <select
-                        value={settingValue('map.google_map_type', 'roadmap')}
-                        onChange={(event) => updateSetting('map.google_map_type', event.target.value)}
-                      >
-                        <option value="roadmap">roadmap</option>
-                        <option value="satellite">satellite</option>
-                        <option value="terrain">terrain</option>
-                        <option value="hybrid">hybrid</option>
-                      </select>
-                    </FormField>
-
-                    <FormField label="URL tuiles personnalisee">
-                      <input
-                        value={settingValue('map.custom_tile_url')}
-                        onChange={(event) => updateSetting('map.custom_tile_url', event.target.value)}
-                        placeholder="https://{s}.example.com/{z}/{x}/{y}.png"
-                      />
-                    </FormField>
-                  </div>
-
-                  <FormField label="Attribution tuiles personnalisee">
-                    <textarea
-                      rows="3"
-                      value={settingValue('map.custom_tile_attribution')}
-                      onChange={(event) => updateSetting('map.custom_tile_attribution', event.target.value)}
-                      placeholder="Credits ou mentions legales du provider personnalise"
-                    />
-                  </FormField>
-
-                  <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color mt-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                    Le fond de carte change le rendu visuel, pas la precision GPS: la position depend surtout des pings mobiles,
-                    du signal et de l appareil. Google Maps demande une cle JavaScript correctement restreinte et un projet
-                    de facturation actif, tandis que les providers libres restent disponibles pour limiter les couts.
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="card">
-                    <div className="flex items-center gap-2 mb-3">
-                      <i className="fa-solid fa-bolt text-amber-500" />
-                      <h2 className="text-sm font-semibold text-base-color">Raccourcis</h2>
-                    </div>
-                    <div className="space-y-2">
-                      <Link to="/map" className="btn-secondary text-xs w-full justify-center">
-                        <i className="fa-solid fa-map-location-dot" /> Ouvrir la carte
-                      </Link>
-                      <Link to="/notifications-center" className="btn-secondary text-xs w-full justify-center">
-                        <i className="fa-solid fa-bell" /> Voir les notifications
-                      </Link>
-                      <Link to="/help" className="btn-secondary text-xs w-full justify-center">
-                        <i className="fa-solid fa-circle-question" /> Documentation
-                      </Link>
-                    </div>
-                  </div>
-
-                  <div className="card">
-                    <h2 className="text-sm font-semibold text-base-color mb-3">Etat actuel</h2>
-                    <InfoRow label="Provider actif" value={MAP_PROVIDERS.find((item) => item.key === currentProvider)?.label || currentProvider} />
-                    <InfoRow label="Google key" value={settingValue('map.google_maps_api_key') ? 'Configuree' : 'Absente'} />
-                    <InfoRow label="Google map type" value={settingValue('map.google_map_type', 'roadmap')} />
-                    <InfoRow label="Mode custom" value={settingValue('map.custom_tile_url') ? 'Configure' : 'Inactif'} />
+          {moduleKey === 'expenses' && sectionKey === 'expenses_governorates' && (
+            <div className="card">
+              <div className="flex items-start gap-3">
+                <i className="fa-solid fa-location-dot mt-0.5" style={{ color: '#0d9488' }} />
+                <div>
+                  <div className="text-sm font-semibold text-base-color">Gouvernorats</div>
+                  <div className="text-sm text-secondary-color mt-1">
+                    Le referentiel gouvernorat reste configurable dans la base et l API, mais son edition directe est
+                    volontairement masquee ici pour garder une page de configuration plus lisible.
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {moduleKey === 'system' && (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {moduleKey === 'map' && sectionKey === 'map_provider' && (
+            <div className="space-y-6">
               <div className="card">
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div>
-                    <h2 className="text-sm font-semibold text-base-color">Support & circulation</h2>
-                    <p className="text-xs text-muted-color mt-1">Email de reception des bugs et contact interne d aide.</p>
+                    <h2 className="text-sm font-semibold text-base-color">Provider carte</h2>
+                    <p className="text-xs text-muted-color mt-1">Choisissez le moteur principal pour la page carte & terrain.</p>
                   </div>
                   <button
-                    onClick={() => saveSettings(SYSTEM_SETTING_KEYS, 'system')}
-                    disabled={savingSettings === 'system'}
+                    onClick={() => saveSettings(MAP_SETTING_KEYS, 'map')}
+                    disabled={savingSettings === 'map'}
                     className="btn-primary text-xs"
                   >
-                    {savingSettings === 'system'
+                    {savingSettings === 'map'
                       ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</>
                       : <><i className="fa-solid fa-floppy-disk" /> Sauver</>
                     }
                   </button>
                 </div>
 
-                <div className="space-y-4">
-                  <FormField label="Email reception bugs">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {MAP_PROVIDERS.map((provider) => (
+                    <button
+                      key={provider.key}
+                      onClick={() => updateSetting('map.provider', provider.key)}
+                      className="rounded-2xl px-4 py-4 text-left transition-all"
+                      style={currentProvider === provider.key
+                        ? { background: 'rgba(13,148,136,0.10)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)' }
+                        : { background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+                    >
+                      <div className="text-sm font-semibold text-base-color">{provider.label}</div>
+                      <div className="text-xs text-secondary-color mt-1">{provider.description}</div>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+                  <FormField label="Cle Google Maps JS">
                     <input
-                      value={settingValue('support.bug_report_email', 'zieddamsp@gmail.com')}
-                      onChange={(event) => updateSetting('support.bug_report_email', event.target.value)}
-                      placeholder="zieddamsp@gmail.com"
+                      value={settingValue('map.google_maps_api_key')}
+                      onChange={(event) => updateSetting('map.google_maps_api_key', event.target.value)}
+                      placeholder="AIza..."
                     />
                   </FormField>
 
-                  <FormField label="Libelle contact aide">
+                  <FormField label="Google Map ID">
                     <input
-                      value={settingValue('support.help_contact_label', 'Equipe El Irtiwaa')}
-                      onChange={(event) => updateSetting('support.help_contact_label', event.target.value)}
-                      placeholder="Equipe El Irtiwaa"
+                      value={settingValue('map.google_map_id')}
+                      onChange={(event) => updateSetting('map.google_map_id', event.target.value)}
+                      placeholder="Map ID optionnel"
                     />
                   </FormField>
+                </div>
 
-                  <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                    Le bouton de signalement de bug enverra un email vers cette adresse tout en enregistrant le ticket
-                    dans la plateforme pour suivi developpement.
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                  <FormField label="Type Google Maps">
+                    <select
+                      value={settingValue('map.google_map_type', 'roadmap')}
+                      onChange={(event) => updateSetting('map.google_map_type', event.target.value)}
+                    >
+                      <option value="roadmap">roadmap</option>
+                      <option value="satellite">satellite</option>
+                      <option value="terrain">terrain</option>
+                      <option value="hybrid">hybrid</option>
+                    </select>
+                  </FormField>
 
-                  <div className="flex flex-wrap gap-2">
-                    <Link to="/bug-reports" className="btn-secondary text-xs">
-                      <i className="fa-solid fa-bug" /> Ouvrir le support
-                    </Link>
-                    <Link to="/notifications-center" className="btn-secondary text-xs">
-                      <i className="fa-solid fa-bell" /> Notifications
-                    </Link>
-                  </div>
+                  <FormField label="URL tuiles personnalisee">
+                    <input
+                      value={settingValue('map.custom_tile_url')}
+                      onChange={(event) => updateSetting('map.custom_tile_url', event.target.value)}
+                      placeholder="https://{s}.example.com/{z}/{x}/{y}.png"
+                    />
+                  </FormField>
+                </div>
+
+                <FormField label="Attribution tuiles personnalisee">
+                  <textarea
+                    rows="3"
+                    value={settingValue('map.custom_tile_attribution')}
+                    onChange={(event) => updateSetting('map.custom_tile_attribution', event.target.value)}
+                    placeholder="Credits ou mentions legales du provider personnalise"
+                  />
+                </FormField>
+
+                <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color mt-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                  Le fond de carte change le rendu visuel, pas la precision GPS: la position depend surtout des pings mobiles,
+                  du signal et de l appareil. Google Maps demande une cle JavaScript correctement restreinte et un projet
+                  de facturation actif, tandis que les providers libres restent disponibles pour limiter les couts.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {moduleKey === 'map' && sectionKey === 'map_status' && (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div className="card">
+                <div className="flex items-center gap-2 mb-3">
+                  <i className="fa-solid fa-bolt text-amber-500" />
+                  <h2 className="text-sm font-semibold text-base-color">Raccourcis</h2>
+                </div>
+                <div className="space-y-2">
+                  <Link to="/map" className="btn-secondary text-xs w-full justify-center">
+                    <i className="fa-solid fa-map-location-dot" /> Ouvrir la carte
+                  </Link>
+                  <Link to="/notifications-center" className="btn-secondary text-xs w-full justify-center">
+                    <i className="fa-solid fa-bell" /> Voir les notifications
+                  </Link>
+                  <Link to="/help" className="btn-secondary text-xs w-full justify-center">
+                    <i className="fa-solid fa-circle-question" /> Documentation
+                  </Link>
                 </div>
               </div>
 
               <div className="card">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
-                    <i className="fa-solid fa-server text-teal-500" />
-                    Etat du systeme
-                  </h2>
-                  <button onClick={loadSystemInfo} className="btn-secondary text-xs">
-                    <i className="fa-solid fa-rotate-right" /> Actualiser
-                  </button>
+                <h2 className="text-sm font-semibold text-base-color mb-3">Etat actuel</h2>
+                <InfoRow label="Provider actif" value={MAP_PROVIDERS.find((item) => item.key === currentProvider)?.label || currentProvider} />
+                <InfoRow label="Google key" value={settingValue('map.google_maps_api_key') ? 'Configuree' : 'Absente'} />
+                <InfoRow label="Google map type" value={settingValue('map.google_map_type', 'roadmap')} />
+                <InfoRow label="Mode custom" value={settingValue('map.custom_tile_url') ? 'Configure' : 'Inactif'} />
+              </div>
+            </div>
+          )}
+
+          {moduleKey === 'system' && sectionKey === 'system_support' && (
+            <div className="card">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div>
+                  <h2 className="text-sm font-semibold text-base-color">Support & circulation</h2>
+                  <p className="text-xs text-muted-color mt-1">Email de reception des bugs et contact interne d aide.</p>
+                </div>
+                <button
+                  onClick={() => saveSettings(SYSTEM_SETTING_KEYS, 'system')}
+                  disabled={savingSettings === 'system'}
+                  className="btn-primary text-xs"
+                >
+                  {savingSettings === 'system'
+                    ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</>
+                    : <><i className="fa-solid fa-floppy-disk" /> Sauver</>
+                  }
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <FormField label="Email reception bugs">
+                  <input
+                    value={settingValue('support.bug_report_email', 'zieddamsp@gmail.com')}
+                    onChange={(event) => updateSetting('support.bug_report_email', event.target.value)}
+                    placeholder="zieddamsp@gmail.com"
+                  />
+                </FormField>
+
+                <FormField label="Libelle contact aide">
+                  <input
+                    value={settingValue('support.help_contact_label', 'Equipe El Irtiwaa')}
+                    onChange={(event) => updateSetting('support.help_contact_label', event.target.value)}
+                    placeholder="Equipe El Irtiwaa"
+                  />
+                </FormField>
+
+                <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                  Le bouton de signalement de bug enverra un email vers cette adresse tout en enregistrant le ticket
+                  dans la plateforme pour suivi developpement.
                 </div>
 
-                {systemLoading ? (
-                  <div className="flex items-center justify-center py-10 text-muted-color">
-                    <i className="fa-solid fa-spinner fa-spin mr-2" /> Chargement...
-                  </div>
-                ) : systemInfo ? (
-                  <>
-                    <InfoRow label="Frontend" value={`${window.location.origin}/web-platform`} mono />
-                    <InfoRow label="API" value={`${window.location.origin}/api/v1`} mono />
-                    <InfoRow label="Laravel" value={`v${systemInfo.laravel}`} />
-                    <InfoRow label="PHP" value={`v${systemInfo.php}`} />
-                    <InfoRow label="Environnement" value={systemInfo.env} />
-                    <InfoRow label="Timezone" value={systemInfo.timezone} />
-                    <InfoRow label="DB driver" value={systemInfo.db_driver} />
-                    <InfoRow label="Queue" value={systemInfo.queue} />
-                    <InfoRow label="Mail host" value={systemInfo.mail_host} mono />
-                    <InfoRow label="Mail from" value={systemInfo.mail_from} mono />
-                    <div className="pt-2 text-xs text-muted-color">
-                      Interroge a : {new Date(systemInfo.timestamp).toLocaleString('fr-FR')}
-                    </div>
-                  </>
-                ) : (
-                  <div className="rounded-xl border border-theme px-4 py-8 text-center text-sm text-muted-color">
-                    Impossible de charger les informations systeme.
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-2">
+                  <Link to="/bug-reports" className="btn-secondary text-xs">
+                    <i className="fa-solid fa-bug" /> Ouvrir le support
+                  </Link>
+                  <Link to="/notifications-center" className="btn-secondary text-xs">
+                    <i className="fa-solid fa-bell" /> Notifications
+                  </Link>
+                </div>
               </div>
+            </div>
+          )}
+
+          {moduleKey === 'system' && sectionKey === 'system_status' && (
+            <div className="card">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
+                  <i className="fa-solid fa-server text-teal-500" />
+                  Etat du systeme
+                </h2>
+                <button onClick={loadSystemInfo} className="btn-secondary text-xs">
+                  <i className="fa-solid fa-rotate-right" /> Actualiser
+                </button>
+              </div>
+
+              {systemLoading ? (
+                <div className="flex items-center justify-center py-10 text-muted-color">
+                  <i className="fa-solid fa-spinner fa-spin mr-2" /> Chargement...
+                </div>
+              ) : systemInfo ? (
+                <>
+                  <InfoRow label="Frontend" value={`${window.location.origin}/web-platform`} mono />
+                  <InfoRow label="API" value={`${window.location.origin}/api/v1`} mono />
+                  <InfoRow label="Laravel" value={`v${systemInfo.laravel}`} />
+                  <InfoRow label="PHP" value={`v${systemInfo.php}`} />
+                  <InfoRow label="Environnement" value={systemInfo.env} />
+                  <InfoRow label="Timezone" value={systemInfo.timezone} />
+                  <InfoRow label="DB driver" value={systemInfo.db_driver} />
+                  <InfoRow label="Queue" value={systemInfo.queue} />
+                  <InfoRow label="Mail host" value={systemInfo.mail_host} mono />
+                  <InfoRow label="Mail from" value={systemInfo.mail_from} mono />
+                  <div className="pt-2 text-xs text-muted-color">
+                    Interroge a : {new Date(systemInfo.timestamp).toLocaleString('fr-FR')}
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-xl border border-theme px-4 py-8 text-center text-sm text-muted-color">
+                  Impossible de charger les informations systeme.
+                </div>
+              )}
             </div>
           )}
         </section>

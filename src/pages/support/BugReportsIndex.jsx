@@ -61,6 +61,7 @@ export default function BugReportsIndex() {
   const [saving, setSaving] = useState(false)
   const [reviewSaving, setReviewSaving] = useState(false)
   const [errors, setErrors] = useState({})
+  const [submitFeedback, setSubmitFeedback] = useState(null)
   const [statusFilter, setStatusFilter] = useState('')
   const [form, setForm] = useState(() => emptyForm(window.location.href))
   const [selectedId, setSelectedId] = useState(null)
@@ -122,6 +123,7 @@ export default function BugReportsIndex() {
   const submitReport = async () => {
     setSaving(true)
     setErrors({})
+    setSubmitFeedback(null)
 
     try {
       await api.post('/bug-reports', {
@@ -133,9 +135,17 @@ export default function BugReportsIndex() {
       })
 
       setForm(emptyForm(window.location.origin + location.pathname))
+      setSubmitFeedback({
+        tone: 'success',
+        message: 'Signalement enregistre. Le ticket est bien cree dans la plateforme.',
+      })
       await loadReports()
     } catch (error) {
       setErrors(error.response?.data?.errors ?? {})
+      setSubmitFeedback({
+        tone: 'danger',
+        message: error.response?.data?.message || 'Le signalement n a pas pu etre envoye pour le moment.',
+      })
     } finally {
       setSaving(false)
     }
@@ -234,6 +244,17 @@ export default function BugReportsIndex() {
             <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
               Le signalement sera enregistre dans la plateforme, remontera au centre developpement et enverra un email au canal support configure.
             </div>
+
+            {submitFeedback && (
+              <div
+                className="rounded-2xl px-4 py-4 text-sm font-medium"
+                style={submitFeedback.tone === 'success'
+                  ? { background: 'rgba(13,148,136,0.08)', color: '#0f766e', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.16)' }
+                  : { background: 'rgba(239,68,68,0.08)', color: '#b91c1c', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.16)' }}
+              >
+                {submitFeedback.message}
+              </div>
+            )}
 
             <div className="flex justify-end">
               <button onClick={submitReport} disabled={saving} className="btn-primary">

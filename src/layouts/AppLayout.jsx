@@ -3,7 +3,6 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import NotificationBell from '../components/NotificationBell'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
-import { APP_VERSION } from '../config/appMeta'
 
 const CORE_NAV = [
   { to: '/invoices', icon: 'fa-solid fa-file-invoice', label: 'Factures' },
@@ -36,6 +35,11 @@ const SUPPORT_NAV = [
   { to: '/notifications-center', icon: 'fa-solid fa-bell', label: 'Notifications' },
   { to: '/bug-reports', icon: 'fa-solid fa-bug', label: 'Support & bugs' },
 ]
+
+const DEFAULT_SYSTEM_STATUS = {
+  state: 'checking',
+  dbOk: null,
+}
 
 const PAGE_TITLES = {
   '/': { label: 'Tableau de bord', icon: 'fa-solid fa-chart-pie' },
@@ -116,6 +120,18 @@ function TopbarLink({ to, icon, label }) {
   )
 }
 
+function getSystemStatusLabel(systemStatus) {
+  if (systemStatus.state === 'online') {
+    return systemStatus.dbOk ? 'API en ligne - DB OK' : 'API en ligne - DB a verifier'
+  }
+
+  if (systemStatus.state === 'offline') {
+    return 'API hors ligne - verifier la connexion'
+  }
+
+  return 'Verification API en cours'
+}
+
 function UserMenu({ user, onLogout }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
@@ -181,7 +197,7 @@ function UserMenu({ user, onLogout }) {
   )
 }
 
-function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance }) {
+function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, statusLabel }) {
   if (!open) {
     return null
   }
@@ -197,7 +213,7 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance }) {
             </div>
             <div>
               <div className="text-sm font-bold text-white">El Irtiwaa</div>
-              <div className="text-xs" style={{ color: 'var(--rail-text)' }}>Gestion commerciale</div>
+              <div className="text-xs" style={{ color: 'var(--rail-text)' }}>{statusLabel}</div>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white p-1">
@@ -292,6 +308,53 @@ export default function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [systemStatus, setSystemStatus] = useState(DEFAULT_SYSTEM_STATUS)
+
+  useEffect(() => {
+    let active = true
+
+    const loadSystemStatus = async () => {
+      try {
+        const response = await fetch('/api/v1/system/ping', {
+          headers: {
+            Accept: 'application/json',
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error('ping_failed')
+        }
+
+        const payload = await response.json()
+
+        if (!active) {
+          return
+        }
+
+        setSystemStatus({
+          state: 'online',
+          dbOk: payload?.db_ok === true,
+        })
+      } catch {
+        if (!active) {
+          return
+        }
+
+        setSystemStatus({
+          state: 'offline',
+          dbOk: false,
+        })
+      }
+    }
+
+    loadSystemStatus()
+    const interval = window.setInterval(loadSystemStatus, 60000)
+
+    return () => {
+      active = false
+      window.clearInterval(interval)
+    }
+  }, [])
 
   const handleLogout = async () => {
     await logout()
@@ -303,6 +366,7 @@ export default function AppLayout() {
   ) ?? '/'
 
   const pageInfo = PAGE_TITLES[pageKey] ?? PAGE_TITLES['/']
+  const statusLabel = getSystemStatusLabel(systemStatus)
 
   return (
     <div className="flex h-screen overflow-hidden bg-app">
@@ -321,7 +385,7 @@ export default function AppLayout() {
           {isSidebarExpanded && (
             <div className="min-w-0">
               <div className="rail-brand-title">El Irtiwaa</div>
-              <div className="rail-brand-subtitle">Stock, terrain, facturation</div>
+              <div className="rail-brand-subtitle">{statusLabel}</div>
             </div>
           )}
         </div>
@@ -338,26 +402,10 @@ export default function AppLayout() {
               <>
                 <NavSection title="Terrain & stock" items={OPERATIONS_NAV} expanded={isSidebarExpanded} />
                 <NavSection title="Administration" items={MANAGEMENT_NAV} expanded={isSidebarExpanded} />
-                <NavSection title="Support" items={SUPPORT_NAV} expanded={isSidebarExpanded} />
               </>
             )}
           </div>
         </div>
-
-        {isSidebarExpanded && (
-          <div className="rail-footer">
-            <div className="text-xs text-muted-color">Configuration rapide</div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <NavLink to="/config" className="btn-secondary text-xs">
-                <i className="fa-solid fa-sliders" /> Config
-              </NavLink>
-              <NavLink to="/help" className="btn-secondary text-xs">
-                <i className="fa-solid fa-circle-question" /> Aide
-              </NavLink>
-            </div>
-            <div className="rail-footer-version">v{APP_VERSION}</div>
-          </div>
-        )}
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -385,7 +433,6 @@ export default function AppLayout() {
             </div>
             <div className="min-w-0">
               <h1 className="hidden md:block text-sm font-semibold text-base-color truncate">{pageInfo.label}</h1>
-              <div className="hidden xl:block text-xs text-muted-color truncate">v{APP_VERSION}</div>
             </div>
           </div>
 
@@ -421,19 +468,6 @@ export default function AppLayout() {
           <div className="p-4 md:p-6 max-w-screen-2xl mx-auto">
             <Outlet />
           </div>
-          <div className="px-6 pb-3 flex items-center justify-end gap-2 no-print">
-            <span className="text-xs text-muted-color opacity-50">El Irtiwaa</span>
-            <span
-              className="text-xs font-mono px-1.5 py-0.5 rounded"
-              style={{
-                color: 'rgba(13,148,136,0.7)',
-                background: 'rgba(13,148,136,0.06)',
-                border: '1px solid rgba(13,148,136,0.12)',
-              }}
-            >
-              v{APP_VERSION}
-            </span>
-          </div>
         </main>
       </div>
 
@@ -443,6 +477,7 @@ export default function AppLayout() {
         onLogout={handleLogout}
         isAdmin={isAdmin}
         isFinance={isFinance}
+        statusLabel={statusLabel}
       />
     </div>
   )
