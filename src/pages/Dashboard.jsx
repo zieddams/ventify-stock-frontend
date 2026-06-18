@@ -46,6 +46,46 @@ function getSessionPresenceMeta(session) {
   }
 }
 
+function formatLastSeenAge(seconds) {
+  if (seconds == null || Number.isNaN(Number(seconds))) {
+    return null
+  }
+
+  const elapsed = Math.max(0, Math.floor(Number(seconds)))
+
+  if (elapsed < 60) {
+    return `${elapsed}s`
+  }
+
+  const minutes = Math.floor(elapsed / 60)
+  if (minutes < 60) {
+    return `${minutes} min`
+  }
+
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) {
+    return `${hours} h`
+  }
+
+  const days = Math.floor(hours / 24)
+  if (days < 7) {
+    return `${days} j`
+  }
+
+  const weeks = Math.floor(days / 7)
+  if (weeks < 5) {
+    return `${weeks} sem`
+  }
+
+  const months = Math.floor(days / 30)
+  if (months < 12) {
+    return `${months} mois`
+  }
+
+  const years = Math.floor(days / 365)
+  return `${years} an${years > 1 ? 's' : ''}`
+}
+
 /* ─── KPI Card ─────────────────────────────────────────────────────────────── */
 function KpiCard({ label, value, sub, icon, accent = '#0d9488', iconBg = '#f0fdfa', delta }) {
   return (
@@ -438,6 +478,7 @@ export default function Dashboard() {
                 <tbody>
                   {sessions.map(s => {
                     const presenceMeta = getSessionPresenceMeta(s)
+                    const lastSeenAge = formatLastSeenAge(s.presence?.last_seen_age_seconds)
 
                     return (
                       <tr key={s.id} className="table-row">
@@ -452,7 +493,7 @@ export default function Dashboard() {
                         </td>
                         <td className="py-3 text-muted-color text-xs">
                           {s.last_seen
-                            ? `${new Date(s.last_seen).toLocaleString('fr-FR')}${s.presence?.last_seen_age_seconds != null ? ` · ${s.presence.last_seen_age_seconds}s` : ''}`
+                            ? `${new Date(s.last_seen).toLocaleString('fr-FR')}${lastSeenAge ? ` · ${lastSeenAge}` : ''}`
                             : '—'}
                         </td>
                       </tr>

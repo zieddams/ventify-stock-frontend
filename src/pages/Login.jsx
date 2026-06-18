@@ -1,35 +1,17 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { useTheme } from '../contexts/ThemeContext'
-import { APP_VERSION } from '../config/appMeta'
 
-const PARTICLES = Array.from({ length: 18 }, (_, index) => ({
-  left: `${6 + ((index * 17) % 86)}%`,
-  top: `${8 + ((index * 13) % 78)}%`,
-  size: `${index % 3 === 0 ? 12 : index % 3 === 1 ? 9 : 6}px`,
-  delay: `${(index % 6) * 0.55}s`,
-  duration: `${7 + (index % 5) * 1.4}s`,
-  opacity: 0.14 + (index % 4) * 0.04,
+const PARTICLES = Array.from({ length: 22 }, (_, index) => ({
+  left: `${4 + ((index * 19) % 92)}%`,
+  top: `${6 + ((index * 11) % 82)}%`,
+  size: `${index % 4 === 0 ? 16 : index % 4 === 1 ? 11 : index % 4 === 2 ? 8 : 5}px`,
+  delay: `${(index % 7) * 0.45}s`,
+  duration: `${8 + (index % 6) * 1.25}s`,
+  opacity: 0.12 + (index % 5) * 0.035,
 }))
 
-const FEATURE_CARDS = [
-  {
-    icon: 'fa-solid fa-file-invoice',
-    title: 'Factures & paiements',
-    detail: 'Facturation terrain, credit client, impressions et suivi des encaissements.',
-  },
-  {
-    icon: 'fa-solid fa-truck-fast',
-    title: 'Sessions & camions',
-    detail: 'Affectation terrain, chargements, retours, stock embarque et suivi quotidien.',
-  },
-  {
-    icon: 'fa-solid fa-bell',
-    title: 'Carte & alertes',
-    detail: 'Notifications, remontes mobiles, exports et controle temps reel des operations.',
-  },
-]
+const HIGHLIGHTS = ['Stock', 'Sessions terrain', 'Facturation']
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -38,7 +20,6 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
-  const { isDark } = useTheme()
   const navigate = useNavigate()
 
   const handleSubmit = async (event) => {
@@ -57,24 +38,22 @@ export default function Login() {
   }
 
   return (
-    <div
-      className="relative min-h-screen overflow-hidden px-4 py-10 sm:px-6"
-      style={{
-        background: isDark
-          ? 'linear-gradient(160deg, #07131d 0%, #0c1b26 42%, #112435 100%)'
-          : 'linear-gradient(160deg, #ecf7f6 0%, #f8fbfd 45%, #eef4ff 100%)',
-      }}
-    >
+    <div className="relative min-h-screen overflow-hidden bg-[#041018]">
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: isDark
-            ? 'radial-gradient(circle at top left, rgba(45,212,191,0.16) 0%, rgba(45,212,191,0) 42%)'
-            : 'radial-gradient(circle at top left, rgba(20,184,166,0.16) 0%, rgba(20,184,166,0) 42%)',
+          background: `
+            radial-gradient(circle at 18% 18%, rgba(20,184,166,0.22) 0%, rgba(20,184,166,0) 36%),
+            radial-gradient(circle at 82% 18%, rgba(56,189,248,0.16) 0%, rgba(56,189,248,0) 32%),
+            radial-gradient(circle at 50% 100%, rgba(13,148,136,0.18) 0%, rgba(13,148,136,0) 42%),
+            linear-gradient(180deg, #031019 0%, #07141f 48%, #041018 100%)
+          `,
         }}
       />
 
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="login-glow login-glow-left" />
+        <div className="login-glow login-glow-right" />
         {PARTICLES.map((particle, index) => (
           <span
             key={index}
@@ -92,210 +71,182 @@ export default function Login() {
         ))}
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl items-center justify-center">
-        <div className="grid w-full grid-cols-1 overflow-hidden rounded-[32px] border border-white/30 shadow-[0_30px_80px_rgba(15,23,42,0.14)] lg:grid-cols-[0.95fr,1.05fr]">
-          <div
-            className="px-6 py-8 sm:px-8 lg:px-10"
-            style={{
-              background: isDark
-                ? 'linear-gradient(180deg, rgba(7,18,28,0.84) 0%, rgba(9,22,33,0.78) 100%)'
-                : 'linear-gradient(180deg, rgba(255,255,255,0.86) 0%, rgba(255,255,255,0.78) 100%)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="relative flex h-14 w-14 items-center justify-center rounded-[20px] bg-gradient-to-br from-teal-500 to-teal-700 shadow-[0_18px_40px_rgba(13,148,136,0.26)]">
-                <i className="fa-solid fa-droplet text-xl text-white" />
-                <div
-                  className="absolute inset-0 rounded-[20px]"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0) 62%)',
-                  }}
-                />
-              </div>
-              <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-color">El Irtiwaa</div>
-                <div className="text-xl font-bold text-base-color">Connexion plateforme</div>
-              </div>
+      <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10">
+        <div className="login-shell w-full max-w-md rounded-[30px] px-6 py-7 sm:px-8">
+          <div className="flex items-center gap-3">
+            <div className="relative flex h-14 w-14 items-center justify-center rounded-[20px] bg-gradient-to-br from-teal-400 via-teal-500 to-teal-700 shadow-[0_18px_42px_rgba(13,148,136,0.32)]">
+              <i className="fa-solid fa-droplet text-xl text-white" />
+              <div className="absolute inset-0 rounded-[20px] bg-[linear-gradient(135deg,rgba(255,255,255,0.28)_0%,rgba(255,255,255,0)_62%)]" />
             </div>
-
-            <div className="mt-6 flex flex-wrap items-center gap-2">
-              <span className="rounded-full border px-3 py-1 text-[11px] font-semibold" style={{ borderColor: 'rgba(13,148,136,0.18)', background: 'rgba(13,148,136,0.08)', color: '#0d9488' }}>
-                Web + API + mobile
-              </span>
-              <span className="rounded-full border px-3 py-1 text-[11px] font-semibold" style={{ borderColor: 'rgba(59,130,246,0.14)', background: 'rgba(59,130,246,0.08)', color: '#2563eb' }}>
-                v{APP_VERSION}
-              </span>
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-teal-200/80">El Irtiwaa</div>
+              <div className="text-xl font-bold text-white">Connexion plateforme</div>
             </div>
-
-            <p className="mt-5 text-sm leading-7 text-secondary-color">
-              Connectez-vous pour gerer le stock, la facturation, les sessions terrain, les notifications
-              et le suivi operationnel depuis une meme interface.
-            </p>
-
-            {error && (
-              <div
-                role="alert"
-                className="mt-6 flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm"
-                style={{ borderColor: 'rgba(239,68,68,0.18)', background: 'rgba(239,68,68,0.08)', color: '#b91c1c' }}
-              >
-                <i className="fa-solid fa-circle-exclamation mt-0.5 flex-shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-              <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-muted-color">
-                  Email
-                </label>
-                <div className="relative">
-                  <i className="fa-regular fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-color" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="admin@irtiwaa.tn"
-                    autoComplete="email"
-                    required
-                    autoFocus
-                    className="login-input"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-muted-color">
-                  Mot de passe
-                </label>
-                <div className="relative">
-                  <i className="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-color" />
-                  <input
-                    type={showPwd ? 'text' : 'password'}
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="********"
-                    autoComplete="current-password"
-                    required
-                    className="login-input pr-12"
-                  />
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => setShowPwd((current) => !current)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-2 text-muted-color transition hover:bg-black/5 dark:hover:bg-white/5 hover:text-base-color"
-                  >
-                    <i className={`fa-solid ${showPwd ? 'fa-eye-slash' : 'fa-eye'} text-sm`} />
-                  </button>
-                </div>
-              </div>
-
-              <button type="submit" disabled={loading} className="login-submit mt-2">
-                {loading ? (
-                  <>
-                    <i className="fa-solid fa-spinner fa-spin" />
-                    Connexion en cours...
-                  </>
-                ) : (
-                  <>
-                    <i className="fa-solid fa-right-to-bracket" />
-                    Acceder a la plateforme
-                  </>
-                )}
-              </button>
-            </form>
           </div>
 
-          <div
-            className="px-6 py-8 sm:px-8 lg:px-10"
-            style={{
-              background: isDark
-                ? 'linear-gradient(180deg, rgba(11,29,43,0.74) 0%, rgba(10,24,37,0.70) 100%)'
-                : 'linear-gradient(180deg, rgba(244,250,255,0.86) 0%, rgba(239,247,252,0.84) 100%)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-              borderLeft: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.55)',
-            }}
-          >
-            <div className="rounded-[28px] border px-5 py-5" style={{ borderColor: 'rgba(255,255,255,0.22)', background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.58)' }}>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-color">Fonctionnalites</div>
-              <h2 className="mt-2 text-2xl font-bold text-base-color">Un acces simple a l essentiel</h2>
-              <p className="mt-3 text-sm leading-7 text-secondary-color">
-                Cette page reste volontairement sobre: juste la connexion, le contexte produit et les blocs utiles
-                pour rappeler les capacites actives de la plateforme.
-              </p>
+          <p className="mt-5 text-sm leading-7 text-slate-300">
+            Acces direct au stock, aux sessions terrain, a la facturation et au suivi mobile.
+          </p>
+
+          {error && (
+            <div
+              role="alert"
+              className="mt-6 flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm text-red-100"
+              style={{
+                borderColor: 'rgba(248,113,113,0.28)',
+                background: 'rgba(127,29,29,0.32)',
+              }}
+            >
+              <i className="fa-solid fa-circle-exclamation mt-0.5 flex-shrink-0 text-red-300" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            <div>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                Email
+              </label>
+              <div className="relative">
+                <i className="fa-regular fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="admin@irtiwaa.tn"
+                  autoComplete="email"
+                  required
+                  autoFocus
+                  className="login-input"
+                />
+              </div>
             </div>
 
-            <div className="mt-5 space-y-4">
-              {FEATURE_CARDS.map((item) => (
-                <div
-                  key={item.title}
-                  className="rounded-[24px] border px-5 py-5"
-                  style={{
-                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.55)',
-                    background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.58)',
-                  }}
+            <div>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                Mot de passe
+              </label>
+              <div className="relative">
+                <i className="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400" />
+                <input
+                  type={showPwd ? 'text' : 'password'}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="********"
+                  autoComplete="current-password"
+                  required
+                  className="login-input pr-12"
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPwd((current) => !current)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-2 text-slate-400 transition hover:bg-white/6 hover:text-white"
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl" style={{ background: 'rgba(13,148,136,0.10)', color: '#0d9488' }}>
-                      <i className={item.icon} />
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold text-base-color">{item.title}</div>
-                      <div className="mt-2 text-sm leading-6 text-secondary-color">{item.detail}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  <i className={`fa-solid ${showPwd ? 'fa-eye-slash' : 'fa-eye'} text-sm`} />
+                </button>
+              </div>
             </div>
 
-            <div className="mt-6 rounded-[24px] border px-5 py-4 text-sm text-secondary-color" style={{ borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.55)', background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.58)' }}>
-              Besoin d un diagnostic rapide apres connexion ? Le centre de notifications, la page support et la carte terrain
-              sont accessibles directement depuis l en-tete de l application.
-            </div>
+            <button type="submit" disabled={loading} className="login-submit mt-2">
+              {loading ? (
+                <>
+                  <i className="fa-solid fa-spinner fa-spin" />
+                  Connexion en cours...
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-right-to-bracket" />
+                  Acceder a la plateforme
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-6 flex flex-wrap gap-2">
+            {HIGHLIGHTS.map((item) => (
+              <span
+                key={item}
+                className="rounded-full border px-3 py-1 text-[11px] font-semibold text-slate-200/90"
+                style={{
+                  borderColor: 'rgba(255,255,255,0.1)',
+                  background: 'rgba(255,255,255,0.04)',
+                }}
+              >
+                {item}
+              </span>
+            ))}
           </div>
         </div>
       </div>
 
       <style>{`
         @keyframes particleDrift {
-          from { transform: translate3d(0, 0, 0) scale(0.95); }
-          to { transform: translate3d(0, -18px, 0) scale(1.08); }
+          from { transform: translate3d(0, 0, 0) scale(0.92); }
+          to { transform: translate3d(0, -26px, 0) scale(1.1); }
+        }
+
+        @keyframes glowPulse {
+          from { transform: scale(0.96); opacity: 0.52; }
+          to { transform: scale(1.06); opacity: 0.82; }
+        }
+
+        .login-shell {
+          border: 1px solid rgba(255,255,255,0.1);
+          background: linear-gradient(180deg, rgba(4,15,24,0.8) 0%, rgba(7,19,30,0.72) 100%);
+          box-shadow: 0 28px 90px rgba(2,12,22,0.55);
+          backdrop-filter: blur(26px);
+          -webkit-backdrop-filter: blur(26px);
+        }
+
+        .login-glow {
+          position: absolute;
+          width: 24rem;
+          height: 24rem;
+          border-radius: 999px;
+          filter: blur(80px);
+          animation: glowPulse 7.2s ease-in-out infinite alternate;
+        }
+
+        .login-glow-left {
+          left: -7rem;
+          top: -6rem;
+          background: rgba(20,184,166,0.16);
+        }
+
+        .login-glow-right {
+          right: -8rem;
+          bottom: -7rem;
+          background: rgba(56,189,248,0.14);
+          animation-delay: 1.2s;
         }
 
         .login-particle {
           position: absolute;
           border-radius: 999px;
-          background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(125,211,252,0.54) 38%, rgba(45,212,191,0) 76%);
-          box-shadow: 0 0 18px rgba(56,189,248,0.16);
+          background: radial-gradient(circle, rgba(255,255,255,0.92) 0%, rgba(125,211,252,0.52) 35%, rgba(45,212,191,0) 74%);
+          box-shadow: 0 0 24px rgba(45,212,191,0.14);
           animation: particleDrift var(--particle-duration) ease-in-out var(--particle-delay) infinite alternate;
         }
 
         .login-input {
           width: 100%;
           border-radius: 1rem;
-          padding: 0.9rem 0.95rem 0.9rem 2.9rem;
-          background: rgba(255,255,255,0.66) !important;
-          border: 1px solid rgba(148,163,184,0.22) !important;
-          color: #0f172a !important;
+          padding: 0.95rem 0.95rem 0.95rem 2.9rem;
+          background: rgba(255,255,255,0.05) !important;
+          border: 1px solid rgba(255,255,255,0.1) !important;
+          color: #f8fafc !important;
           backdrop-filter: blur(16px);
           -webkit-backdrop-filter: blur(16px);
         }
 
-        html.dark .login-input {
-          background: rgba(15,23,42,0.42) !important;
-          border-color: rgba(148,163,184,0.18) !important;
-          color: #f8fafc !important;
-        }
-
         .login-input:focus {
-          border-color: rgba(13,148,136,0.64) !important;
-          box-shadow: 0 0 0 4px rgba(13,148,136,0.12) !important;
+          border-color: rgba(45,212,191,0.52) !important;
+          box-shadow: 0 0 0 4px rgba(20,184,166,0.12) !important;
         }
 
         .login-input::placeholder {
-          color: rgba(100,116,139,0.78) !important;
+          color: rgba(148,163,184,0.78) !important;
         }
 
         .login-submit {
@@ -319,7 +270,7 @@ export default function Login() {
         .login-submit:hover:not(:disabled) {
           transform: translateY(-1px);
           box-shadow: 0 22px 44px rgba(13,148,136,0.28);
-          filter: saturate(1.03);
+          filter: saturate(1.04);
         }
 
         .login-submit:disabled {
