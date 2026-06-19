@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import NotificationBell from '../components/NotificationBell'
-import { formatDepotLabel } from '../components/DepotScopeControls'
+import DepotScopeControls from '../components/DepotScopeControls'
 import { APP_VERSION } from '../config/appMeta'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
-import { ALL_DEPOTS_VALUE, useDepots } from '../hooks/useDepots'
+import { useDepots } from '../hooks/useDepots'
 
 const CORE_NAV = [
   { to: '/invoices', icon: 'fa-solid fa-file-invoice', label: 'Factures' },
@@ -125,65 +125,6 @@ function TopbarLink({ to, icon, label }) {
   )
 }
 
-function HeaderDepotScopeControl({
-  depots,
-  loading,
-  selectedValue,
-  selectedDepot,
-  onChange,
-  allowAll,
-  canSelectAll,
-}) {
-  const singleDepot = depots.length === 1 ? depots[0] : null
-  const selectedLabel = singleDepot
-    ? formatDepotLabel(singleDepot)
-    : selectedValue === ALL_DEPOTS_VALUE && allowAll && canSelectAll
-      ? 'Tous les depots'
-      : formatDepotLabel(selectedDepot) || formatDepotLabel(depots[0]) || 'Depot non defini'
-
-  if (!loading && depots.length === 0) {
-    return null
-  }
-
-  if (depots.length <= 1) {
-    return (
-      <div
-        className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-theme min-w-[170px]"
-        style={{ background: 'var(--surface-2)' }}
-        title={selectedLabel}
-      >
-        <i className="fa-solid fa-warehouse text-[11px] text-muted-color" />
-        <span className="text-xs font-semibold text-base-color truncate">{loading ? 'Chargement...' : selectedLabel}</span>
-      </div>
-    )
-  }
-
-  return (
-    <div
-      className="hidden xl:flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-theme"
-      style={{ background: 'var(--surface-2)' }}
-    >
-      <i className="fa-solid fa-warehouse text-[11px] text-muted-color" />
-      <select
-        value={selectedValue}
-        onChange={(event) => onChange?.(event.target.value)}
-        disabled={loading}
-        aria-label="Depot actif"
-        className="min-w-[180px] border-0 bg-transparent px-0 py-0 text-xs font-semibold shadow-none focus:outline-none"
-        style={{ background: 'transparent' }}
-      >
-        {allowAll && canSelectAll && (
-          <option value={ALL_DEPOTS_VALUE}>Tous les depots</option>
-        )}
-        {depots.map((depot) => (
-          <option key={depot.id} value={String(depot.id)}>
-            {formatDepotLabel(depot)}
-          </option>
-        ))}
-      </select>
-    </div>
-  )
-}
 function getSystemStatusLabel(systemStatus) {
   if (systemStatus.state === 'online') {
     return systemStatus.dbOk ? 'API en ligne - base OK' : 'API en ligne - base à vérifier'
@@ -446,7 +387,6 @@ export default function AppLayout() {
     loading: topbarDepotsLoading,
     selectedValue: topbarDepotValue,
     setSelectedValue: setTopbarDepotValue,
-    selectedDepot: topbarSelectedDepot,
     canSelectAll: topbarCanSelectAll,
   } = useDepots({
     allowAll: topbarAllowsAll,
@@ -455,6 +395,7 @@ export default function AppLayout() {
     enabled: Boolean(user),
   })
   const statusLabel = getSystemStatusLabel(systemStatus)
+  const canSeeDepotScope = isFinance() || isAdmin()
 
   return (
     <div className="flex h-screen overflow-hidden bg-app">
@@ -499,6 +440,35 @@ export default function AppLayout() {
             )}
           </div>
         </div>
+
+        {canSeeDepotScope && topbarDepots.length > 0 && (
+          <div className={`w-full ${isSidebarExpanded ? 'pt-2 border-t' : ''}`} style={isSidebarExpanded ? { borderColor: 'var(--rail-border)' } : undefined}>
+            {isSidebarExpanded ? (
+              <div className="rounded-2xl px-3 py-3" style={{ background: 'rgba(255,255,255,0.04)', boxShadow: 'inset 0 0 0 1px var(--rail-border)' }}>
+                <DepotScopeControls
+                  depots={topbarDepots}
+                  loading={topbarDepotsLoading}
+                  selectedValue={topbarDepotValue}
+                  onChange={setTopbarDepotValue}
+                  label="Depot actif"
+                  allowAll={topbarAllowsAll}
+                  canSelectAll={topbarCanSelectAll}
+                  allLabel="Tous les depots"
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={toggleSidebarMode}
+                className="rail-link"
+                title="Depot actif"
+              >
+                <i className="fa-solid fa-warehouse text-base" />
+                <span className="rail-tooltip">Depot actif</span>
+              </button>
+            )}
+          </div>
+        )}
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -536,15 +506,6 @@ export default function AppLayout() {
           <div className="flex items-center gap-1">
             <TopbarLink to="/help" icon="fa-solid fa-circle-question" label="Aide" />
             <TopbarLink to="/bug-reports" icon="fa-solid fa-bug" label="Support" />
-            <HeaderDepotScopeControl
-              depots={topbarDepots}
-              loading={topbarDepotsLoading}
-              selectedValue={topbarDepotValue}
-              selectedDepot={topbarSelectedDepot}
-              onChange={setTopbarDepotValue}
-              allowAll={topbarAllowsAll}
-              canSelectAll={topbarCanSelectAll}
-            />
             <NotificationBell />
             {isAdmin() && (
               <NavLink

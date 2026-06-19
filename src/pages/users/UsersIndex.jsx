@@ -28,6 +28,7 @@ export default function UsersIndex() {
   const [form, setForm] = useState(EMPTY)
   const [editing, setEditing] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [deletingUserId, setDeletingUserId] = useState(null)
   const [errors, setErrors] = useState({})
   const [assignmentModal, setAssignmentModal] = useState(false)
   const [assignmentUser, setAssignmentUser] = useState(null)
@@ -179,6 +180,30 @@ export default function UsersIndex() {
 
     await api.patch(`/users/${entry.id}/toggle`)
     await load()
+  }
+
+  const removeUser = async (entry) => {
+    if (entry.id === me?.id) {
+      alert('Vous ne pouvez pas supprimer votre propre compte.')
+      return
+    }
+
+    if (!confirm(`Supprimer le compte ${entry.name} ? Cette action reste bloquee si le compte possede deja un historique de sessions, factures ou mouvements.`)) {
+      return
+    }
+
+    setDeletingUserId(entry.id)
+
+    try {
+      await api.delete(`/users/${entry.id}`)
+      await load()
+    } catch (error) {
+      const message = error.response?.data?.message ?? 'Suppression impossible.'
+      const blockers = error.response?.data?.blockers ?? []
+      alert([message, ...blockers].join('\n'))
+    } finally {
+      setDeletingUserId(null)
+    }
   }
 
   const closeAssignments = () => {
@@ -334,6 +359,15 @@ export default function UsersIndex() {
                           >
                             {entry.active ? 'Desactiver' : 'Activer'}
                           </button>
+                          {entry.id !== me?.id && (
+                            <button
+                              onClick={() => removeUser(entry)}
+                              disabled={deletingUserId === entry.id}
+                              className="text-xs font-medium text-red-500 disabled:opacity-50"
+                            >
+                              {deletingUserId === entry.id ? <><i className="fa-solid fa-spinner fa-spin mr-1" />Suppression...</> : <><i className="fa-solid fa-trash-can mr-1" /> Supprimer</>}
+                            </button>
+                          )}
                         </>
                       )}
                     </div>
