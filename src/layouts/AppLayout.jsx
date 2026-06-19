@@ -32,6 +32,10 @@ const SUPPORT_NAV = [
   { to: '/bug-reports', icon: 'fa-solid fa-bug', label: 'Support et signalements' },
 ]
 
+const DEVELOPER_NAV = [
+  { to: '/developer-tools', icon: 'fa-solid fa-code', label: 'Outils developpeur' },
+]
+
 const DEFAULT_SYSTEM_STATUS = {
   state: 'checking',
   dbOk: null,
@@ -59,6 +63,7 @@ const PAGE_TITLES = {
   '/help': { label: 'Aide et documentation', icon: 'fa-solid fa-circle-question' },
   '/notifications-center': { label: 'Centre de notifications', icon: 'fa-solid fa-bell' },
   '/bug-reports': { label: 'Support et signalements', icon: 'fa-solid fa-bug' },
+  '/developer-tools': { label: 'Outils developpeur', icon: 'fa-solid fa-code' },
 }
 
 function RailLink({ to, icon, label, exact, expanded = false, onClick }) {
@@ -180,6 +185,15 @@ function UserMenu({ user, onLogout }) {
             <i className="fa-solid fa-bug w-4" />
             Support et signalements
           </NavLink>
+          {user?.role === 'developer' && (
+            <NavLink
+              to="/developer-tools"
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-secondary-color hover:bg-surface-2 transition-colors"
+            >
+              <i className="fa-solid fa-code w-4" />
+              Outils developpeur
+            </NavLink>
+          )}
           <button
             onClick={onLogout}
             className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
@@ -193,7 +207,7 @@ function UserMenu({ user, onLogout }) {
   )
 }
 
-function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, statusLabel }) {
+function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper, statusLabel }) {
   if (!open) {
     return null
   }
@@ -272,6 +286,17 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, statusLabel
               </div>
             </>
           )}
+
+          {isDeveloper() && (
+            <div>
+              <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Developpement</div>
+              <div className="space-y-0.5">
+                {DEVELOPER_NAV.map((item) => (
+                  <RailLink key={item.to} {...item} expanded onClick={onClose} />
+                ))}
+              </div>
+            </div>
+          )}
         </nav>
 
         <div className="px-3 py-3 border-t border-white/10">
@@ -289,7 +314,7 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, statusLabel
 }
 
 export default function AppLayout() {
-  const { user, logout, isAdmin, isFinance } = useAuth()
+  const { user, logout, isAdmin, isFinance, isDeveloper } = useAuth()
   const { toggle, isDark, toggleSidebarMode, isSidebarExpanded } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
@@ -389,6 +414,10 @@ export default function AppLayout() {
                 <NavSection title="Terrain et stock" items={OPERATIONS_NAV} expanded={isSidebarExpanded} />
               </>
             )}
+
+            {isDeveloper() && (
+              <NavSection title="Developpement" items={DEVELOPER_NAV} expanded={isSidebarExpanded} />
+            )}
           </div>
         </div>
       </aside>
@@ -465,6 +494,7 @@ export default function AppLayout() {
         onLogout={handleLogout}
         isAdmin={isAdmin}
         isFinance={isFinance}
+        isDeveloper={isDeveloper}
         statusLabel={statusLabel}
       />
     </div>

@@ -5,6 +5,7 @@ import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
+import { SUPPORT_BUG_RECIPIENTS } from '../../config/supportRecipients'
 import SystemTasksPanel from './SystemTasksPanel'
 import { DOCUMENT_LAYOUT_SETTING_KEY, normalizeDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
@@ -126,7 +127,7 @@ const SETUP_SECTIONS = [
     key: 'system-support',
     module: 'system',
     title: 'Support et signalements',
-    description: "Adresse de signalement de bug et contact d'aide interne.",
+    description: "Destinataires support figes et libelle d'aide interne.",
     icon: 'fa-solid fa-life-ring',
   },
   {
@@ -252,7 +253,6 @@ const MAP_SETTING_KEYS = [
 ]
 
 const SYSTEM_SETTING_KEYS = [
-  'support.bug_report_email',
   'support.help_contact_label',
 ]
 
@@ -1243,7 +1243,7 @@ export default function ConfigIndex() {
               <div className="flex items-center justify-between gap-3 mb-4">
                 <div>
                   <h2 className="text-sm font-semibold text-base-color">Support et signalements</h2>
-                  <p className="text-xs text-muted-color mt-1">E-mail de réception des bugs et contact interne d'aide.</p>
+                  <p className="text-xs text-muted-color mt-1">Destinataires support fixes et libellé interne visible dans l'application.</p>
                 </div>
                 <button
                   onClick={() => saveSettings(SYSTEM_SETTING_KEYS, 'system')}
@@ -1258,13 +1258,20 @@ export default function ConfigIndex() {
               </div>
 
               <div className="space-y-4">
-                <FormField label="E-mail de réception des bugs">
-                  <input
-                    value={settingValue('support.bug_report_email', 'zieddamsp@gmail.com')}
-                    onChange={(event) => updateSetting('support.bug_report_email', event.target.value)}
-                    placeholder="zieddamsp@gmail.com"
-                  />
-                </FormField>
+                <div>
+                  <div className="text-sm font-medium text-base-color mb-2">Destinataires e-mail verrouillés</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {SUPPORT_BUG_RECIPIENTS.map((email) => (
+                      <div
+                        key={email}
+                        className="rounded-2xl px-3 py-3 text-sm font-medium text-base-color"
+                        style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+                      >
+                        {email}
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
                 <FormField label="Libellé du contact d'aide">
                   <input
@@ -1275,8 +1282,8 @@ export default function ConfigIndex() {
                 </FormField>
 
                 <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                  Le bouton de signalement de bug enverra un email vers cette adresse tout en enregistrant le ticket
-                  dans la plateforme pour le suivi du développement.
+                  Les emails de réception des signalements sont maintenant figés côté application pour éviter toute
+                  dérive de configuration. Cette page ne laisse éditable que le libellé du contact d'aide.
                 </div>
 
                 <div className="flex flex-wrap gap-2">

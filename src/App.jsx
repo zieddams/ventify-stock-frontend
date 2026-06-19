@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
+import MaintenanceBoundary from './components/MaintenanceBoundary'
 import AppLayout from './layouts/AppLayout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -24,6 +25,7 @@ import LiveMapIndex from './pages/map/LiveMapIndex'
 import HelpCenterIndex from './pages/help/HelpCenterIndex'
 import NotificationsCenterIndex from './pages/notifications/NotificationsCenterIndex'
 import BugReportsIndex from './pages/support/BugReportsIndex'
+import DeveloperToolsIndex from './pages/developer/DeveloperToolsIndex'
 import { APP_BASE_PATH } from './utils/appPaths'
 
 function RequireAuth({ children }) {
@@ -46,6 +48,13 @@ function RequireFinance({ children }) {
   return children
 }
 
+function RequireDeveloper({ children }) {
+  const { user } = useAuth()
+  if (!user) return <Navigate to="/login" replace />
+  if (user.role !== 'developer') return <Navigate to="/" replace />
+  return children
+}
+
 function PublicOnly({ children }) {
   const { user } = useAuth()
   if (user) return <Navigate to="/" replace />
@@ -57,36 +66,39 @@ export default function App() {
     <ThemeProvider>
     <AuthProvider>
       <BrowserRouter basename={APP_BASE_PATH}>
-        <Routes>
-          <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
-          <Route path="/" element={<RequireAuth><AppLayout /></RequireAuth>}>
-            <Route index element={<Dashboard />} />
-            <Route path="products" element={<ProductsIndex />} />
-            <Route path="customers" element={<CustomersIndex />} />
-            <Route path="invoices" element={<InvoicesIndex />} />
-            <Route path="invoices/create" element={<InvoiceCreate />} />
-            <Route path="invoices/:id" element={<InvoiceShow />} />
-            <Route path="depot" element={<RequireAdmin><DepotIndex /></RequireAdmin>} />
-            <Route path="camions" element={<RequireAdmin><CamionsIndex /></RequireAdmin>} />
-            <Route path="reports" element={<RequireAdmin><ReportsIndex /></RequireAdmin>} />
-            <Route path="users" element={<RequireAdmin><UsersIndex /></RequireAdmin>} />
-            <Route path="zones" element={<RequireAdmin><ZonesIndex /></RequireAdmin>} />
-            <Route path="credit"    element={<RequireFinance><CreditIndex /></RequireFinance>} />
-            <Route path="expenses"  element={<RequireFinance><ExpensesIndex /></RequireFinance>} />
-            <Route path="routes"    element={<RequireAdmin><RouteSessionsIndex /></RequireAdmin>} />
-            <Route path="config"    element={<RequireAdmin><ConfigIndex /></RequireAdmin>} />
-            <Route path="config/:sectionKey" element={<RequireAdmin><ConfigIndex /></RequireAdmin>} />
-            <Route path="map"       element={<RequireAdmin><LiveMapIndex /></RequireAdmin>} />
-            <Route path="inventory" element={<RequireAdmin><InventaireIndex /></RequireAdmin>} />
-            <Route path="data-tools" element={<RequireAdmin><DataToolsIndex /></RequireAdmin>} />
-            <Route path="help" element={<HelpCenterIndex />} />
-            <Route path="notifications-center" element={<NotificationsCenterIndex />} />
-            <Route path="bug-reports" element={<BugReportsIndex />} />
-            <Route path="import"    element={<Navigate to="/data-tools" replace />} />
-            <Route path="export"    element={<Navigate to="/data-tools" replace />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <MaintenanceBoundary>
+          <Routes>
+            <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
+            <Route path="/" element={<RequireAuth><AppLayout /></RequireAuth>}>
+              <Route index element={<Dashboard />} />
+              <Route path="products" element={<ProductsIndex />} />
+              <Route path="customers" element={<CustomersIndex />} />
+              <Route path="invoices" element={<InvoicesIndex />} />
+              <Route path="invoices/create" element={<InvoiceCreate />} />
+              <Route path="invoices/:id" element={<InvoiceShow />} />
+              <Route path="depot" element={<RequireAdmin><DepotIndex /></RequireAdmin>} />
+              <Route path="camions" element={<RequireAdmin><CamionsIndex /></RequireAdmin>} />
+              <Route path="reports" element={<RequireAdmin><ReportsIndex /></RequireAdmin>} />
+              <Route path="users" element={<RequireAdmin><UsersIndex /></RequireAdmin>} />
+              <Route path="zones" element={<RequireAdmin><ZonesIndex /></RequireAdmin>} />
+              <Route path="credit"    element={<RequireFinance><CreditIndex /></RequireFinance>} />
+              <Route path="expenses"  element={<RequireFinance><ExpensesIndex /></RequireFinance>} />
+              <Route path="routes"    element={<RequireAdmin><RouteSessionsIndex /></RequireAdmin>} />
+              <Route path="config"    element={<RequireAdmin><ConfigIndex /></RequireAdmin>} />
+              <Route path="config/:sectionKey" element={<RequireAdmin><ConfigIndex /></RequireAdmin>} />
+              <Route path="map"       element={<RequireAdmin><LiveMapIndex /></RequireAdmin>} />
+              <Route path="inventory" element={<RequireAdmin><InventaireIndex /></RequireAdmin>} />
+              <Route path="data-tools" element={<RequireAdmin><DataToolsIndex /></RequireAdmin>} />
+              <Route path="developer-tools" element={<RequireDeveloper><DeveloperToolsIndex /></RequireDeveloper>} />
+              <Route path="help" element={<HelpCenterIndex />} />
+              <Route path="notifications-center" element={<NotificationsCenterIndex />} />
+              <Route path="bug-reports" element={<BugReportsIndex />} />
+              <Route path="import"    element={<Navigate to="/data-tools" replace />} />
+              <Route path="export"    element={<Navigate to="/data-tools" replace />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </MaintenanceBoundary>
       </BrowserRouter>
     </AuthProvider>
     </ThemeProvider>
