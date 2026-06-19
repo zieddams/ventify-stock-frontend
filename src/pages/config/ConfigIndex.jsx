@@ -95,6 +95,13 @@ const SETUP_SECTIONS = [
     icon: 'fa-solid fa-ruler-combined',
   },
   {
+    key: 'zones',
+    module: 'catalog',
+    title: 'Zones et tarifs',
+    description: 'Gouvernorats, secteurs et regles tarifaires utilises par le depot.',
+    icon: 'fa-solid fa-map-location-dot',
+  },
+  {
     key: 'payment-methods',
     module: 'payments',
     title: 'Methodes de paiement',
@@ -121,6 +128,13 @@ const SETUP_SECTIONS = [
     title: 'Support & circulation',
     description: 'Adresse de signalement bug et contact d aide interne.',
     icon: 'fa-solid fa-life-ring',
+  },
+  {
+    key: 'users-access',
+    module: 'system',
+    title: 'Utilisateurs & acces',
+    description: 'Roles, activation des comptes et affectation clients par utilisateur.',
+    icon: 'fa-solid fa-user-gear',
   },
   {
     key: 'background-tasks',
@@ -1036,6 +1050,37 @@ export default function ConfigIndex() {
             />
           )}
 
+          {setupSection?.key === 'zones' && (
+            <div className="space-y-6">
+              <div className="card">
+                <div className="flex items-start gap-3">
+                  <i className="fa-solid fa-map-location-dot mt-0.5" style={{ color: '#0d9488' }} />
+                  <div>
+                    <div className="text-sm font-semibold text-base-color">Zones et tarification du depot</div>
+                    <div className="text-sm text-secondary-color mt-1">
+                      Cette configuration regroupe les zones commerciales, les gouvernorats relies et les grilles
+                      tarifaires utilisees par les produits, les clients et les sorties terrain.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                  <div>
+                    <h2 className="text-sm font-semibold text-base-color">Ouvrir la gestion complete des zones</h2>
+                    <p className="text-xs text-muted-color mt-1">
+                      La page dediee permet de gerer les zones, les tarifs et les associations utilisees dans le reste de la plateforme.
+                    </p>
+                  </div>
+                  <Link to="/zones" className="btn-secondary text-xs flex-shrink-0">
+                    <i className="fa-solid fa-arrow-up-right-from-square" /> Gerer les zones
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
           {setupSection?.key === 'payment-methods' && (
             <div className="space-y-6">
               <div className="card">
@@ -1317,6 +1362,38 @@ export default function ConfigIndex() {
                   </Link>
                   <Link to="/notifications-center" className="btn-secondary text-xs">
                     <i className="fa-solid fa-bell" /> Notifications
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {setupSection?.key === 'users-access' && (
+            <div className="space-y-6">
+              <div className="card">
+                <div className="flex items-start gap-3">
+                  <i className="fa-solid fa-user-gear mt-0.5" style={{ color: '#8b5cf6' }} />
+                  <div>
+                    <div className="text-sm font-semibold text-base-color">Comptes, roles et portefeuille client</div>
+                    <div className="text-sm text-secondary-color mt-1">
+                      Cette partie centralise les utilisateurs internes, leurs droits et les affectations de clients
+                      visibles par chaque compte commercial.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                  <div>
+                    <h2 className="text-sm font-semibold text-base-color">Ouvrir la gestion des utilisateurs</h2>
+                    <p className="text-xs text-muted-color mt-1">
+                      La page dediee permet de creer les comptes, ajuster les roles, activer ou suspendre un utilisateur
+                      et synchroniser sa liste de clients.
+                    </p>
+                  </div>
+                  <Link to="/users" className="btn-secondary text-xs flex-shrink-0">
+                    <i className="fa-solid fa-arrow-up-right-from-square" /> Gerer les utilisateurs
                   </Link>
                 </div>
               </div>

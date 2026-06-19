@@ -26,12 +26,6 @@ const OPERATIONS_NAV = [
   { to: '/data-tools', icon: 'fa-solid fa-file-arrow-up', label: 'Import / Export' },
 ]
 
-const MANAGEMENT_NAV = [
-  { to: '/users', icon: 'fa-solid fa-user-gear', label: 'Utilisateurs' },
-  { to: '/zones', icon: 'fa-solid fa-map-location-dot', label: 'Zones et tarifs' },
-  { to: '/config', icon: 'fa-solid fa-sliders', label: 'Configuration' },
-]
-
 const SUPPORT_NAV = [
   { to: '/help', icon: 'fa-solid fa-circle-question', label: 'Aide' },
   { to: '/notifications-center', icon: 'fa-solid fa-bell', label: 'Notifications' },
@@ -269,15 +263,6 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, statusLabel
               </div>
 
               <div>
-                <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Administration</div>
-                <div className="space-y-0.5">
-                  {MANAGEMENT_NAV.map((item) => (
-                    <RailLink key={item.to} {...item} expanded onClick={onClose} />
-                  ))}
-                </div>
-              </div>
-
-              <div>
                 <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Support</div>
                 <div className="space-y-0.5">
                   {SUPPORT_NAV.map((item) => (
@@ -402,7 +387,6 @@ export default function AppLayout() {
             {isAdmin() && (
               <>
                 <NavSection title="Terrain & stock" items={OPERATIONS_NAV} expanded={isSidebarExpanded} />
-                <NavSection title="Administration" items={MANAGEMENT_NAV} expanded={isSidebarExpanded} />
               </>
             )}
           </div>
