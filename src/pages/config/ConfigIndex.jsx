@@ -318,93 +318,37 @@ function SummaryCard({ label, value, color, icon }) {
   )
 }
 
-function SetupSectionCard({ section, count, onClick }) {
-  return (
-    <button
-      onClick={() => onClick(section.key)}
-      className="w-full text-left rounded-2xl px-4 py-4 transition-all"
-      style={{ background: 'var(--surface)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
-    >
-      <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(13,148,136,0.12)', color: '#0d9488' }}>
-          <i className={section.icon} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-sm font-semibold text-base-color">{section.title}</div>
-            {count != null && (
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(59,130,246,0.10)', color: '#2563eb' }}>
-                {count}
-              </span>
-            )}
-          </div>
-          <div className="text-xs text-secondary-color mt-1">{section.description}</div>
-        </div>
-      </div>
-    </button>
-  )
-}
-
 function ModuleHubCard({ module, onOpen }) {
-  const primarySection = module.sections[0] ?? null
-
   return (
     <div
-      className="rounded-[28px] border px-5 py-5 transition-all"
+      className="rounded-[24px] border px-5 py-5 h-full"
       style={{ background: 'var(--surface)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3 min-w-0">
-          <div
-            className="w-12 h-12 rounded-[18px] flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(13,148,136,0.12)', color: '#0d9488' }}
-          >
-            <i className={`${module.icon} text-lg`} />
-          </div>
-          <div className="min-w-0">
-            <div className="text-base font-semibold text-base-color">{module.label}</div>
-            <div className="text-sm text-secondary-color mt-1">{module.description}</div>
-          </div>
-        </div>
-        <span
-          className="text-[11px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
-          style={{ background: 'rgba(59,130,246,0.10)', color: '#2563eb' }}
-        >
-          {module.sections.length} bloc{module.sections.length > 1 ? 's' : ''}
-        </span>
+      <div className="min-w-0">
+        <div className="text-base font-semibold text-base-color">{module.label}</div>
+        <div className="text-sm text-secondary-color mt-1">{module.description}</div>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 mt-5">
+      <div className="mt-5 divide-y" style={{ borderColor: 'var(--border)' }}>
         {module.sections.map((section) => (
           <button
             key={section.key}
             onClick={() => onOpen(section.key)}
-            className="w-full rounded-2xl px-4 py-3 text-left transition-all hover:-translate-y-[1px]"
-            style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+            className="w-full flex items-start gap-3 py-3 text-left transition-colors hover:bg-surface-2 first:pt-0 last:pb-0"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(13,148,136,0.10)', color: '#0d9488' }}>
-                <i className={section.icon} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold text-base-color">{section.title}</div>
-                <div className="text-xs text-muted-color mt-0.5">{section.description}</div>
-              </div>
-            </div>
+            <span className="w-5 pt-0.5 flex-shrink-0 text-center" style={{ color: '#0d9488' }}>
+              <i className={`${section.icon} text-sm`} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium text-base-color">{section.title}</span>
+              <span className="block text-xs text-muted-color mt-0.5">{section.description}</span>
+            </span>
+            <span className="pt-0.5 flex-shrink-0 text-muted-color">
+              <i className="fa-solid fa-chevron-right text-xs" />
+            </span>
           </button>
         ))}
       </div>
-
-      {primarySection && (
-        <div className="flex items-center justify-between gap-3 mt-5 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
-          <div className="text-xs text-muted-color">
-            Ouvrir la configuration prioritaire de ce module.
-          </div>
-          <button onClick={() => onOpen(primarySection.key)} className="btn-secondary text-xs">
-            <i className="fa-solid fa-arrow-right" /> Ouvrir
-          </button>
-        </div>
-      )}
     </div>
   )
 }
@@ -845,15 +789,6 @@ export default function ConfigIndex() {
   const detailSections = setupSection
     ? setupSectionsByModule.find((module) => module.key === setupSection.module)?.sections ?? []
     : []
-  const sectionCount = (key) => {
-    if (key === 'categories') return summary.category
-    if (key === 'units') return summary.unit
-    if (key === 'payment-methods') return summary.payment_method
-    if (key === 'expense-categories') return summary.expense_category
-    if (key === 'documents') return DOCUMENT_DEFINITIONS.length
-    if (key === 'background-tasks') return taskSnapshot.tasks?.length ?? 0
-    return null
-  }
 
   if (setupSection?.key === 'documents') {
     return (
@@ -952,59 +887,47 @@ export default function ConfigIndex() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={setupSection ? setupSection.title : 'Configuration'}
-        subtitle={setupSection
-          ? setupSection.description
-          : 'Hub de configuration pour le depot Irtiwaa: catalogues, paiements, documents, support et taches systeme.'}
-        action={setupSection ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => navigate('/config')} className="btn-secondary text-xs">
-              <i className="fa-solid fa-arrow-left" /> Retour au hub
-            </button>
-            <PageExportActions title={setupSection.title} />
+      {setupSection ? (
+        <PageHeader
+          title={setupSection.title}
+          subtitle={setupSection.description}
+          action={(
+            <div className="flex flex-wrap items-center gap-2">
+              <button onClick={() => navigate('/config')} className="btn-secondary text-xs">
+                <i className="fa-solid fa-arrow-left" /> Retour au hub
+              </button>
+              <PageExportActions title={setupSection.title} />
+            </div>
+          )}
+        />
+      ) : (
+        <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
+          <div className="max-w-3xl">
+            <h1 className="text-xl font-semibold text-base-color">Configuration</h1>
+            <p className="text-sm text-secondary-color mt-1">
+              Acces rapide aux reglages du depot, de la facturation, des impressions et du support.
+            </p>
           </div>
-        ) : <PageExportActions title="Configuration" />}
-      />
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <SummaryCard label="Categories produits" value={summary.category} color="#0d9488" icon="fa-solid fa-boxes-stacked" />
-        <SummaryCard label="Unites" value={summary.unit} color="#3b82f6" icon="fa-solid fa-ruler-combined" />
-        <SummaryCard label="Paiements" value={summary.payment_method} color="#8b5cf6" icon="fa-solid fa-wallet" />
-        <SummaryCard label="Depenses" value={summary.expense_category} color="#f59e0b" icon="fa-solid fa-receipt" />
-      </div>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/notifications-center" className="btn-secondary text-xs">
+              <i className="fa-solid fa-bell" /> Centre notifications
+            </Link>
+            <Link to="/bug-reports" className="btn-secondary text-xs">
+              <i className="fa-solid fa-bug" /> Support
+            </Link>
+          </div>
+        </div>
+      )}
 
       {!setupSection ? (
-        <div className="space-y-6">
-          <div className="card">
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-              <div className="max-w-3xl">
-                <div className="text-sm font-semibold text-base-color">Pilotage central</div>
-                <div className="text-sm text-secondary-color mt-1">
-                  Cette page sert de hub. Chaque grand bloc ouvre une configuration cible, avec un rangement plus clair
-                  pour les besoins du depot, du terrain, de la facturation et du support.
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Link to="/notifications-center" className="btn-secondary text-xs">
-                  <i className="fa-solid fa-bell" /> Centre notifications
-                </Link>
-                <Link to="/bug-reports" className="btn-secondary text-xs">
-                  <i className="fa-solid fa-bug" /> Support
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            {setupSectionsByModule.map((module) => (
-              <ModuleHubCard
-                key={module.key}
-                module={module}
-                onOpen={(key) => navigate(`/config/${key}`)}
-              />
-            ))}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {setupSectionsByModule.map((module) => (
+            <ModuleHubCard
+              key={module.key}
+              module={module}
+              onOpen={(key) => navigate(`/config/${key}`)}
+            />
+          ))}
         </div>
       ) : (
         <section className="space-y-6">
