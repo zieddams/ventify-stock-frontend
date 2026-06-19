@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import DepotScopeControls from '../../components/DepotScopeControls'
 import Modal from '../../components/Modal'
 import FormField from '../../components/FormField'
 import { PageLoader } from '../../components/Spinner'
+import { useDepots } from '../../hooks/useDepots'
 import api from '../../services/api'
 
 function fmt(value) {
@@ -106,6 +108,18 @@ export default function CamionsIndex() {
   const [savingSession, setSavingSession] = useState(false)
   const [closingSession, setClosingSession] = useState(false)
   const [expanded, setExpanded] = useState({})
+  const {
+    depots,
+    selectedValue: selectedDepotValue,
+    setSelectedValue: setSelectedDepotValue,
+    selectedDepotId,
+    selectedDepot,
+    canBrowseAll,
+    scopeParams,
+  } = useDepots({
+    allowAll: false,
+    storageKey: 'camions-index-depot',
+  })
 
   const load = async ({ keepLoading = false } = {}) => {
     if (!keepLoading) {
@@ -115,8 +129,8 @@ export default function CamionsIndex() {
     try {
       const [camionResponse, repResponse, productResponse] = await Promise.all([
         api.get('/camions', { params: { include_inactive: 1 } }),
-        api.get('/camion/all'),
-        api.get('/products'),
+        api.get('/camion/all', { params: scopeParams }),
+        api.get('/products', { params: scopeParams }),
       ])
 
       setCamions(Array.isArray(camionResponse.data) ? camionResponse.data : [])
@@ -129,7 +143,7 @@ export default function CamionsIndex() {
 
   useEffect(() => {
     load()
-  }, [])
+  }, [selectedDepotId])
 
   const totals = useMemo(() => {
     const physicalTotal = camions.length
@@ -279,6 +293,7 @@ export default function CamionsIndex() {
       await api.post('/route-sessions', {
         rep_id: Number(sessionForm.rep_id),
         camion_id: Number(sessionForm.camion_id),
+        depot_id: selectedDepotId,
         lines: validLines,
       })
 
@@ -335,7 +350,10 @@ export default function CamionsIndex() {
     setTransferErrors({})
 
     try {
-      await api.post('/camion/refill', transferForm)
+      await api.post('/camion/refill', {
+        ...transferForm,
+        depot_id: selectedDepotId,
+      })
       setTransferModal(false)
       setTransferForm(emptyTransferForm())
       await load({ keepLoading: true })
@@ -357,11 +375,19 @@ export default function CamionsIndex() {
         <div>
           <h1 className="text-xl font-bold text-base-color tracking-tight">Camions & sessions terrain</h1>
           <p className="text-sm text-muted-color mt-0.5">
-            Camions physiques, affectation par session et stock embarque des commerciaux.
+            Camions physiques, affectation par session et stock embarque des commerciaux{selectedDepot ? ` | Depot ${selectedDepot.name}` : ''}.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-end gap-2">
+          {canBrowseAll && (
+            <DepotScopeControls
+              depots={depots}
+              selectedValue={selectedDepotValue}
+              onChange={setSelectedDepotValue}
+              label="Depot terrain"
+            />
+          )}
           <button onClick={() => openSession()} className="btn-secondary">
             <i className="fa-solid fa-play" /> Demarrer une session
           </button>
@@ -796,6 +822,10 @@ export default function CamionsIndex() {
         size="sm"
       >
         <div className="space-y-4">
+          <div className="rounded-2xl px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
+            Depot de chargement: <strong className="text-base-color">{selectedDepot?.name || 'Depot non defini'}</strong>.
+          </div>
+
           <FormField label="Commercial" error={transferErrors.user_id?.[0]} required>
             <select
               value={transferForm.user_id}
@@ -901,7 +931,8 @@ export default function CamionsIndex() {
           </div>
 
           <div className="rounded-2xl px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
-            Zone appliquee: {selectedRep?.user?.zone?.name || 'Zone non definie pour ce commercial'}.
+            Depot applique: {selectedDepot?.name || 'Depot non defini'}.
+            {' '}Zone appliquee: {selectedRep?.user?.zone?.name || 'Zone non definie pour ce commercial'}.
           </div>
 
           <div className="space-y-3">

@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
+import DepotScopeControls from '../../components/DepotScopeControls'
 import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
 import PaginationControls from '../../components/PaginationControls'
 import RowDocumentActions from '../../components/RowDocumentActions'
 import { PageLoader } from '../../components/Spinner'
+import { useAuth } from '../../contexts/AuthContext'
+import { useDepots } from '../../hooks/useDepots'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 import { extractPaginationMeta, paginateItems } from '../../utils/pagination'
@@ -33,16 +36,46 @@ function fmtDateTime(value) {
   })
 }
 
+function buildDepotForm(depot = null, depots = []) {
+  return {
+    id: depot?.id ?? null,
+    name: depot?.name ?? '',
+    code: depot?.code ?? '',
+    address: depot?.address ?? '',
+    note: depot?.note ?? '',
+    active: depot?.active ?? true,
+    is_default: depot?.is_default ?? false,
+    sort_order: depot?.sort_order ?? (depots.reduce((max, item) => Math.max(max, Number(item.sort_order ?? 0)), 0) + 1),
+  }
+}
+
 const MOVEMENT_CONFIG = {
-  depot_in: { label: 'Réception', icon: 'fa-solid fa-arrow-down', color: '#10b981', bg: 'rgba(16,185,129,0.10)', sign: '+' },
-  depot_to_camion: { label: 'Vers camion', icon: 'fa-solid fa-truck', color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', sign: '-' },
-  camion_to_customer: { label: 'Vers client', icon: 'fa-solid fa-user', color: '#ef4444', bg: 'rgba(239,68,68,0.10)', sign: '-' },
-  return: { label: 'Retour', icon: 'fa-solid fa-rotate-left', color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', sign: '+' },
-  adjustment: { label: 'Ajustement', icon: 'fa-solid fa-sliders', color: '#8b5cf6', bg: 'rgba(139,92,246,0.10)', sign: '+/-' },
+  depot_in: { label: 'Reception', icon: 'fa-solid fa-arrow-down', color: '#10b981', bg: 'rgba(16,185,129,0.10)' },
+  depot_to_camion: { label: 'Vers camion', icon: 'fa-solid fa-truck', color: '#3b82f6', bg: 'rgba(59,130,246,0.10)' },
+  camion_to_customer: { label: 'Vers client', icon: 'fa-solid fa-user', color: '#ef4444', bg: 'rgba(239,68,68,0.10)' },
+  return: { label: 'Retour', icon: 'fa-solid fa-rotate-left', color: '#f59e0b', bg: 'rgba(245,158,11,0.10)' },
+  adjustment: { label: 'Ajustement', icon: 'fa-solid fa-sliders', color: '#8b5cf6', bg: 'rgba(139,92,246,0.10)' },
 }
 
 export default function DepotIndex() {
   const { layouts: documentLayouts } = useDocumentLayouts()
+  const { isAdmin } = useAuth()
+  const {
+    depots,
+    loading: depotsLoading,
+    reload: reloadDepots,
+    selectedValue: selectedDepotValue,
+    setSelectedValue: setSelectedDepotValue,
+    selectedDepotId,
+    selectedDepot,
+    canBrowseAll,
+    scopeParams,
+  } = useDepots({
+    allowAll: false,
+    includeInactive: isAdmin(),
+    storageKey: 'depot-index-scope',
+  })
+
   const [stock, setStock] = useState([])
   const [movements, setMovements] = useState([])
   const [products, setProducts] = useState([])
@@ -62,18 +95,22 @@ export default function DepotIndex() {
   const [movementDateTo, setMovementDateTo] = useState('')
   const [movementPage, setMovementPage] = useState(1)
   const [movementMeta, setMovementMeta] = useState(null)
+  const [depotModal, setDepotModal] = useState(false)
+  const [depotForm, setDepotForm] = useState(buildDepotForm())
+  const [depotErrors, setDepotErrors] = useState({})
+  const [savingDepot, setSavingDepot] = useState(false)
 
   const loadBaseData = async () => {
     setLoading(true)
 
     try {
       const [stockResponse, productsResponse] = await Promise.all([
-        api.get('/depot'),
-        api.get('/products'),
+        api.get('/depot', { params: scopeParams }),
+        api.get('/products', { params: scopeParams }),
       ])
 
-      setStock(stockResponse.data ?? [])
-      setProducts(productsResponse.data ?? [])
+      setStock(Array.isArray(stockResponse.data) ? stockResponse.data : [])
+      setProducts(Array.isArray(productsResponse.data) ? productsResponse.data : [])
     } finally {
       setLoading(false)
     }
@@ -87,6 +124,7 @@ export default function DepotIndex() {
         params: {
           page,
           per_page: 20,
+          ...scopeParams,
           ...(movementType ? { type: movementType } : {}),
           ...(movementDateFrom ? { date_from: movementDateFrom } : {}),
           ...(movementDateTo ? { date_to: movementDateTo } : {}),
@@ -108,24 +146,76 @@ export default function DepotIndex() {
 
   useEffect(() => {
     loadBaseData()
-  }, [])
+  }, [selectedDepotId])
 
   useEffect(() => {
     loadMovements(movementPage)
-  }, [movementPage, movementType, movementDateFrom, movementDateTo, movementSearch])
+  }, [movementPage, movementType, movementDateFrom, movementDateTo, movementSearch, selectedDepotId])
 
   const save = async () => {
     setSaving(true)
     setErrors({})
 
     try {
-      await api.post('/depot/receive', { ...form, qty: Number(form.qty) })
+      await api.post('/depot/receive', {
+        ...form,
+        qty: Number(form.qty),
+        depot_id: selectedDepotId,
+      })
       setModal(false)
-      await Promise.all([loadBaseData(), loadMovements(1)])
+      await Promise.all([loadBaseData(), loadMovements(1), reloadDepots()])
     } catch (error) {
       setErrors(error.response?.data?.errors ?? {})
     } finally {
       setSaving(false)
+    }
+  }
+
+  const openCreateDepot = () => {
+    setDepotForm(buildDepotForm(null, depots))
+    setDepotErrors({})
+    setDepotModal(true)
+  }
+
+  const openEditDepot = (depot) => {
+    setDepotForm(buildDepotForm(depot, depots))
+    setDepotErrors({})
+    setDepotModal(true)
+  }
+
+  const saveDepot = async () => {
+    setSavingDepot(true)
+    setDepotErrors({})
+
+    try {
+      const payload = {
+        name: depotForm.name,
+        code: depotForm.code || null,
+        address: depotForm.address || null,
+        note: depotForm.note || null,
+        active: depotForm.active,
+        is_default: depotForm.is_default,
+        sort_order: Number(depotForm.sort_order || 0),
+      }
+
+      let response
+
+      if (depotForm.id) {
+        response = await api.put(`/depots/${depotForm.id}`, payload)
+      } else {
+        response = await api.post('/depots', payload)
+      }
+
+      setDepotModal(false)
+      await reloadDepots()
+      if (response?.data?.id) {
+        setSelectedDepotValue(String(response.data.id))
+      }
+      await Promise.all([loadBaseData(), loadMovements(1)])
+    } catch (error) {
+      setDepotErrors(error.response?.data?.errors ?? {})
+    } finally {
+      setSavingDepot(false)
     }
   }
 
@@ -138,38 +228,42 @@ export default function DepotIndex() {
       }
 
       return (
-        item.product?.name?.toLowerCase().includes(normalizedQuery) ||
-        item.product?.reference?.toLowerCase().includes(normalizedQuery)
+        item.product?.name?.toLowerCase().includes(normalizedQuery)
+        || item.product?.reference?.toLowerCase().includes(normalizedQuery)
       )
     })
   }, [search, stock])
+
   const { items: paginatedStock, meta: stockMeta } = useMemo(
     () => paginateItems(filteredStock, stockPage, stockPerPage),
-    [filteredStock, stockPage, stockPerPage]
+    [filteredStock, stockPage, stockPerPage],
   )
 
   const totalItems = stock.reduce((sum, item) => sum + Number(item.qty ?? 0), 0)
   const lowItems = stock.filter((item) => Number(item.qty ?? 0) <= Math.max(Number(item.product?.min_stock ?? 1), 1))
   const totalValue = stock.reduce((sum, item) => sum + Number(item.qty ?? 0) * Number(item.product?.buy_price ?? item.product?.price ?? 0), 0)
   const exportParams = {
+    ...scopeParams,
     ...(movementDateFrom ? { date_from: movementDateFrom } : {}),
     ...(movementDateTo ? { date_to: movementDateTo } : {}),
     ...(movementType ? { type: movementType } : {}),
-    }
+  }
 
   useEffect(() => {
     setStockPage(1)
-  }, [search])
+  }, [search, selectedDepotId])
 
   useEffect(() => {
     if (stockPage !== stockMeta.current_page) {
       setStockPage(stockMeta.current_page)
     }
   }, [stockMeta.current_page, stockPage])
+
   const currentExportAction = tab === 'stock'
     ? {
-        title: 'Stock dépôt',
+        title: 'Stock depot',
         csvEntity: 'products',
+        csvParams: scopeParams,
         csvFilename: 'stock_depot',
         documentKey: 'depot_stock_list',
         records: filteredStock,
@@ -185,7 +279,7 @@ export default function DepotIndex() {
         documentLayouts,
       }
 
-  if (loading) {
+  if (loading || depotsLoading) {
     return <PageLoader />
   }
 
@@ -194,9 +288,19 @@ export default function DepotIndex() {
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-xl font-bold text-base-color tracking-tight">Depot</h1>
-          <p className="text-sm text-muted-color mt-0.5">Stock central, réceptions et mouvements</p>
+          <p className="text-sm text-muted-color mt-0.5">
+            Stock central, receptions et mouvements{selectedDepot ? ` | ${selectedDepot.name}` : ''}
+          </p>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-wrap items-end justify-end gap-2">
+          {canBrowseAll && (
+            <DepotScopeControls
+              depots={depots}
+              selectedValue={selectedDepotValue}
+              onChange={setSelectedDepotValue}
+              label="Depot consulte"
+            />
+          )}
           <PageExportActions {...currentExportAction} />
           <button onClick={() => { setForm({ product_id: '', qty: '', note: '' }); setErrors({}); setModal(true) }} className="btn-primary">
             <i className="fa-solid fa-plus" /> Receptionner
@@ -204,9 +308,74 @@ export default function DepotIndex() {
         </div>
       </div>
 
+      {isAdmin() && (
+        <div className="mb-5">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <h2 className="text-xs font-semibold text-muted-color uppercase tracking-wider">Depots configures</h2>
+            <button onClick={openCreateDepot} className="btn-secondary text-xs">
+              <i className="fa-solid fa-plus" /> Nouveau depot
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {depots.map((depot) => {
+              const isSelected = String(selectedDepotValue) === String(depot.id)
+
+              return (
+                <div
+                  key={depot.id}
+                  className="card"
+                  style={{
+                    borderColor: isSelected ? 'rgba(13,148,136,0.28)' : 'var(--border)',
+                    boxShadow: isSelected ? '0 0 0 1px rgba(13,148,136,0.18)' : undefined,
+                    opacity: depot.active ? 1 : 0.72,
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="text-sm font-semibold text-base-color">{depot.name}</div>
+                        {depot.is_default && <span className="badge badge-blue">Defaut</span>}
+                        {!depot.active && <span className="badge badge-red">Inactif</span>}
+                      </div>
+                      <div className="text-xs text-muted-color mt-1">{depot.code || 'Sans code'}</div>
+                      {depot.address && <div className="text-xs text-secondary-color mt-2">{depot.address}</div>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setSelectedDepotValue(String(depot.id))} className="btn-secondary text-xs">
+                        <i className="fa-solid fa-arrow-pointer" />
+                      </button>
+                      <button onClick={() => openEditDepot(depot)} className="btn-secondary text-xs">
+                        <i className="fa-solid fa-pen" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 mt-4 text-center">
+                    {[
+                      { label: 'Refs', value: depot.stocked_products_count ?? 0 },
+                      { label: 'Sessions', value: depot.open_sessions_count ?? 0 },
+                      { label: 'Equipe', value: depot.users_count ?? 0 },
+                    ].map((item) => (
+                      <div key={item.label} className="rounded-xl px-3 py-2 border border-theme" style={{ background: 'var(--surface-2)' }}>
+                        <div className="text-[11px] text-muted-color">{item.label}</div>
+                        <div className="text-sm font-bold text-base-color mt-1">{item.value}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-3 text-xs text-secondary-color">
+                    Stock total: <span className="font-mono font-semibold text-base-color">{fmt(depot.total_stock_qty)}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {[
-          { label: 'Références', value: stock.length, icon: 'fa-solid fa-box-open', color: '#0d9488' },
+          { label: 'References', value: stock.length, icon: 'fa-solid fa-box-open', color: '#0d9488' },
           { label: 'Total unites', value: fmt(totalItems), icon: 'fa-solid fa-cubes', color: '#3b82f6' },
           { label: 'Valeur stock', value: `${fmt(totalValue)} TND`, icon: 'fa-solid fa-sack-dollar', color: '#8b5cf6' },
           { label: 'Stock bas', value: lowItems.length, icon: 'fa-solid fa-triangle-exclamation', color: '#ef4444' },
@@ -225,7 +394,7 @@ export default function DepotIndex() {
 
       <div className="flex gap-1 mb-5 border-b border-theme">
         {[
-          ['stock', 'fa-solid fa-warehouse', 'Stock dépôt'],
+          ['stock', 'fa-solid fa-warehouse', 'Stock depot'],
           ['movements', 'fa-solid fa-arrows-up-down', 'Mouvements'],
         ].map(([key, icon, label]) => (
           <button
@@ -272,7 +441,7 @@ export default function DepotIndex() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left" style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['Produit', 'Référence', 'Catégorie', 'Unité', 'Qté dépôt', 'Min stock', 'Dernière maj', 'Statut'].map((heading) => (
+                  {['Produit', 'Reference', 'Categorie', 'Unite', 'Qte depot', 'Min stock', 'Derniere maj', 'Statut'].map((heading) => (
                     <th key={heading} className="pb-3 pr-4 text-xs font-semibold text-muted-color uppercase tracking-wider">
                       {heading}
                     </th>
@@ -365,7 +534,7 @@ export default function DepotIndex() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left" style={{ borderBottom: '1px solid var(--border)' }}>
-                    {['Type', 'Produit', 'Utilisateur', 'Quantité', 'Note', 'Date / heure', ''].map((heading) => (
+                    {['Type', 'Produit', 'Depot', 'Utilisateur', 'Quantite', 'Note', 'Date / heure', ''].map((heading) => (
                       <th key={heading} className="pb-3 pr-4 text-xs font-semibold text-muted-color uppercase tracking-wider">
                         {heading}
                       </th>
@@ -374,7 +543,7 @@ export default function DepotIndex() {
                 </thead>
                 <tbody>
                   {movements.map((movement) => {
-                    const config = MOVEMENT_CONFIG[movement.type] ?? { label: movement.type, icon: 'fa-solid fa-circle', color: '#64748b', bg: 'rgba(100,116,139,0.1)', sign: '' }
+                    const config = MOVEMENT_CONFIG[movement.type] ?? { label: movement.type, icon: 'fa-solid fa-circle', color: '#64748b', bg: 'rgba(100,116,139,0.1)' }
                     const quantity = Number(movement.qty ?? 0)
 
                     return (
@@ -389,6 +558,7 @@ export default function DepotIndex() {
                           <div className="font-medium text-base-color">{movement.product?.name ?? '-'}</div>
                           <div className="text-xs text-muted-color">{movement.product?.reference ?? '-'}</div>
                         </td>
+                        <td className="py-3 pr-4 text-muted-color text-xs">{movement.depot?.name ?? '-'}</td>
                         <td className="py-3 pr-4 text-secondary-color text-xs">{movement.user?.name ?? '-'}</td>
                         <td className="py-3 pr-4 font-bold font-mono text-sm" style={{ color: quantity >= 0 ? '#10b981' : '#ef4444' }}>
                           {quantity >= 0 ? '+' : ''}{fmt(quantity)}
@@ -409,7 +579,7 @@ export default function DepotIndex() {
                   })}
                   {movements.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="py-10 text-center text-muted-color">Aucun mouvement</td>
+                      <td colSpan={8} className="py-10 text-center text-muted-color">Aucun mouvement</td>
                     </tr>
                   )}
                 </tbody>
@@ -439,7 +609,7 @@ export default function DepotIndex() {
               ))}
             </select>
           </FormField>
-          <FormField label="Quantité" error={errors.qty?.[0]} required>
+          <FormField label="Quantite" error={errors.qty?.[0]} required>
             <input type="number" step="0.001" min="0.001" value={form.qty} onChange={(event) => setForm((current) => ({ ...current, qty: event.target.value }))} placeholder="0.000" />
           </FormField>
           <FormField label="Note (facultatif)" error={errors.note?.[0]}>
@@ -449,6 +619,53 @@ export default function DepotIndex() {
             <button onClick={() => setModal(false)} className="btn-secondary">Annuler</button>
             <button onClick={save} disabled={saving} className="btn-primary">
               {saving ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</> : <><i className="fa-solid fa-arrow-down-to-bracket" /> Receptionner</>}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={depotModal} onClose={() => setDepotModal(false)} title={depotForm.id ? 'Modifier un depot' : 'Nouveau depot'} size="md">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormField label="Nom" error={depotErrors.name?.[0]} required>
+              <input value={depotForm.name} onChange={(event) => setDepotForm((current) => ({ ...current, name: event.target.value }))} placeholder="Depot Bizerte" />
+            </FormField>
+            <FormField label="Code" error={depotErrors.code?.[0]}>
+              <input value={depotForm.code} onChange={(event) => setDepotForm((current) => ({ ...current, code: event.target.value }))} placeholder="bizerte" />
+            </FormField>
+          </div>
+
+          <FormField label="Adresse" error={depotErrors.address?.[0]}>
+            <input value={depotForm.address} onChange={(event) => setDepotForm((current) => ({ ...current, address: event.target.value }))} placeholder="Adresse du depot" />
+          </FormField>
+
+          <FormField label="Note" error={depotErrors.note?.[0]}>
+            <textarea rows="3" value={depotForm.note} onChange={(event) => setDepotForm((current) => ({ ...current, note: event.target.value }))} placeholder="Informations internes" />
+          </FormField>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormField label="Ordre d'affichage" error={depotErrors.sort_order?.[0]}>
+              <input type="number" min="0" value={depotForm.sort_order} onChange={(event) => setDepotForm((current) => ({ ...current, sort_order: event.target.value }))} />
+            </FormField>
+            <div className="rounded-xl border border-theme px-4 py-3" style={{ background: 'var(--surface-2)' }}>
+              <label className="flex items-center gap-3 text-sm text-base-color cursor-pointer">
+                <input type="checkbox" checked={depotForm.is_default} onChange={(event) => setDepotForm((current) => ({ ...current, is_default: event.target.checked }))} />
+                Depot par defaut
+              </label>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-theme px-4 py-3" style={{ background: 'var(--surface-2)' }}>
+            <label className="flex items-center gap-3 text-sm text-base-color cursor-pointer">
+              <input type="checkbox" checked={depotForm.active} onChange={(event) => setDepotForm((current) => ({ ...current, active: event.target.checked }))} />
+              Depot actif
+            </label>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-1">
+            <button onClick={() => setDepotModal(false)} className="btn-secondary">Annuler</button>
+            <button onClick={saveDepot} disabled={savingDepot} className="btn-primary">
+              {savingDepot ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</> : 'Enregistrer'}
             </button>
           </div>
         </div>

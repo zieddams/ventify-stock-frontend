@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import DepotScopeControls from '../../components/DepotScopeControls'
 import PageExportActions from '../../components/PageExportActions'
 import { PageLoader } from '../../components/Spinner'
+import { useDepots } from '../../hooks/useDepots'
 import { useTheme } from '../../contexts/ThemeContext'
 import api from '../../services/api'
 
@@ -50,8 +52,8 @@ function OverviewTab({ stats }) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <KpiCard label="CA aujourd'hui" value={`${fmt(stats?.today_revenue)} TND`} icon="fa-solid fa-arrow-trend-up" color="#0d9488" />
         <KpiCard label="Benefice (mois)" value={`${fmt(stats?.month_profit)} TND`} icon="fa-solid fa-coins" color="#10b981" />
-        <KpiCard label="Impayés totaux" value={`${fmt(stats?.unpaid_total)} TND`} icon="fa-solid fa-triangle-exclamation" color="#dc2626" />
-        <KpiCard label="Dépenses (mois)" value={`${fmt(stats?.month_expenses)} TND`} icon="fa-solid fa-receipt" color="#f59e0b" />
+        <KpiCard label="Impayes totaux" value={`${fmt(stats?.unpaid_total)} TND`} icon="fa-solid fa-triangle-exclamation" color="#dc2626" />
+        <KpiCard label="Depenses (mois)" value={`${fmt(stats?.month_expenses)} TND`} icon="fa-solid fa-receipt" color="#f59e0b" />
       </div>
 
       {chartData.length > 0 && (
@@ -94,7 +96,7 @@ function OverviewTab({ stats }) {
   )
 }
 
-function ProfitTab() {
+function ProfitTab({ scopeParams }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('month')
@@ -105,7 +107,7 @@ function ProfitTab() {
   useEffect(() => {
     setLoading(true)
 
-    const params = { period }
+    const params = { period, ...scopeParams }
 
     if (period === 'custom') {
       params.date_from = dateFrom
@@ -115,7 +117,7 @@ function ProfitTab() {
     api.get('/reports/profit', { params })
       .then((response) => setData(response.data))
       .finally(() => setLoading(false))
-  }, [period, dateFrom, dateTo])
+  }, [period, dateFrom, dateTo, scopeParams.depot_id])
 
   if (loading) {
     return (
@@ -214,17 +216,17 @@ function ProfitTab() {
   )
 }
 
-function SitationTab() {
+function SitationTab({ scopeParams }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7))
 
   useEffect(() => {
     setLoading(true)
-    api.get('/reports/sitation', { params: { month } })
+    api.get('/reports/sitation', { params: { month, ...scopeParams } })
       .then((response) => setData(response.data))
       .finally(() => setLoading(false))
-  }, [month])
+  }, [month, scopeParams.depot_id])
 
   return (
     <>
@@ -275,12 +277,12 @@ function SitationTab() {
 
           <div className="card">
             <h2 className="text-sm font-semibold text-base-color mb-3 flex items-center gap-2">
-              <i className="fa-solid fa-receipt" style={{ color: '#ea580c' }} /> Dépenses
+              <i className="fa-solid fa-receipt" style={{ color: '#ea580c' }} /> Depenses
             </h2>
             <table className="w-full text-sm mb-3">
               <thead>
                 <tr>
-                  {['Catégorie', 'Montant'].map((heading, index) => (
+                  {['Categorie', 'Montant'].map((heading, index) => (
                     <th key={heading} className={`pb-3 pr-4 ${index > 0 ? 'text-right' : 'text-left'}`}>
                       {heading}
                     </th>
@@ -305,25 +307,25 @@ function SitationTab() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="card">
               <h2 className="text-sm font-semibold text-base-color mb-3 flex items-center gap-2">
-              <i className="fa-solid fa-credit-card" style={{ color: '#d97706' }} /> Crédit extérieur
+                <i className="fa-solid fa-credit-card" style={{ color: '#d97706' }} /> Credit exterieur
               </h2>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-color">Crédit accordé (impayé)</span>
+                  <span className="text-muted-color">Credit accorde (impaye)</span>
                   <span className="font-mono font-bold" style={{ color: '#dc2626' }}>{fmt(data.credit?.credit_du)} TND</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-color">Crédit collecté</span>
+                  <span className="text-muted-color">Credit collecte</span>
                   <span className="font-mono font-bold" style={{ color: '#059669' }}>{fmt(data.credit?.credit_collecte)} TND</span>
                 </div>
                 <div className="flex justify-between pt-2" style={{ borderTop: '1px solid var(--border)' }}>
-                  <span className="text-secondary-color font-medium">Valeur stock dépôt</span>
+                  <span className="text-secondary-color font-medium">Valeur stock depot</span>
                   <span className="text-base-color font-mono">{fmt(data.stock_valeur)} TND</span>
                 </div>
               </div>
             </div>
 
-            <div className="card" style={{ background: 'rgba(16,185,129,0.04) !important', border: '1px solid rgba(16,185,129,0.2) !important' }}>
+            <div className="card" style={{ background: 'rgba(16,185,129,0.04)', border: '1px solid rgba(16,185,129,0.2)' }}>
               <h2 className="text-sm font-semibold text-base-color mb-3 flex items-center gap-2">
                 <i className="fa-solid fa-coins" style={{ color: '#059669' }} /> Benefice net
               </h2>
@@ -339,16 +341,19 @@ function SitationTab() {
   )
 }
 
-function MovementsTab() {
+function MovementsTab({ scopeParams }) {
   const [movements, setMovements] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.get('/depot/movements').then((response) => setMovements(response.data)).finally(() => setLoading(false))
-  }, [])
+    setLoading(true)
+    api.get('/depot/movements', { params: scopeParams })
+      .then((response) => setMovements(Array.isArray(response.data) ? response.data : (response.data?.data ?? [])))
+      .finally(() => setLoading(false))
+  }, [scopeParams.depot_id])
 
   const typeConfig = {
-    depot_in: { label: 'Réception', color: '#10b981' },
+    depot_in: { label: 'Reception', color: '#10b981' },
     depot_to_camion: { label: 'Vers camion', color: '#3b82f6' },
     camion_to_customer: { label: 'Vers client', color: '#ef4444' },
     return: { label: 'Retour', color: '#f59e0b' },
@@ -368,8 +373,8 @@ function MovementsTab() {
       <table className="w-full text-sm">
         <thead>
           <tr>
-            {['Type', 'Produit', 'Commercial', 'Quantité', 'Date'].map((heading) => (
-              <th key={heading} className={`pb-3 pr-4 ${heading === 'Quantité' ? 'text-right' : 'text-left'}`}>
+            {['Type', 'Produit', 'Depot', 'Commercial', 'Quantite', 'Date'].map((heading) => (
+              <th key={heading} className={`pb-3 pr-4 ${heading === 'Quantite' ? 'text-right' : 'text-left'}`}>
                 {heading}
               </th>
             ))}
@@ -384,6 +389,7 @@ function MovementsTab() {
               <tr key={movement.id} className="table-row">
                 <td className="py-2.5 pr-4 text-xs font-semibold" style={{ color: config.color }}>{config.label}</td>
                 <td className="py-2.5 pr-4 text-base-color">{movement.product?.name}</td>
+                <td className="py-2.5 pr-4 text-muted-color text-xs">{movement.depot?.name ?? '-'}</td>
                 <td className="py-2.5 pr-4 text-secondary-color text-xs">{movement.user?.name ?? '-'}</td>
                 <td className="py-2.5 pr-4 text-right font-mono font-bold" style={{ color: quantity >= 0 ? '#059669' : '#dc2626' }}>
                   {quantity >= 0 ? '+' : ''}{quantity.toFixed(3)}
@@ -394,7 +400,7 @@ function MovementsTab() {
           })}
           {movements.length === 0 && (
             <tr>
-              <td colSpan={5} className="py-12 text-center text-muted-color">Aucun mouvement</td>
+              <td colSpan={6} className="py-12 text-center text-muted-color">Aucun mouvement</td>
             </tr>
           )}
         </tbody>
@@ -407,10 +413,23 @@ export default function ReportsIndex() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('overview')
+  const {
+    depots,
+    selectedValue: selectedDepotValue,
+    setSelectedValue: setSelectedDepotValue,
+    selectedDepot,
+    canSelectAll,
+    scopeParams,
+  } = useDepots({
+    allowAll: true,
+    storageKey: 'reports-index-depot',
+    defaultToAll: true,
+  })
 
   useEffect(() => {
-    api.get('/stats').then((response) => setStats(response.data)).finally(() => setLoading(false))
-  }, [])
+    setLoading(true)
+    api.get('/stats', { params: scopeParams }).then((response) => setStats(response.data)).finally(() => setLoading(false))
+  }, [scopeParams.depot_id])
 
   if (loading) {
     return <PageLoader />
@@ -424,10 +443,10 @@ export default function ReportsIndex() {
   ]
 
   const exportConfig = {
-    overview: { csvEntity: 'invoices', csvFilename: 'rapport_vue_ensemble' },
-    profit: { csvEntity: 'invoices', csvFilename: 'rapport_benefices' },
-    sitation: { csvEntity: 'expenses', csvFilename: 'rapport_sitation' },
-    movements: { csvEntity: 'stock_movements', csvFilename: 'rapport_mouvements' },
+    overview: { csvEntity: 'invoices', csvFilename: 'rapport_vue_ensemble', csvParams: scopeParams },
+    profit: { csvEntity: 'invoices', csvFilename: 'rapport_benefices', csvParams: scopeParams },
+    sitation: { csvEntity: 'expenses', csvFilename: 'rapport_sitation', csvParams: scopeParams },
+    movements: { csvEntity: 'stock_movements', csvFilename: 'rapport_mouvements', csvParams: scopeParams },
   }
 
   const currentExport = exportConfig[tab] ?? {}
@@ -438,9 +457,21 @@ export default function ReportsIndex() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-base-color tracking-tight">Rapports</h1>
-            <p className="text-sm text-muted-color mt-0.5">Statistiques, benefices et SITATION</p>
+            <p className="text-sm text-muted-color mt-0.5">Statistiques, benefices et SITATION{canSelectAll ? ` | ${selectedDepot ? `Depot ${selectedDepot.name}` : 'Tous les depots'}` : ''}</p>
           </div>
-          <PageExportActions title="Rapports" {...currentExport} />
+          <div className="flex flex-wrap items-end justify-end gap-2">
+            {canSelectAll && (
+              <DepotScopeControls
+                depots={depots}
+                selectedValue={selectedDepotValue}
+                onChange={setSelectedDepotValue}
+                allowAll
+                canSelectAll={canSelectAll}
+                allLabel="Tous les depots"
+              />
+            )}
+            <PageExportActions title="Rapports" {...currentExport} />
+          </div>
         </div>
       </div>
 
@@ -460,9 +491,9 @@ export default function ReportsIndex() {
       </div>
 
       {tab === 'overview' && <OverviewTab stats={stats} />}
-      {tab === 'profit' && <ProfitTab />}
-      {tab === 'sitation' && <SitationTab />}
-      {tab === 'movements' && <MovementsTab />}
+      {tab === 'profit' && <ProfitTab scopeParams={scopeParams} />}
+      {tab === 'sitation' && <SitationTab scopeParams={scopeParams} />}
+      {tab === 'movements' && <MovementsTab scopeParams={scopeParams} />}
     </div>
   )
 }

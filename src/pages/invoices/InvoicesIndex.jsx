@@ -1,11 +1,13 @@
 import { useDeferredValue, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PaymentStatusBadge, StatusBadge } from '../../components/Badge'
+import DepotScopeControls from '../../components/DepotScopeControls'
 import PageExportActions from '../../components/PageExportActions'
 import PaginationControls from '../../components/PaginationControls'
 import RowDocumentActions from '../../components/RowDocumentActions'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
+import { useDepots } from '../../hooks/useDepots'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 import { paginateItems } from '../../utils/pagination'
@@ -68,16 +70,29 @@ export default function InvoicesIndex() {
   const [dateTo, setDateTo] = useState('')
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(20)
-  const { isAdmin } = useAuth()
+  const { user, isAdmin } = useAuth()
   const { layouts: documentLayouts } = useDocumentLayouts()
   const deferredSearch = useDeferredValue(search)
   const today = new Date().toISOString().slice(0, 10)
+  const {
+    depots,
+    selectedValue: selectedDepotValue,
+    setSelectedValue: setSelectedDepotValue,
+    selectedDepotId,
+    selectedDepot,
+    canSelectAll,
+    scopeParams,
+  } = useDepots({
+    allowAll: true,
+    storageKey: 'invoices-index-depot',
+    defaultToAll: true,
+  })
 
   const load = async () => {
     setLoading(true)
 
     try {
-      const params = {}
+      const params = { ...scopeParams }
 
       if (period) params.period = period
       if (paymentStatus) params.payment_status = paymentStatus
@@ -94,13 +109,13 @@ export default function InvoicesIndex() {
 
   useEffect(() => {
     load()
-  }, [period, paymentStatus, dateFrom, dateTo, deferredSearch])
+  }, [period, paymentStatus, dateFrom, dateTo, deferredSearch, selectedDepotId])
 
   const { items: paginatedInvoices, meta: invoicesMeta } = paginateItems(invoices, page, perPage)
 
   useEffect(() => {
     setPage(1)
-  }, [period, paymentStatus, dateFrom, dateTo, deferredSearch])
+  }, [period, paymentStatus, dateFrom, dateTo, deferredSearch, selectedDepotId])
 
   useEffect(() => {
     if (page !== invoicesMeta.current_page) {
@@ -140,21 +155,42 @@ export default function InvoicesIndex() {
     await load()
   }
 
-  const total = invoices.filter((invoice) => invoice.status !== 'cancelled').reduce((sum, invoice) => sum + Number(invoice.total ?? 0), 0)
+  const total = invoices
+    .filter((invoice) => invoice.status !== 'cancelled')
+    .reduce((sum, invoice) => sum + Number(invoice.total ?? 0), 0)
+
   const unpaid = invoices
     .filter((invoice) => invoice.payment_status !== 'paid')
     .reduce((sum, invoice) => sum + Math.max(Number(invoice.total ?? 0) - Number(invoice.paid_amount ?? 0), 0), 0)
+
   const hasFilters = period !== DEFAULT_PERIOD || paymentStatus || search || dateFrom || dateTo
-  const exportParams = getPeriodDateRange(period, dateFrom, dateTo)
+  const exportParams = {
+    ...getPeriodDateRange(period, dateFrom, dateTo),
+    ...scopeParams,
+  }
+  const depotSuffix = canSelectAll
+    ? ` | ${selectedDepot ? `Depot ${selectedDepot.name}` : 'Tous les depots'}`
+    : ''
+  const showDepotColumn = canSelectAll
 
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-xl font-bold text-base-color tracking-tight">Factures</h1>
-          <p className="text-sm text-muted-color mt-0.5">{invoices.length} facture(s) | Total: {fmt(total)} TND</p>
+          <p className="text-sm text-muted-color mt-0.5">{invoices.length} facture(s) | Total: {fmt(total)} TND{depotSuffix}</p>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-wrap items-end justify-end gap-2">
+          {canSelectAll && (
+            <DepotScopeControls
+              depots={depots}
+              selectedValue={selectedDepotValue}
+              onChange={setSelectedDepotValue}
+              allowAll
+              canSelectAll={canSelectAll}
+              allLabel="Tous les depots"
+            />
+          )}
           <PageExportActions
             title="Factures"
             csvEntity="invoices"
@@ -259,7 +295,17 @@ export default function InvoicesIndex() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left" style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['N°', 'Client', ...(isAdmin() ? ['Commercial'] : []), 'Total', 'Paiement', 'Statut', 'Date', ''].map((heading) => (
+                  {[
+                    'N°',
+                    'Client',
+                    ...(isAdmin() ? ['Commercial'] : []),
+                    ...(showDepotColumn ? ['Depot'] : []),
+                    'Total',
+                    'Paiement',
+                    'Statut',
+                    'Date',
+                    '',
+                  ].map((heading) => (
                     <th key={heading} className="pb-3 pr-4 text-xs font-semibold text-muted-color uppercase tracking-wider">
                       {heading}
                     </th>
@@ -276,6 +322,7 @@ export default function InvoicesIndex() {
                     </td>
                     <td className="py-3 pr-4 font-medium text-base-color">{invoice.customer_name}</td>
                     {isAdmin() && <td className="py-3 pr-4 text-secondary-color">{invoice.rep_name}</td>}
+                    {showDepotColumn && <td className="py-3 pr-4 text-muted-color text-xs">{invoice.depot?.name ?? '-'}</td>}
                     <td className="py-3 pr-4 font-bold text-base-color">{fmt(invoice.total)} TND</td>
                     <td className="py-3 pr-4">{invoice.payment_status && <PaymentStatusBadge status={invoice.payment_status} />}</td>
                     <td className="py-3 pr-4"><StatusBadge status={invoice.status} /></td>
@@ -303,7 +350,7 @@ export default function InvoicesIndex() {
                 ))}
                 {invoices.length === 0 && (
                   <tr>
-                    <td colSpan={isAdmin() ? 8 : 7} className="py-12 text-center">
+                    <td colSpan={isAdmin() ? (showDepotColumn ? 9 : 8) : (showDepotColumn ? 8 : 7)} className="py-12 text-center">
                       <i className="fa-solid fa-file-invoice text-3xl text-muted-color opacity-30 mb-2 block" />
                       <p className="text-muted-color text-sm">Aucune facture sur cette periode</p>
                     </td>

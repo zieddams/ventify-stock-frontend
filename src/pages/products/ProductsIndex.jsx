@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import DepotScopeControls from '../../components/DepotScopeControls'
 import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
@@ -6,6 +7,7 @@ import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
+import { useDepots } from '../../hooks/useDepots'
 import { findConfigItem, getConfigItemLabel, useConfigItems } from '../../hooks/useConfigItems'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
@@ -56,6 +58,18 @@ export default function ProductsIndex() {
   const [productPage, setProductPage] = useState(1)
   const [productPerPage, setProductPerPage] = useState(20)
   const { isAdmin } = useAuth()
+  const {
+    depots,
+    selectedValue: selectedDepotValue,
+    setSelectedValue: setSelectedDepotValue,
+    selectedDepotId,
+    selectedDepot,
+    canBrowseAll,
+    scopeParams,
+  } = useDepots({
+    allowAll: false,
+    storageKey: 'products-index-depot',
+  })
   const { items: configItems } = useConfigItems(['category', 'unit'])
 
   const categories = configItems.category ?? []
@@ -66,7 +80,7 @@ export default function ProductsIndex() {
 
     try {
       const [productsResponse, zonesResponse] = await Promise.all([
-        api.get('/products'),
+        api.get('/products', { params: scopeParams }),
         api.get('/zones'),
       ])
 
@@ -83,7 +97,7 @@ export default function ProductsIndex() {
 
   useEffect(() => {
     load()
-  }, [])
+  }, [selectedDepotId])
 
   const openCreate = () => {
     setEditing(null)
@@ -183,6 +197,7 @@ export default function ProductsIndex() {
       await api.post('/depot/receive', {
         product_id: restockProduct.id,
         qty: Number(restockQty),
+        depot_id: selectedDepotId,
         note: restockNote || `Reapprovisionnement rapide depuis la fiche produit: ${restockProduct.name}`,
       })
 
@@ -225,7 +240,7 @@ export default function ProductsIndex() {
 
   useEffect(() => {
     setProductPage(1)
-  }, [search])
+  }, [search, selectedDepotId])
 
   useEffect(() => {
     if (productPage !== productMeta.current_page) {
@@ -241,12 +256,21 @@ export default function ProductsIndex() {
     <div>
       <PageHeader
         title="Produits"
-        subtitle={`${products.length} produit(s)`}
+        subtitle={`${products.length} produit(s)${selectedDepot ? ` | Depot ${selectedDepot.name}` : ''}`}
         action={(
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex flex-wrap items-end justify-end gap-2">
+            {canBrowseAll && (
+              <DepotScopeControls
+                depots={depots}
+                selectedValue={selectedDepotValue}
+                onChange={setSelectedDepotValue}
+                label="Depot consulte"
+              />
+            )}
             <PageExportActions
               title="Produits"
               csvEntity="products"
+              csvParams={scopeParams}
               csvFilename="produits"
               documentKey="products_list"
               records={filteredProducts}

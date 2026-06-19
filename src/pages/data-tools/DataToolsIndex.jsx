@@ -1,7 +1,9 @@
 import { useMemo, useRef, useState } from 'react'
 import api from '../../services/api'
+import DepotScopeControls from '../../components/DepotScopeControls'
 import PageHeader from '../../components/PageHeader'
 import { APP_VERSION } from '../../config/appMeta'
+import { useDepots } from '../../hooks/useDepots'
 import {
   appendDataTransferHistory,
   clearDataTransferHistory,
@@ -15,6 +17,7 @@ const IMPORT_TYPES = [
     label: 'Clients',
     icon: 'fa-solid fa-users',
     color: '#3b82f6',
+    requiresDepot: false,
     fields: ['name', 'phone', 'address', 'zone_name', 'credit_balance'],
     example: 'name,phone,address,zone_name,credit_balance\nAhmed Ben Ali,+21698000001,Bizerte,Bizerte-centre,150.000',
   },
@@ -23,6 +26,7 @@ const IMPORT_TYPES = [
     label: 'Produits',
     icon: 'fa-solid fa-box-open',
     color: '#0d9488',
+    requiresDepot: false,
     fields: ['name', 'category', 'unit', 'buy_price', 'depot_price', 'min_stock', 'max_stock'],
     example: 'name,category,unit,buy_price,depot_price,min_stock,max_stock\nEau 1.5L Agrea,Boite,bouteille,0.450,0.600,1,500',
   },
@@ -31,6 +35,7 @@ const IMPORT_TYPES = [
     label: 'Dépenses historiques',
     icon: 'fa-solid fa-receipt',
     color: '#f59e0b',
+    requiresDepot: true,
     fields: ['expense_date', 'category', 'label', 'amount'],
     example: 'expense_date,category,label,amount\n2026-01-15,sfbt,Achat SFBT janvier,12500.000',
   },
@@ -39,6 +44,7 @@ const IMPORT_TYPES = [
     label: 'Factures / sorties',
     icon: 'fa-solid fa-file-invoice',
     color: '#8b5cf6',
+    requiresDepot: true,
     fields: ['invoice_date', 'customer_name', 'product_name', 'qty', 'unit_price', 'status'],
     example: 'invoice_date,customer_name,product_name,qty,unit_price,status\n2026-01-10,Ahmed Ben Ali,Eau 1.5L,24,0.600,paid',
   },
@@ -47,20 +53,24 @@ const IMPORT_TYPES = [
     label: 'Historique crédit',
     icon: 'fa-solid fa-credit-card',
     color: '#ec4899',
+    requiresDepot: false,
     fields: ['transaction_date', 'customer_name', 'type', 'amount', 'note'],
     example: 'transaction_date,customer_name,type,amount,note\n2026-01-20,Ahmed Ben Ali,payment,50.000,Remboursement partiel',
   },
 ]
 
 const EXPORT_TYPES = [
-  { value: 'customers', label: 'Clients', icon: 'fa-solid fa-users', color: '#3b82f6', hasDateRange: false },
-  { value: 'products', label: 'Produits et stock', icon: 'fa-solid fa-box-open', color: '#0d9488', hasDateRange: false },
-  { value: 'invoices', label: 'Factures', icon: 'fa-solid fa-file-invoice', color: '#8b5cf6', hasDateRange: true },
+  { value: 'customers', label: 'Clients', icon: 'fa-solid fa-users', color: '#3b82f6', hasDateRange: false, supportsDepot: false },
+  { value: 'products', label: 'Produits et stock', icon: 'fa-solid fa-box-open', color: '#0d9488', hasDateRange: false, supportsDepot: true },
+  { value: 'invoices', label: 'Factures', icon: 'fa-solid fa-file-invoice', color: '#8b5cf6', hasDateRange: true, supportsDepot: true },
   { value: 'expenses', label: 'Dépenses', icon: 'fa-solid fa-receipt', color: '#f59e0b', hasDateRange: true },
   { value: 'stock_movements', label: 'Mouvements de stock', icon: 'fa-solid fa-arrows-rotate', color: '#06b6d4', hasDateRange: true },
   { value: 'credit', label: 'Crédit clients', icon: 'fa-solid fa-credit-card', color: '#ec4899', hasDateRange: true },
   { value: 'route_sessions', label: 'Sorties journée', icon: 'fa-solid fa-truck-fast', color: '#f97316', hasDateRange: true },
 ]
+
+const IMPORT_TYPES_REQUIRING_DEPOT = new Set(['expenses', 'invoices'])
+const EXPORT_TYPES_WITH_DEPOT_SCOPE = new Set(['products', 'invoices', 'expenses', 'stock_movements', 'route_sessions'])
 
 const today = new Date().toISOString().slice(0, 10)
 const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10)
@@ -163,6 +173,7 @@ function HistoryTab({ entries, onClear }) {
             {entries.map(entry => {
               const isImport = entry.direction === 'import'
               const accent = isImport ? '#0d9488' : '#2563eb'
+              const scopeSuffix = entry.filters?.depotLabel ? ` | Depot ${entry.filters.depotLabel}` : ''
               const summary = isImport
                 ? `${entry.summary.imported ?? 0} importés · ${entry.summary.skipped ?? 0} ignorés · ${entry.summary.errorCount ?? 0} erreurs`
                 : entry.filters?.dateFrom || entry.filters?.dateTo
@@ -187,7 +198,7 @@ function HistoryTab({ entries, onClear }) {
                         </span>
                         <span className="text-sm font-semibold text-base-color">{entry.entityLabel}</span>
                       </div>
-                      <div className="text-xs text-muted-color mt-2">{summary}</div>
+                      <div className="text-xs text-muted-color mt-2">{summary}{scopeSuffix}</div>
                       {entry.fileName && (
                         <div className="text-xs font-mono text-secondary-color mt-2">{entry.fileName}</div>
                       )}
@@ -225,9 +236,35 @@ export default function DataToolsIndex() {
   const [exportError, setExportError] = useState('')
   const [lastExport, setLastExport] = useState(null)
   const [transferHistory, setTransferHistory] = useState(() => readDataTransferHistory())
+  const {
+    depots: importDepots,
+    loading: importDepotsLoading,
+    selectedValue: selectedImportDepotValue,
+    setSelectedValue: setSelectedImportDepotValue,
+    selectedDepotId: selectedImportDepotId,
+    selectedDepot: selectedImportDepot,
+  } = useDepots({
+    allowAll: false,
+    storageKey: 'data-tools-import-depot',
+  })
+  const {
+    depots: exportDepots,
+    loading: exportDepotsLoading,
+    selectedValue: selectedExportDepotValue,
+    setSelectedValue: setSelectedExportDepotValue,
+    selectedDepotId: selectedExportDepotId,
+    selectedDepot: selectedExportDepot,
+    canSelectAll,
+  } = useDepots({
+    allowAll: true,
+    defaultToAll: true,
+    storageKey: 'data-tools-export-depot',
+  })
 
   const selectedImport = IMPORT_TYPES.find(item => item.value === importType)
   const selectedExport = EXPORT_TYPES.find(item => item.value === exportType)
+  const importRequiresDepot = IMPORT_TYPES_REQUIRING_DEPOT.has(importType)
+  const exportSupportsDepot = EXPORT_TYPES_WITH_DEPOT_SCOPE.has(exportType)
   const historyEntries = useMemo(
     () => transferHistory.slice().sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()),
     [transferHistory],
@@ -268,6 +305,10 @@ export default function DataToolsIndex() {
 
   const handleImport = async () => {
     if (!file) return
+    if (importRequiresDepot && !selectedImportDepotId) {
+      setImportError('Selectionnez un depot cible avant de lancer cet import.')
+      return
+    }
 
     setImporting(true)
     setImportError('')
@@ -276,6 +317,9 @@ export default function DataToolsIndex() {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('entity_type', importType)
+    if (importRequiresDepot && selectedImportDepotId) {
+      formData.append('depot_id', String(selectedImportDepotId))
+    }
 
     try {
       const response = await api.post('/import/csv', formData, {
@@ -293,6 +337,10 @@ export default function DataToolsIndex() {
           skipped: result.skipped ?? 0,
           errorCount: result.errors?.length ?? 0,
         },
+        filters: importRequiresDepot ? {
+          depotId: selectedImportDepotId,
+          depotLabel: selectedImportDepot?.name || null,
+        } : null,
       }))
     } catch (error) {
       setImportError(error.response?.data?.message || "Erreur lors de l'import")
@@ -307,12 +355,16 @@ export default function DataToolsIndex() {
 
     try {
       const params = selectedExport.hasDateRange ? { date_from: dateFrom, date_to: dateTo } : {}
+      if (exportSupportsDepot && selectedExportDepotId) {
+        params.depot_id = selectedExportDepotId
+      }
       const filename = await downloadCsvExport(exportType, params, exportType)
 
       setLastExport({
         entity: selectedExport.label,
         filename,
         time: new Date().toLocaleTimeString('fr-FR'),
+        depotLabel: exportSupportsDepot ? (selectedExportDepot?.name ?? (canSelectAll ? 'Tous les depots' : 'Depot courant')) : null,
       })
       setTransferHistory(appendDataTransferHistory({
         direction: 'export',
@@ -325,6 +377,13 @@ export default function DataToolsIndex() {
         filters: selectedExport.hasDateRange ? {
           dateFrom,
           dateTo,
+          ...(exportSupportsDepot ? {
+            depotId: selectedExportDepotId,
+            depotLabel: selectedExportDepot?.name ?? (canSelectAll ? 'Tous les depots' : 'Depot courant'),
+          } : {}),
+        } : exportSupportsDepot ? {
+          depotId: selectedExportDepotId,
+          depotLabel: selectedExportDepot?.name ?? (canSelectAll ? 'Tous les depots' : 'Depot courant'),
         } : null,
       }))
     } catch (error) {
@@ -417,6 +476,24 @@ export default function DataToolsIndex() {
                 ))}
               </div>
             </div>
+
+            {importRequiresDepot && (
+              <div className="card">
+                <h2 className="text-sm font-semibold text-base-color mb-3">
+                  <i className="fa-solid fa-warehouse text-teal-500 mr-2" />Depot cible
+                </h2>
+                <DepotScopeControls
+                  depots={importDepots}
+                  loading={importDepotsLoading}
+                  selectedValue={selectedImportDepotValue}
+                  onChange={setSelectedImportDepotValue}
+                  label="Import vers"
+                />
+                <p className="text-xs text-muted-color mt-3">
+                  Les imports de depenses et de factures seront attaches a ce depot.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="lg:col-span-2 space-y-4">
@@ -610,6 +687,20 @@ export default function DataToolsIndex() {
                 </div>
               )}
 
+              {exportSupportsDepot && (
+                <div className="mb-5">
+                  <DepotScopeControls
+                    depots={exportDepots}
+                    loading={exportDepotsLoading}
+                    selectedValue={selectedExportDepotValue}
+                    onChange={setSelectedExportDepotValue}
+                    allowAll
+                    canSelectAll={canSelectAll}
+                    label="Perimetre export"
+                  />
+                </div>
+              )}
+
               {exportError && (
                 <div
                   className="mb-4 p-3 rounded-xl border text-sm"
@@ -636,6 +727,9 @@ export default function DataToolsIndex() {
                 <div>
                   <div className="text-sm font-semibold text-base-color">Export réussi à {lastExport.time}</div>
                   <div className="text-xs text-muted-color">{lastExport.filename}</div>
+                  {lastExport.depotLabel && (
+                    <div className="text-xs text-muted-color mt-1">Depot: {lastExport.depotLabel}</div>
+                  )}
                 </div>
               </div>
             )}

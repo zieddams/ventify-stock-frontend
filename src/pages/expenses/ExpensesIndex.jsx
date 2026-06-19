@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
+import DepotScopeControls from '../../components/DepotScopeControls'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
 import RowDocumentActions from '../../components/RowDocumentActions'
+import { useDepots } from '../../hooks/useDepots'
 import { getConfigItemLabel, getDefaultConfigValue, useConfigItems } from '../../hooks/useConfigItems'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
@@ -10,12 +12,13 @@ import { paginateItems } from '../../utils/pagination'
 
 const DEFAULT_MONTH = new Date().toISOString().slice(0, 7)
 
-function buildEmptyExpense(defaultCategory) {
+function buildEmptyExpense(defaultCategory, depotId = null) {
   return {
     expense_date: new Date().toISOString().slice(0, 10),
     category: defaultCategory,
     label: '',
     amount: '',
+    depot_id: depotId ? String(depotId) : '',
   }
 }
 
@@ -25,10 +28,23 @@ export default function ExpensesIndex() {
   const allCategories = configItems.expense_category ?? []
   const activeCategories = allCategories.filter((item) => item.active !== false)
   const defaultCategory = getDefaultConfigValue(activeCategories, allCategories[0]?.value ?? 'divers')
+  const {
+    depots,
+    selectedValue: selectedDepotValue,
+    setSelectedValue: setSelectedDepotValue,
+    selectedDepotId,
+    selectedDepot,
+    canSelectAll,
+    scopeParams,
+  } = useDepots({
+    allowAll: true,
+    storageKey: 'expenses-index-depot',
+    defaultToAll: true,
+  })
 
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
-  const [form, setForm] = useState(buildEmptyExpense(defaultCategory))
+  const [form, setForm] = useState(buildEmptyExpense(defaultCategory, selectedDepotId))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [month, setMonth] = useState(DEFAULT_MONTH)
@@ -39,19 +55,17 @@ export default function ExpensesIndex() {
   const [perPage, setPerPage] = useState(15)
 
   useEffect(() => {
-    setForm((current) => {
-      if (current.category) {
-        return current
-      }
-
-      return { ...current, category: defaultCategory }
-    })
-  }, [defaultCategory])
+    setForm((current) => ({
+      ...current,
+      category: current.category || defaultCategory,
+      depot_id: current.depot_id || (selectedDepotId ? String(selectedDepotId) : ''),
+    }))
+  }, [defaultCategory, selectedDepotId])
 
   const load = async () => {
     setLoading(true)
 
-    const params = {}
+    const params = { ...scopeParams }
 
     if (month && !dateFrom && !dateTo) {
       params.month = month
@@ -68,7 +82,7 @@ export default function ExpensesIndex() {
 
     try {
       const response = await api.get('/expenses', { params })
-      setExpenses(response.data ?? [])
+      setExpenses(Array.isArray(response.data) ? response.data : [])
     } finally {
       setLoading(false)
     }
@@ -76,21 +90,19 @@ export default function ExpensesIndex() {
 
   useEffect(() => {
     load()
-  }, [month, categoryFilter, dateFrom, dateTo])
+  }, [month, categoryFilter, dateFrom, dateTo, selectedDepotId])
 
   const total = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0)
   const { items: paginatedExpenses, meta: expensesMeta } = useMemo(
     () => paginateItems(expenses, page, perPage),
-    [expenses, page, perPage]
+    [expenses, page, perPage],
   )
 
-  const categoryMap = useMemo(() => {
-    return new Map(allCategories.map((item) => [String(item.value), item]))
-  }, [allCategories])
+  const categoryMap = useMemo(() => new Map(allCategories.map((item) => [String(item.value), item])), [allCategories])
 
   useEffect(() => {
     setPage(1)
-  }, [month, categoryFilter, dateFrom, dateTo])
+  }, [month, categoryFilter, dateFrom, dateTo, selectedDepotId])
 
   useEffect(() => {
     if (page !== expensesMeta.current_page) {
@@ -104,8 +116,11 @@ export default function ExpensesIndex() {
     setError('')
 
     try {
-      await api.post('/expenses', form)
-      setForm(buildEmptyExpense(defaultCategory))
+      await api.post('/expenses', {
+        ...form,
+        depot_id: form.depot_id === '' ? (selectedDepotId ?? null) : Number(form.depot_id),
+      })
+      setForm(buildEmptyExpense(defaultCategory, selectedDepotId))
       await load()
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Erreur lors de l'enregistrement")
@@ -124,30 +139,45 @@ export default function ExpensesIndex() {
   }
 
   const hasFilters = month !== DEFAULT_MONTH || categoryFilter || dateFrom || dateTo
-  const exportParams = dateFrom || dateTo
-    ? { date_from: dateFrom || dateTo, date_to: dateTo || dateFrom }
-    : month
-      ? {
-          date_from: `${month}-01`,
-          date_to: new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).toISOString().slice(0, 10),
-        }
-      : {}
+  const exportParams = {
+    ...(dateFrom || dateTo
+      ? { date_from: dateFrom || dateTo, date_to: dateTo || dateFrom }
+      : month
+        ? {
+            date_from: `${month}-01`,
+            date_to: new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).toISOString().slice(0, 10),
+          }
+        : {}),
+    ...scopeParams,
+  }
 
   return (
     <div>
       <PageHeader
-        title="Dépenses"
-        subtitle="Enregistrement et suivi des charges"
+        title="Depenses"
+        subtitle={`Enregistrement et suivi des charges${canSelectAll ? ` | ${selectedDepot ? `Depot ${selectedDepot.name}` : 'Tous les depots'}` : ''}`}
         action={(
-          <PageExportActions
-            title="Dépenses"
-            csvEntity="expenses"
-            csvParams={exportParams}
-            csvFilename="depenses"
-            documentKey="expenses_list"
-            records={expenses}
-            documentLayouts={documentLayouts}
-          />
+          <div className="flex flex-wrap items-end justify-end gap-2">
+            {canSelectAll && (
+              <DepotScopeControls
+                depots={depots}
+                selectedValue={selectedDepotValue}
+                onChange={setSelectedDepotValue}
+                allowAll
+                canSelectAll={canSelectAll}
+                allLabel="Tous les depots"
+              />
+            )}
+            <PageExportActions
+              title="Depenses"
+              csvEntity="expenses"
+              csvParams={exportParams}
+              csvFilename="depenses"
+              documentKey="expenses_list"
+              records={expenses}
+              documentLayouts={documentLayouts}
+            />
+          </div>
         )}
       />
 
@@ -170,7 +200,7 @@ export default function ExpensesIndex() {
               <input type="date" value={form.expense_date} onChange={(event) => setForm((current) => ({ ...current, expense_date: event.target.value }))} required />
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Catégorie</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Categorie</label>
               <select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}>
                 {activeCategories.map((item) => (
                   <option key={item.id} value={item.value}>
@@ -180,7 +210,18 @@ export default function ExpensesIndex() {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Libellé</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Depot</label>
+              <select value={form.depot_id} onChange={(event) => setForm((current) => ({ ...current, depot_id: event.target.value }))}>
+                <option value="">Selectionner...</option>
+                {depots.filter((depot) => depot.active !== false).map((depot) => (
+                  <option key={depot.id} value={depot.id}>
+                    {depot.code ? `${depot.name} (${depot.code})` : depot.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Libelle</label>
               <input type="text" placeholder="Description..." value={form.label} onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))} required />
             </div>
             <div>
@@ -196,7 +237,7 @@ export default function ExpensesIndex() {
         <div className="lg:col-span-2 card">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-semibold text-base-color">Dépenses</h2>
+              <h2 className="text-sm font-semibold text-base-color">Depenses</h2>
               <p className="text-xs text-muted-color mt-0.5">
                 Total: <span className="font-mono font-semibold" style={{ color: '#ea580c' }}>{total.toFixed(3)} TND</span>
               </p>
@@ -220,7 +261,7 @@ export default function ExpensesIndex() {
               />
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Catégorie</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Categorie</label>
               <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
                 <option value="">Toutes</option>
                 {allCategories.map((item) => (
@@ -279,7 +320,7 @@ export default function ExpensesIndex() {
               <table className="w-full text-sm">
                 <thead>
                   <tr>
-                    {['Date', 'Catégorie', 'Libellé', 'Montant', ''].map((heading) => (
+                    {['Date', 'Categorie', 'Depot', 'Libelle', 'Montant', ''].map((heading) => (
                       <th key={heading} className={`pb-3 pr-3 ${heading === 'Montant' ? 'text-right' : 'text-left'}`}>
                         {heading}
                       </th>
@@ -289,7 +330,7 @@ export default function ExpensesIndex() {
                 <tbody>
                   {expenses.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center">
+                      <td colSpan={6} className="py-12 text-center">
                         <i className="fa-solid fa-receipt text-3xl text-muted-color opacity-30 mb-2 block" />
                         <p className="text-muted-color text-sm">Aucune depense sur cette periode</p>
                       </td>
@@ -313,6 +354,7 @@ export default function ExpensesIndex() {
                             {categoryLabel}
                           </span>
                         </td>
+                        <td className="py-3 pr-3 text-muted-color text-xs">{expense.depot?.name ?? '-'}</td>
                         <td className="py-3 pr-3 text-base-color">{expense.label}</td>
                         <td className="py-3 pr-3 text-right font-mono font-bold text-sm" style={{ color: '#ea580c' }}>
                           {Number(expense.amount).toFixed(3)}
@@ -323,7 +365,7 @@ export default function ExpensesIndex() {
                               documentKey="expense_item"
                               record={expense}
                               documentLayouts={documentLayouts}
-                              title={`Dépense ${expense.label || expense.id}`}
+                              title={`Depense ${expense.label || expense.id}`}
                               filename={`depense_${expense.id}`}
                             />
                             <button onClick={() => handleDelete(expense.id)} className="text-muted-color hover:text-red-500 transition-colors p-1">

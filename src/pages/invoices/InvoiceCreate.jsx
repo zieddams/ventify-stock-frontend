@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import DepotScopeControls from '../../components/DepotScopeControls'
 import { PageLoader } from '../../components/Spinner'
+import { useDepots } from '../../hooks/useDepots'
 import { getConfigItemLabel, getDefaultConfigValue, useConfigItems } from '../../hooks/useConfigItems'
 import api from '../../services/api'
 
@@ -20,6 +22,18 @@ export default function InvoiceCreate() {
   const { items: configItems } = useConfigItems('payment_method')
   const paymentMethods = configItems.payment_method ?? []
   const defaultPaymentMethod = getDefaultConfigValue(paymentMethods, 'cash')
+  const {
+    depots,
+    selectedValue: selectedDepotValue,
+    setSelectedValue: setSelectedDepotValue,
+    selectedDepotId,
+    selectedDepot,
+    canBrowseAll,
+    scopeParams,
+  } = useDepots({
+    allowAll: false,
+    storageKey: 'invoice-create-depot',
+  })
 
   const [customer, setCustomer] = useState(null)
   const [customerSearch, setCustomerSearch] = useState('')
@@ -30,12 +44,17 @@ export default function InvoiceCreate() {
   const [paymentMethod, setPaymentMethod] = useState(defaultPaymentMethod)
 
   useEffect(() => {
-    Promise.all([api.get('/products'), api.get('/customers')]).then(([productsResponse, customersResponse]) => {
-      setProducts(productsResponse.data ?? [])
-      setCustomers(customersResponse.data ?? [])
+    setLoading(true)
+
+    Promise.all([
+      api.get('/products', { params: scopeParams }),
+      api.get('/customers'),
+    ]).then(([productsResponse, customersResponse]) => {
+      setProducts(Array.isArray(productsResponse.data) ? productsResponse.data : [])
+      setCustomers(Array.isArray(customersResponse.data) ? customersResponse.data : [])
       setLoading(false)
     })
-  }, [])
+  }, [selectedDepotId])
 
   useEffect(() => {
     setPaymentMethod((current) => current || defaultPaymentMethod)
@@ -81,6 +100,11 @@ export default function InvoiceCreate() {
       return
     }
 
+    if (!selectedDepotId) {
+      setErrors({ depot_id: ['Selectionnez un depot pour cette facture.'] })
+      return
+    }
+
     if (lines.some((line) => !line.product_id || Number(line.qty) <= 0)) {
       setErrors({ lines: ['Toutes les lignes doivent avoir un produit et une quantite'] })
       return
@@ -103,6 +127,7 @@ export default function InvoiceCreate() {
         paid_amount: paidAmount === '' ? 0 : Number(paidAmount),
         payment_method: paymentMethod,
         notes,
+        depot_id: selectedDepotId,
         lines: lines.map((line) => ({
           product_id: line.product_id || null,
           product_name: line.product_name,
@@ -125,10 +150,10 @@ export default function InvoiceCreate() {
     return <PageLoader />
   }
 
-  const filteredCustomers = customers.filter((item) =>
-    item.name?.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    item.phone?.includes(customerSearch)
-  )
+  const filteredCustomers = customers.filter((item) => (
+    item.name?.toLowerCase().includes(customerSearch.toLowerCase())
+    || item.phone?.includes(customerSearch)
+  ))
 
   return (
     <div className="max-w-4xl">
@@ -140,7 +165,28 @@ export default function InvoiceCreate() {
         <span className="text-secondary-color">Nouvelle facture</span>
       </div>
 
-      <h1 className="text-xl font-bold text-base-color mb-6">Nouvelle facture</h1>
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-xl font-bold text-base-color">Nouvelle facture</h1>
+          <p className="text-sm text-muted-color mt-1">
+            {selectedDepot ? `Depot courant: ${selectedDepot.name}` : 'Selection du depot requise'}
+          </p>
+        </div>
+        {canBrowseAll && (
+          <DepotScopeControls
+            depots={depots}
+            selectedValue={selectedDepotValue}
+            onChange={setSelectedDepotValue}
+            label="Depot de facturation"
+          />
+        )}
+      </div>
+
+      {errors.depot_id?.[0] && (
+        <div className="mb-4 rounded-xl px-3 py-3 text-sm" style={{ color: '#dc2626', background: 'rgba(239,68,68,0.08)' }}>
+          {errors.depot_id[0]}
+        </div>
+      )}
 
       <div className="card mb-4">
         <h2 className="text-sm font-semibold text-base-color mb-3">
@@ -223,7 +269,7 @@ export default function InvoiceCreate() {
                       <option value="">Selectionner...</option>
                       {products.map((product) => (
                         <option key={product.id} value={product.id}>
-                          {product.name}
+                          {product.name} {product.depot_qty != null ? `- depot ${fmt(product.depot_qty)}` : ''}
                         </option>
                       ))}
                     </select>

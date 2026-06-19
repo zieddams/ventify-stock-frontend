@@ -1,15 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
+import { RoleBadge } from '../../components/Badge'
+import DepotScopeControls from '../../components/DepotScopeControls'
 import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
 import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
-import { RoleBadge } from '../../components/Badge'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
+import { useDepots } from '../../hooks/useDepots'
 import api from '../../services/api'
 import { paginateItems } from '../../utils/pagination'
 
-const EMPTY = { name: '', email: '', password: '', role: 'rep', zone_id: '' }
+const EMPTY = {
+  name: '',
+  email: '',
+  password: '',
+  role: 'rep',
+  zone_id: '',
+  depot_id: '',
+}
 
 export default function UsersIndex() {
   const [users, setUsers] = useState([])
@@ -30,10 +39,22 @@ export default function UsersIndex() {
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(15)
   const { user: me } = useAuth()
+  const {
+    depots,
+    selectedValue: selectedDepotValue,
+    setSelectedValue: setSelectedDepotValue,
+    selectedDepotId,
+    canSelectAll,
+  } = useDepots({
+    allowAll: true,
+    storageKey: 'users-index-depot',
+    defaultToAll: true,
+  })
 
   const canManageUsers = ['admin', 'developer'].includes(me?.role)
   const canManageAssignments = ['admin', 'developer', 'comptable'].includes(me?.role)
   const totalAssignedCustomers = users.reduce((sum, entry) => sum + Number(entry.customers_count ?? 0), 0)
+
   const filteredAssignmentCustomers = useMemo(() => {
     const query = assignmentSearch.trim().toLowerCase()
 
@@ -43,28 +64,39 @@ export default function UsersIndex() {
       }
 
       return (
-        customer.name?.toLowerCase().includes(query) ||
-        customer.phone?.includes(assignmentSearch) ||
-        customer.wilaya?.toLowerCase().includes(query) ||
-        customer.owner?.name?.toLowerCase().includes(query)
+        customer.name?.toLowerCase().includes(query)
+        || customer.phone?.includes(assignmentSearch)
+        || customer.wilaya?.toLowerCase().includes(query)
+        || customer.owner?.name?.toLowerCase().includes(query)
       )
     })
   }, [assignmentCustomers, assignmentSearch])
+
   const { items: paginatedUsers, meta: usersMeta } = useMemo(
     () => paginateItems(users, page, perPage),
-    [page, perPage, users]
+    [page, perPage, users],
   )
 
   const load = async () => {
-    const [usersResponse, zonesResponse] = await Promise.all([api.get('/users'), api.get('/zones')])
-    setUsers(usersResponse.data)
-    setZones(zonesResponse.data)
-    setLoading(false)
+    setLoading(true)
+
+    try {
+      const params = selectedDepotId ? { depot_id: selectedDepotId } : {}
+      const [usersResponse, zonesResponse] = await Promise.all([
+        api.get('/users', { params }),
+        api.get('/zones'),
+      ])
+
+      setUsers(Array.isArray(usersResponse.data) ? usersResponse.data : [])
+      setZones(Array.isArray(zonesResponse.data) ? zonesResponse.data : [])
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
     load()
-  }, [])
+  }, [selectedDepotId])
 
   useEffect(() => {
     if (page !== usersMeta.current_page) {
@@ -74,7 +106,10 @@ export default function UsersIndex() {
 
   const openCreate = () => {
     setEditing(null)
-    setForm(EMPTY)
+    setForm({
+      ...EMPTY,
+      depot_id: selectedDepotId ? String(selectedDepotId) : '',
+    })
     setErrors({})
     setModal(true)
   }
@@ -87,12 +122,14 @@ export default function UsersIndex() {
       password: '',
       role: entry.role,
       zone_id: entry.zone_id ?? '',
+      depot_id: entry.depot_id ?? '',
     })
     setErrors({})
     setModal(true)
   }
 
-  const zoneName = (id) => zones.find((zone) => zone.id === id)?.name ?? '--'
+  const zoneName = (id) => zones.find((zone) => Number(zone.id) === Number(id))?.name ?? '--'
+  const depotName = (id) => depots.find((depot) => Number(depot.id) === Number(id))?.name ?? '--'
   const canManageList = (entry) => ['rep', 'comptable'].includes(entry.role)
 
   const save = async () => {
@@ -103,6 +140,7 @@ export default function UsersIndex() {
       const payload = {
         ...form,
         zone_id: form.zone_id === '' ? null : Number(form.zone_id),
+        depot_id: form.depot_id === '' ? null : Number(form.depot_id),
       }
 
       if (editing) {
@@ -154,8 +192,7 @@ export default function UsersIndex() {
       const assignedCustomers = Array.isArray(assignedResponse.data) ? assignedResponse.data : []
 
       setAssignmentCustomers(
-        [...allCustomers]
-          .sort((left, right) => String(left.name ?? '').localeCompare(String(right.name ?? ''), 'fr'))
+        [...allCustomers].sort((left, right) => String(left.name ?? '').localeCompare(String(right.name ?? ''), 'fr')),
       )
       setSelectedCustomerIds(assignedCustomers.map((customer) => Number(customer.id)))
     } finally {
@@ -199,7 +236,25 @@ export default function UsersIndex() {
       <PageHeader
         title="Utilisateurs"
         subtitle={`${users.length} utilisateur(s) enregistres · ${totalAssignedCustomers} client(s) affectes`}
-        action={canManageUsers ? <button onClick={openCreate} className="btn-primary"><i className="fa-solid fa-plus" /> Nouvel utilisateur</button> : null}
+        action={(
+          <div className="flex flex-wrap items-end justify-end gap-2">
+            {canSelectAll && (
+              <DepotScopeControls
+                depots={depots}
+                selectedValue={selectedDepotValue}
+                onChange={setSelectedDepotValue}
+                allowAll
+                canSelectAll={canSelectAll}
+                allLabel="Tous les depots"
+              />
+            )}
+            {canManageUsers && (
+              <button onClick={openCreate} className="btn-primary">
+                <i className="fa-solid fa-plus" /> Nouvel utilisateur
+              </button>
+            )}
+          </div>
+        )}
       />
 
       <div className="card">
@@ -207,7 +262,7 @@ export default function UsersIndex() {
           <table className="w-full text-sm">
             <thead>
               <tr>
-                {['Utilisateur', 'Email', 'Role', 'Zone', 'Liste clients', 'Statut', 'Cree le', 'Actions'].map((heading) => (
+                {['Utilisateur', 'Email', 'Role', 'Zone', 'Depot', 'Liste clients', 'Statut', 'Cree le', 'Actions'].map((heading) => (
                   <th key={heading} className="pb-3 pr-4 text-left">{heading}</th>
                 ))}
               </tr>
@@ -229,6 +284,7 @@ export default function UsersIndex() {
                   <td className="py-3 pr-4 text-secondary-color text-xs font-mono">{entry.email}</td>
                   <td className="py-3 pr-4"><RoleBadge role={entry.role} /></td>
                   <td className="py-3 pr-4 text-muted-color text-xs">{zoneName(entry.zone_id)}</td>
+                  <td className="py-3 pr-4 text-muted-color text-xs">{entry.depot?.name ?? depotName(entry.depot_id)}</td>
                   <td className="py-3 pr-4 text-secondary-color text-xs font-semibold">{Number(entry.customers_count ?? 0)} client(s)</td>
                   <td className="py-3 pr-4">
                     <span className={`text-xs font-semibold ${entry.active ? 'text-emerald-600' : 'text-muted-color'}`}>
@@ -273,7 +329,7 @@ export default function UsersIndex() {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted-color">Aucun utilisateur</td>
+                  <td colSpan={9} className="py-12 text-center text-muted-color">Aucun utilisateur</td>
                 </tr>
               )}
             </tbody>
@@ -329,6 +385,17 @@ export default function UsersIndex() {
               </select>
             </FormField>
           </div>
+
+          <FormField label="Depot principal" error={errors.depot_id?.[0]}>
+            <select value={form.depot_id} onChange={(event) => setForm((current) => ({ ...current, depot_id: event.target.value }))}>
+              <option value="">Aucun</option>
+              {depots.filter((depot) => depot.active !== false).map((depot) => (
+                <option key={depot.id} value={depot.id}>
+                  {depot.code ? `${depot.name} (${depot.code})` : depot.name}
+                </option>
+              ))}
+            </select>
+          </FormField>
 
           <div className="flex justify-end gap-3 pt-2">
             <button onClick={() => setModal(false)} className="btn-secondary">Annuler</button>

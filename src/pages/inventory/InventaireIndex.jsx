@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import DepotScopeControls from '../../components/DepotScopeControls'
 import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
 import { PageLoader } from '../../components/Spinner'
+import { useDepots } from '../../hooks/useDepots'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 import { extractPaginationMeta, paginateItems } from '../../utils/pagination'
@@ -14,6 +16,18 @@ function fmt(value) {
 
 export default function InventaireIndex() {
   const { layouts: documentLayouts } = useDocumentLayouts()
+  const {
+    depots,
+    selectedValue: selectedDepotValue,
+    setSelectedValue: setSelectedDepotValue,
+    selectedDepotId,
+    selectedDepot,
+    canBrowseAll,
+    scopeParams,
+  } = useDepots({
+    allowAll: false,
+    storageKey: 'inventory-index-depot',
+  })
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [counts, setCounts] = useState({})
@@ -37,7 +51,7 @@ export default function InventaireIndex() {
     setLoading(true)
 
     try {
-      const response = await api.get('/products')
+      const response = await api.get('/products', { params: scopeParams })
       const list = Array.isArray(response.data) ? response.data : (response.data?.data ?? [])
       setProducts(list.filter((product) => product.active))
     } finally {
@@ -53,6 +67,7 @@ export default function InventaireIndex() {
         params: {
           page,
           per_page: 15,
+          ...scopeParams,
           ...(historySearch.trim() ? { q: historySearch.trim() } : {}),
           ...(historyDateFrom ? { date_from: historyDateFrom } : {}),
           ...(historyDateTo ? { date_to: historyDateTo } : {}),
@@ -73,11 +88,11 @@ export default function InventaireIndex() {
 
   useEffect(() => {
     loadProducts()
-  }, [])
+  }, [selectedDepotId])
 
   useEffect(() => {
     loadHistory(historyPage)
-  }, [historyPage, historySearch, historyDateFrom, historyDateTo])
+  }, [historyPage, historySearch, historyDateFrom, historyDateTo, selectedDepotId])
 
   const handleCount = (id, value) => {
     setCounts((current) => ({ ...current, [id]: value }))
@@ -85,7 +100,7 @@ export default function InventaireIndex() {
 
   const countedProducts = useMemo(
     () => products.filter((product) => counts[product.id] !== undefined && counts[product.id] !== ''),
-    [counts, products]
+    [counts, products],
   )
 
   const handleSubmit = async () => {
@@ -101,7 +116,11 @@ export default function InventaireIndex() {
     setSaving(true)
 
     try {
-      const response = await api.post('/inventory/count', { lines, note: note || null })
+      const response = await api.post('/inventory/count', {
+        lines,
+        note: note || null,
+        depot_id: selectedDepotId,
+      })
       setResult(response.data)
       setShowModal(true)
       setCounts({})
@@ -114,17 +133,20 @@ export default function InventaireIndex() {
     }
   }
 
-  const filteredProducts = products.filter((product) =>
-    !search || product.name.toLowerCase().includes(search.toLowerCase()) || product.reference?.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredProducts = products.filter((product) => (
+    !search
+    || product.name.toLowerCase().includes(search.toLowerCase())
+    || product.reference?.toLowerCase().includes(search.toLowerCase())
+  ))
+
   const { items: paginatedProducts, meta: productsMeta } = useMemo(
     () => paginateItems(filteredProducts, productPage, productPerPage),
-    [filteredProducts, productPage, productPerPage]
+    [filteredProducts, productPage, productPerPage],
   )
 
   useEffect(() => {
     setProductPage(1)
-  }, [search])
+  }, [search, selectedDepotId])
 
   useEffect(() => {
     if (productPage !== productsMeta.current_page) {
@@ -140,13 +162,22 @@ export default function InventaireIndex() {
     <div>
       <PageHeader
         title="Inventaire"
-        subtitle="Comptage physique du stock et historique d'ajustement"
+        subtitle={`Comptage physique du stock et historique d'ajustement${selectedDepot ? ` | Depot ${selectedDepot.name}` : ''}`}
         action={(
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex flex-wrap items-end justify-end gap-2">
+            {canBrowseAll && (
+              <DepotScopeControls
+                depots={depots}
+                selectedValue={selectedDepotValue}
+                onChange={setSelectedDepotValue}
+                label="Depot inventorie"
+              />
+            )}
             <PageExportActions
               title="Inventaire"
               csvEntity="stock_movements"
               csvParams={{
+                ...scopeParams,
                 ...(historyDateFrom ? { date_from: historyDateFrom } : {}),
                 ...(historyDateTo ? { date_to: historyDateTo } : {}),
                 type: 'adjustment',
@@ -171,7 +202,7 @@ export default function InventaireIndex() {
       <div className="mb-5 rounded-2xl p-4 border flex items-start gap-3" style={{ background: 'rgba(59,130,246,0.04)', borderColor: 'rgba(59,130,246,0.18)' }}>
         <i className="fa-solid fa-circle-info mt-0.5 flex-shrink-0" style={{ color: '#3b82f6' }} />
         <div className="text-sm" style={{ color: '#2563eb' }}>
-          Saisissez uniquement les produits comptes. Chaque ecart cree un mouvement d'ajustement historise avec l'utilisateur, la date et la note de batch.
+          Saisissez uniquement les produits comptes. Chaque ecart cree un mouvement d'ajustement historise avec l'utilisateur, la date, le depot et la note de batch.
         </div>
       </div>
 
@@ -305,6 +336,9 @@ export default function InventaireIndex() {
                       <div className="text-sm font-semibold text-base-color">{movement.product?.name ?? 'Produit supprime'}</div>
                       <div className="text-xs text-muted-color mt-0.5">
                         {movement.product?.reference || '-'} | {movement.user?.name || '-'}
+                      </div>
+                      <div className="text-[11px] text-muted-color mt-1">
+                        Depot: {movement.depot?.name ?? '-'}
                       </div>
                     </div>
                     <div className="text-right">

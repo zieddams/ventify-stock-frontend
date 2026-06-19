@@ -5,8 +5,10 @@ import { Circle, MapContainer, Marker, TileLayer } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import api from '../services/api'
+import DepotScopeControls from '../components/DepotScopeControls'
 import { PageLoader } from '../components/Spinner'
 import { useAuth } from '../contexts/AuthContext'
+import { useDepots } from '../hooks/useDepots'
 import QuantityInput from '../components/QuantityInput'
 
 const HEARTBEAT_REFRESH_MS = 20 * 1000
@@ -235,7 +237,11 @@ function RestockRow({ item, onDone }) {
     if (qty <= 0) return
     setSaving(true)
     try {
-      await api.post('/depot/receive', { product_id: item.product?.id ?? item.product_id, qty })
+      await api.post('/depot/receive', {
+        product_id: item.product?.id ?? item.product_id,
+        qty,
+        depot_id: item.depot_id ?? item.depot?.id ?? null,
+      })
       setOpen(false)
       onDone()
     } catch {}
@@ -246,7 +252,9 @@ function RestockRow({ item, onDone }) {
     <div className="flex items-center gap-3">
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium text-base-color truncate">{item.product?.name ?? '—'}</div>
-        <div className="text-xs text-muted-color">{item.product?.unit ?? ''}</div>
+        <div className="text-xs text-muted-color">
+          {[item.product?.unit, item.depot?.name].filter(Boolean).join(' | ') || 'Depot non defini'}
+        </div>
       </div>
 
       <span className="badge badge-red text-xs font-mono px-2">
@@ -312,11 +320,13 @@ function DemoBanner({ hasDemoData, demoCount, onSeed, onClear, seeding, clearing
 }
 
 /* ─── AR Aging widget ───────────────────────────────────────────────────────── */
-function AgingWidget() {
+function AgingWidget({ depotId = null, depotName = '' }) {
   const [aging, setAging] = useState(null)
   useEffect(() => {
-    api.get('/reports/aging').then(r => setAging(r.data)).catch(() => {})
-  }, [])
+    api.get('/reports/aging', {
+      params: depotId ? { depot_id: depotId } : {},
+    }).then(r => setAging(r.data)).catch(() => setAging(null))
+  }, [depotId])
   if (!aging) return null
 
   const buckets = [
@@ -339,6 +349,12 @@ function AgingWidget() {
           Voir tout <i className="fa-solid fa-arrow-right" style={{ fontSize: 9 }} />
         </Link>
       </div>
+
+      {depotName && (
+        <div className="text-xs text-muted-color mb-4">
+          Perimetre: {depotName}
+        </div>
+      )}
 
       {/* Bucket KPIs */}
       <div className="grid grid-cols-4 gap-2 mb-4">
@@ -400,13 +416,27 @@ export default function Dashboard() {
   const [hoveredSessionId, setHoveredSessionId] = useState(null)
   const [pinnedSessionId, setPinnedSessionId] = useState(null)
   const { isAdmin }             = useAuth()
+  const {
+    depots,
+    loading: depotsLoading,
+    selectedValue: selectedDepotValue,
+    setSelectedValue: setSelectedDepotValue,
+    selectedDepotId,
+    selectedDepot,
+    canSelectAll,
+  } = useDepots({
+    allowAll: true,
+    storageKey: 'dashboard-depot',
+    defaultToAll: true,
+  })
 
   const load = useCallback(async () => {
     try {
       if (isAdmin()) {
+        const params = selectedDepotId ? { depot_id: selectedDepotId } : {}
         const [sRes, sessRes] = await Promise.all([
-          api.get('/stats'),
-          api.get('/sessions'),
+          api.get('/stats', { params }),
+          api.get('/sessions', { params }),
         ])
         setStats(sRes.data)
         setSessions(sessRes.data)
@@ -415,10 +445,13 @@ export default function Dashboard() {
           const dr = await api.get('/demo/status')
           setDemoState({ hasDemoData: dr.data.has_demo, count: dr.data.count })
         } catch {}
+      } else {
+        setStats(null)
+        setSessions([])
       }
     } catch {}
     finally { setLoading(false) }
-  }, [isAdmin])
+  }, [isAdmin, selectedDepotId])
 
   useEffect(() => {
     load()
@@ -465,16 +498,35 @@ export default function Dashboard() {
     : '0.0'
   const previewSessionId = pinnedSessionId ?? hoveredSessionId
   const previewSession = sessions.find((session) => String(session.id) === String(previewSessionId)) ?? null
+  const dashboardScopeLabel = selectedDepot
+    ? `${selectedDepot.name}${selectedDepot.code ? ` (${selectedDepot.code})` : ''}`
+    : 'Tous les depots'
+  const showSessionDepotColumn = canSelectAll && depots.length > 1
 
   return (
     <div>
       {/* ── Page header ─────────────────────────────────────────────────── */}
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-base-color tracking-tight">Tableau de bord</h1>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-base-color tracking-tight">Tableau de bord</h1>
         <p className="text-sm text-muted-color mt-0.5">El Irtiwaa — vue en temps réel <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-1 mb-0.5" /></p>
       </div>
 
       {/* ── Admin view ──────────────────────────────────────────────────── */}
+      <div className="mb-6 -mt-2 flex flex-wrap items-end gap-3">
+        <DepotScopeControls
+          depots={depots}
+          loading={depotsLoading}
+          selectedValue={selectedDepotValue}
+          onChange={setSelectedDepotValue}
+          allowAll
+          canSelectAll={canSelectAll}
+          label="Perimetre"
+        />
+      </div>
+
+      </div>
+
       {isAdmin() && stats ? (
         <>
           {/* Demo banner */}
@@ -582,7 +634,7 @@ export default function Dashboard() {
           </div>
 
           {/* AR Aging — admin also sees it */}
-          <AgingWidget />
+          <AgingWidget depotId={selectedDepotId} depotName={dashboardScopeLabel} />
 
           {/* Sessions table */}
           <div className="card">
@@ -592,7 +644,9 @@ export default function Dashboard() {
                 Sessions commerciaux
               </h2>
               <div className="text-xs text-muted-color">
-                Survol pour apercu carte, epingle pour garder le suivi visible.
+                {showSessionDepotColumn
+                  ? `Scope ${dashboardScopeLabel} - survol pour apercu carte, epingle pour garder le suivi visible.`
+                  : 'Survol pour apercu carte, epingle pour garder le suivi visible.'}
               </div>
             </div>
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.45fr)_360px] gap-4">
@@ -667,7 +721,7 @@ export default function Dashboard() {
         /* ── Rep / non-admin view ────────────────────────────────────────── */
         <div>
           {/* AR Aging — important for reps to see their credit exposure */}
-          <AgingWidget />
+          <AgingWidget depotId={selectedDepotId} depotName={dashboardScopeLabel} />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link to="/invoices"

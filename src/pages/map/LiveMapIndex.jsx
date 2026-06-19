@@ -4,8 +4,10 @@ import { Circle, MapContainer, Marker, Popup, Polyline, useMap } from 'react-lea
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.gridlayer.googlemutant'
+import DepotScopeControls from '../../components/DepotScopeControls'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
+import { useDepots } from '../../hooks/useDepots'
 import api from '../../services/api'
 import { subscribeToOpsMonitor } from '../../services/realtime'
 
@@ -1200,6 +1202,19 @@ function TerrainTab({
 
 export default function LiveMapIndex() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const {
+    depots,
+    loading: depotsLoading,
+    selectedValue: selectedDepotValue,
+    setSelectedValue: setSelectedDepotValue,
+    selectedDepotId,
+    selectedDepot,
+    canSelectAll,
+  } = useDepots({
+    allowAll: true,
+    storageKey: 'live-map-depot',
+    defaultToAll: true,
+  })
   const [customers, setCustomers] = useState([])
   const [zones, setZones] = useState([])
   const [mapSettings, setMapSettings] = useState(() => normalizeMapSettings())
@@ -1265,7 +1280,9 @@ export default function LiveMapIndex() {
     }
 
     try {
-      const response = await api.get('/monitor/terrain')
+      const response = await api.get('/monitor/terrain', {
+        params: selectedDepotId ? { depot_id: selectedDepotId } : {},
+      })
       setTerrain(response.data ?? { generated_at: null, stats: {}, reps: [] })
       setTerrainError('')
       initialTerrainLoaded.current = true
@@ -1274,7 +1291,7 @@ export default function LiveMapIndex() {
     } finally {
       setLoadingTerrain(false)
     }
-  }, [])
+  }, [selectedDepotId])
 
   const loadRouteTrace = useCallback(async (routeSessionId) => {
     if (!routeSessionId) {
@@ -1409,6 +1426,9 @@ export default function LiveMapIndex() {
   const terrainMappedCount = terrain.reps.filter(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude)).length
   const terrainOnlineCount = terrain.stats?.online_users ?? terrain.stats?.online_reps ?? 0
   const providerConfig = resolveProviderConfig(mapSettings)
+  const terrainScopeLabel = selectedDepot
+    ? `${selectedDepot.name}${selectedDepot.code ? ` (${selectedDepot.code})` : ''}`
+    : 'Tous les depots'
   const terrainSubtitle = terrain.generated_at
     ? `${terrain.stats?.reps_total ?? 0} commerciaux suivis · MAJ ${formatDateTime(terrain.generated_at)}`
     : 'Suivi mobile, GPS et stock terrain'
@@ -1419,27 +1439,40 @@ export default function LiveMapIndex() {
         title="Carte & terrain"
         subtitle={activeTab === 'terrain'
           ? (terrain.generated_at
-            ? `${terrainMappedCount}/${terrainTrackedCount} comptes positionnes - ${terrainOnlineCount} en ligne - MAJ ${formatDateTime(terrain.generated_at)}`
+            ? `${terrainMappedCount}/${terrainTrackedCount} comptes positionnes - ${terrainOnlineCount} en ligne - ${terrainScopeLabel} - MAJ ${formatDateTime(terrain.generated_at)}`
             : terrainSubtitle)
           : customerSubtitle}
         action={(
-          <button
-            onClick={() => {
-              loadMapSettings()
-              if (activeTab === 'terrain') {
-                loadTerrain()
-                const selectedRep = terrain.reps.find(rep => String(rep.id) === String(selectedRepId))
-                if (selectedRep?.route_session?.id) {
-                  loadRouteTrace(selectedRep.route_session.id)
+          <div className="flex flex-wrap items-end justify-end gap-3">
+            {activeTab === 'terrain' && (
+              <DepotScopeControls
+                depots={depots}
+                loading={depotsLoading}
+                selectedValue={selectedDepotValue}
+                onChange={setSelectedDepotValue}
+                allowAll
+                canSelectAll={canSelectAll}
+                label="Perimetre terrain"
+              />
+            )}
+            <button
+              onClick={() => {
+                loadMapSettings()
+                if (activeTab === 'terrain') {
+                  loadTerrain()
+                  const selectedRep = terrain.reps.find(rep => String(rep.id) === String(selectedRepId))
+                  if (selectedRep?.route_session?.id) {
+                    loadRouteTrace(selectedRep.route_session.id)
+                  }
+                } else {
+                  loadClients()
                 }
-              } else {
-                loadClients()
-              }
-            }}
-            className="btn-secondary text-xs py-2"
-          >
-            <i className="fa-solid fa-rotate-right" /> Actualiser
-          </button>
+              }}
+              className="btn-secondary text-xs py-2"
+            >
+              <i className="fa-solid fa-rotate-right" /> Actualiser
+            </button>
+          </div>
         )}
       />
 

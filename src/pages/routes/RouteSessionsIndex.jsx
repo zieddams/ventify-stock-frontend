@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import DepotScopeControls from '../../components/DepotScopeControls'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
 import RowDocumentActions from '../../components/RowDocumentActions'
 import { PageLoader } from '../../components/Spinner'
+import { useDepots } from '../../hooks/useDepots'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 import { extractPaginationMeta } from '../../utils/pagination'
@@ -41,11 +43,24 @@ export default function RouteSessionsIndex() {
   const [date, setDate] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const {
+    depots,
+    selectedValue: selectedDepotValue,
+    setSelectedValue: setSelectedDepotValue,
+    selectedDepotId,
+    selectedDepot,
+    canSelectAll,
+    scopeParams,
+  } = useDepots({
+    allowAll: true,
+    storageKey: 'route-sessions-index-depot',
+    defaultToAll: true,
+  })
 
   useEffect(() => {
     setLoading(true)
 
-    const params = { page }
+    const params = { page, ...scopeParams }
 
     if (date) {
       params.date = date
@@ -64,33 +79,46 @@ export default function RouteSessionsIndex() {
         setMeta(pagination)
       })
       .finally(() => setLoading(false))
-  }, [page, date, dateFrom, dateTo])
+  }, [page, date, dateFrom, dateTo, selectedDepotId])
 
   const totalVendu = sessions.reduce((sum, item) => sum + Number(item.total_sold ?? 0), 0)
   const totalProfit = sessions.reduce((sum, item) => sum + Number(item.profit_total ?? 0), 0)
   const hasFilters = date || dateFrom || dateTo
-  const exportParams = date
-    ? { date_from: date, date_to: date }
-    : {
-        ...(dateFrom ? { date_from: dateFrom } : {}),
-        ...(dateTo ? { date_to: dateTo } : {}),
-      }
+  const exportParams = {
+    ...(date ? { date_from: date, date_to: date } : {
+      ...(dateFrom ? { date_from: dateFrom } : {}),
+      ...(dateTo ? { date_to: dateTo } : {}),
+    }),
+    ...scopeParams,
+  }
 
   return (
     <div>
       <PageHeader
         title="Sorties journee"
-        subtitle="BON DE SORTIE - sessions journalieres par commercial"
+        subtitle={`BON DE SORTIE - sessions journalieres par commercial${canSelectAll ? ` | ${selectedDepot ? `Depot ${selectedDepot.name}` : 'Tous les depots'}` : ''}`}
         action={(
-          <PageExportActions
-            title="Sorties journee"
-            csvEntity="route_sessions"
-            csvParams={exportParams}
-            csvFilename="sorties_journee"
-            documentKey="route_sessions_list"
-            records={sessions}
-            documentLayouts={documentLayouts}
-          />
+          <div className="flex flex-wrap items-end justify-end gap-2">
+            {canSelectAll && (
+              <DepotScopeControls
+                depots={depots}
+                selectedValue={selectedDepotValue}
+                onChange={setSelectedDepotValue}
+                allowAll
+                canSelectAll={canSelectAll}
+                allLabel="Tous les depots"
+              />
+            )}
+            <PageExportActions
+              title="Sorties journee"
+              csvEntity="route_sessions"
+              csvParams={exportParams}
+              csvFilename="sorties_journee"
+              documentKey="route_sessions_list"
+              records={sessions}
+              documentLayouts={documentLayouts}
+            />
+          </div>
         )}
       />
 
@@ -179,19 +207,19 @@ export default function RouteSessionsIndex() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-                <thead>
-                  <tr>
-                    {['Date', 'Commercial', 'Zone', 'Camion', 'Total vendu', 'Benefice', 'Credit accorde', 'Statut', ''].map((heading) => (
-                      <th key={heading} className={`pb-3 pr-4 ${['Total vendu', 'Benefice', 'Credit accorde'].includes(heading) ? 'text-right' : 'text-left'}`}>
-                        {heading}
-                      </th>
+              <thead>
+                <tr>
+                  {['Date', 'Commercial', 'Depot', 'Zone', 'Camion', 'Total vendu', 'Benefice', 'Credit accorde', 'Statut', ''].map((heading) => (
+                    <th key={heading} className={`pb-3 pr-4 ${['Total vendu', 'Benefice', 'Credit accorde'].includes(heading) ? 'text-right' : 'text-left'}`}>
+                      {heading}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {sessions.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center">
+                    <td colSpan={10} className="py-12 text-center">
                       <i className="fa-solid fa-truck-fast text-3xl text-muted-color opacity-30 mb-2 block" />
                       <p className="text-muted-color text-sm">Aucune session trouvee</p>
                     </td>
@@ -201,6 +229,7 @@ export default function RouteSessionsIndex() {
                   <tr key={session.id} className="table-row">
                     <td className="py-3 pr-4 font-semibold text-base-color">{fmtDate(session.session_date)}</td>
                     <td className="py-3 pr-4 text-secondary-color">{session.rep?.name ?? '-'}</td>
+                    <td className="py-3 pr-4 text-muted-color text-xs">{session.depot?.name ?? '-'}</td>
                     <td className="py-3 pr-4 text-muted-color text-xs">{session.zone?.name ?? '-'}</td>
                     <td className="py-3 pr-4 text-muted-color text-xs">
                       {session.camion?.name ? (
