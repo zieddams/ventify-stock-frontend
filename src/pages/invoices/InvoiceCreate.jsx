@@ -32,7 +32,7 @@ export default function InvoiceCreate() {
     scopeParams,
   } = useDepots({
     allowAll: false,
-    storageKey: 'invoice-create-depot',
+    storageKey: 'app-depot-scope',
   })
 
   const [customer, setCustomer] = useState(null)

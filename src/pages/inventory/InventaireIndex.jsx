@@ -26,7 +26,7 @@ export default function InventaireIndex() {
     scopeParams,
   } = useDepots({
     allowAll: false,
-    storageKey: 'inventory-index-depot',
+    storageKey: 'app-depot-scope',
   })
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)

@@ -53,7 +53,7 @@ export default function RouteSessionsIndex() {
     scopeParams,
   } = useDepots({
     allowAll: true,
-    storageKey: 'route-sessions-index-depot',
+    storageKey: 'app-depot-scope',
     defaultToAll: true,
   })
 

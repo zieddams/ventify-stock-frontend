@@ -5,7 +5,6 @@ import { Circle, MapContainer, Marker, TileLayer } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import api from '../services/api'
-import DepotScopeControls from '../components/DepotScopeControls'
 import { PageLoader } from '../components/Spinner'
 import { useAuth } from '../contexts/AuthContext'
 import { useDepots } from '../hooks/useDepots'
@@ -410,23 +409,18 @@ export default function Dashboard() {
   const [stats, setStats]       = useState(null)
   const [sessions, setSessions] = useState([])
   const [loading, setLoading]   = useState(true)
-  const [demoState, setDemoState] = useState({ hasDemoData: false, count: 0 })
-  const [seeding, setSeeding]   = useState(false)
-  const [clearing, setClearing] = useState(false)
   const [hoveredSessionId, setHoveredSessionId] = useState(null)
   const [pinnedSessionId, setPinnedSessionId] = useState(null)
   const { isAdmin }             = useAuth()
   const {
     depots,
     loading: depotsLoading,
-    selectedValue: selectedDepotValue,
-    setSelectedValue: setSelectedDepotValue,
     selectedDepotId,
     selectedDepot,
     canSelectAll,
   } = useDepots({
     allowAll: true,
-    storageKey: 'dashboard-depot',
+    storageKey: 'app-depot-scope',
     defaultToAll: true,
   })
 
@@ -441,10 +435,6 @@ export default function Dashboard() {
         setStats(sRes.data)
         setSessions(sessRes.data)
 
-        try {
-          const dr = await api.get('/demo/status')
-          setDemoState({ hasDemoData: dr.data.has_demo, count: dr.data.count })
-        } catch {}
       } else {
         setStats(null)
         setSessions([])
@@ -465,27 +455,7 @@ export default function Dashboard() {
     }
   }, [pinnedSessionId, sessions])
 
-  const handleSeed = async () => {
-    setSeeding(true)
-    try {
-      await api.post('/demo/seed')
-      // Run the seeder via artisan — in practice this queues; reload after 2s
-      setTimeout(load, 2000)
-    } catch {}
-    setSeeding(false)
-  }
-
-  const handleClear = async () => {
-    if (!confirm('Supprimer toutes les données de démo ?')) return
-    setClearing(true)
-    try {
-      await api.post('/demo/clear')
-      setTimeout(load, 1000)
-    } catch {}
-    setClearing(false)
-  }
-
-  if (loading) return <PageLoader />
+  if (loading || depotsLoading) return <PageLoader />
 
   const chartData = (stats?.revenue_by_day ?? []).map(d => ({
     date:    d.date?.slice(5),
@@ -513,31 +483,11 @@ export default function Dashboard() {
       </div>
 
       {/* ── Admin view ──────────────────────────────────────────────────── */}
-      <div className="mb-6 -mt-2 flex flex-wrap items-end gap-3">
-        <DepotScopeControls
-          depots={depots}
-          loading={depotsLoading}
-          selectedValue={selectedDepotValue}
-          onChange={setSelectedDepotValue}
-          allowAll
-          canSelectAll={canSelectAll}
-          label="Perimetre"
-        />
-      </div>
 
       </div>
 
       {isAdmin() && stats ? (
         <>
-          {/* Demo banner */}
-          <DemoBanner
-            hasDemoData={demoState.hasDemoData}
-            demoCount={demoState.count}
-            onSeed={handleSeed}
-            onClear={handleClear}
-            seeding={seeding}
-            clearing={clearing}
-          />
 
           {/* KPI row 1 */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">

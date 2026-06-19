@@ -22,6 +22,7 @@ const EMPTY_OVERVIEW = {
   },
   fresh_install: {
     delete: {},
+    reset: {},
     keep: {},
   },
   bug_recipients: SUPPORT_BUG_RECIPIENTS,
@@ -548,8 +549,8 @@ export default function DeveloperToolsIndex() {
               <div>
                 <h2 className="text-sm font-semibold text-base-color">Fresh install securise</h2>
                 <p className="text-xs text-muted-color mt-1">
-                  Reinitialise l'operationnel tout en conservant les bases metier: utilisateurs, produits, zones,
-                  camions et configuration.
+                  Reinitialise l'operationnel, recree un depot principal propre et deux camions El Irtiwaa,
+                  tout en conservant les bases metier: utilisateurs, produits, zones et configuration.
                 </p>
               </div>
               <button onClick={loadOverview} className="btn-secondary text-xs">
@@ -557,15 +558,20 @@ export default function DeveloperToolsIndex() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <CountTable
                 title="Donnees conservees"
                 description="Base metier conservee apres la remise a zero."
                 values={overview.fresh_install?.keep}
               />
               <CountTable
+                title="Elements recrees"
+                description="Depots et flotte regeneree pour repartir sur une base propre."
+                values={overview.fresh_install?.reset}
+              />
+              <CountTable
                 title="Donnees supprimees"
-                description="Operationnel, mouvements, sessions, tickets et historique."
+                description="Operationnel, mouvements, sessions, tickets, notifications et historique."
                 values={overview.fresh_install?.delete}
                 tone="danger"
               />

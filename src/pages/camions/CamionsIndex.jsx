@@ -118,7 +118,7 @@ export default function CamionsIndex() {
     scopeParams,
   } = useDepots({
     allowAll: false,
-    storageKey: 'camions-index-depot',
+    storageKey: 'app-depot-scope',
   })
 
   const load = async ({ keepLoading = false } = {}) => {

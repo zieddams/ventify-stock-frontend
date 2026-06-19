@@ -68,7 +68,7 @@ export default function ProductsIndex() {
     scopeParams,
   } = useDepots({
     allowAll: false,
-    storageKey: 'products-index-depot',
+    storageKey: 'app-depot-scope',
   })
   const { items: configItems } = useConfigItems(['category', 'unit'])
 

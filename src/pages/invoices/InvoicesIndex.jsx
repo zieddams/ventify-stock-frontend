@@ -84,7 +84,7 @@ export default function InvoicesIndex() {
     scopeParams,
   } = useDepots({
     allowAll: true,
-    storageKey: 'invoices-index-depot',
+    storageKey: 'app-depot-scope',
     defaultToAll: true,
   })
 

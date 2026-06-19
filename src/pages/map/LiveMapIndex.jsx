@@ -1212,7 +1212,7 @@ export default function LiveMapIndex() {
     canSelectAll,
   } = useDepots({
     allowAll: true,
-    storageKey: 'live-map-depot',
+    storageKey: 'app-depot-scope',
     defaultToAll: true,
   })
   const [customers, setCustomers] = useState([])

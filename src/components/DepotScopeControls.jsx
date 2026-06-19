@@ -1,11 +1,32 @@
 import { ALL_DEPOTS_VALUE } from '../hooks/useDepots'
 
-function depotLabel(depot) {
+export function formatDepotLabel(depot) {
   if (!depot) {
     return ''
   }
 
   return depot.code ? `${depot.name} (${depot.code})` : depot.name
+}
+
+export function DepotSelectionInfo({
+  depot = null,
+  hint = null,
+}) {
+  return (
+    <div
+      className="rounded-2xl border border-theme px-3 py-2.5"
+      style={{ background: 'var(--surface-2)' }}
+    >
+      <div className="text-sm font-medium text-base-color">
+        {formatDepotLabel(depot) || 'Depot non defini'}
+      </div>
+      {hint && (
+        <div className="text-[11px] text-muted-color mt-1">
+          {hint}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function DepotScopeControls({
@@ -19,6 +40,20 @@ export default function DepotScopeControls({
   allLabel = 'Tous les depots',
   disabled = false,
 }) {
+  const selectedDepot = depots.find((depot) => String(depot.id) === String(selectedValue)) ?? depots[0] ?? null
+  const shouldRenderStatic = depots.length === 1
+
+  if (shouldRenderStatic) {
+    return (
+      <div className="min-w-[220px]">
+        <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-color mb-1">
+          {label}
+        </label>
+        <DepotSelectionInfo depot={selectedDepot} />
+      </div>
+    )
+  }
+
   return (
     <div className="min-w-[220px]">
       <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-color mb-1">
@@ -34,7 +69,7 @@ export default function DepotScopeControls({
         )}
         {depots.map((depot) => (
           <option key={depot.id} value={String(depot.id)}>
-            {depotLabel(depot)}
+            {formatDepotLabel(depot)}
           </option>
         ))}
       </select>

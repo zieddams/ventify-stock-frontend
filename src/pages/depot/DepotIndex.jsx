@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import DepotScopeControls from '../../components/DepotScopeControls'
 import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
@@ -68,12 +67,11 @@ export default function DepotIndex() {
     setSelectedValue: setSelectedDepotValue,
     selectedDepotId,
     selectedDepot,
-    canBrowseAll,
     scopeParams,
   } = useDepots({
     allowAll: false,
     includeInactive: isAdmin(),
-    storageKey: 'depot-index-scope',
+    storageKey: 'app-depot-scope',
   })
 
   const [stock, setStock] = useState([])
@@ -181,6 +179,29 @@ export default function DepotIndex() {
     setDepotForm(buildDepotForm(depot, depots))
     setDepotErrors({})
     setDepotModal(true)
+  }
+
+  const deleteDepot = async (depot) => {
+    if (!depot) {
+      return
+    }
+
+    if (!confirm(`Supprimer le depot ${depot.name} ? Cette action reste bloquee si le depot contient encore du stock ou un historique lie.`)) {
+      return
+    }
+
+    try {
+      const response = await api.delete(`/depots/${depot.id}`)
+      const fallbackDepotId = response.data?.fallback_depot_id
+
+      if (fallbackDepotId) {
+        setSelectedDepotValue(String(fallbackDepotId))
+      }
+
+      await Promise.all([reloadDepots(), loadBaseData(), loadMovements(1)])
+    } catch (error) {
+      alert(error.response?.data?.message || 'Impossible de supprimer ce depot pour le moment.')
+    }
   }
 
   const saveDepot = async () => {
@@ -293,14 +314,6 @@ export default function DepotIndex() {
           </p>
         </div>
         <div className="flex flex-wrap items-end justify-end gap-2">
-          {canBrowseAll && (
-            <DepotScopeControls
-              depots={depots}
-              selectedValue={selectedDepotValue}
-              onChange={setSelectedDepotValue}
-              label="Depot consulte"
-            />
-          )}
           <PageExportActions {...currentExportAction} />
           <button onClick={() => { setForm({ product_id: '', qty: '', note: '' }); setErrors({}); setModal(true) }} className="btn-primary">
             <i className="fa-solid fa-plus" /> Receptionner
@@ -341,12 +354,17 @@ export default function DepotIndex() {
                       {depot.address && <div className="text-xs text-secondary-color mt-2">{depot.address}</div>}
                     </div>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => setSelectedDepotValue(String(depot.id))} className="btn-secondary text-xs">
+                      <button onClick={() => setSelectedDepotValue(String(depot.id))} className="btn-secondary text-xs" title="Consulter ce depot">
                         <i className="fa-solid fa-arrow-pointer" />
                       </button>
-                      <button onClick={() => openEditDepot(depot)} className="btn-secondary text-xs">
+                      <button onClick={() => openEditDepot(depot)} className="btn-secondary text-xs" title="Modifier ce depot">
                         <i className="fa-solid fa-pen" />
                       </button>
+                      {!depot.is_default && (
+                        <button onClick={() => deleteDepot(depot)} className="btn-secondary text-xs text-red-500" title="Supprimer ce depot">
+                          <i className="fa-solid fa-trash" />
+                        </button>
+                      )}
                     </div>
                   </div>
 

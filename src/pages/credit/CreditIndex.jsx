@@ -41,7 +41,7 @@ export default function CreditIndex() {
     scopeParams,
   } = useDepots({
     allowAll: true,
-    storageKey: 'credit-index-depot',
+    storageKey: 'app-depot-scope',
     defaultToAll: true,
   })
 

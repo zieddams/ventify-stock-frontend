@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import DepotScopeControls from '../../components/DepotScopeControls'
+import DepotScopeControls, { DepotSelectionInfo } from '../../components/DepotScopeControls'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
@@ -38,9 +38,11 @@ export default function ExpensesIndex() {
     scopeParams,
   } = useDepots({
     allowAll: true,
-    storageKey: 'expenses-index-depot',
+    storageKey: 'app-depot-scope',
     defaultToAll: true,
   })
+
+  const singleDepot = depots.length === 1 ? depots[0] : null
 
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
@@ -58,9 +60,9 @@ export default function ExpensesIndex() {
     setForm((current) => ({
       ...current,
       category: current.category || defaultCategory,
-      depot_id: current.depot_id || (selectedDepotId ? String(selectedDepotId) : ''),
+      depot_id: current.depot_id || (selectedDepotId ? String(selectedDepotId) : (singleDepot ? String(singleDepot.id) : '')),
     }))
-  }, [defaultCategory, selectedDepotId])
+  }, [defaultCategory, selectedDepotId, singleDepot])
 
   const load = async () => {
     setLoading(true)
@@ -118,7 +120,7 @@ export default function ExpensesIndex() {
     try {
       await api.post('/expenses', {
         ...form,
-        depot_id: form.depot_id === '' ? (selectedDepotId ?? null) : Number(form.depot_id),
+        depot_id: form.depot_id === '' ? (selectedDepotId ?? singleDepot?.id ?? null) : Number(form.depot_id),
       })
       setForm(buildEmptyExpense(defaultCategory, selectedDepotId))
       await load()
@@ -211,14 +213,18 @@ export default function ExpensesIndex() {
             </div>
             <div>
               <label className="block text-xs text-muted-color mb-1 font-medium">Depot</label>
-              <select value={form.depot_id} onChange={(event) => setForm((current) => ({ ...current, depot_id: event.target.value }))}>
-                <option value="">Selectionner...</option>
-                {depots.filter((depot) => depot.active !== false).map((depot) => (
-                  <option key={depot.id} value={depot.id}>
-                    {depot.code ? `${depot.name} (${depot.code})` : depot.name}
-                  </option>
-                ))}
-              </select>
+              {singleDepot ? (
+                <DepotSelectionInfo depot={singleDepot} />
+              ) : (
+                <select value={form.depot_id} onChange={(event) => setForm((current) => ({ ...current, depot_id: event.target.value }))}>
+                  <option value="">Selectionner...</option>
+                  {depots.filter((depot) => depot.active !== false).map((depot) => (
+                    <option key={depot.id} value={depot.id}>
+                      {depot.code ? `${depot.name} (${depot.code})` : depot.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
               <label className="block text-xs text-muted-color mb-1 font-medium">Libelle</label>

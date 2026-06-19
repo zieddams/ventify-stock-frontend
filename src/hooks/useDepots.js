@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 
 export const ALL_DEPOTS_VALUE = 'all'
+const DEPOT_SCOPE_EVENT = 'irtiwaa:depot-scope-change'
 
 function normalizeDepotId(value) {
   if (value == null || value === '' || value === ALL_DEPOTS_VALUE) {
@@ -59,6 +60,32 @@ export function useDepots(options = {}) {
 
     return canSelectAll && defaultToAll ? ALL_DEPOTS_VALUE : ''
   })
+  const selectedValueRef = useRef(selectedValue)
+
+  useEffect(() => {
+    selectedValueRef.current = selectedValue
+  }, [selectedValue])
+
+  const syncSelection = useCallback((value) => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const nextValue = value ?? ''
+
+    try {
+      localStorage.setItem(scopedStorageKey, nextValue)
+    } catch {
+      // ignore storage issues
+    }
+
+    window.dispatchEvent(new CustomEvent(DEPOT_SCOPE_EVENT, {
+      detail: {
+        key: scopedStorageKey,
+        value: nextValue,
+      },
+    }))
+  }, [scopedStorageKey])
 
   const reload = useCallback(async () => {
     if (!enabled) {
@@ -85,6 +112,46 @@ export function useDepots(options = {}) {
   useEffect(() => {
     reload()
   }, [reload])
+
+  useEffect(() => {
+    if (!enabled || typeof window === 'undefined') {
+      return undefined
+    }
+
+    const handleScopeChange = (event) => {
+      const detail = event?.detail ?? {}
+
+      if (detail.key !== scopedStorageKey) {
+        return
+      }
+
+      const nextValue = detail.value || ''
+
+      if (selectedValueRef.current !== nextValue) {
+        setSelectedValue(nextValue)
+      }
+    }
+
+    const handleStorage = (event) => {
+      if (event.key !== scopedStorageKey) {
+        return
+      }
+
+      const nextValue = event.newValue || ''
+
+      if (selectedValueRef.current !== nextValue) {
+        setSelectedValue(nextValue)
+      }
+    }
+
+    window.addEventListener(DEPOT_SCOPE_EVENT, handleScopeChange)
+    window.addEventListener('storage', handleStorage)
+
+    return () => {
+      window.removeEventListener(DEPOT_SCOPE_EVENT, handleScopeChange)
+      window.removeEventListener('storage', handleStorage)
+    }
+  }, [enabled, scopedStorageKey])
 
   const fallbackValue = useMemo(() => {
     const defaultDepot = depots.find((depot) => depot.is_default) ?? depots[0]
@@ -129,20 +196,16 @@ export function useDepots(options = {}) {
   }, [canSelectAll, depots, enabled, fallbackValue, readStoredValue, selectedValue])
 
   useEffect(() => {
-    if (!enabled || typeof window === 'undefined') {
+    if (!enabled) {
       return
     }
 
-    try {
-      localStorage.setItem(scopedStorageKey, selectedValue)
-    } catch {
-      // ignore storage issues
-    }
-  }, [enabled, scopedStorageKey, selectedValue])
+    syncSelection(selectedValue)
+  }, [enabled, selectedValue, syncSelection])
 
   const selectedDepotId = useMemo(() => normalizeDepotId(selectedValue), [selectedValue])
   const selectedDepot = useMemo(
-    () => depots.find((depot) => Number(depot.id) === selectedDepotId) ?? null,
+    () => depots.find((depot) => Number(depot.id) === selectedDepotId) ?? (depots.length === 1 ? depots[0] : null),
     [depots, selectedDepotId],
   )
 
@@ -159,4 +222,3 @@ export function useDepots(options = {}) {
     scopeParams: selectedDepotId ? { depot_id: selectedDepotId } : {},
   }
 }
-

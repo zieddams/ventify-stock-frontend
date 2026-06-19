@@ -422,7 +422,7 @@ export default function ReportsIndex() {
     scopeParams,
   } = useDepots({
     allowAll: true,
-    storageKey: 'reports-index-depot',
+    storageKey: 'app-depot-scope',
     defaultToAll: true,
   })
 

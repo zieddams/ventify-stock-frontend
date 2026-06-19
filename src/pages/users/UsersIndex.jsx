@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { RoleBadge } from '../../components/Badge'
-import DepotScopeControls from '../../components/DepotScopeControls'
+import DepotScopeControls, { DepotSelectionInfo } from '../../components/DepotScopeControls'
 import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
 import PageHeader from '../../components/PageHeader'
@@ -47,10 +47,11 @@ export default function UsersIndex() {
     canSelectAll,
   } = useDepots({
     allowAll: true,
-    storageKey: 'users-index-depot',
+    storageKey: 'app-depot-scope',
     defaultToAll: true,
   })
 
+  const singleDepot = depots.length === 1 ? depots[0] : null
   const canManageUsers = ['admin', 'developer'].includes(me?.role)
   const canManageAssignments = ['admin', 'developer', 'comptable'].includes(me?.role)
   const totalAssignedCustomers = users.reduce((sum, entry) => sum + Number(entry.customers_count ?? 0), 0)
@@ -104,11 +105,23 @@ export default function UsersIndex() {
     }
   }, [page, usersMeta.current_page])
 
+  useEffect(() => {
+    if (!modal || !singleDepot) {
+      return
+    }
+
+    setForm((current) => (
+      current.depot_id
+        ? current
+        : { ...current, depot_id: String(singleDepot.id) }
+    ))
+  }, [modal, singleDepot])
+
   const openCreate = () => {
     setEditing(null)
     setForm({
       ...EMPTY,
-      depot_id: selectedDepotId ? String(selectedDepotId) : '',
+      depot_id: selectedDepotId ? String(selectedDepotId) : (singleDepot ? String(singleDepot.id) : ''),
     })
     setErrors({})
     setModal(true)
@@ -122,7 +135,7 @@ export default function UsersIndex() {
       password: '',
       role: entry.role,
       zone_id: entry.zone_id ?? '',
-      depot_id: entry.depot_id ?? '',
+      depot_id: entry.depot_id ?? (singleDepot ? String(singleDepot.id) : ''),
     })
     setErrors({})
     setModal(true)
@@ -387,14 +400,18 @@ export default function UsersIndex() {
           </div>
 
           <FormField label="Depot principal" error={errors.depot_id?.[0]}>
-            <select value={form.depot_id} onChange={(event) => setForm((current) => ({ ...current, depot_id: event.target.value }))}>
-              <option value="">Aucun</option>
-              {depots.filter((depot) => depot.active !== false).map((depot) => (
-                <option key={depot.id} value={depot.id}>
-                  {depot.code ? `${depot.name} (${depot.code})` : depot.name}
-                </option>
-              ))}
-            </select>
+            {singleDepot ? (
+              <DepotSelectionInfo depot={singleDepot} />
+            ) : (
+              <select value={form.depot_id} onChange={(event) => setForm((current) => ({ ...current, depot_id: event.target.value }))}>
+                <option value="">Aucun</option>
+                {depots.filter((depot) => depot.active !== false).map((depot) => (
+                  <option key={depot.id} value={depot.id}>
+                    {depot.code ? `${depot.name} (${depot.code})` : depot.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </FormField>
 
           <div className="flex justify-end gap-3 pt-2">
