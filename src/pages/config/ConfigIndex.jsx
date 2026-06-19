@@ -19,30 +19,30 @@ const MANAGED_TYPES = [
   {
     key: 'category',
     module: 'catalog',
-    title: 'Categories produits',
-    description: 'References utilisees dans les fiches produit et les imports.',
-    emptyLabel: 'Aucune categorie configuree.',
+    title: 'Catégories produits',
+    description: 'Références utilisées dans les fiches produit et les imports.',
+    emptyLabel: 'Aucune catégorie configurée.',
   },
   {
     key: 'unit',
     module: 'catalog',
-    title: 'Unites',
-    description: 'Unites disponibles a la creation produit.',
-    emptyLabel: 'Aucune unite configuree.',
+    title: 'Unités',
+    description: 'Unités disponibles à la création produit.',
+    emptyLabel: 'Aucune unité configurée.',
   },
   {
     key: 'payment_method',
     module: 'payments',
-    title: 'Methodes de paiement',
-    description: 'Le cash reste systeme et actif. Les virements et autres methodes restent configurables.',
-    emptyLabel: 'Aucune methode de paiement configuree.',
+    title: 'Méthodes de paiement',
+    description: 'Le cash reste système et actif. Les virements et autres méthodes restent configurables.',
+    emptyLabel: 'Aucune méthode de paiement configurée.',
   },
   {
     key: 'expense_category',
     module: 'expenses',
-    title: 'Categories de depenses',
-    description: 'Catalogue dynamique pour les motifs, labels, icones et couleurs de depense.',
-    emptyLabel: 'Aucune categorie de depense configuree.',
+    title: 'Catégories de dépenses',
+    description: 'Catalogue dynamique pour les motifs, libellés, icônes et couleurs de dépense.',
+    emptyLabel: 'Aucune catégorie de dépense configurée.',
   },
 ]
 
@@ -51,19 +51,19 @@ const MODULES = [
     key: 'catalog',
     label: 'Catalogues',
     icon: 'fa-solid fa-layer-group',
-    description: 'Produits, categories, unites et structure metier du depot.',
+    description: 'Produits, catégories, unités et structure métier du dépôt.',
   },
   {
     key: 'payments',
     label: 'Paiements',
     icon: 'fa-solid fa-wallet',
-    description: 'Cash systeme, virements et moyens de reglement utiles a Irtiwaa.',
+    description: 'Cash système, virements et moyens de règlement utiles à Irtiwaa.',
   },
   {
     key: 'expenses',
-    label: 'Depenses',
+    label: 'Dépenses',
     icon: 'fa-solid fa-receipt',
-    description: 'Motifs dynamiques, libelles finance et pilotage depenses.',
+    description: 'Motifs dynamiques, libellés finance et pilotage des dépenses.',
   },
   {
     key: 'documents',
@@ -73,9 +73,9 @@ const MODULES = [
   },
   {
     key: 'system',
-    label: 'Systeme',
+    label: 'Système',
     icon: 'fa-solid fa-server',
-    description: 'Support, notifications, taches de fond et etat applicatif.',
+    description: 'Support, notifications, tâches de fond et état applicatif.',
   },
 ]
 
@@ -83,71 +83,71 @@ const SETUP_SECTIONS = [
   {
     key: 'categories',
     module: 'catalog',
-    title: 'Categories produits',
-    description: 'Liste dynamique des categories visibles a la creation et a l import produit.',
+    title: 'Catégories produits',
+    description: 'Liste dynamique des catégories visibles à la création et à l’import produit.',
     icon: 'fa-solid fa-tags',
   },
   {
     key: 'units',
     module: 'catalog',
-    title: 'Unites',
-    description: 'Unites disponibles pour les produits, impressions et exports.',
+    title: 'Unités',
+    description: 'Unités disponibles pour les produits, impressions et exports.',
     icon: 'fa-solid fa-ruler-combined',
   },
   {
     key: 'zones',
     module: 'catalog',
     title: 'Zones et tarifs',
-    description: 'Gouvernorats, secteurs et regles tarifaires utilises par le depot.',
+    description: 'Gouvernorats, secteurs et règles tarifaires utilisés par le dépôt.',
     icon: 'fa-solid fa-map-location-dot',
   },
   {
     key: 'payment-methods',
     module: 'payments',
-    title: 'Methodes de paiement',
-    description: 'Cash systeme, virements, banques et autres moyens utilises sur les factures.',
+    title: 'Méthodes de paiement',
+    description: 'Cash système, virements, banques et autres moyens utilisés sur les factures.',
     icon: 'fa-solid fa-wallet',
   },
   {
     key: 'expense-categories',
     module: 'expenses',
-    title: 'Categories de depenses',
-    description: 'Motifs dynamiques avec libelle, couleur, icone et activation.',
+    title: 'Catégories de dépenses',
+    description: 'Motifs dynamiques avec libellé, couleur, icône et activation.',
     icon: 'fa-solid fa-receipt',
   },
   {
     key: 'documents',
     module: 'documents',
     title: 'Documents PDF & impression',
-    description: 'Choix des champs et orientations par entite document.',
+    description: 'Choix des champs et orientations par entité documentaire.',
     icon: 'fa-solid fa-print',
   },
   {
     key: 'system-support',
     module: 'system',
-    title: 'Support & circulation',
-    description: 'Adresse de signalement bug et contact d aide interne.',
+    title: 'Support et signalements',
+    description: "Adresse de signalement de bug et contact d'aide interne.",
     icon: 'fa-solid fa-life-ring',
   },
   {
     key: 'users-access',
     module: 'system',
-    title: 'Utilisateurs & acces',
-    description: 'Roles, activation des comptes et affectation clients par utilisateur.',
+    title: 'Utilisateurs et accès',
+    description: 'Rôles, activation des comptes et affectation clients par utilisateur.',
     icon: 'fa-solid fa-user-gear',
   },
   {
     key: 'background-tasks',
     module: 'system',
-    title: 'Taches de fond',
-    description: 'Planification, historique et declenchement manuel des routines backend.',
+    title: 'Tâches de fond',
+    description: 'Planification, historique et déclenchement manuel des routines backend.',
     icon: 'fa-solid fa-clock-rotate-left',
   },
   {
     key: 'system-status',
     module: 'system',
-    title: 'Etat systeme',
-    description: 'Informations d environnement, PHP, Laravel, queue et mail.',
+    title: 'État système',
+    description: "Informations d'environnement, PHP, Laravel, file d'attente et messagerie.",
     icon: 'fa-solid fa-server',
   },
 ]
@@ -176,22 +176,22 @@ const DOCUMENT_ENTITY_GROUPS = [
   },
   {
     key: 'expenses',
-    label: 'Depenses',
-    description: 'Listes et fiches unitaires de depenses.',
+    label: 'Dépenses',
+    description: 'Listes et fiches unitaires de dépenses.',
     icon: 'fa-solid fa-receipt',
     definitionKeys: ['expenses_list', 'expense_item'],
   },
   {
     key: 'route-sessions',
     label: 'Sessions terrain',
-    description: 'Sorties journee et fiches unitaires de session.',
+    description: 'Sorties journée et fiches unitaires de session.',
     icon: 'fa-solid fa-route',
     definitionKeys: ['route_sessions_list', 'route_session_item'],
   },
   {
     key: 'depot',
-    label: 'Depot & mouvements',
-    description: 'Stocks depot et journal des mouvements.',
+    label: 'Dépôt et mouvements',
+    description: 'Stocks dépôt et journal des mouvements.',
     icon: 'fa-solid fa-warehouse',
     definitionKeys: ['depot_stock_list', 'stock_movements_list', 'stock_movement_item'],
   },
@@ -280,7 +280,7 @@ function ItemBadge({ item }) {
     <div className="flex items-center gap-2 flex-wrap">
       {item.is_system && (
         <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(59,130,246,0.12)', color: '#2563eb' }}>
-          Systeme
+          Système
         </span>
       )}
       {item.is_default && (
@@ -556,7 +556,7 @@ export default function ConfigIndex() {
       })
       setTaskSnapshot(response.data ?? { generated_at: null, stats: {}, tasks: [], recent_runs: [] })
     } catch (error) {
-      setTaskLoadError(error.response?.data?.message || 'Impossible de charger les taches de fond.')
+      setTaskLoadError(error.response?.data?.message || 'Impossible de charger les tâches de fond.')
     } finally {
       setTaskLoading(false)
     }
@@ -795,7 +795,7 @@ export default function ConfigIndex() {
       <div className="space-y-6">
         <PageHeader
           title="Documents PDF & impression"
-          subtitle="Configuration par entite pour les listes, fiches unitaires et impressions reutilisables partout dans l application."
+          subtitle="Configuration par entité pour les listes, fiches unitaires et impressions réutilisables partout dans l'application."
           action={(
             <div className="flex flex-wrap items-center gap-2">
               <button onClick={() => navigate('/config')} className="btn-secondary text-xs">
@@ -816,8 +816,8 @@ export default function ConfigIndex() {
         />
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <SummaryCard label="Categories produits" value={summary.category} color="#0d9488" icon="fa-solid fa-boxes-stacked" />
-          <SummaryCard label="Unites" value={summary.unit} color="#3b82f6" icon="fa-solid fa-ruler-combined" />
+          <SummaryCard label="Catégories produits" value={summary.category} color="#0d9488" icon="fa-solid fa-boxes-stacked" />
+          <SummaryCard label="Unités" value={summary.unit} color="#3b82f6" icon="fa-solid fa-ruler-combined" />
           <SummaryCard label="Paiements" value={summary.payment_method} color="#8b5cf6" icon="fa-solid fa-wallet" />
           <SummaryCard label="Documents" value={DOCUMENT_DEFINITIONS.length} color="#f59e0b" icon="fa-solid fa-print" />
         </div>
@@ -826,9 +826,9 @@ export default function ConfigIndex() {
           <div className="flex items-start gap-3 mb-4">
             <i className="fa-solid fa-diagram-project mt-0.5" style={{ color: '#0d9488' }} />
             <div>
-              <div className="text-sm font-semibold text-base-color">Choix de l entite</div>
+              <div className="text-sm font-semibold text-base-color">Choix de l'entité</div>
               <div className="text-xs text-muted-color mt-1">
-                Selectionnez l entite metier, puis ajustez les champs visibles pour les listes et fiches qui lui appartiennent.
+                Sélectionnez l'entité métier, puis ajustez les champs visibles pour les listes et fiches qui lui appartiennent.
               </div>
             </div>
           </div>
@@ -848,7 +848,7 @@ export default function ConfigIndex() {
                   <div className="text-sm font-semibold text-base-color">{item.label}</div>
                 </div>
                 <div className="text-xs text-secondary-color">{item.description}</div>
-                <div className="text-xs text-muted-color mt-2">{item.definitionKeys.length} modele(s)</div>
+                <div className="text-xs text-muted-color mt-2">{item.definitionKeys.length} modèle(s)</div>
               </button>
             ))}
           </div>
@@ -905,12 +905,12 @@ export default function ConfigIndex() {
           <div className="max-w-3xl">
             <h1 className="text-xl font-semibold text-base-color">Configuration</h1>
             <p className="text-sm text-secondary-color mt-1">
-              Acces rapide aux reglages du depot, de la facturation, des impressions et du support.
+              Accès rapide aux réglages du dépôt, de la facturation, des impressions et du support.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link to="/notifications-center" className="btn-secondary text-xs">
-              <i className="fa-solid fa-bell" /> Centre notifications
+              <i className="fa-solid fa-bell" /> Centre de notifications
             </Link>
             <Link to="/bug-reports" className="btn-secondary text-xs">
               <i className="fa-solid fa-bug" /> Support
@@ -979,10 +979,10 @@ export default function ConfigIndex() {
                 <div className="flex items-start gap-3">
                   <i className="fa-solid fa-map-location-dot mt-0.5" style={{ color: '#0d9488' }} />
                   <div>
-                    <div className="text-sm font-semibold text-base-color">Zones et tarification du depot</div>
+                    <div className="text-sm font-semibold text-base-color">Zones et tarification du dépôt</div>
                     <div className="text-sm text-secondary-color mt-1">
-                      Cette configuration regroupe les zones commerciales, les gouvernorats relies et les grilles
-                      tarifaires utilisees par les produits, les clients et les sorties terrain.
+                      Cette configuration regroupe les zones commerciales, les gouvernorats reliés et les grilles
+                      tarifaires utilisées par les produits, les clients et les sorties terrain.
                     </div>
                   </div>
                 </div>
@@ -991,13 +991,13 @@ export default function ConfigIndex() {
               <div className="card">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   <div>
-                    <h2 className="text-sm font-semibold text-base-color">Ouvrir la gestion complete des zones</h2>
+                    <h2 className="text-sm font-semibold text-base-color">Ouvrir la gestion complète des zones</h2>
                     <p className="text-xs text-muted-color mt-1">
-                      La page dediee permet de gerer les zones, les tarifs et les associations utilisees dans le reste de la plateforme.
+                      La page dédiée permet de gérer les zones, les tarifs et les associations utilisées dans le reste de la plateforme.
                     </p>
                   </div>
                   <Link to="/zones" className="btn-secondary text-xs flex-shrink-0">
-                    <i className="fa-solid fa-arrow-up-right-from-square" /> Gerer les zones
+                    <i className="fa-solid fa-arrow-up-right-from-square" /> Gérer les zones
                   </Link>
                 </div>
               </div>
@@ -1010,10 +1010,10 @@ export default function ConfigIndex() {
                 <div className="flex items-start gap-3">
                   <i className="fa-solid fa-circle-info mt-0.5" style={{ color: '#2563eb' }} />
                   <div>
-                    <div className="text-sm font-semibold text-base-color">Cash verrouille par le systeme</div>
+                    <div className="text-sm font-semibold text-base-color">Cash verrouillé par le système</div>
                     <div className="text-sm text-secondary-color mt-1">
-                      Le mode cash reste actif, non supprimable et par defaut. Les autres moyens restent activables ou desactivables
-                      selon le besoin metier et seront reutilises dans les pages facture, paiement et rapports.
+                      Le mode cash reste actif, non supprimable et par défaut. Les autres moyens restent activables ou désactivables
+                      selon le besoin métier et seront réutilisés dans les pages facture, paiement et rapports.
                     </div>
                   </div>
                 </div>
@@ -1038,8 +1038,8 @@ export default function ConfigIndex() {
                   <div>
                     <div className="text-sm font-semibold text-base-color">Motifs dynamiques</div>
                     <div className="text-sm text-secondary-color mt-1">
-                      Les motifs de depense ne sont plus figes dans le code. Le backend genere une couleur et une icone
-                      par defaut si elles ne sont pas precisees, pour garder un affichage propre sur le web et le mobile.
+                      Les motifs de dépense ne sont plus figés dans le code. Le backend génère une couleur et une icône
+                      par défaut si elles ne sont pas précisées, pour garder un affichage propre sur le web et le mobile.
                     </div>
                   </div>
                 </div>
@@ -1151,7 +1151,7 @@ export default function ConfigIndex() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
-                  <FormField label="Cle Google Maps JS">
+                  <FormField label="Clé Google Maps JS">
                     <input
                       value={settingValue('map.google_maps_api_key')}
                       onChange={(event) => updateSetting('map.google_maps_api_key', event.target.value)}
@@ -1181,7 +1181,7 @@ export default function ConfigIndex() {
                     </select>
                   </FormField>
 
-                  <FormField label="URL tuiles personnalisee">
+                  <FormField label="URL des tuiles personnalisées">
                     <input
                       value={settingValue('map.custom_tile_url')}
                       onChange={(event) => updateSetting('map.custom_tile_url', event.target.value)}
@@ -1190,19 +1190,19 @@ export default function ConfigIndex() {
                   </FormField>
                 </div>
 
-                <FormField label="Attribution tuiles personnalisee">
+                <FormField label="Attribution des tuiles personnalisées">
                   <textarea
                     rows="3"
                     value={settingValue('map.custom_tile_attribution')}
                     onChange={(event) => updateSetting('map.custom_tile_attribution', event.target.value)}
-                    placeholder="Credits ou mentions legales du provider personnalise"
+                    placeholder="Crédits ou mentions légales du fournisseur personnalisé"
                   />
                 </FormField>
 
                 <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color mt-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                  Le fond de carte change le rendu visuel, pas la precision GPS: la position depend surtout des pings mobiles,
-                  du signal et de l appareil. Google Maps demande une cle JavaScript correctement restreinte et un projet
-                  de facturation actif, tandis que les providers libres restent disponibles pour limiter les couts.
+                  Le fond de carte change le rendu visuel, pas la précision GPS: la position dépend surtout des pings mobiles,
+                  du signal et de l'appareil. Google Maps demande une clé JavaScript correctement restreinte et un projet
+                  de facturation actif, tandis que les fournisseurs libres restent disponibles pour limiter les coûts.
                 </div>
               </div>
             </div>
@@ -1229,11 +1229,11 @@ export default function ConfigIndex() {
               </div>
 
               <div className="card">
-                <h2 className="text-sm font-semibold text-base-color mb-3">Etat actuel</h2>
+                <h2 className="text-sm font-semibold text-base-color mb-3">État actuel</h2>
                 <InfoRow label="Provider actif" value={MAP_PROVIDERS.find((item) => item.key === currentProvider)?.label || currentProvider} />
-                <InfoRow label="Google key" value={settingValue('map.google_maps_api_key') ? 'Configuree' : 'Absente'} />
+                <InfoRow label="Clé Google" value={settingValue('map.google_maps_api_key') ? 'Configurée' : 'Absente'} />
                 <InfoRow label="Google map type" value={settingValue('map.google_map_type', 'roadmap')} />
-                <InfoRow label="Mode custom" value={settingValue('map.custom_tile_url') ? 'Configure' : 'Inactif'} />
+                <InfoRow label="Mode personnalisé" value={settingValue('map.custom_tile_url') ? 'Configuré' : 'Inactif'} />
               </div>
             </div>
           )}
@@ -1242,8 +1242,8 @@ export default function ConfigIndex() {
             <div className="card">
               <div className="flex items-center justify-between gap-3 mb-4">
                 <div>
-                  <h2 className="text-sm font-semibold text-base-color">Support & circulation</h2>
-                  <p className="text-xs text-muted-color mt-1">Email de reception des bugs et contact interne d aide.</p>
+                  <h2 className="text-sm font-semibold text-base-color">Support et signalements</h2>
+                  <p className="text-xs text-muted-color mt-1">E-mail de réception des bugs et contact interne d'aide.</p>
                 </div>
                 <button
                   onClick={() => saveSettings(SYSTEM_SETTING_KEYS, 'system')}
@@ -1258,7 +1258,7 @@ export default function ConfigIndex() {
               </div>
 
               <div className="space-y-4">
-                <FormField label="Email reception bugs">
+                <FormField label="E-mail de réception des bugs">
                   <input
                     value={settingValue('support.bug_report_email', 'zieddamsp@gmail.com')}
                     onChange={(event) => updateSetting('support.bug_report_email', event.target.value)}
@@ -1266,22 +1266,22 @@ export default function ConfigIndex() {
                   />
                 </FormField>
 
-                <FormField label="Libelle contact aide">
+                <FormField label="Libellé du contact d'aide">
                   <input
-                    value={settingValue('support.help_contact_label', 'Equipe El Irtiwaa')}
+                    value={settingValue('support.help_contact_label', 'Équipe El Irtiwaa')}
                     onChange={(event) => updateSetting('support.help_contact_label', event.target.value)}
-                    placeholder="Equipe El Irtiwaa"
+                    placeholder="Équipe El Irtiwaa"
                   />
                 </FormField>
 
                 <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                   Le bouton de signalement de bug enverra un email vers cette adresse tout en enregistrant le ticket
-                  dans la plateforme pour suivi developpement.
+                  dans la plateforme pour le suivi du développement.
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                   <Link to="/bug-reports" className="btn-secondary text-xs">
-                    <i className="fa-solid fa-bug" /> Ouvrir le support
+                    <i className="fa-solid fa-bug" /> Ouvrir le centre de support
                   </Link>
                   <Link to="/notifications-center" className="btn-secondary text-xs">
                     <i className="fa-solid fa-bell" /> Notifications
@@ -1297,7 +1297,7 @@ export default function ConfigIndex() {
                 <div className="flex items-start gap-3">
                   <i className="fa-solid fa-user-gear mt-0.5" style={{ color: '#8b5cf6' }} />
                   <div>
-                    <div className="text-sm font-semibold text-base-color">Comptes, roles et portefeuille client</div>
+                    <div className="text-sm font-semibold text-base-color">Comptes, rôles et portefeuille client</div>
                     <div className="text-sm text-secondary-color mt-1">
                       Cette partie centralise les utilisateurs internes, leurs droits et les affectations de clients
                       visibles par chaque compte commercial.
@@ -1311,12 +1311,12 @@ export default function ConfigIndex() {
                   <div>
                     <h2 className="text-sm font-semibold text-base-color">Ouvrir la gestion des utilisateurs</h2>
                     <p className="text-xs text-muted-color mt-1">
-                      La page dediee permet de creer les comptes, ajuster les roles, activer ou suspendre un utilisateur
+                      La page dédiée permet de créer les comptes, ajuster les rôles, activer ou suspendre un utilisateur
                       et synchroniser sa liste de clients.
                     </p>
                   </div>
                   <Link to="/users" className="btn-secondary text-xs flex-shrink-0">
-                    <i className="fa-solid fa-arrow-up-right-from-square" /> Gerer les utilisateurs
+                    <i className="fa-solid fa-arrow-up-right-from-square" /> Gérer les utilisateurs
                   </Link>
                 </div>
               </div>
@@ -1341,7 +1341,7 @@ export default function ConfigIndex() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
                   <i className="fa-solid fa-server text-teal-500" />
-                  Etat du systeme
+                  État du système
                 </h2>
                 <button onClick={loadSystemInfo} className="btn-secondary text-xs">
                   <i className="fa-solid fa-rotate-right" /> Actualiser
@@ -1365,12 +1365,12 @@ export default function ConfigIndex() {
                   <InfoRow label="Mail host" value={systemInfo.mail_host} mono />
                   <InfoRow label="Mail from" value={systemInfo.mail_from} mono />
                   <div className="pt-2 text-xs text-muted-color">
-                    Interroge a : {new Date(systemInfo.timestamp).toLocaleString('fr-FR')}
+                    Interrogé à : {new Date(systemInfo.timestamp).toLocaleString('fr-FR')}
                   </div>
                 </>
               ) : (
                 <div className="rounded-xl border border-theme px-4 py-8 text-center text-sm text-muted-color">
-                  Impossible de charger les informations systeme.
+                  Impossible de charger les informations système.
                 </div>
               )}
             </div>
@@ -1385,8 +1385,8 @@ export default function ConfigIndex() {
         size="md"
       >
         <div className="space-y-4">
-          <FormField label="Nom affiche" error={errors.label?.[0]} required>
-            <input value={form.label} onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))} placeholder="Libelle visible dans l application" />
+          <FormField label="Nom affiché" error={errors.label?.[0]} required>
+            <input value={form.label} onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))} placeholder="Libellé visible dans l'application" />
           </FormField>
 
           <FormField label="Code technique" error={errors.value?.[0]}>
@@ -1402,7 +1402,7 @@ export default function ConfigIndex() {
             <FormField label="Couleur" error={errors.color?.[0]}>
               <input value={form.color} onChange={(event) => setForm((current) => ({ ...current, color: event.target.value }))} placeholder="#0d9488" />
             </FormField>
-            <FormField label="Icone FontAwesome" error={errors.icon?.[0]}>
+            <FormField label="Icône FontAwesome" error={errors.icon?.[0]}>
               <input value={form.icon} onChange={(event) => setForm((current) => ({ ...current, icon: event.target.value }))} placeholder="fa-solid fa-wallet" />
             </FormField>
           </div>
@@ -1424,7 +1424,7 @@ export default function ConfigIndex() {
           )}
 
           <div className="rounded-xl border border-theme px-3 py-3 text-xs text-secondary-color" style={{ background: 'var(--surface-2)' }}>
-            Si la couleur ou l icone restent vides, le backend attribuera automatiquement un style par defaut pour garder une interface propre.
+            Si la couleur ou l'icône restent vides, le backend attribuera automatiquement un style par défaut pour garder une interface propre.
           </div>
 
           <div className="flex justify-end gap-3 pt-1">

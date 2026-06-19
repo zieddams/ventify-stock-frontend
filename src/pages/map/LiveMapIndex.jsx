@@ -727,7 +727,7 @@ function TerrainTab({
         <MetricCard
           label="Alertes camion"
           value={terrain.stats?.camion_low_stock ?? 0}
-          sub="References a surveiller"
+          sub="Références à surveiller"
           icon="fa-solid fa-triangle-exclamation"
           color="#f59e0b"
         />
@@ -778,7 +778,7 @@ function TerrainTab({
                         <div className="text-sm font-semibold text-base-color truncate">{rep.name}</div>
                         <div className="text-[11px] uppercase tracking-wide text-muted-color mt-0.5">{formatRoleLabel(rep.role)}</div>
                         <div className="text-xs text-muted-color truncate">
-                          {rep.zone?.name ?? 'Zone non definie'} · {rep.device?.brand || rep.device?.model
+                          {rep.zone?.name ?? 'Zone non définie'} · {rep.device?.brand || rep.device?.model
                             ? `${rep.device?.brand ?? ''} ${rep.device?.model ?? ''}`.trim()
                             : 'Aucun appareil remonte'}
                         </div>
@@ -816,7 +816,7 @@ function TerrainTab({
                   <div>
                     <div className="text-lg font-bold text-base-color">{selectedRep.name}</div>
                     <div className="text-sm text-muted-color">
-                      {selectedRep.zone?.name ?? 'Zone non definie'} · {selectedRep.email}
+                      {selectedRep.zone?.name ?? 'Zone non définie'} · {selectedRep.email}
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
@@ -860,7 +860,7 @@ function TerrainTab({
 
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="rounded-2xl px-3 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                    <div className="text-[11px] text-muted-color">Quantite restante</div>
+                    <div className="text-[11px] text-muted-color">Quantité restante</div>
                     <div className="text-sm font-bold text-base-color mt-1">{formatNumber(selectedRep.camion_stock?.total_qty ?? 0)}</div>
                   </div>
                   <div className="rounded-2xl px-3 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
@@ -906,7 +906,7 @@ function TerrainTab({
           ) : (
             <div className="card text-center py-10">
               <i className="fa-solid fa-location-dot text-3xl text-muted-color opacity-30 mb-3 block" />
-              <p className="text-sm text-muted-color">Selectionnez un compte mobile pour afficher ses details terrain.</p>
+              <p className="text-sm text-muted-color">Sélectionnez un compte mobile pour afficher ses détails terrain.</p>
             </div>
           )}
         </div>
@@ -1034,7 +1034,7 @@ function TerrainTab({
                     : 'Aucune'}
                   sub={selectedRep.route_session?.last_load?.at
                     ? `${formatDateTime(selectedRep.route_session.last_load.at)} · ${formatMoney(selectedRep.route_session.last_load.value_total ?? 0)}`
-                    : 'Pas de mouvement depot > camion'}
+                    : 'Pas de mouvement dépôt > camion'}
                   icon="fa-solid fa-boxes-stacked"
                   color="#8b5cf6"
                 />
@@ -1091,7 +1091,7 @@ function TerrainTab({
                           <div>
                             <div className="text-sm font-semibold text-base-color">{selectedRep.today.last_invoice.number}</div>
                             <div className="text-xs text-muted-color mt-0.5">
-                              {selectedRep.today.last_invoice.customer_name || 'Client non defini'}
+                              {selectedRep.today.last_invoice.customer_name || 'Client non défini'}
                             </div>
                           </div>
                           <div className="text-right">

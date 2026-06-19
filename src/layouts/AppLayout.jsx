@@ -12,24 +12,24 @@ const CORE_NAV = [
 ]
 
 const FINANCE_NAV = [
-  { to: '/credit', icon: 'fa-solid fa-credit-card', label: 'Credit clients' },
-  { to: '/expenses', icon: 'fa-solid fa-receipt', label: 'Depenses' },
+  { to: '/credit', icon: 'fa-solid fa-credit-card', label: 'Crédit clients' },
+  { to: '/expenses', icon: 'fa-solid fa-receipt', label: 'Dépenses' },
 ]
 
 const OPERATIONS_NAV = [
-  { to: '/routes', icon: 'fa-solid fa-truck-fast', label: 'Sorties journee' },
-  { to: '/depot', icon: 'fa-solid fa-warehouse', label: 'Depot' },
+  { to: '/routes', icon: 'fa-solid fa-truck-fast', label: 'Sorties journée' },
+  { to: '/depot', icon: 'fa-solid fa-warehouse', label: 'Dépôt' },
   { to: '/camions', icon: 'fa-solid fa-truck', label: 'Camions' },
-  { to: '/map', icon: 'fa-solid fa-map-location-dot', label: 'Carte & terrain' },
+  { to: '/map', icon: 'fa-solid fa-map-location-dot', label: 'Carte et terrain' },
   { to: '/inventory', icon: 'fa-solid fa-clipboard-list', label: 'Inventaire' },
   { to: '/reports', icon: 'fa-solid fa-chart-line', label: 'Rapports' },
-  { to: '/data-tools', icon: 'fa-solid fa-file-arrow-up', label: 'Import / Export' },
+  { to: '/data-tools', icon: 'fa-solid fa-file-arrow-up', label: 'Imports / exports' },
 ]
 
 const SUPPORT_NAV = [
   { to: '/help', icon: 'fa-solid fa-circle-question', label: 'Aide' },
   { to: '/notifications-center', icon: 'fa-solid fa-bell', label: 'Notifications' },
-  { to: '/bug-reports', icon: 'fa-solid fa-bug', label: 'Support & bugs' },
+  { to: '/bug-reports', icon: 'fa-solid fa-bug', label: 'Support et signalements' },
 ]
 
 const DEFAULT_SYSTEM_STATUS = {
@@ -42,23 +42,23 @@ const PAGE_TITLES = {
   '/invoices': { label: 'Factures', icon: 'fa-solid fa-file-invoice' },
   '/customers': { label: 'Clients', icon: 'fa-solid fa-users' },
   '/products': { label: 'Produits', icon: 'fa-solid fa-box-open' },
-  '/credit': { label: 'Credit clients', icon: 'fa-solid fa-credit-card' },
-  '/expenses': { label: 'Depenses', icon: 'fa-solid fa-receipt' },
-  '/routes': { label: 'Sorties journee', icon: 'fa-solid fa-truck-fast' },
-  '/depot': { label: 'Depot', icon: 'fa-solid fa-warehouse' },
+  '/credit': { label: 'Crédit clients', icon: 'fa-solid fa-credit-card' },
+  '/expenses': { label: 'Dépenses', icon: 'fa-solid fa-receipt' },
+  '/routes': { label: 'Sorties journée', icon: 'fa-solid fa-truck-fast' },
+  '/depot': { label: 'Dépôt', icon: 'fa-solid fa-warehouse' },
   '/camions': { label: 'Camions', icon: 'fa-solid fa-truck' },
   '/reports': { label: 'Rapports', icon: 'fa-solid fa-chart-line' },
   '/users': { label: 'Utilisateurs', icon: 'fa-solid fa-user-gear' },
   '/zones': { label: 'Zones et tarifs', icon: 'fa-solid fa-map-location-dot' },
   '/config': { label: 'Configuration', icon: 'fa-solid fa-sliders' },
-  '/map': { label: 'Carte & terrain', icon: 'fa-solid fa-map-location-dot' },
+  '/map': { label: 'Carte et terrain', icon: 'fa-solid fa-map-location-dot' },
   '/inventory': { label: 'Inventaire', icon: 'fa-solid fa-clipboard-list' },
-  '/data-tools': { label: 'Import / Export', icon: 'fa-solid fa-file-arrow-up' },
-  '/import': { label: 'Import / Export', icon: 'fa-solid fa-file-arrow-up' },
-  '/export': { label: 'Import / Export', icon: 'fa-solid fa-file-arrow-up' },
-  '/help': { label: 'Aide & documentation', icon: 'fa-solid fa-circle-question' },
+  '/data-tools': { label: 'Imports / exports', icon: 'fa-solid fa-file-arrow-up' },
+  '/import': { label: 'Imports / exports', icon: 'fa-solid fa-file-arrow-up' },
+  '/export': { label: 'Imports / exports', icon: 'fa-solid fa-file-arrow-up' },
+  '/help': { label: 'Aide et documentation', icon: 'fa-solid fa-circle-question' },
   '/notifications-center': { label: 'Centre de notifications', icon: 'fa-solid fa-bell' },
-  '/bug-reports': { label: 'Support & bugs', icon: 'fa-solid fa-bug' },
+  '/bug-reports': { label: 'Support et signalements', icon: 'fa-solid fa-bug' },
 }
 
 function RailLink({ to, icon, label, exact, expanded = false, onClick }) {
@@ -118,14 +118,14 @@ function TopbarLink({ to, icon, label }) {
 
 function getSystemStatusLabel(systemStatus) {
   if (systemStatus.state === 'online') {
-    return systemStatus.dbOk ? 'API en ligne - DB OK' : 'API en ligne - DB a verifier'
+    return systemStatus.dbOk ? 'API en ligne - base OK' : 'API en ligne - base à vérifier'
   }
 
   if (systemStatus.state === 'offline') {
-    return 'API hors ligne - verifier la connexion'
+    return 'API hors ligne - vérifiez la connexion'
   }
 
-  return 'Verification API en cours'
+  return "Vérification de l'API en cours"
 }
 
 function UserMenu({ user, onLogout }) {
@@ -178,14 +178,14 @@ function UserMenu({ user, onLogout }) {
             className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-secondary-color hover:bg-surface-2 transition-colors"
           >
             <i className="fa-solid fa-bug w-4" />
-            Support & bugs
+            Support et signalements
           </NavLink>
           <button
             onClick={onLogout}
             className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
           >
             <i className="fa-solid fa-right-from-bracket w-4" />
-            Deconnexion
+            Déconnexion
           </button>
         </div>
       )}
@@ -232,7 +232,7 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, statusLabel
           </NavLink>
 
           <div>
-            <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Operation</div>
+            <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Exploitation</div>
             <div className="space-y-0.5">
               {CORE_NAV.map((item) => (
                 <RailLink key={item.to} {...item} expanded onClick={onClose} />
@@ -254,7 +254,7 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, statusLabel
           {isAdmin() && (
             <>
               <div>
-                <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Terrain & stock</div>
+                <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Terrain et stock</div>
                 <div className="space-y-0.5">
                   {OPERATIONS_NAV.map((item) => (
                     <RailLink key={item.to} {...item} expanded onClick={onClose} />
@@ -263,7 +263,7 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, statusLabel
               </div>
 
               <div>
-                <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Support</div>
+                <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Assistance</div>
                 <div className="space-y-0.5">
                   {SUPPORT_NAV.map((item) => (
                     <RailLink key={item.to} {...item} expanded onClick={onClose} />
@@ -280,7 +280,7 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, statusLabel
             className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-400 hover:bg-white/5 rounded-xl transition-colors"
           >
             <i className="fa-solid fa-right-from-bracket w-4" />
-            Deconnexion
+            Déconnexion
           </button>
         </div>
       </div>
@@ -378,7 +378,7 @@ export default function AppLayout() {
 
         <div className={`flex-1 min-h-0 w-full overflow-y-auto ${isSidebarExpanded ? 'overflow-x-hidden' : 'overflow-x-visible'}`}>
           <div className="space-y-4 pb-3">
-            <NavSection title="Operation" items={CORE_NAV} expanded={isSidebarExpanded} />
+            <NavSection title="Exploitation" items={CORE_NAV} expanded={isSidebarExpanded} />
 
             {(isFinance() || isAdmin()) && (
               <NavSection title="Finance" items={FINANCE_NAV} expanded={isSidebarExpanded} />
@@ -386,7 +386,7 @@ export default function AppLayout() {
 
             {isAdmin() && (
               <>
-                <NavSection title="Terrain & stock" items={OPERATIONS_NAV} expanded={isSidebarExpanded} />
+                <NavSection title="Terrain et stock" items={OPERATIONS_NAV} expanded={isSidebarExpanded} />
               </>
             )}
           </div>
@@ -401,7 +401,7 @@ export default function AppLayout() {
           <button
             className="hidden md:inline-flex btn-ghost p-2"
             onClick={toggleSidebarMode}
-            title={isSidebarExpanded ? 'Mode compact' : 'Mode etendu'}
+            title={isSidebarExpanded ? 'Mode compact' : 'Mode étendu'}
           >
             <i className={`fa-solid ${isSidebarExpanded ? 'fa-angles-left' : 'fa-angles-right'} text-base`} />
           </button>

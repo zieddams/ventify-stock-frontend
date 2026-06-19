@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
+import PaginationControls from '../../components/PaginationControls'
 import RowDocumentActions from '../../components/RowDocumentActions'
 import { PageLoader } from '../../components/Spinner'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
+import { extractPaginationMeta } from '../../utils/pagination'
 
 function fmt(value) {
   return value != null ? Number(value).toFixed(3) : '-'
@@ -56,16 +58,7 @@ export default function RouteSessionsIndex() {
       .then((response) => {
         const payload = response.data
         const items = Array.isArray(payload) ? payload : (payload.data ?? [])
-        const pagination = payload?.meta ?? (
-          payload?.current_page
-            ? {
-                current_page: payload.current_page,
-                last_page: payload.last_page,
-                total: payload.total,
-                per_page: payload.per_page,
-              }
-            : null
-        )
+        const pagination = extractPaginationMeta(payload, { current_page: page, per_page: 25 })
 
         setSessions(items)
         setMeta(pagination)
@@ -239,18 +232,12 @@ export default function RouteSessionsIndex() {
           </div>
         )}
 
-        {meta && meta.last_page > 1 && (
-          <div className="flex items-center justify-between pt-4 mt-2" style={{ borderTop: '1px solid var(--border)' }}>
-            <span className="text-xs text-muted-color">Page {meta.current_page} / {meta.last_page}</span>
-            <div className="flex gap-2">
-              <button disabled={page === 1} onClick={() => setPage((current) => current - 1)} className="btn-secondary text-xs disabled:opacity-40">
-                <i className="fa-solid fa-chevron-left" />
-              </button>
-              <button disabled={page === meta.last_page} onClick={() => setPage((current) => current + 1)} className="btn-secondary text-xs disabled:opacity-40">
-                <i className="fa-solid fa-chevron-right" />
-              </button>
-            </div>
-          </div>
+        {meta && (
+          <PaginationControls
+            meta={meta}
+            onPageChange={setPage}
+            itemLabel="sessions"
+          />
         )}
       </div>
     </div>

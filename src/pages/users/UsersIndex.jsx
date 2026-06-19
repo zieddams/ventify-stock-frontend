@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
 import PageHeader from '../../components/PageHeader'
+import PaginationControls from '../../components/PaginationControls'
 import { RoleBadge } from '../../components/Badge'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
+import { paginateItems } from '../../utils/pagination'
 
 const EMPTY = { name: '', email: '', password: '', role: 'rep', zone_id: '' }
 
@@ -25,6 +27,8 @@ export default function UsersIndex() {
   const [assignmentSearch, setAssignmentSearch] = useState('')
   const [assignmentLoading, setAssignmentLoading] = useState(false)
   const [assignmentSaving, setAssignmentSaving] = useState(false)
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(15)
   const { user: me } = useAuth()
 
   const canManageUsers = ['admin', 'developer'].includes(me?.role)
@@ -46,6 +50,10 @@ export default function UsersIndex() {
       )
     })
   }, [assignmentCustomers, assignmentSearch])
+  const { items: paginatedUsers, meta: usersMeta } = useMemo(
+    () => paginateItems(users, page, perPage),
+    [page, perPage, users]
+  )
 
   const load = async () => {
     const [usersResponse, zonesResponse] = await Promise.all([api.get('/users'), api.get('/zones')])
@@ -57,6 +65,12 @@ export default function UsersIndex() {
   useEffect(() => {
     load()
   }, [])
+
+  useEffect(() => {
+    if (page !== usersMeta.current_page) {
+      setPage(usersMeta.current_page)
+    }
+  }, [page, usersMeta.current_page])
 
   const openCreate = () => {
     setEditing(null)
@@ -199,7 +213,7 @@ export default function UsersIndex() {
               </tr>
             </thead>
             <tbody>
-              {users.map((entry) => (
+              {paginatedUsers.map((entry) => (
                 <tr key={entry.id} className={`table-row ${!entry.active ? 'opacity-50' : ''}`}>
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-2.5">
@@ -265,6 +279,17 @@ export default function UsersIndex() {
             </tbody>
           </table>
         </div>
+
+        <PaginationControls
+          meta={usersMeta}
+          perPage={perPage}
+          onPageChange={setPage}
+          onPerPageChange={(value) => {
+            setPerPage(value)
+            setPage(1)
+          }}
+          itemLabel="utilisateurs"
+        />
       </div>
 
       <Modal open={modal} onClose={() => setModal(false)} title={editing ? "Modifier l'utilisateur" : 'Nouvel utilisateur'}>

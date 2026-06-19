@@ -9,13 +9,13 @@ const STATUS_META = {
     icon: 'fa-solid fa-spinner fa-spin',
   },
   success: {
-    label: 'Succes',
+    label: 'Succès',
     color: '#059669',
     background: 'rgba(5,150,105,0.12)',
     icon: 'fa-solid fa-circle-check',
   },
   failed: {
-    label: 'Echec',
+    label: 'Échec',
     color: '#dc2626',
     background: 'rgba(220,38,38,0.12)',
     icon: 'fa-solid fa-circle-xmark',
@@ -30,8 +30,8 @@ const STATUS_META = {
 
 const CATEGORY_LABELS = {
   maintenance: 'Maintenance',
-  monitoring: 'Monitoring',
-  finance: 'Finance',
+  monitoring: 'Surveillance',
+  finance: 'Finances',
   notifications: 'Notifications',
 }
 
@@ -64,11 +64,11 @@ function formatNextDue(value) {
 }
 
 function formatTrigger(run) {
-  if (!run) return 'Aucun declenchement'
+  if (!run) return 'Aucun déclenchement'
   if (run.trigger_type === 'manual') {
     return run.triggered_by?.name ? `Manuel par ${run.triggered_by.name}` : 'Manuel'
   }
-  return 'Planifie'
+  return 'Planifié'
 }
 
 function statusMeta(run) {
@@ -182,15 +182,15 @@ export default function SystemTasksPanel({
       <div className="card">
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
           <div>
-            <h2 className="text-sm font-semibold text-base-color">Taches de fond & scheduler</h2>
+            <h2 className="text-sm font-semibold text-base-color">Tâches de fond et planificateur</h2>
             <p className="text-xs text-muted-color mt-1">
-              Liste des taches planifiees cote serveur, dernier etat d execution et relance manuelle pour les admins
-              et developpeurs. Les relances s executent directement sur le VPS et attendent la fin avant de repondre.
+              Liste des tâches planifiées côté serveur, dernier état d’exécution et relance manuelle pour les administrateurs
+              et développeurs. Les relances s’exécutent directement sur le VPS et attendent la fin avant de répondre.
             </p>
             {historyStartedAt && (
               <p className="text-[11px] text-secondary-color mt-2">
-                Historique de suivi disponible depuis {formatDateTime(historyStartedAt)}. Si une tache est marquee
-                "En attente", cela veut surtout dire qu elle n a pas encore eu de passage enregistre depuis cette date.
+                Historique de suivi disponible depuis {formatDateTime(historyStartedAt)}. Si une tâche est marquée
+                "En attente", cela veut surtout dire qu’elle n’a pas encore eu de passage enregistré depuis cette date.
               </p>
             )}
           </div>
@@ -202,15 +202,15 @@ export default function SystemTasksPanel({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          <MetricCard label="Taches suivies" value={stats.tasks_total ?? tasks.length} icon="fa-solid fa-list-check" color="#0d9488" />
+          <MetricCard label="Tâches suivies" value={stats.tasks_total ?? tasks.length} icon="fa-solid fa-list-check" color="#0d9488" />
           <MetricCard label="Relance manuelle" value={stats.manual_enabled ?? 0} icon="fa-solid fa-hand-pointer" color="#2563eb" />
-          <MetricCard label="Dernier echec" value={stats.failed ?? 0} icon="fa-solid fa-triangle-exclamation" color="#dc2626" />
+          <MetricCard label="Dernier échec" value={stats.failed ?? 0} icon="fa-solid fa-triangle-exclamation" color="#dc2626" />
           <MetricCard
             label="Sans historique"
             value={stats.never_run ?? 0}
             icon="fa-solid fa-clock-rotate-left"
             color="#64748b"
-            sub={snapshot?.generated_at ? `MAJ ${formatDateTime(snapshot.generated_at)}` : null}
+            sub={snapshot?.generated_at ? `Mis à jour ${formatDateTime(snapshot.generated_at)}` : null}
           />
         </div>
 
@@ -242,7 +242,7 @@ export default function SystemTasksPanel({
             <div className="card">
               {sortedTasks.length === 0 ? (
                 <div className="rounded-2xl px-4 py-8 text-center text-sm text-muted-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                  Aucune tache suivie pour le moment.
+                  Aucune tâche suivie pour le moment.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -250,11 +250,11 @@ export default function SystemTasksPanel({
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         {[
-                          ['label', 'Tache'],
-                          ['category', 'Categorie'],
+                          ['label', 'Tâche'],
+                          ['category', 'Catégorie'],
                           ['status', 'Statut'],
                           ['schedule_label', 'Planification'],
-                          ['latest_run', 'Dernier debut'],
+                          ['latest_run', 'Dernier début'],
                         ].map(([key, label]) => (
                           <th key={key} className="pb-3 pr-4 text-left text-xs font-semibold text-muted-color uppercase tracking-wider">
                             <button type="button" onClick={() => toggleSort(key)} className="inline-flex items-center gap-1 hover:text-base-color">
@@ -281,7 +281,7 @@ export default function SystemTasksPanel({
                               <div className="font-semibold text-base-color">{task.label}</div>
                               <div className="text-[11px] text-muted-color font-mono mt-1">{task.key}</div>
                             </td>
-                            <td className="py-3 pr-4 text-secondary-color text-xs">{CATEGORY_LABELS[task.category] || task.category || 'Systeme'}</td>
+                            <td className="py-3 pr-4 text-secondary-color text-xs">{CATEGORY_LABELS[task.category] || task.category || 'Système'}</td>
                             <td className="py-3 pr-4">
                               <span className="inline-flex items-center gap-2 text-xs font-semibold" style={{ color: meta.color }}>
                                 <i className={meta.icon} />
@@ -320,7 +320,7 @@ export default function SystemTasksPanel({
                         className="btn-primary text-xs self-start"
                       >
                         {runningTaskKey === selectedTask.key
-                          ? <><i className="fa-solid fa-spinner fa-spin" /> Execution...</>
+                          ? <><i className="fa-solid fa-spinner fa-spin" /> Exécution...</>
                           : <><i className="fa-solid fa-play" /> Lancer maintenant</>
                         }
                       </button>
@@ -328,35 +328,35 @@ export default function SystemTasksPanel({
 
                     <div className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                       <TaskRow label="Planification" value={selectedTask.schedule_label || 'Non planifie'} />
-                      <TaskRow label="Prochaine execution" value={formatNextDue(selectedTask.next_due_at)} />
-                      <TaskRow label="Dernier declenchement" value={formatTrigger(latestRun)} />
-                      <TaskRow label="Dernier debut" value={formatDateTime(latestRun?.started_at)} />
-                      <TaskRow label="Derniere fin" value={formatDateTime(latestRun?.finished_at)} />
-                      <TaskRow label="Duree" value={formatDuration(latestRun?.duration_ms)} />
+                      <TaskRow label="Prochaine exécution" value={formatNextDue(selectedTask.next_due_at)} />
+                      <TaskRow label="Dernier déclenchement" value={formatTrigger(latestRun)} />
+                      <TaskRow label="Dernier début" value={formatDateTime(latestRun?.started_at)} />
+                      <TaskRow label="Dernière fin" value={formatDateTime(latestRun?.finished_at)} />
+                      <TaskRow label="Durée" value={formatDuration(latestRun?.duration_ms)} />
                       <TaskRow label="Code retour" value={latestRun?.exit_code ?? '--'} />
                     </div>
 
                     <div className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                       <TaskRow label="Commande" value={selectedTask.command_signature || 'Routine interne'} mono />
-                      <TaskRow label="Cle technique" value={selectedTask.key} mono />
+                      <TaskRow label="Clé technique" value={selectedTask.key} mono />
                       <TaskRow label="Statut courant" value={runMeta.label} />
-                      <TaskRow label="Autorise en manuel" value={selectedTask.manual_allowed ? 'Oui' : 'Non'} />
+                      <TaskRow label="Autorisé en manuel" value={selectedTask.manual_allowed ? 'Oui' : 'Non'} />
                       <TaskRow label="Historique dispo" value={latestRun ? 'Oui' : 'En attente du premier passage'} />
-                      <TaskRow label="Rafraichi a" value={formatDateTime(snapshot?.generated_at)} />
+                      <TaskRow label="Rafraîchi à" value={formatDateTime(snapshot?.generated_at)} />
                     </div>
 
                     {(latestRun?.output_excerpt || latestRun?.error_message) && (
                       <div className="space-y-3">
                         {latestRun?.output_excerpt && (
                           <div className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                            <div className="text-xs font-semibold text-base-color mb-2">Sortie recente</div>
+                            <div className="text-xs font-semibold text-base-color mb-2">Sortie récente</div>
                             <pre className="text-xs text-secondary-color whitespace-pre-wrap font-mono">{latestRun.output_excerpt}</pre>
                           </div>
                         )}
 
                         {latestRun?.error_message && (
                           <div className="rounded-2xl px-4 py-4" style={{ background: 'rgba(220,38,38,0.08)', boxShadow: 'inset 0 0 0 1px rgba(220,38,38,0.18)' }}>
-                            <div className="text-xs font-semibold mb-2" style={{ color: '#991b1b' }}>Erreur recente</div>
+                            <div className="text-xs font-semibold mb-2" style={{ color: '#991b1b' }}>Erreur récente</div>
                             <pre className="text-xs whitespace-pre-wrap font-mono" style={{ color: '#991b1b' }}>{latestRun.error_message}</pre>
                           </div>
                         )}
@@ -366,7 +366,7 @@ export default function SystemTasksPanel({
                 )
               })() : (
                 <div className="rounded-2xl px-4 py-8 text-center text-sm text-muted-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                  Selectionnez une tache pour voir son detail.
+                  Sélectionnez une tâche pour voir son détail.
                 </div>
               )}
             </div>
@@ -375,21 +375,21 @@ export default function SystemTasksPanel({
           <div className="card">
             <div className="flex items-center justify-between gap-3 mb-4">
               <div>
-                <h3 className="text-sm font-semibold text-base-color">Historique recent</h3>
-                <p className="text-xs text-muted-color mt-1">Dernieres executions planifiees ou manuelles.</p>
+                <h3 className="text-sm font-semibold text-base-color">Historique récent</h3>
+                <p className="text-xs text-muted-color mt-1">Dernières exécutions planifiées ou manuelles.</p>
               </div>
             </div>
 
             {recentRuns.length === 0 ? (
               <div className="rounded-2xl px-4 py-8 text-center text-sm text-muted-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                Aucune execution enregistree pour le moment.
+                Aucune exécution enregistrée pour le moment.
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                      {['Tache', 'Statut', 'Declenchement', 'Debut', 'Duree', 'Code retour'].map((header) => (
+                      {['Tâche', 'Statut', 'Déclenchement', 'Début', 'Durée', 'Code retour'].map((header) => (
                         <th key={header} className="pb-3 pr-4 text-left text-xs font-semibold text-muted-color uppercase tracking-wider">{header}</th>
                       ))}
                     </tr>

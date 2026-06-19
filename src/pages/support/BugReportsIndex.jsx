@@ -25,8 +25,8 @@ const ISSUE_AREAS = [
 const STATUS_META = {
   open: { label: 'Ouvert', color: '#ef4444', bg: 'rgba(239,68,68,0.10)' },
   in_progress: { label: 'En cours', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
-  resolved: { label: 'Resolue', color: '#0d9488', bg: 'rgba(13,148,136,0.12)' },
-  closed: { label: 'Fermee', color: '#64748b', bg: 'rgba(100,116,139,0.12)' },
+  resolved: { label: 'Résolue', color: '#0d9488', bg: 'rgba(13,148,136,0.12)' },
+  closed: { label: 'Fermée', color: '#64748b', bg: 'rgba(100,116,139,0.12)' },
 }
 
 const SEVERITY_META = {
@@ -48,7 +48,7 @@ function emptyForm(currentPath) {
 }
 
 function formatDateTime(value) {
-  if (!value) return 'Non renseigne'
+  if (!value) return 'Non renseigné'
   return new Date(value).toLocaleString('fr-FR')
 }
 
@@ -162,14 +162,14 @@ export default function BugReportsIndex() {
       setComposeOpen(false)
       setSubmitFeedback({
         tone: 'success',
-        message: 'Signalement enregistre. Le ticket est bien cree dans la plateforme.',
+        message: 'Signalement enregistré. Le ticket a bien été créé dans la plateforme.',
       })
       await loadReports()
     } catch (error) {
       setErrors(error.response?.data?.errors ?? {})
       setSubmitFeedback({
         tone: 'danger',
-        message: error.response?.data?.message || 'Le signalement n a pas pu etre envoye pour le moment.',
+        message: error.response?.data?.message || "Le signalement n'a pas pu être envoyé pour le moment.",
       })
     } finally {
       setSaving(false)
@@ -205,10 +205,10 @@ export default function BugReportsIndex() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Support & bugs"
+        title="Support et signalements"
         subtitle={isPrivileged
           ? 'Collecte, tri et suivi des incidents web, API, mobile et terrain.'
-          : 'Signalez un probleme avec suffisamment de contexte pour accelere la correction.'}
+          : 'Signalez un problème avec suffisamment de contexte pour accélérer la correction.'}
         action={(
           <button onClick={() => setComposeOpen(true)} className="btn-primary">
             <i className="fa-solid fa-plus" /> Nouveau signalement
@@ -270,10 +270,10 @@ export default function BugReportsIndex() {
                       {[
                         ['subject', 'Sujet'],
                         ['area', 'Zone'],
-                        ['reporter', 'Reporter'],
+                        ['reporter', 'Auteur'],
                         ['status', 'Statut'],
-                        ['severity', 'Severite'],
-                        ['created_at', 'Cree le'],
+                        ['severity', 'Sévérité'],
+                        ['created_at', 'Créé le'],
                       ].map(([key, label]) => (
                         <th key={key} className="pb-3 pr-4 text-left text-xs font-semibold text-muted-color uppercase tracking-wider">
                           <button type="button" onClick={() => toggleSort(key)} className="inline-flex items-center gap-1 hover:text-base-color">
@@ -298,7 +298,7 @@ export default function BugReportsIndex() {
                         >
                           <td className="py-3 pr-4">
                             <div className="font-semibold text-base-color">{report.subject}</div>
-                            <div className="text-[11px] text-muted-color mt-1">{report.page_url || 'Page non renseignee'}</div>
+                            <div className="text-[11px] text-muted-color mt-1">{report.page_url || 'Page non renseignée'}</div>
                           </td>
                           <td className="py-3 pr-4 text-secondary-color text-xs">{report.area}</td>
                           <td className="py-3 pr-4 text-secondary-color text-xs">{report.reporter?.name || 'Utilisateur'}</td>
@@ -323,7 +323,7 @@ export default function BugReportsIndex() {
           <div className="card">
               <div className="flex items-center gap-2 mb-4">
                 <i className="fa-solid fa-clipboard-check text-teal-500" />
-                <h2 className="text-sm font-semibold text-base-color">Detail du signalement</h2>
+                <h2 className="text-sm font-semibold text-base-color">Détail du signalement</h2>
               </div>
 
               <div className="space-y-3 text-sm">
@@ -334,18 +334,18 @@ export default function BugReportsIndex() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                    <div className="text-xs text-muted-color">Page concernee</div>
-                    <div className="text-sm text-base-color mt-1 break-all">{selectedReport.page_url || 'Non renseignee'}</div>
+                    <div className="text-xs text-muted-color">Page concernée</div>
+                    <div className="text-sm text-base-color mt-1 break-all">{selectedReport.page_url || 'Non renseignée'}</div>
                   </div>
                   <div className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                     <div className="text-xs text-muted-color">Navigateur</div>
-                    <div className="text-sm text-base-color mt-1 break-all">{selectedReport.browser || 'Non renseigne'}</div>
+                    <div className="text-sm text-base-color mt-1 break-all">{selectedReport.browser || 'Non renseigné'}</div>
                   </div>
                 </div>
 
                 {selectedReport.developer_reply && (
                   <div className="rounded-2xl px-4 py-4" style={{ background: 'rgba(13,148,136,0.06)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.15)' }}>
-                    <div className="text-xs text-muted-color">Derniere reponse developpement</div>
+                    <div className="text-xs text-muted-color">Dernière réponse développement</div>
                     <div className="text-sm text-base-color mt-1">{selectedReport.developer_reply}</div>
                   </div>
                 )}
@@ -362,16 +362,16 @@ export default function BugReportsIndex() {
                       </FormField>
 
                       <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                        Dernier traitement par : {selectedReport.handler?.name || 'Pas encore assigne'}
+                        Dernier traitement par : {selectedReport.handler?.name || 'Pas encore attribué'}
                       </div>
                     </div>
 
-                    <FormField label="Reponse visible utilisateur">
+                    <FormField label="Réponse visible pour l’utilisateur">
                       <textarea
                         rows="4"
                         value={review.developer_reply}
                         onChange={(event) => setReview((current) => ({ ...current, developer_reply: event.target.value }))}
-                        placeholder="Expliquez la cause ou l etat de la correction..."
+                        placeholder="Expliquez la cause ou l’état de la correction..."
                       />
                     </FormField>
 
@@ -389,7 +389,7 @@ export default function BugReportsIndex() {
                         {reviewSaving ? (
                           <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</>
                         ) : (
-                          <><i className="fa-solid fa-floppy-disk" /> Mettre a jour</>
+                          <><i className="fa-solid fa-floppy-disk" /> Mettre à jour</>
                         )}
                       </button>
                     </div>
@@ -406,7 +406,7 @@ export default function BugReportsIndex() {
             <input
               value={form.subject}
               onChange={(event) => setForm((current) => ({ ...current, subject: event.target.value }))}
-              placeholder="Exemple: la carte ne charge plus les positions"
+              placeholder="Exemple : la carte ne charge plus les positions"
             />
           </FormField>
 
@@ -422,7 +422,7 @@ export default function BugReportsIndex() {
               </select>
             </FormField>
 
-            <FormField label="Severite" error={errors.severity?.[0]} required>
+            <FormField label="Sévérité" error={errors.severity?.[0]} required>
               <select
                 value={form.severity}
                 onChange={(event) => setForm((current) => ({ ...current, severity: event.target.value }))}
@@ -450,12 +450,12 @@ export default function BugReportsIndex() {
             />
           </FormField>
 
-          <FormField label="Description detaillee" error={errors.description?.[0]} required>
+          <FormField label="Description détaillée" error={errors.description?.[0]} required>
             <textarea
               rows="6"
               value={form.description}
               onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-              placeholder="Que faisiez-vous ? Quel resultat attendiez-vous ? Quel message d erreur ou comportement avez-vous observe ?"
+              placeholder="Que faisiez-vous ? Quel résultat attendiez-vous ? Quel message d’erreur ou comportement avez-vous observé ?"
             />
           </FormField>
 
@@ -469,7 +469,7 @@ export default function BugReportsIndex() {
             <button onClick={() => setComposeOpen(false)} className="btn-secondary">Annuler</button>
             <button onClick={submitReport} disabled={saving} className="btn-primary">
               {saving ? (
-                <><i className="fa-solid fa-spinner fa-spin" /> Envoi...</>
+                <><i className="fa-solid fa-spinner fa-spin" /> Envoi en cours...</>
               ) : (
                 <><i className="fa-solid fa-paper-plane" /> Envoyer le signalement</>
               )}

@@ -5,23 +5,23 @@ import { useAuth } from '../../contexts/AuthContext'
 const STARTER_STEPS = [
   {
     step: '1',
-    title: 'Preparer le referentiel',
-    detail: 'Produits, categories, unites, zones, paiements et depenses doivent etre verifies avant de facturer.',
+    title: 'Préparer le référentiel',
+    detail: 'Produits, catégories, unités, zones, paiements et dépenses doivent être vérifiés avant de facturer.',
   },
   {
     step: '2',
     title: 'Affecter les equipes',
-    detail: 'Les admins gerent les utilisateurs, les zones et les camions. Les commerciaux travaillent ensuite avec leur propre liste client.',
+    detail: 'Les administrateurs gèrent les utilisateurs, les zones et les camions. Les commerciaux travaillent ensuite avec leur propre liste clients.',
   },
   {
     step: '3',
-    title: 'Ouvrir la journee terrain',
-    detail: 'Une session terrain rattache le commercial, la zone, le camion et les mouvements de stock de la journee.',
+    title: 'Ouvrir la journée terrain',
+    detail: "Une session terrain rattache le commercial, la zone, le camion et les mouvements de stock de la journée.",
   },
   {
     step: '4',
     title: 'Suivre, corriger et exporter',
-    detail: 'La carte, les rapports, l inventaire et les exports servent au pilotage et a l audit de fin de journee.',
+    detail: "La carte, les rapports, l'inventaire et les exports servent au pilotage et à l'audit de fin de journée.",
   },
 ]
 
@@ -31,20 +31,20 @@ const FAQ = [
     answer: 'Par conception, seuls les admins, developpeurs et comptables ont une vision globale. Un commercial ne voit que les clients rattaches a son compte.',
   },
   {
-    question: 'A quoi sert une session terrain ?',
+    question: 'À quoi sert une session terrain ?',
     answer: 'Elle relie le camion, les chargements, les retours, le suivi GPS et les factures du commercial pour une journee donnee.',
   },
   {
     question: 'Ou regler les moyens de paiement et motifs de depense ?',
-    answer: 'La page Configuration centralise maintenant les catalogues, les paiements, les depenses, les integrations carte et les reglages systeme.',
+    answer: 'La page Configuration centralise maintenant les catalogues, les paiements, les dépenses, les intégrations cartographiques et les réglages système.',
   },
   {
     question: 'Comment signaler un bug ou demander une correction ?',
-    answer: 'La page Support & bugs permet de remonter un probleme avec la page concernee, la severite, le contexte navigateur et une description exploitable.',
+    answer: 'La page Support et signalements permet de remonter un problème avec la page concernée, la sévérité, le contexte navigateur et une description exploitable.',
   },
   {
-    question: 'Ou verifier les evenements temps reel ?',
-    answer: 'Le centre de notifications et la carte terrain montrent les remontees operationnelles, les sessions, les alertes stock et les activites du mobile.',
+    question: 'Où vérifier les événements en temps réel ?',
+    answer: 'Le centre de notifications et la carte terrain montrent les remontées opérationnelles, les sessions, les alertes stock et les activités du mobile.',
   },
 ]
 
@@ -79,33 +79,33 @@ export default function HelpCenterIndex() {
 
   const guides = [
     {
-      title: 'Factures & paiements',
-      description: 'Creation, suivi paiement, credit client et impression document par document.',
+      title: 'Factures et paiements',
+      description: 'Création, suivi des paiements, crédit client et impression document par document.',
       to: '/invoices',
       icon: 'fa-solid fa-file-invoice',
     },
     {
-      title: 'Clients & portefeuille',
-      description: 'Gestion des clients rattaches, historique et regles de visibilite par role.',
+      title: 'Clients et portefeuille',
+      description: 'Gestion des clients rattachés, historique et règles de visibilité par rôle.',
       to: '/customers',
       icon: 'fa-solid fa-users',
     },
     {
-      title: 'Produits & minimums',
-      description: 'Catalogues produit, stock minimum par reference et controles depot/camion.',
+      title: 'Produits et minimums',
+      description: 'Catalogues produits, stock minimum par référence et contrôles dépôt/camion.',
       to: '/products',
       icon: 'fa-solid fa-box-open',
     },
     {
-      title: 'Support & bugs',
-      description: 'Signalement d incidents, suivi des corrections et reponse developpement.',
+      title: 'Support et signalements',
+      description: 'Signalement des incidents, suivi des corrections et réponse de développement.',
       to: '/bug-reports',
       icon: 'fa-solid fa-bug',
       cta: 'Signaler',
     },
     {
       title: 'Notifications',
-      description: 'Centre complet pour relire les evenements et regler les preferences de notification.',
+      description: 'Centre complet pour relire les événements et régler les préférences de notification.',
       to: '/notifications-center',
       icon: 'fa-solid fa-bell',
     },
@@ -114,26 +114,26 @@ export default function HelpCenterIndex() {
   if (isAdmin()) {
     guides.push(
       {
-        title: 'Camions & sessions',
+        title: 'Camions et sessions',
         description: 'Affectation des camions, suivi des sessions ouvertes et stock terrain par commercial.',
         to: '/camions',
         icon: 'fa-solid fa-truck',
       },
       {
-        title: 'Carte & terrain',
-        description: 'Suivi clients, remontees GPS, dernier ping, stock embarque et activite mobile.',
+        title: 'Carte et terrain',
+        description: 'Suivi clients, remontées GPS, dernier ping, stock embarqué et activité mobile.',
         to: '/map',
         icon: 'fa-solid fa-map-location-dot',
       },
       {
         title: 'Configuration modulaire',
-        description: 'Catalogues, depenses, integrations carte, email support et informations systeme.',
+        description: 'Catalogues, dépenses, intégrations cartographiques, e-mail support et informations système.',
         to: '/config',
         icon: 'fa-solid fa-sliders',
       },
       {
         title: 'Import / export',
-        description: 'Historique inventaire, imports CSV et exports globaux pour audit et partage.',
+        description: "Historique d'inventaire, imports CSV et exports globaux pour audit et partage.",
         to: '/data-tools',
         icon: 'fa-solid fa-file-arrow-up',
       },
@@ -142,8 +142,8 @@ export default function HelpCenterIndex() {
 
   if (isFinance()) {
     guides.push({
-      title: 'Credit & depenses',
-      description: 'Vision finance, situation client, depenses quotidiennes et rapports profit.',
+      title: 'Crédit et dépenses',
+      description: 'Vision finance, situation client, dépenses quotidiennes et rapports de profit.',
       to: '/expenses',
       icon: 'fa-solid fa-receipt',
     })
@@ -152,11 +152,11 @@ export default function HelpCenterIndex() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Aide & documentation"
-        subtitle="Guides rapides, relations entre modules et questions frequentes pour l equipe web, API et terrain."
+        title="Aide et documentation"
+        subtitle="Guides rapides, relations entre modules et questions fréquentes pour l’équipe web, API et terrain."
         action={(
           <Link to="/bug-reports" className="btn-secondary text-xs">
-            <i className="fa-solid fa-bug" /> Signaler un probleme
+            <i className="fa-solid fa-bug" /> Signaler un problème
           </Link>
         )}
       />
@@ -183,7 +183,7 @@ export default function HelpCenterIndex() {
         <div className="card">
           <div className="flex items-center gap-2 mb-4">
             <i className="fa-solid fa-diagram-project text-teal-500" />
-            <h2 className="text-sm font-semibold text-base-color">Comment les modules se relient</h2>
+            <h2 className="text-sm font-semibold text-base-color">Comment les modules s’articulent</h2>
           </div>
 
           <div className="space-y-3 text-sm text-secondary-color">
@@ -196,12 +196,12 @@ export default function HelpCenterIndex() {
               Les commerciaux ne voient que leur portefeuille affecte et peuvent y ajouter de nouveaux clients.
             </p>
             <p>
-              Une session terrain relie le commercial, la zone, le camion et les mouvements de stock. C est aussi la cle
-              pour relier les pings GPS, les factures du jour et le suivi carte.
+              Une session terrain relie le commercial, la zone, le camion et les mouvements de stock. C’est aussi la clé
+              pour relier les pings GPS, les factures du jour et le suivi cartographique.
             </p>
             <p>
-              Les notifications, la carte et les rapports consomment ensuite ces evenements pour afficher l activite en temps reel
-              et les syntheses de journee.
+              Les notifications, la carte et les rapports consomment ensuite ces événements pour afficher l’activité en temps réel
+              et les synthèses de journée.
             </p>
           </div>
         </div>

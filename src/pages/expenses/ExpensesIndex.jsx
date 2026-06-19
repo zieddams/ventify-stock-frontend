@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
+import PaginationControls from '../../components/PaginationControls'
 import RowDocumentActions from '../../components/RowDocumentActions'
 import { getConfigItemLabel, getDefaultConfigValue, useConfigItems } from '../../hooks/useConfigItems'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
+import { paginateItems } from '../../utils/pagination'
 
 const DEFAULT_MONTH = new Date().toISOString().slice(0, 7)
 
@@ -33,6 +35,8 @@ export default function ExpensesIndex() {
   const [categoryFilter, setCategoryFilter] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(15)
 
   useEffect(() => {
     setForm((current) => {
@@ -75,10 +79,24 @@ export default function ExpensesIndex() {
   }, [month, categoryFilter, dateFrom, dateTo])
 
   const total = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0)
+  const { items: paginatedExpenses, meta: expensesMeta } = useMemo(
+    () => paginateItems(expenses, page, perPage),
+    [expenses, page, perPage]
+  )
 
   const categoryMap = useMemo(() => {
     return new Map(allCategories.map((item) => [String(item.value), item]))
   }, [allCategories])
+
+  useEffect(() => {
+    setPage(1)
+  }, [month, categoryFilter, dateFrom, dateTo])
+
+  useEffect(() => {
+    if (page !== expensesMeta.current_page) {
+      setPage(expensesMeta.current_page)
+    }
+  }, [expensesMeta.current_page, page])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -118,11 +136,11 @@ export default function ExpensesIndex() {
   return (
     <div>
       <PageHeader
-        title="Depenses"
+        title="Dépenses"
         subtitle="Enregistrement et suivi des charges"
         action={(
           <PageExportActions
-            title="Depenses"
+            title="Dépenses"
             csvEntity="expenses"
             csvParams={exportParams}
             csvFilename="depenses"
@@ -152,7 +170,7 @@ export default function ExpensesIndex() {
               <input type="date" value={form.expense_date} onChange={(event) => setForm((current) => ({ ...current, expense_date: event.target.value }))} required />
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Categorie</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Catégorie</label>
               <select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}>
                 {activeCategories.map((item) => (
                   <option key={item.id} value={item.value}>
@@ -162,7 +180,7 @@ export default function ExpensesIndex() {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Libelle</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Libellé</label>
               <input type="text" placeholder="Description..." value={form.label} onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))} required />
             </div>
             <div>
@@ -178,7 +196,7 @@ export default function ExpensesIndex() {
         <div className="lg:col-span-2 card">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-semibold text-base-color">Depenses</h2>
+              <h2 className="text-sm font-semibold text-base-color">Dépenses</h2>
               <p className="text-xs text-muted-color mt-0.5">
                 Total: <span className="font-mono font-semibold" style={{ color: '#ea580c' }}>{total.toFixed(3)} TND</span>
               </p>
@@ -202,7 +220,7 @@ export default function ExpensesIndex() {
               />
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Categorie</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Catégorie</label>
               <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
                 <option value="">Toutes</option>
                 {allCategories.map((item) => (
@@ -261,7 +279,7 @@ export default function ExpensesIndex() {
               <table className="w-full text-sm">
                 <thead>
                   <tr>
-                    {['Date', 'Categorie', 'Libelle', 'Montant', ''].map((heading) => (
+                    {['Date', 'Catégorie', 'Libellé', 'Montant', ''].map((heading) => (
                       <th key={heading} className={`pb-3 pr-3 ${heading === 'Montant' ? 'text-right' : 'text-left'}`}>
                         {heading}
                       </th>
@@ -277,7 +295,7 @@ export default function ExpensesIndex() {
                       </td>
                     </tr>
                   )}
-                  {expenses.map((expense) => {
+                  {paginatedExpenses.map((expense) => {
                     const categoryValue = expense.category?.value ?? expense.category
                     const categoryLabel = expense.category_label || getConfigItemLabel(categoryMap.get(String(categoryValue)), categoryValue)
                     const categoryMeta = expense.category_meta ?? categoryMap.get(String(categoryValue))
@@ -305,7 +323,7 @@ export default function ExpensesIndex() {
                               documentKey="expense_item"
                               record={expense}
                               documentLayouts={documentLayouts}
-                              title={`Depense ${expense.label || expense.id}`}
+                              title={`Dépense ${expense.label || expense.id}`}
                               filename={`depense_${expense.id}`}
                             />
                             <button onClick={() => handleDelete(expense.id)} className="text-muted-color hover:text-red-500 transition-colors p-1">
@@ -319,6 +337,19 @@ export default function ExpensesIndex() {
                 </tbody>
               </table>
             </div>
+          )}
+
+          {!loading && (
+            <PaginationControls
+              meta={expensesMeta}
+              perPage={perPage}
+              onPageChange={setPage}
+              onPerPageChange={(value) => {
+                setPerPage(value)
+                setPage(1)
+              }}
+              itemLabel="depenses"
+            />
           )}
         </div>
       </div>

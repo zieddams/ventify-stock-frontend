@@ -2,11 +2,13 @@ import { useDeferredValue, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PaymentStatusBadge, StatusBadge } from '../../components/Badge'
 import PageExportActions from '../../components/PageExportActions'
+import PaginationControls from '../../components/PaginationControls'
 import RowDocumentActions from '../../components/RowDocumentActions'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
+import { paginateItems } from '../../utils/pagination'
 
 const DEFAULT_PERIOD = 'month'
 const PERIODS = [
@@ -64,6 +66,8 @@ export default function InvoicesIndex() {
   const [search, setSearch] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(20)
   const { isAdmin } = useAuth()
   const { layouts: documentLayouts } = useDocumentLayouts()
   const deferredSearch = useDeferredValue(search)
@@ -91,6 +95,18 @@ export default function InvoicesIndex() {
   useEffect(() => {
     load()
   }, [period, paymentStatus, dateFrom, dateTo, deferredSearch])
+
+  const { items: paginatedInvoices, meta: invoicesMeta } = paginateItems(invoices, page, perPage)
+
+  useEffect(() => {
+    setPage(1)
+  }, [period, paymentStatus, dateFrom, dateTo, deferredSearch])
+
+  useEffect(() => {
+    if (page !== invoicesMeta.current_page) {
+      setPage(invoicesMeta.current_page)
+    }
+  }, [invoicesMeta.current_page, page])
 
   const handlePeriodChange = (nextPeriod) => {
     setPeriod(nextPeriod)
@@ -251,7 +267,7 @@ export default function InvoicesIndex() {
                 </tr>
               </thead>
               <tbody>
-                {invoices.map((invoice) => (
+                {paginatedInvoices.map((invoice) => (
                   <tr key={invoice.id} className="table-row">
                     <td className="py-3 pr-4">
                       <Link to={`/invoices/${invoice.id}`} className="font-mono text-xs font-semibold" style={{ color: '#0d9488' }}>
@@ -296,6 +312,19 @@ export default function InvoicesIndex() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {!loading && (
+          <PaginationControls
+            meta={invoicesMeta}
+            perPage={perPage}
+            onPageChange={setPage}
+            onPerPageChange={(value) => {
+              setPerPage(value)
+              setPage(1)
+            }}
+            itemLabel="factures"
+          />
         )}
       </div>
     </div>

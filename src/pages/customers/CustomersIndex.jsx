@@ -4,11 +4,13 @@ import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
+import PaginationControls from '../../components/PaginationControls'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
 import { getConfigItemLabel, getDefaultConfigValue, useConfigItems } from '../../hooks/useConfigItems'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
+import { paginateItems } from '../../utils/pagination'
 
 const EMPTY = {
   name: '',
@@ -42,6 +44,8 @@ export default function CustomersIndex() {
   const [errors, setErrors] = useState({})
   const [ledgerCustomer, setLedgerCustomer] = useState(null)
   const [ledger, setLedger] = useState(null)
+  const [customersPage, setCustomersPage] = useState(1)
+  const [customersPerPage, setCustomersPerPage] = useState(20)
   const { items: configItems } = useConfigItems(['governorate', 'payment_method'])
   const governorates = configItems.governorate ?? []
   const paymentMethods = configItems.payment_method ?? []
@@ -214,21 +218,36 @@ export default function CustomersIndex() {
     users.filter((entry) => entry.active && ['admin', 'developer', 'rep', 'comptable'].includes(entry.role))
   ), [users])
 
+  const { items: paginatedCustomers, meta: customersMeta } = useMemo(
+    () => paginateItems(filteredCustomers, customersPage, customersPerPage),
+    [filteredCustomers, customersPage, customersPerPage]
+  )
+
+  useEffect(() => {
+    setCustomersPage(1)
+  }, [search, ownerFilter])
+
+  useEffect(() => {
+    if (customersPage !== customersMeta.current_page) {
+      setCustomersPage(customersMeta.current_page)
+    }
+  }, [customersMeta.current_page, customersPage])
+
   const selectedOwner = useMemo(() => (
     assignableUsers.find((entry) => String(entry.id) === String(ownerFilter))
   ), [assignableUsers, ownerFilter])
 
   const subtitle = useMemo(() => {
     if (!canAssignOwner) {
-      return `${customers.length} client(s) sur votre portefeuille`
+      return `${filteredCustomers.length} client(s) sur votre portefeuille`
     }
 
     if (selectedOwner) {
-      return `${customers.length} client(s) affecte(s) a ${selectedOwner.name}`
+      return `${filteredCustomers.length} client(s) affecte(s) a ${selectedOwner.name}`
     }
 
-    return `${customers.length} client(s) sur tous les portefeuilles`
-  }, [canAssignOwner, customers.length, selectedOwner])
+    return `${filteredCustomers.length} client(s) sur tous les portefeuilles`
+  }, [canAssignOwner, filteredCustomers.length, selectedOwner])
 
   if (loading) {
     return <PageLoader />
@@ -299,7 +318,7 @@ export default function CustomersIndex() {
               </tr>
             </thead>
             <tbody>
-              {filteredCustomers.map((customer) => {
+              {paginatedCustomers.map((customer) => {
                 const mapped = customer.lat != null && customer.lng != null
 
                 return (
@@ -361,6 +380,17 @@ export default function CustomersIndex() {
             </tbody>
           </table>
         </div>
+
+        <PaginationControls
+          meta={customersMeta}
+          perPage={customersPerPage}
+          onPageChange={setCustomersPage}
+          onPerPageChange={(value) => {
+            setCustomersPerPage(value)
+            setCustomersPage(1)
+          }}
+          itemLabel="clients"
+        />
       </div>
 
       <Modal open={modal} onClose={() => setModal(false)} title={editing ? 'Modifier le client' : 'Nouveau client'}>

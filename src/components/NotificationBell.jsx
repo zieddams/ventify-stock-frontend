@@ -152,7 +152,7 @@ export default function NotificationBell() {
                 >
                   <i className="fa-regular fa-bell-slash text-xl" style={{ color: 'rgba(100,116,139,0.6)' }} />
                 </div>
-                <p className="text-sm" style={{ color: 'rgba(100,116,139,0.8)' }}>Aucune notification</p>
+                <p className="text-sm" style={{ color: 'rgba(100,116,139,0.8)' }}>Aucune notification pour le moment.</p>
               </div>
             ) : (
               notifs.map(notification => {
@@ -200,7 +200,7 @@ export default function NotificationBell() {
                         </span>
                         {cfg.route && (
                           <span className="text-[10px] font-medium" style={{ color: cfg.color }}>
-                            Voir <i className="fa-solid fa-arrow-right" style={{ fontSize: 8 }} />
+                            Ouvrir <i className="fa-solid fa-arrow-right" style={{ fontSize: 8 }} />
                           </span>
                         )}
                       </div>
@@ -227,7 +227,7 @@ export default function NotificationBell() {
               className="text-xs font-medium"
               style={{ color: '#2dd4bf', background: 'none', border: 'none', cursor: 'pointer' }}
             >
-              Voir le centre
+              Ouvrir le centre
             </button>
             <button
               onClick={() => setOpen(false)}

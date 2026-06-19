@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
+import PaginationControls from '../../components/PaginationControls'
 import RowDocumentActions from '../../components/RowDocumentActions'
 import { PageLoader } from '../../components/Spinner'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
+import { extractPaginationMeta, paginateItems } from '../../utils/pagination'
 
 function fmt(value) {
   return new Intl.NumberFormat('fr-TN', { minimumFractionDigits: 3 }).format(value ?? 0)
@@ -32,7 +34,7 @@ function fmtDateTime(value) {
 }
 
 const MOVEMENT_CONFIG = {
-  depot_in: { label: 'Reception', icon: 'fa-solid fa-arrow-down', color: '#10b981', bg: 'rgba(16,185,129,0.10)', sign: '+' },
+  depot_in: { label: 'Réception', icon: 'fa-solid fa-arrow-down', color: '#10b981', bg: 'rgba(16,185,129,0.10)', sign: '+' },
   depot_to_camion: { label: 'Vers camion', icon: 'fa-solid fa-truck', color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', sign: '-' },
   camion_to_customer: { label: 'Vers client', icon: 'fa-solid fa-user', color: '#ef4444', bg: 'rgba(239,68,68,0.10)', sign: '-' },
   return: { label: 'Retour', icon: 'fa-solid fa-rotate-left', color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', sign: '+' },
@@ -52,6 +54,8 @@ export default function DepotIndex() {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
   const [search, setSearch] = useState('')
+  const [stockPage, setStockPage] = useState(1)
+  const [stockPerPage, setStockPerPage] = useState(20)
   const [movementSearch, setMovementSearch] = useState('')
   const [movementType, setMovementType] = useState('')
   const [movementDateFrom, setMovementDateFrom] = useState('')
@@ -92,16 +96,7 @@ export default function DepotIndex() {
 
       const payload = response.data
       const items = Array.isArray(payload) ? payload : (payload.data ?? [])
-      const meta = payload?.meta ?? (
-        payload?.current_page
-          ? {
-              current_page: payload.current_page,
-              last_page: payload.last_page,
-              total: payload.total,
-              per_page: payload.per_page,
-            }
-          : null
-      )
+      const meta = extractPaginationMeta(payload, { current_page: page, per_page: 20 })
 
       setMovements(items)
       setMovementMeta(meta)
@@ -148,6 +143,10 @@ export default function DepotIndex() {
       )
     })
   }, [search, stock])
+  const { items: paginatedStock, meta: stockMeta } = useMemo(
+    () => paginateItems(filteredStock, stockPage, stockPerPage),
+    [filteredStock, stockPage, stockPerPage]
+  )
 
   const totalItems = stock.reduce((sum, item) => sum + Number(item.qty ?? 0), 0)
   const lowItems = stock.filter((item) => Number(item.qty ?? 0) <= Math.max(Number(item.product?.min_stock ?? 1), 1))
@@ -156,10 +155,20 @@ export default function DepotIndex() {
     ...(movementDateFrom ? { date_from: movementDateFrom } : {}),
     ...(movementDateTo ? { date_to: movementDateTo } : {}),
     ...(movementType ? { type: movementType } : {}),
-  }
+    }
+
+  useEffect(() => {
+    setStockPage(1)
+  }, [search])
+
+  useEffect(() => {
+    if (stockPage !== stockMeta.current_page) {
+      setStockPage(stockMeta.current_page)
+    }
+  }, [stockMeta.current_page, stockPage])
   const currentExportAction = tab === 'stock'
     ? {
-        title: 'Stock depot',
+        title: 'Stock dépôt',
         csvEntity: 'products',
         csvFilename: 'stock_depot',
         documentKey: 'depot_stock_list',
@@ -185,7 +194,7 @@ export default function DepotIndex() {
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-xl font-bold text-base-color tracking-tight">Depot</h1>
-          <p className="text-sm text-muted-color mt-0.5">Stock central, receptions et mouvements</p>
+          <p className="text-sm text-muted-color mt-0.5">Stock central, réceptions et mouvements</p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <PageExportActions {...currentExportAction} />
@@ -197,7 +206,7 @@ export default function DepotIndex() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {[
-          { label: 'References', value: stock.length, icon: 'fa-solid fa-box-open', color: '#0d9488' },
+          { label: 'Références', value: stock.length, icon: 'fa-solid fa-box-open', color: '#0d9488' },
           { label: 'Total unites', value: fmt(totalItems), icon: 'fa-solid fa-cubes', color: '#3b82f6' },
           { label: 'Valeur stock', value: `${fmt(totalValue)} TND`, icon: 'fa-solid fa-sack-dollar', color: '#8b5cf6' },
           { label: 'Stock bas', value: lowItems.length, icon: 'fa-solid fa-triangle-exclamation', color: '#ef4444' },
@@ -216,7 +225,7 @@ export default function DepotIndex() {
 
       <div className="flex gap-1 mb-5 border-b border-theme">
         {[
-          ['stock', 'fa-solid fa-warehouse', 'Stock depot'],
+          ['stock', 'fa-solid fa-warehouse', 'Stock dépôt'],
           ['movements', 'fa-solid fa-arrows-up-down', 'Mouvements'],
         ].map(([key, icon, label]) => (
           <button
@@ -263,7 +272,7 @@ export default function DepotIndex() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left" style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['Produit', 'Reference', 'Categorie', 'Unite', 'Qte depot', 'Min stock', 'Derniere maj', 'Statut'].map((heading) => (
+                  {['Produit', 'Référence', 'Catégorie', 'Unité', 'Qté dépôt', 'Min stock', 'Dernière maj', 'Statut'].map((heading) => (
                     <th key={heading} className="pb-3 pr-4 text-xs font-semibold text-muted-color uppercase tracking-wider">
                       {heading}
                     </th>
@@ -271,7 +280,7 @@ export default function DepotIndex() {
                 </tr>
               </thead>
               <tbody>
-                {filteredStock.map((item) => {
+                {paginatedStock.map((item) => {
                   const qty = Number(item.qty ?? 0)
                   const min = Math.max(Number(item.product?.min_stock ?? 1), 1)
                   const low = qty <= min
@@ -307,6 +316,17 @@ export default function DepotIndex() {
               </tbody>
             </table>
           </div>
+
+          <PaginationControls
+            meta={stockMeta}
+            perPage={stockPerPage}
+            onPageChange={setStockPage}
+            onPerPageChange={(value) => {
+              setStockPerPage(value)
+              setStockPage(1)
+            }}
+            itemLabel="references"
+          />
         </div>
       )}
 
@@ -345,7 +365,7 @@ export default function DepotIndex() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left" style={{ borderBottom: '1px solid var(--border)' }}>
-                    {['Type', 'Produit', 'Utilisateur', 'Quantite', 'Note', 'Date / heure', ''].map((heading) => (
+                    {['Type', 'Produit', 'Utilisateur', 'Quantité', 'Note', 'Date / heure', ''].map((heading) => (
                       <th key={heading} className="pb-3 pr-4 text-xs font-semibold text-muted-color uppercase tracking-wider">
                         {heading}
                       </th>
@@ -397,18 +417,12 @@ export default function DepotIndex() {
             </div>
           )}
 
-          {movementMeta && movementMeta.last_page > 1 && (
-            <div className="flex items-center justify-between pt-4 mt-4" style={{ borderTop: '1px solid var(--border)' }}>
-              <span className="text-xs text-muted-color">Page {movementMeta.current_page} / {movementMeta.last_page}</span>
-              <div className="flex gap-2">
-                <button disabled={movementPage === 1} onClick={() => setMovementPage((page) => page - 1)} className="btn-secondary text-xs disabled:opacity-40">
-                  <i className="fa-solid fa-chevron-left" />
-                </button>
-                <button disabled={movementPage === movementMeta.last_page} onClick={() => setMovementPage((page) => page + 1)} className="btn-secondary text-xs disabled:opacity-40">
-                  <i className="fa-solid fa-chevron-right" />
-                </button>
-              </div>
-            </div>
+          {movementMeta && (
+            <PaginationControls
+              meta={movementMeta}
+              onPageChange={setMovementPage}
+              itemLabel="mouvements"
+            />
           )}
         </div>
       )}
@@ -425,7 +439,7 @@ export default function DepotIndex() {
               ))}
             </select>
           </FormField>
-          <FormField label="Quantite" error={errors.qty?.[0]} required>
+          <FormField label="Quantité" error={errors.qty?.[0]} required>
             <input type="number" step="0.001" min="0.001" value={form.qty} onChange={(event) => setForm((current) => ({ ...current, qty: event.target.value }))} placeholder="0.000" />
           </FormField>
           <FormField label="Note (facultatif)" error={errors.note?.[0]}>

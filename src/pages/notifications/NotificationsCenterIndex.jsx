@@ -87,7 +87,7 @@ export default function NotificationsCenterIndex() {
     <div className="space-y-6">
       <PageHeader
         title="Centre de notifications"
-        subtitle="Evenements systeme, activite operationnelle et preferences par utilisateur."
+        subtitle="Événements système, activité opérationnelle et préférences par utilisateur."
         action={(
           <div className="flex items-center gap-2">
             <button onClick={load} className="btn-secondary text-xs">
@@ -104,7 +104,7 @@ export default function NotificationsCenterIndex() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="card py-4 px-4">
-          <div className="text-xs text-muted-color">Notifications total</div>
+          <div className="text-xs text-muted-color">Notifications totales</div>
           <div className="text-2xl font-bold text-base-color mt-1">{notifications.length}</div>
         </div>
         <div className="card py-4 px-4">
@@ -114,7 +114,7 @@ export default function NotificationsCenterIndex() {
           </div>
         </div>
         <div className="card py-4 px-4">
-          <div className="text-xs text-muted-color">Preferences actives</div>
+          <div className="text-xs text-muted-color">Préférences actives</div>
           <div className="text-2xl font-bold text-base-color mt-1">
             {preferences.filter((item) => item.enabled).length}/{preferences.length}
           </div>
@@ -125,7 +125,7 @@ export default function NotificationsCenterIndex() {
         <div className="card">
           <div className="flex items-center gap-2 mb-4">
             <i className="fa-solid fa-sliders text-teal-500" />
-            <h2 className="text-sm font-semibold text-base-color">Preferences utilisateur</h2>
+            <h2 className="text-sm font-semibold text-base-color">Préférences utilisateur</h2>
           </div>
 
           <div className="space-y-3">
@@ -143,9 +143,9 @@ export default function NotificationsCenterIndex() {
                   {savingKey === preference.key ? (
                     <><i className="fa-solid fa-spinner fa-spin" /> En cours...</>
                   ) : preference.enabled ? (
-                    <><i className="fa-solid fa-toggle-on" /> Active</>
+                    <><i className="fa-solid fa-toggle-on" /> Activée</>
                   ) : (
-                    <><i className="fa-solid fa-toggle-off" /> Desactivee</>
+                    <><i className="fa-solid fa-toggle-off" /> Désactivée</>
                   )}
                 </button>
               </div>
@@ -156,7 +156,7 @@ export default function NotificationsCenterIndex() {
         <div className="card">
           <div className="flex items-center gap-2 mb-4">
             <i className="fa-solid fa-stream text-sky-500" />
-            <h2 className="text-sm font-semibold text-base-color">Historique recent</h2>
+            <h2 className="text-sm font-semibold text-base-color">Historique récent</h2>
           </div>
 
           {loading ? (
@@ -190,7 +190,7 @@ export default function NotificationsCenterIndex() {
                           )}
                         </div>
                         <div className="text-sm text-secondary-color mt-1">
-                          {notification.data?.message || 'Aucun message detaille'}
+                          {notification.data?.message || 'Aucun message détaillé'}
                         </div>
                         {changes.length > 0 && (
                           <div className="mt-3 space-y-1.5">
@@ -211,7 +211,7 @@ export default function NotificationsCenterIndex() {
                       </div>
                       {unread && (
                         <button onClick={() => markRead(notification.id)} className="btn-secondary text-xs flex-shrink-0">
-                          <i className="fa-solid fa-check" /> Lire
+                          <i className="fa-solid fa-check" /> Marquer lue
                         </button>
                       )}
                     </div>

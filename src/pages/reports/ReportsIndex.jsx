@@ -50,8 +50,8 @@ function OverviewTab({ stats }) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <KpiCard label="CA aujourd'hui" value={`${fmt(stats?.today_revenue)} TND`} icon="fa-solid fa-arrow-trend-up" color="#0d9488" />
         <KpiCard label="Benefice (mois)" value={`${fmt(stats?.month_profit)} TND`} icon="fa-solid fa-coins" color="#10b981" />
-        <KpiCard label="Impayes total" value={`${fmt(stats?.unpaid_total)} TND`} icon="fa-solid fa-triangle-exclamation" color="#dc2626" />
-        <KpiCard label="Depenses (mois)" value={`${fmt(stats?.month_expenses)} TND`} icon="fa-solid fa-receipt" color="#f59e0b" />
+        <KpiCard label="Impayés totaux" value={`${fmt(stats?.unpaid_total)} TND`} icon="fa-solid fa-triangle-exclamation" color="#dc2626" />
+        <KpiCard label="Dépenses (mois)" value={`${fmt(stats?.month_expenses)} TND`} icon="fa-solid fa-receipt" color="#f59e0b" />
       </div>
 
       {chartData.length > 0 && (
@@ -275,12 +275,12 @@ function SitationTab() {
 
           <div className="card">
             <h2 className="text-sm font-semibold text-base-color mb-3 flex items-center gap-2">
-              <i className="fa-solid fa-receipt" style={{ color: '#ea580c' }} /> Depenses
+              <i className="fa-solid fa-receipt" style={{ color: '#ea580c' }} /> Dépenses
             </h2>
             <table className="w-full text-sm mb-3">
               <thead>
                 <tr>
-                  {['Categorie', 'Montant'].map((heading, index) => (
+                  {['Catégorie', 'Montant'].map((heading, index) => (
                     <th key={heading} className={`pb-3 pr-4 ${index > 0 ? 'text-right' : 'text-left'}`}>
                       {heading}
                     </th>
@@ -305,19 +305,19 @@ function SitationTab() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="card">
               <h2 className="text-sm font-semibold text-base-color mb-3 flex items-center gap-2">
-                <i className="fa-solid fa-credit-card" style={{ color: '#d97706' }} /> Credit exterieur
+              <i className="fa-solid fa-credit-card" style={{ color: '#d97706' }} /> Crédit extérieur
               </h2>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-color">Credit accorde (impaye)</span>
+                  <span className="text-muted-color">Crédit accordé (impayé)</span>
                   <span className="font-mono font-bold" style={{ color: '#dc2626' }}>{fmt(data.credit?.credit_du)} TND</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-color">Credit collecte</span>
+                  <span className="text-muted-color">Crédit collecté</span>
                   <span className="font-mono font-bold" style={{ color: '#059669' }}>{fmt(data.credit?.credit_collecte)} TND</span>
                 </div>
                 <div className="flex justify-between pt-2" style={{ borderTop: '1px solid var(--border)' }}>
-                  <span className="text-secondary-color font-medium">Valeur stock depot</span>
+                  <span className="text-secondary-color font-medium">Valeur stock dépôt</span>
                   <span className="text-base-color font-mono">{fmt(data.stock_valeur)} TND</span>
                 </div>
               </div>
@@ -348,7 +348,7 @@ function MovementsTab() {
   }, [])
 
   const typeConfig = {
-    depot_in: { label: 'Reception', color: '#10b981' },
+    depot_in: { label: 'Réception', color: '#10b981' },
     depot_to_camion: { label: 'Vers camion', color: '#3b82f6' },
     camion_to_customer: { label: 'Vers client', color: '#ef4444' },
     return: { label: 'Retour', color: '#f59e0b' },
@@ -368,8 +368,8 @@ function MovementsTab() {
       <table className="w-full text-sm">
         <thead>
           <tr>
-            {['Type', 'Produit', 'Commercial', 'Quantite', 'Date'].map((heading) => (
-              <th key={heading} className={`pb-3 pr-4 ${heading === 'Quantite' ? 'text-right' : 'text-left'}`}>
+            {['Type', 'Produit', 'Commercial', 'Quantité', 'Date'].map((heading) => (
+              <th key={heading} className={`pb-3 pr-4 ${heading === 'Quantité' ? 'text-right' : 'text-left'}`}>
                 {heading}
               </th>
             ))}

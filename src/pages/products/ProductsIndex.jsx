@@ -3,11 +3,13 @@ import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
+import PaginationControls from '../../components/PaginationControls'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
 import { findConfigItem, getConfigItemLabel, useConfigItems } from '../../hooks/useConfigItems'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
+import { paginateItems } from '../../utils/pagination'
 
 const EMPTY = {
   name: '',
@@ -51,6 +53,8 @@ export default function ProductsIndex() {
   const [restockNote, setRestockNote] = useState('')
   const [restockSaving, setRestockSaving] = useState(false)
   const [restockError, setRestockError] = useState('')
+  const [productPage, setProductPage] = useState(1)
+  const [productPerPage, setProductPerPage] = useState(20)
   const { isAdmin } = useAuth()
   const { items: configItems } = useConfigItems(['category', 'unit'])
 
@@ -210,11 +214,24 @@ export default function ProductsIndex() {
     return products.filter((product) => {
       const min = clampMinStock(product.min_stock ?? 1)
       const depotQty = Number(product.depot_qty ?? 0)
-      const camionQty = Number(product.camion_qty ?? 0)
-
-      return depotQty <= min || camionQty <= min
+      return depotQty <= min
     })
   }, [products])
+
+  const { items: paginatedProducts, meta: productMeta } = useMemo(
+    () => paginateItems(filteredProducts, productPage, productPerPage),
+    [filteredProducts, productPage, productPerPage]
+  )
+
+  useEffect(() => {
+    setProductPage(1)
+  }, [search])
+
+  useEffect(() => {
+    if (productPage !== productMeta.current_page) {
+      setProductPage(productMeta.current_page)
+    }
+  }, [productMeta.current_page, productPage])
 
   if (loading) {
     return <PageLoader />
@@ -274,7 +291,7 @@ export default function ProductsIndex() {
                 >
                   <div className="text-sm font-semibold text-base-color">{product.name}</div>
                   <div className="text-xs text-muted-color mt-1">
-                    Depot: <span className="font-mono">{fmt(depotQty)}</span>
+                    Dépôt: <span className="font-mono">{fmt(depotQty)}</span>
                     <span className="mx-2">|</span>
                     Camion: <span className="font-mono">{fmt(camionQty)}</span>
                   </div>
@@ -313,14 +330,14 @@ export default function ProductsIndex() {
               <tr className="text-left" style={{ borderBottom: '1px solid var(--border)' }}>
                 {[
                   'Nom',
-                  'Reference',
-                  'Categorie',
+                  'Référence',
+                  'Catégorie',
                   'Achat',
                   'Depot',
-                  'Stock depot',
+                  'Stock dépôt',
                   'Stock camion',
                   'Min stock',
-                  'Unite',
+                  'Unité',
                   ...(isAdmin() ? ['Actions'] : []),
                 ].map((heading) => (
                   <th key={heading} className="pb-3 pr-4 text-xs font-semibold text-muted-color uppercase tracking-wider">
@@ -330,11 +347,11 @@ export default function ProductsIndex() {
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.map((product) => {
+              {paginatedProducts.map((product) => {
                 const min = clampMinStock(product.min_stock ?? 1)
                 const depotQty = Number(product.depot_qty ?? 0)
                 const camionQty = Number(product.camion_qty ?? 0)
-                const isLow = depotQty <= min || camionQty <= min
+                const isLow = depotQty <= min
                 const categoryLabel = getConfigItemLabel(findConfigItem(categories, product.category), product.category || '-')
                 const unitLabel = getConfigItemLabel(findConfigItem(units, product.unit), product.unit || '-')
 
@@ -391,6 +408,17 @@ export default function ProductsIndex() {
             </tbody>
           </table>
         </div>
+
+        <PaginationControls
+          meta={productMeta}
+          perPage={productPerPage}
+          onPageChange={setProductPage}
+          onPerPageChange={(value) => {
+            setProductPerPage(value)
+            setProductPage(1)
+          }}
+          itemLabel="produits"
+        />
       </div>
 
       <Modal open={modal} onClose={() => setModal(false)} title={editing ? 'Modifier le produit' : 'Nouveau produit'}>
@@ -404,14 +432,14 @@ export default function ProductsIndex() {
           </FormField>
 
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="Reference" error={errors.reference?.[0]}>
+            <FormField label="Référence" error={errors.reference?.[0]}>
               <input
                 value={form.reference}
                 onChange={(event) => setForm((current) => ({ ...current, reference: event.target.value }))}
                 placeholder="REF-001"
               />
             </FormField>
-            <FormField label="Unite" error={errors.unit?.[0]}>
+            <FormField label="Unité" error={errors.unit?.[0]}>
               <select value={form.unit} onChange={(event) => setForm((current) => ({ ...current, unit: event.target.value }))}>
                 <option value="">Selectionner...</option>
                 {units.map((item) => (
@@ -434,7 +462,7 @@ export default function ProductsIndex() {
                 placeholder="0.000"
               />
             </FormField>
-            <FormField label="Prix vente depot (TND)" error={errors.depot_price?.[0]} required>
+            <FormField label="Prix de vente dépôt (TND)" error={errors.depot_price?.[0]} required>
               <input
                 type="number"
                 step="0.001"
@@ -446,7 +474,7 @@ export default function ProductsIndex() {
             </FormField>
           </div>
 
-          <FormField label="Categorie" error={errors.category?.[0]}>
+          <FormField label="Catégorie" error={errors.category?.[0]}>
             <select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}>
               <option value="">Selectionner...</option>
               {categories.map((item) => (
@@ -486,7 +514,7 @@ export default function ProductsIndex() {
                 Tarifs par zone (optionnel)
               </div>
               <div className="text-xs text-muted-color mb-3">
-                Laisser vide pour reutiliser le prix vente depot.
+                Laisser vide pour réutiliser le prix de vente dépôt.
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {zones.map((zone) => (
@@ -526,7 +554,7 @@ export default function ProductsIndex() {
       >
         <div className="space-y-4">
           <div className="rounded-xl border border-theme px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
-            Cette action ajoute du stock au depot et cree automatiquement un mouvement <strong className="text-base-color">depot_in</strong>.
+            Cette action ajoute du stock au dépôt et crée automatiquement un mouvement <strong className="text-base-color">depot_in</strong>.
           </div>
 
           {restockError && (
@@ -535,7 +563,7 @@ export default function ProductsIndex() {
             </div>
           )}
 
-          <FormField label="Quantite a ajouter" required>
+          <FormField label="Quantité à ajouter" required>
             <input
               type="number"
               step="0.001"

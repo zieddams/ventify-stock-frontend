@@ -28,7 +28,7 @@ const IMPORT_TYPES = [
   },
   {
     value: 'expenses',
-    label: 'Depenses historiques',
+    label: 'Dépenses historiques',
     icon: 'fa-solid fa-receipt',
     color: '#f59e0b',
     fields: ['expense_date', 'category', 'label', 'amount'],
@@ -44,7 +44,7 @@ const IMPORT_TYPES = [
   },
   {
     value: 'credit',
-    label: 'Historique credit',
+    label: 'Historique crédit',
     icon: 'fa-solid fa-credit-card',
     color: '#ec4899',
     fields: ['transaction_date', 'customer_name', 'type', 'amount', 'note'],
@@ -54,12 +54,12 @@ const IMPORT_TYPES = [
 
 const EXPORT_TYPES = [
   { value: 'customers', label: 'Clients', icon: 'fa-solid fa-users', color: '#3b82f6', hasDateRange: false },
-  { value: 'products', label: 'Produits & stock', icon: 'fa-solid fa-box-open', color: '#0d9488', hasDateRange: false },
+  { value: 'products', label: 'Produits et stock', icon: 'fa-solid fa-box-open', color: '#0d9488', hasDateRange: false },
   { value: 'invoices', label: 'Factures', icon: 'fa-solid fa-file-invoice', color: '#8b5cf6', hasDateRange: true },
-  { value: 'expenses', label: 'Depenses', icon: 'fa-solid fa-receipt', color: '#f59e0b', hasDateRange: true },
+  { value: 'expenses', label: 'Dépenses', icon: 'fa-solid fa-receipt', color: '#f59e0b', hasDateRange: true },
   { value: 'stock_movements', label: 'Mouvements de stock', icon: 'fa-solid fa-arrows-rotate', color: '#06b6d4', hasDateRange: true },
-  { value: 'credit', label: 'Credit clients', icon: 'fa-solid fa-credit-card', color: '#ec4899', hasDateRange: true },
-  { value: 'route_sessions', label: 'Sorties journee', icon: 'fa-solid fa-truck-fast', color: '#f97316', hasDateRange: true },
+  { value: 'credit', label: 'Crédit clients', icon: 'fa-solid fa-credit-card', color: '#ec4899', hasDateRange: true },
+  { value: 'route_sessions', label: 'Sorties journée', icon: 'fa-solid fa-truck-fast', color: '#f97316', hasDateRange: true },
 ]
 
 const today = new Date().toISOString().slice(0, 10)
@@ -110,7 +110,7 @@ function HistoryTab({ entries, onClear }) {
             )}
           </div>
           <p className="text-sm text-secondary-color">
-            Les imports et exports effectues sur ce navigateur sont conserves ici pour le suivi operateur.
+            Les imports et exports effectués sur ce navigateur sont conservés ici pour le suivi opérateur.
           </p>
           <div className="grid grid-cols-2 gap-3 mt-4">
             <div className="rounded-2xl p-3 border" style={{ background: 'rgba(13,148,136,0.05)', borderColor: 'rgba(13,148,136,0.18)' }}>
@@ -133,7 +133,7 @@ function HistoryTab({ entries, onClear }) {
             v{APP_VERSION}
           </div>
           <p className="text-xs text-muted-color mt-3">
-            Utilisez cet historique pour verifier rapidement les derniers fichiers traites apres une mise a jour.
+            Utilisez cet historique pour vérifier rapidement les derniers fichiers traités après une mise à jour.
           </p>
         </div>
       </div>
@@ -144,7 +144,7 @@ function HistoryTab({ entries, onClear }) {
             <i className="fa-solid fa-list-check text-teal-500 mr-2" />
             Derniers transferts
           </h2>
-          <span className="text-xs text-muted-color">{entries.length} element(s)</span>
+          <span className="text-xs text-muted-color">{entries.length} élément(s)</span>
         </div>
 
         {entries.length === 0 ? (
@@ -155,7 +155,7 @@ function HistoryTab({ entries, onClear }) {
             <i className="fa-solid fa-folder-open text-3xl text-muted-color opacity-40" />
             <div className="text-sm font-semibold text-base-color mt-4">Aucun historique pour le moment</div>
             <div className="text-xs text-muted-color mt-1">
-              Lancez un import CSV ou un export CSV depuis cette page pour commencer a tracer les operations.
+              Lancez un import CSV ou un export CSV depuis cette page pour commencer à tracer les opérations.
             </div>
           </div>
         ) : (
@@ -164,9 +164,9 @@ function HistoryTab({ entries, onClear }) {
               const isImport = entry.direction === 'import'
               const accent = isImport ? '#0d9488' : '#2563eb'
               const summary = isImport
-                ? `${entry.summary.imported ?? 0} importes · ${entry.summary.skipped ?? 0} ignores · ${entry.summary.errorCount ?? 0} erreurs`
+                ? `${entry.summary.imported ?? 0} importés · ${entry.summary.skipped ?? 0} ignorés · ${entry.summary.errorCount ?? 0} erreurs`
                 : entry.filters?.dateFrom || entry.filters?.dateTo
-                  ? `Periode ${entry.filters?.dateFrom || '...'} → ${entry.filters?.dateTo || '...'}`
+                  ? `P?riode ${entry.filters?.dateFrom || '...'} → ${entry.filters?.dateTo || '...'}`
                   : 'Export complet sans filtre date'
 
               return (
@@ -194,7 +194,7 @@ function HistoryTab({ entries, onClear }) {
                     </div>
                     <div className="text-right">
                       <div className="text-xs font-semibold text-base-color">{formatHistoryDate(entry.createdAt)}</div>
-                      <div className="text-[11px] text-muted-color mt-1">Historique navigateur</div>
+                      <div className="text-[11px] text-muted-color mt-1">Historique du navigateur</div>
                     </div>
                   </div>
                 </div>
@@ -346,7 +346,7 @@ export default function DataToolsIndex() {
   return (
     <div>
       <PageHeader
-        title="Outils de donnees"
+        title="Outils de données"
         subtitle="Import historique et export global depuis une seule page"
       />
 
@@ -376,7 +376,7 @@ export default function DataToolsIndex() {
           <div className="space-y-4">
             <div className="card">
               <h2 className="text-sm font-semibold text-base-color mb-3">
-                <i className="fa-solid fa-table text-teal-500 mr-2" />Type de donnees
+                <i className="fa-solid fa-table text-teal-500 mr-2" />Type de données
               </h2>
               <div className="space-y-1.5">
                 {IMPORT_TYPES.map(item => (
@@ -447,7 +447,7 @@ export default function DataToolsIndex() {
                 ) : (
                   <>
                     <span className="font-medium text-sm text-secondary-color">Glissez un fichier CSV ici</span>
-                    <span className="text-xs text-muted-color mt-1">ou cliquez pour selectionner</span>
+                    <span className="text-xs text-muted-color mt-1">ou cliquez pour le sélectionner</span>
                   </>
                 )}
                 <input
@@ -488,12 +488,12 @@ export default function DataToolsIndex() {
               <div className="card">
                 <div className="flex items-center gap-2 mb-4">
                   <i className="fa-solid fa-circle-check text-xl" style={{ color: '#059669' }} />
-                  <h2 className="text-sm font-semibold text-base-color">Import termine</h2>
+                  <h2 className="text-sm font-semibold text-base-color">Import terminé</h2>
                 </div>
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   {[
-                    { label: 'Importes', value: importResult.imported ?? 0, color: '#059669' },
-                    { label: 'Ignores', value: importResult.skipped ?? 0, color: '#d97706' },
+                    { label: 'Importés', value: importResult.imported ?? 0, color: '#059669' },
+                    { label: 'Ignorés', value: importResult.skipped ?? 0, color: '#d97706' },
                     { label: 'Erreurs', value: importResult.errors?.length ?? 0, color: '#dc2626' },
                   ].map(stat => (
                     <div
@@ -508,7 +508,7 @@ export default function DataToolsIndex() {
                 </div>
                 {importResult.errors && importResult.errors.length > 0 && (
                   <div>
-                    <div className="text-xs font-semibold text-muted-color mb-2 uppercase tracking-wide">Lignes avec erreur</div>
+                    <div className="text-xs font-semibold text-muted-color mb-2 uppercase tracking-wide">Lignes en erreur</div>
                     <div className="space-y-1 max-h-40 overflow-y-auto">
                       {importResult.errors.map((item, index) => (
                         <div
@@ -528,8 +528,8 @@ export default function DataToolsIndex() {
             {preview && !importResult && (
               <div className="card">
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-base-color">Apercu - {preview.total} lignes detectees</h2>
-                  <span className="text-xs text-muted-color">5 premieres lignes</span>
+                  <h2 className="text-sm font-semibold text-base-color">Aperçu - {preview.total} lignes détectées</h2>
+                  <span className="text-xs text-muted-color">5 premières lignes</span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
@@ -563,7 +563,7 @@ export default function DataToolsIndex() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="card">
             <h2 className="text-sm font-semibold text-base-color mb-3">
-              <i className="fa-solid fa-table text-teal-500 mr-2" />Donnees a exporter
+                <i className="fa-solid fa-table text-teal-500 mr-2" />Données à exporter
             </h2>
             <div className="space-y-1.5">
               {EXPORT_TYPES.map(item => (
@@ -606,7 +606,7 @@ export default function DataToolsIndex() {
                   style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}
                 >
                   <i className="fa-solid fa-info-circle mr-2" />
-                  Exportation de toutes les donnees {selectedExport.label.toLowerCase()}.
+                  Exportation de toutes les données {selectedExport.label.toLowerCase()}.
                 </div>
               )}
 
@@ -622,7 +622,7 @@ export default function DataToolsIndex() {
               <button onClick={handleExport} disabled={exporting} className="btn-primary w-full justify-center">
                 {exporting
                   ? <><i className="fa-solid fa-spinner fa-spin" /> Export en cours...</>
-                  : <><i className="fa-solid fa-download" /> Telecharger CSV - {selectedExport.label}</>
+                  : <><i className="fa-solid fa-download" /> Télécharger le CSV - {selectedExport.label}</>
                 }
               </button>
             </div>
@@ -634,7 +634,7 @@ export default function DataToolsIndex() {
               >
                 <i className="fa-solid fa-circle-check text-xl" style={{ color: '#059669' }} />
                 <div>
-                  <div className="text-sm font-semibold text-base-color">Export reussi a {lastExport.time}</div>
+                  <div className="text-sm font-semibold text-base-color">Export réussi à {lastExport.time}</div>
                   <div className="text-xs text-muted-color">{lastExport.filename}</div>
                 </div>
               </div>
@@ -642,20 +642,20 @@ export default function DataToolsIndex() {
 
             <div className="card">
               <h2 className="text-sm font-semibold text-base-color mb-3">
-                <i className="fa-solid fa-circle-info text-blue-500 mr-2" />A savoir
+                <i className="fa-solid fa-circle-info text-blue-500 mr-2" />À savoir
               </h2>
               <ul className="space-y-2 text-sm text-secondary-color">
                 <li className="flex items-start gap-2">
                   <i className="fa-solid fa-check text-teal-500 mt-0.5 text-xs" />
-                  Le fichier CSV est encode en UTF-8 et compatible Excel.
+                  Le fichier CSV est encodé en UTF-8 et compatible Excel.
                 </li>
                 <li className="flex items-start gap-2">
                   <i className="fa-solid fa-check text-teal-500 mt-0.5 text-xs" />
-                  Les montants restent en dinars tunisiens avec 3 decimales.
+                  Les montants restent en dinars tunisiens avec 3 décimales.
                 </li>
                 <li className="flex items-start gap-2">
                   <i className="fa-solid fa-check text-teal-500 mt-0.5 text-xs" />
-                  Le meme format CSV peut etre reutilise pour les imports.
+                  Le même format CSV peut être réutilisé pour les imports.
                 </li>
               </ul>
             </div>

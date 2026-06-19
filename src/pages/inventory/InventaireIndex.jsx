@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
+import PaginationControls from '../../components/PaginationControls'
 import { PageLoader } from '../../components/Spinner'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
+import { extractPaginationMeta, paginateItems } from '../../utils/pagination'
 
 function fmt(value) {
   return value != null ? Number(value).toFixed(3) : '-'
@@ -20,6 +22,8 @@ export default function InventaireIndex() {
   const [showModal, setShowModal] = useState(false)
   const [search, setSearch] = useState('')
   const [note, setNote] = useState('')
+  const [productPage, setProductPage] = useState(1)
+  const [productPerPage, setProductPerPage] = useState(15)
 
   const [history, setHistory] = useState([])
   const [historyLoading, setHistoryLoading] = useState(true)
@@ -57,16 +61,7 @@ export default function InventaireIndex() {
 
       const payload = response.data
       const items = Array.isArray(payload) ? payload : (payload.data ?? [])
-      const meta = payload?.meta ?? (
-        payload?.current_page
-          ? {
-              current_page: payload.current_page,
-              last_page: payload.last_page,
-              total: payload.total,
-              per_page: payload.per_page,
-            }
-          : null
-      )
+      const meta = extractPaginationMeta(payload, { current_page: page, per_page: 15 })
 
       setHistory(items)
       setHistoryMeta(meta)
@@ -122,6 +117,20 @@ export default function InventaireIndex() {
   const filteredProducts = products.filter((product) =>
     !search || product.name.toLowerCase().includes(search.toLowerCase()) || product.reference?.toLowerCase().includes(search.toLowerCase())
   )
+  const { items: paginatedProducts, meta: productsMeta } = useMemo(
+    () => paginateItems(filteredProducts, productPage, productPerPage),
+    [filteredProducts, productPage, productPerPage]
+  )
+
+  useEffect(() => {
+    setProductPage(1)
+  }, [search])
+
+  useEffect(() => {
+    if (productPage !== productsMeta.current_page) {
+      setProductPage(productsMeta.current_page)
+    }
+  }, [productPage, productsMeta.current_page])
 
   if (loading) {
     return <PageLoader />
@@ -203,7 +212,7 @@ export default function InventaireIndex() {
                     </td>
                   </tr>
                 )}
-                {filteredProducts.map((product) => {
+                {paginatedProducts.map((product) => {
                   const counted = counts[product.id]
                   const hasCounted = counted !== undefined && counted !== ''
                   const systemQty = Number(product.depot_qty ?? product.qty ?? 0)
@@ -249,6 +258,17 @@ export default function InventaireIndex() {
               </tbody>
             </table>
           </div>
+
+          <PaginationControls
+            meta={productsMeta}
+            perPage={productPerPage}
+            onPageChange={setProductPage}
+            onPerPageChange={(value) => {
+              setProductPerPage(value)
+              setProductPage(1)
+            }}
+            itemLabel="produits"
+          />
         </div>
 
         <div className="card">
@@ -302,18 +322,12 @@ export default function InventaireIndex() {
             </div>
           )}
 
-          {historyMeta && historyMeta.last_page > 1 && (
-            <div className="flex items-center justify-between pt-4 mt-4" style={{ borderTop: '1px solid var(--border)' }}>
-              <span className="text-xs text-muted-color">Page {historyMeta.current_page} / {historyMeta.last_page}</span>
-              <div className="flex gap-2">
-                <button disabled={historyPage === 1} onClick={() => setHistoryPage((page) => page - 1)} className="btn-secondary text-xs disabled:opacity-40">
-                  <i className="fa-solid fa-chevron-left" />
-                </button>
-                <button disabled={historyPage === historyMeta.last_page} onClick={() => setHistoryPage((page) => page + 1)} className="btn-secondary text-xs disabled:opacity-40">
-                  <i className="fa-solid fa-chevron-right" />
-                </button>
-              </div>
-            </div>
+          {historyMeta && (
+            <PaginationControls
+              meta={historyMeta}
+              onPageChange={setHistoryPage}
+              itemLabel="ajustements"
+            />
           )}
         </div>
       </div>

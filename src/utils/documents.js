@@ -80,7 +80,7 @@ function renderTableSection(section) {
     `
     : `
       <tbody>
-        <tr><td class="empty-row" colspan="${Math.max(section.columns?.length ?? 1, 1)}">${escapeHtml(section.emptyMessage || 'Aucune donnee disponible.')}</td></tr>
+        <tr><td class="empty-row" colspan="${Math.max(section.columns?.length ?? 1, 1)}">${escapeHtml(section.emptyMessage || 'Aucune donnée disponible.')}</td></tr>
       </tbody>
     `
 
@@ -186,7 +186,7 @@ export function buildDocumentModel({
   if (definition.scope === 'item') {
     sections.push({
       kind: 'keyValue',
-      title: 'Details',
+      title: 'Détails',
       rows: layout.fields.map((field) => ({
         label: field.label,
         value: field.value(record),
@@ -195,10 +195,10 @@ export function buildDocumentModel({
   } else {
     sections.push({
       kind: 'table',
-      title: definition.tableTitle || 'Elements',
+      title: definition.tableTitle || 'Éléments',
       columns: layout.fields.map((field) => field.label),
       rows: normalizedRecords.map((currentRecord) => layout.fields.map((field) => field.value(currentRecord))),
-      emptyMessage: definition.emptyMessage || 'Aucune donnee disponible pour cette vue.',
+      emptyMessage: definition.emptyMessage || 'Aucune donnée disponible pour cette vue.',
     })
   }
 
@@ -212,10 +212,10 @@ export function buildDocumentModel({
     orientation: layout.orientation,
     meta: [
       ...meta.filter(Boolean),
-      `Genere le ${formatDateTime(new Date())}`,
+      `Généré le ${formatDateTime(new Date())}`,
       definition.scope === 'item'
         ? 'Document unitaire'
-        : `${normalizedRecords.length} element(s) inclus`,
+        : `${normalizedRecords.length} élément(s) inclus`,
     ],
     summary: combinedSummary,
     sections,
@@ -435,6 +435,110 @@ function buildPrintHtml(model) {
 </html>`
 }
 
+function cleanupPrintFrame(frame) {
+  if (frame?.parentNode) {
+    frame.parentNode.removeChild(frame)
+  }
+}
+
+function createInlinePrintTarget(html) {
+  if (typeof document === 'undefined' || !document.body) {
+    throw new Error('print_target_unavailable')
+  }
+
+  const frame = document.createElement('iframe')
+  frame.setAttribute('aria-hidden', 'true')
+  frame.style.position = 'fixed'
+  frame.style.right = '0'
+  frame.style.bottom = '0'
+  frame.style.width = '0'
+  frame.style.height = '0'
+  frame.style.border = '0'
+  frame.style.opacity = '0'
+  frame.style.pointerEvents = 'none'
+  frame.style.visibility = 'hidden'
+
+  document.body.appendChild(frame)
+
+  const printWindow = frame.contentWindow
+  const printDocument = printWindow?.document
+
+  if (!printWindow || !printDocument) {
+    cleanupPrintFrame(frame)
+    throw new Error('print_target_unavailable')
+  }
+
+  printDocument.open()
+  printDocument.write(html)
+  printDocument.close()
+
+  return {
+    printWindow,
+    cleanup: () => cleanupPrintFrame(frame),
+  }
+}
+
+function createPopupPrintTarget(html) {
+  const printWindow = window.open('', '_blank', 'width=1280,height=900')
+
+  if (!printWindow) {
+    throw new Error('print_window_blocked')
+  }
+
+  printWindow.document.open()
+  printWindow.document.write(html)
+  printWindow.document.close()
+
+  return {
+    printWindow,
+    cleanup: () => printWindow.close(),
+  }
+}
+
+function schedulePrint(printWindow, cleanup) {
+  let cleanedUp = false
+
+  const finalize = () => {
+    if (cleanedUp) return
+    cleanedUp = true
+    cleanup?.()
+  }
+
+  const fallbackTimer = window.setTimeout(() => {
+    finalize()
+  }, 60000)
+
+  const handleAfterPrint = () => {
+    window.clearTimeout(fallbackTimer)
+    window.setTimeout(finalize, 150)
+  }
+
+  if (typeof printWindow.addEventListener === 'function') {
+    printWindow.addEventListener('afterprint', handleAfterPrint, { once: true })
+  } else {
+    printWindow.onafterprint = handleAfterPrint
+  }
+
+  window.setTimeout(() => {
+    try {
+      if (typeof printWindow.focus === 'function') {
+        printWindow.focus()
+      }
+
+      if (typeof printWindow.print === 'function') {
+        printWindow.print()
+        return
+      }
+
+      handleAfterPrint()
+    } catch (error) {
+      console.error('print_failed', error)
+      window.clearTimeout(fallbackTimer)
+      finalize()
+    }
+  }, 250)
+}
+
 export async function downloadDocumentPdf(options) {
   const model = buildDocumentModel(options)
   const [{ jsPDF }, { default: autoTable }] = await Promise.all([
@@ -555,7 +659,7 @@ export async function downloadDocumentPdf(options) {
       head: section.columns?.length ? [section.columns.map((column) => normalizeText(column))] : undefined,
       body: section.rows?.length
         ? section.rows.map((row) => row.map((cell) => normalizeText(cell)))
-        : [[normalizeText(section.emptyMessage || 'Aucune donnee disponible.')]],
+        : [[normalizeText(section.emptyMessage || 'Aucune donnée disponible.')]],
       theme: 'grid',
       margin: { left, right },
       styles: {
@@ -591,27 +695,13 @@ export async function downloadDocumentPdf(options) {
 
 export function printGeneratedDocument(options) {
   const model = buildDocumentModel(options)
-  const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=1280,height=900')
+  const html = buildPrintHtml(model)
 
-  if (!printWindow) {
-    throw new Error('print_window_blocked')
-  }
-
-  printWindow.document.open()
-  printWindow.document.write(buildPrintHtml(model))
-  printWindow.document.close()
-
-  const trigger = () => {
-    printWindow.focus()
-    printWindow.print()
-  }
-
-  const closeAfterPrint = () => {
-    printWindow.close()
-  }
-
-  printWindow.addEventListener('afterprint', closeAfterPrint, { once: true })
-  printWindow.onload = () => {
-    window.setTimeout(trigger, 250)
+  try {
+    const inlineTarget = createInlinePrintTarget(html)
+    schedulePrint(inlineTarget.printWindow, inlineTarget.cleanup)
+  } catch (inlineError) {
+    const popupTarget = createPopupPrintTarget(html)
+    schedulePrint(popupTarget.printWindow, popupTarget.cleanup)
   }
 }
