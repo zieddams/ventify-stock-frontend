@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import NotificationBell from '../components/NotificationBell'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
+import { APP_VERSION } from '../config/appMeta'
 
 const CORE_NAV = [
   { to: '/invoices', icon: 'fa-solid fa-file-invoice', label: 'Factures' },
@@ -432,7 +433,10 @@ export default function AppLayout() {
               <span className="font-bold text-sm text-base-color">El Irtiwaa</span>
             </div>
             <div className="min-w-0">
-              <h1 className="hidden md:block text-sm font-semibold text-base-color truncate">{pageInfo.label}</h1>
+              <div className="hidden md:flex items-center gap-2 min-w-0">
+                <h1 className="text-sm font-semibold text-base-color truncate">{pageInfo.label}</h1>
+                <span className="topbar-version-tag flex-shrink-0">v{APP_VERSION}</span>
+              </div>
             </div>
           </div>
 

@@ -8,7 +8,6 @@ import api from '../services/api'
 import { PageLoader } from '../components/Spinner'
 import { useAuth } from '../contexts/AuthContext'
 import QuantityInput from '../components/QuantityInput'
-import { APP_VERSION } from '../config/appMeta'
 
 const HEARTBEAT_REFRESH_MS = 20 * 1000
 const TUNISIA_BOUNDS = [[30.0, 7.0], [38.5, 12.5]]
@@ -470,20 +469,9 @@ export default function Dashboard() {
   return (
     <div>
       {/* ── Page header ─────────────────────────────────────────────────── */}
-      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-base-color tracking-tight">Tableau de bord</h1>
-          <p className="text-sm text-muted-color mt-0.5">El Irtiwaa — vue en temps réel <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-1 mb-0.5" /></p>
-        </div>
-        <div className="dashboard-version-chip self-start md:self-auto">
-          <span className="dashboard-version-chip__icon" aria-hidden="true">
-            <i className="fa-solid fa-cubes-stacked" />
-          </span>
-          <div className="min-w-0">
-            <div className="dashboard-version-chip__label">Version plateforme</div>
-            <div className="dashboard-version-chip__value">El Irtiwaa v{APP_VERSION}</div>
-          </div>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-base-color tracking-tight">Tableau de bord</h1>
+        <p className="text-sm text-muted-color mt-0.5">El Irtiwaa — vue en temps réel <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-1 mb-0.5" /></p>
       </div>
 
       {/* ── Admin view ──────────────────────────────────────────────────── */}
