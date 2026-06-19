@@ -223,6 +223,52 @@ function getTunisiaPoint(latitude, longitude) {
   return [lat, lng]
 }
 
+function getLatestTraceLocation(routeTrace = []) {
+  for (let index = routeTrace.length - 1; index >= 0; index -= 1) {
+    const item = routeTrace[index]
+    const point = getTunisiaPoint(item.latitude, item.longitude)
+
+    if (point) {
+      return {
+        point,
+        latitude: point[0],
+        longitude: point[1],
+        accuracy: item.accuracy != null ? Number(item.accuracy) : null,
+        speed: item.speed != null ? Number(item.speed) : null,
+        recorded_at: item.recorded_at || null,
+        source: 'trace',
+      }
+    }
+  }
+
+  return null
+}
+
+function getSelectedTerrainLocation(rep, routeTrace = []) {
+  const livePoint = getTunisiaPoint(rep?.map_position?.latitude, rep?.map_position?.longitude)
+
+  if (livePoint) {
+    return {
+      point: livePoint,
+      latitude: livePoint[0],
+      longitude: livePoint[1],
+      accuracy: rep?.map_position?.accuracy != null ? Number(rep.map_position.accuracy) : null,
+      speed: rep?.map_position?.speed != null ? Number(rep.map_position.speed) : null,
+      recorded_at: rep?.map_position?.recorded_at || null,
+      source: rep?.map_position?.source || 'gps',
+    }
+  }
+
+  return getLatestTraceLocation(routeTrace)
+}
+
+function formatMapSourceLabel(source) {
+  if (source === 'trace') return 'Trace GPS'
+  if (source === 'invoice') return 'Facture'
+  if (source === 'mobile') return 'Mobile'
+  return 'GPS'
+}
+
 function fitMapToTunisia(map) {
   map.fitBounds(TUNISIA_BOUNDS, {
     padding: [18, 18],
@@ -401,7 +447,7 @@ function distanceBetweenPointsKm([lat1, lng1], [lat2, lng2]) {
   return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-function FitTerrainBounds({ reps, routeTrace, selectedRep }) {
+function FitTerrainBounds({ reps, routeTrace, selectedPoint }) {
   const map = useMap()
 
   useEffect(() => {
@@ -411,13 +457,13 @@ function FitTerrainBounds({ reps, routeTrace, selectedRep }) {
     const repPoints = reps
       .map(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
       .filter(Boolean)
-    const selectedPoint = getTunisiaPoint(selectedRep?.map_position?.latitude, selectedRep?.map_position?.longitude)
+    const focusPoint = selectedPoint?.point ?? null
 
     let points = tracePoints.length > 1 ? tracePoints : repPoints
 
-    if (selectedPoint && tracePoints.length <= 1) {
-      const nearbyPoints = repPoints.filter(point => distanceBetweenPointsKm(selectedPoint, point) <= 150)
-      points = nearbyPoints.length > 1 ? nearbyPoints : [selectedPoint]
+    if (focusPoint && tracePoints.length <= 1) {
+      const nearbyPoints = repPoints.filter(point => distanceBetweenPointsKm(focusPoint, point) <= 150)
+      points = nearbyPoints.length > 1 ? nearbyPoints : [focusPoint]
     }
 
     if (points.length > 0) {
@@ -433,7 +479,7 @@ function FitTerrainBounds({ reps, routeTrace, selectedRep }) {
         fitMapToTunisia(map)
       } catch {}
     }
-  }, [map, reps, routeTrace, selectedRep])
+  }, [map, reps, routeTrace, selectedPoint])
 
   return null
 }
@@ -689,7 +735,9 @@ function TerrainTab({
     .map(item => getTunisiaPoint(item.latitude, item.longitude))
     .filter(Boolean)
   const terrainPositions = (terrain.reps ?? []).filter(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
-  const selectedRepHasMapPosition = Boolean(getTunisiaPoint(selectedRep?.map_position?.latitude, selectedRep?.map_position?.longitude))
+  const selectedTerrainLocation = getSelectedTerrainLocation(selectedRep, routeTrace)
+  const selectedRepHasMapPosition = Boolean(selectedTerrainLocation?.point)
+  const selectedRepUsesTraceFallback = selectedTerrainLocation?.source === 'trace'
   const mapDisabledReason = selectedRep && !selectedRepHasMapPosition
     ? (selectedRep.presence?.last_seen
       ? 'Aucun point GPS exploitable en Tunisie n a encore ete remonte pour ce compte.'
@@ -943,7 +991,7 @@ function TerrainTab({
                 zoomControl
               >
                 <MapBaseLayer mapSettings={mapSettings} />
-                <FitTerrainBounds reps={terrainPositions} routeTrace={routeTrace} selectedRep={selectedRep} />
+                <FitTerrainBounds reps={terrainPositions} routeTrace={routeTrace} selectedPoint={selectedTerrainLocation} />
 
                 {terrainPositions.map(rep => {
                   const presence = getPresenceMeta(rep)
@@ -981,10 +1029,30 @@ function TerrainTab({
                   )
                 })}
 
-                {selectedRepHasMapPosition && selectedRep?.map_position && selectedRep.map_position.accuracy > 0 && (
+                {selectedRepUsesTraceFallback && selectedRep && selectedTerrainLocation?.point && (
+                  <Marker
+                    position={selectedTerrainLocation.point}
+                    icon={makeRepIcon('#2563eb', true)}
+                    eventHandlers={{ click: () => onSelectRep(selectedRep.id) }}
+                  >
+                    <Popup>
+                      <div style={{ minWidth: 180 }}>
+                        <div style={{ fontWeight: 700 }}>{selectedRep.name}</div>
+                        <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
+                          Trace GPS recente · {selectedTerrainLocation.recorded_at ? formatDateTime(selectedTerrainLocation.recorded_at) : 'heure inconnue'}
+                        </div>
+                        <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
+                          Le point courant n est pas exploitable, la carte utilise le dernier point valide de la trace.
+                        </div>
+                      </div>
+                    </Popup>
+                  </Marker>
+                )}
+
+                {selectedRepHasMapPosition && selectedTerrainLocation?.accuracy > 0 && (
                   <Circle
-                    center={getTunisiaPoint(selectedRep.map_position.latitude, selectedRep.map_position.longitude)}
-                    radius={Number(selectedRep.map_position.accuracy)}
+                    center={selectedTerrainLocation.point}
+                    radius={Number(selectedTerrainLocation.accuracy)}
                     pathOptions={{ color: '#2563eb', fillColor: '#2563eb', fillOpacity: 0.08 }}
                   />
                 )}
@@ -1067,9 +1135,9 @@ function TerrainTab({
                     <DetailRow label="Chargee / vendue / retour" value={`${formatNumber(selectedRep.route_session?.loaded_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.sold_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.returned_qty_total ?? 0)}`} />
                     <DetailRow label="Reste camion" value={formatNumber(selectedRep.route_session?.remaining_qty_total ?? 0)} />
                     <DetailRow label="Cash / credit" value={`${formatMoney(selectedRep.route_session?.cash_collected ?? 0)} / ${formatMoney(selectedRep.route_session?.credit_given ?? 0)}`} />
-                    <DetailRow label="Precision GPS" value={selectedRep.map_position?.accuracy != null ? `${formatNumber(selectedRep.map_position.accuracy)} m` : '--'} />
-                    <DetailRow label="Vitesse" value={selectedRep.map_position?.speed != null ? `${formatNumber(selectedRep.map_position.speed)} km/h` : '--'} />
-                    <DetailRow label="Dernier point carte" value={selectedRep.map_position ? `${selectedRep.map_position.source === 'gps' ? 'GPS' : 'Facture'} · ${formatDateTime(selectedRep.map_position.recorded_at)}` : 'Aucun point'} />
+                    <DetailRow label="Precision GPS" value={selectedTerrainLocation?.accuracy != null ? `${formatNumber(selectedTerrainLocation.accuracy)} m` : '--'} />
+                    <DetailRow label="Vitesse" value={selectedTerrainLocation?.speed != null ? `${formatNumber(selectedTerrainLocation.speed)} km/h` : '--'} />
+                    <DetailRow label="Dernier point carte" value={selectedTerrainLocation ? `${formatMapSourceLabel(selectedTerrainLocation.source)} · ${formatDateTime(selectedTerrainLocation.recorded_at)}` : 'Aucun point'} />
                   </div>
                 </div>
 
@@ -1303,12 +1371,13 @@ export default function LiveMapIndex() {
     }
 
     const selectedRep = terrain.reps.find(rep => String(rep.id) === String(selectedRepId))
-    if (!getTunisiaPoint(selectedRep?.map_position?.latitude, selectedRep?.map_position?.longitude)) {
+
+    if (!selectedRep?.route_session?.id) {
       setRouteTrace([])
       return
     }
 
-    loadRouteTrace(selectedRep?.route_session?.id)
+    loadRouteTrace(selectedRep.route_session.id)
   }, [activeTab, loadRouteTrace, selectedRepId, terrain.reps])
 
   useEffect(() => {
