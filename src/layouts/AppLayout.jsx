@@ -419,7 +419,7 @@ export default function AppLayout() {
             <div className="min-w-0">
               <div className="hidden md:flex items-center gap-2 min-w-0">
                 <h1 className="text-sm font-semibold text-base-color truncate">{pageInfo.label}</h1>
-                <span className="topbar-version-tag flex-shrink-0">v{APP_VERSION}</span>
+                <span className="app-version-label flex-shrink-0">v{APP_VERSION}</span>
               </div>
             </div>
           </div>

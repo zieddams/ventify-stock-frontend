@@ -129,7 +129,7 @@ function HistoryTab({ entries, onClear }) {
             <i className="fa-solid fa-code-branch text-indigo-500 mr-2" />
             Version web active
           </h2>
-          <div className="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold" style={{ color: '#0f766e', background: 'rgba(13,148,136,0.08)' }}>
+          <div className="app-version-label">
             v{APP_VERSION}
           </div>
           <p className="text-xs text-muted-color mt-3">
