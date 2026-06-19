@@ -118,7 +118,7 @@ function getSessionMapPoint(session) {
   return [lat, lng]
 }
 
-function SessionPreviewPanel({ session, pinned, onTogglePin }) {
+function SessionPreviewPanel({ session, pinned }) {
   const point = getSessionMapPoint(session)
   const lastSeenAge = formatLastSeenAge(session?.presence?.last_seen_age_seconds)
 
@@ -134,10 +134,10 @@ function SessionPreviewPanel({ session, pinned, onTogglePin }) {
             {lastSeenAge ? ` · ${lastSeenAge}` : ''}
           </div>
         </div>
-        {session && (
-          <button onClick={onTogglePin} className="btn-secondary text-xs flex-shrink-0">
-            <i className={`fa-solid ${pinned ? 'fa-thumbtack-slash' : 'fa-thumbtack'}`} /> {pinned ? 'Detacher' : 'Epingler'}
-          </button>
+        {session && pinned && (
+          <span className="badge badge-blue flex-shrink-0">
+            <i className="fa-solid fa-thumbtack" /> Epinglee
+          </span>
         )}
       </div>
 
@@ -671,10 +671,6 @@ export default function Dashboard() {
               <SessionPreviewPanel
                 session={previewSession}
                 pinned={Boolean(pinnedSessionId && previewSession && String(previewSession.id) === String(pinnedSessionId))}
-                onTogglePin={() => {
-                  if (!previewSession) return
-                  setPinnedSessionId((current) => (String(current) === String(previewSession.id) ? null : previewSession.id))
-                }}
               />
             </div>
           </div>
