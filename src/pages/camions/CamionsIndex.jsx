@@ -86,6 +86,17 @@ function emptyCloseForm() {
   }
 }
 
+function routeSessionCloseDefaults(routeSession) {
+  const defaults = routeSession?.close_defaults ?? {}
+
+  return {
+    invoiceCount: Number(defaults.invoice_count ?? 0),
+    totalSold: Number(defaults.total_sold ?? 0),
+    cashCollected: Number(defaults.cash_collected ?? 0),
+    creditTotal: Number(defaults.credit_total ?? 0),
+  }
+}
+
 export default function CamionsIndex() {
   const [camions, setCamions] = useState([])
   const [reps, setReps] = useState([])
@@ -99,6 +110,7 @@ export default function CamionsIndex() {
   const [transferForm, setTransferForm] = useState(emptyTransferForm())
   const [sessionForm, setSessionForm] = useState(emptySessionForm())
   const [closeForm, setCloseForm] = useState(emptyCloseForm())
+  const [closeContext, setCloseContext] = useState(null)
   const [fleetErrors, setFleetErrors] = useState({})
   const [transferErrors, setTransferErrors] = useState({})
   const [sessionErrors, setSessionErrors] = useState({})
@@ -310,10 +322,20 @@ export default function CamionsIndex() {
   }
 
   const openCloseSession = (rep) => {
+    const defaults = routeSessionCloseDefaults(rep?.route_session)
+
     setCloseForm({
       route_session_id: String(rep?.route_session?.id ?? ''),
-      cash_collected: '',
-      credit_collected: '',
+      cash_collected: fmt(defaults.cashCollected),
+      credit_collected: fmt(defaults.creditTotal),
+    })
+    setCloseContext({
+      repName: rep?.user?.name ?? 'Commercial',
+      camionName: rep?.route_session?.camion?.name ?? 'Camion non affecte',
+      invoiceCount: defaults.invoiceCount,
+      totalSold: defaults.totalSold,
+      cashCollected: defaults.cashCollected,
+      creditTotal: defaults.creditTotal,
     })
     setCloseErrors({})
     setCloseModal(true)
@@ -335,6 +357,7 @@ export default function CamionsIndex() {
 
       setCloseModal(false)
       setCloseForm(emptyCloseForm())
+      setCloseContext(null)
       await load({ keepLoading: true })
     } catch (error) {
       setCloseErrors(error.response?.data?.errors ?? {
@@ -1019,7 +1042,11 @@ export default function CamionsIndex() {
 
       <Modal
         open={closeModal}
-        onClose={() => setCloseModal(false)}
+        onClose={() => {
+          setCloseModal(false)
+          setCloseForm(emptyCloseForm())
+          setCloseContext(null)
+        }}
         title="Clôturer une session terrain"
         size="sm"
       >
@@ -1028,13 +1055,32 @@ export default function CamionsIndex() {
             Renseignez les montants déjà récupérés si vous souhaitez les consolider au moment de la clôture.
           </div>
 
+          {closeContext && (
+            <div
+              className="rounded-2xl px-4 py-3 text-sm"
+              style={{
+                background: 'rgba(37,99,235,0.08)',
+                border: '1px solid rgba(37,99,235,0.16)',
+                color: '#1d4ed8',
+              }}
+            >
+              <div className="font-semibold text-base-color">{closeContext.repName}</div>
+              <div className="text-xs text-secondary-color mt-1">
+                {closeContext.camionName} | {closeContext.invoiceCount} facture(s) | Ventes {fmt(closeContext.totalSold)} TND
+              </div>
+              <div className="text-xs text-secondary-color mt-1">
+                Cash propose {fmt(closeContext.cashCollected)} TND | Credit session {fmt(closeContext.creditTotal)} TND
+              </div>
+            </div>
+          )}
+
           {closeErrors.general?.[0] && (
             <div className="rounded-2xl px-4 py-3 text-sm text-red-600" style={{ background: 'rgba(239,68,68,0.08)' }}>
               {closeErrors.general[0]}
             </div>
           )}
 
-          <FormField label="Cash collecte" error={closeErrors.cash_collected?.[0]}>
+          <FormField label="Cash collecte a valider" error={closeErrors.cash_collected?.[0]}>
             <input
               type="number"
               step="0.001"
@@ -1057,7 +1103,16 @@ export default function CamionsIndex() {
           </FormField>
 
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setCloseModal(false)} className="btn-secondary">Annuler</button>
+            <button
+              onClick={() => {
+                setCloseModal(false)
+                setCloseForm(emptyCloseForm())
+                setCloseContext(null)
+              }}
+              className="btn-secondary"
+            >
+              Annuler
+            </button>
             <button onClick={saveCloseSession} disabled={closingSession} className="btn-primary">
               {closingSession ? (
                 <><i className="fa-solid fa-spinner fa-spin" /> Cloture...</>
