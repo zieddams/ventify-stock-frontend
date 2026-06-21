@@ -49,7 +49,7 @@ function buildDepotForm(depot = null, depots = []) {
 }
 
 const MOVEMENT_CONFIG = {
-  depot_in: { label: 'Reception', icon: 'fa-solid fa-arrow-down', color: '#10b981', bg: 'rgba(16,185,129,0.10)' },
+  depot_in: { label: 'Réception', icon: 'fa-solid fa-arrow-down', color: '#10b981', bg: 'rgba(16,185,129,0.10)' },
   depot_to_camion: { label: 'Vers camion', icon: 'fa-solid fa-truck', color: '#3b82f6', bg: 'rgba(59,130,246,0.10)' },
   camion_to_customer: { label: 'Vers client', icon: 'fa-solid fa-user', color: '#ef4444', bg: 'rgba(239,68,68,0.10)' },
   return: { label: 'Retour', icon: 'fa-solid fa-rotate-left', color: '#f59e0b', bg: 'rgba(245,158,11,0.10)' },
@@ -325,7 +325,7 @@ export default function DepotIndex() {
     <div>
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-xl font-bold text-base-color tracking-tight">Depot</h1>
+          <h1 className="text-xl font-bold text-base-color tracking-tight">Dépôt</h1>
           <p className="text-sm text-muted-color mt-0.5">
             Stock central, réceptions et mouvements{selectedDepot ? ` | ${selectedDepot.name}` : ''}
           </p>
@@ -374,8 +374,8 @@ export default function DepotIndex() {
                       {isSelected ? (
                         <span className="badge badge-green">Consulté</span>
                       ) : (
-                        <button onClick={() => setSelectedDepotValue(String(depot.id))} className="btn-secondary text-xs" title="Consultér ce dépôt">
-                          <i className="fa-solid fa-eye" /> Consultér
+                        <button onClick={() => setSelectedDepotValue(String(depot.id))} className="btn-secondary text-xs" title="Consulter ce dépôt">
+                          <i className="fa-solid fa-eye" /> Consulter
                         </button>
                       )}
                       <button onClick={() => openEditDepot(depot)} className="btn-secondary text-xs" title="Modifier ce dépôt">
@@ -573,7 +573,7 @@ export default function DepotIndex() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left" style={{ borderBottom: '1px solid var(--border)' }}>
-                    {['Type', 'Produit', 'Depot', 'Utilisateur', 'Quantite', 'Note', 'Date / heure', ''].map((heading) => (
+                    {['Type', 'Produit', 'Dépôt', 'Utilisateur', 'Quantité', 'Note', 'Date / heure', ''].map((heading) => (
                       <th key={heading} className="pb-3 pr-4 text-xs font-semibold text-muted-color uppercase tracking-wider">
                         {heading}
                       </th>
@@ -640,7 +640,7 @@ export default function DepotIndex() {
         <div className="space-y-4">
           <FormField label="Produit" error={errors.product_id?.[0]} required>
             <select value={form.product_id} onChange={(event) => setForm((current) => ({ ...current, product_id: event.target.value }))}>
-              <option value="">Selectionner un produit...</option>
+              <option value="">Sélectionner un produit...</option>
               {products.map((product) => (
                 <option key={product.id} value={product.id}>
                   {product.name} - {product.reference}
@@ -648,7 +648,7 @@ export default function DepotIndex() {
               ))}
             </select>
           </FormField>
-          <FormField label="Quantite" error={errors.qty?.[0]} required>
+          <FormField label="Quantité" error={errors.qty?.[0]} required>
             <input type="number" step="0.001" min="0.001" value={form.qty} onChange={(event) => setForm((current) => ({ ...current, qty: event.target.value }))} placeholder="0.000" />
           </FormField>
           <FormField label="Note (facultatif)" error={errors.note?.[0]}>
@@ -667,7 +667,7 @@ export default function DepotIndex() {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <FormField label="Nom" error={depotErrors.name?.[0]} required>
-              <input value={depotForm.name} onChange={(event) => setDepotForm((current) => ({ ...current, name: event.target.value }))} placeholder="Depot Bizerte" />
+              <input value={depotForm.name} onChange={(event) => setDepotForm((current) => ({ ...current, name: event.target.value }))} placeholder="Dépôt Bizerte" />
             </FormField>
             <FormField label="Code" error={depotErrors.code?.[0]}>
               <input value={depotForm.code} onChange={(event) => setDepotForm((current) => ({ ...current, code: event.target.value }))} placeholder="bizerte" />
@@ -689,7 +689,7 @@ export default function DepotIndex() {
             <div className="rounded-xl border border-theme px-4 py-3" style={{ background: 'var(--surface-2)' }}>
               <label className="flex items-center gap-3 text-sm text-base-color cursor-pointer">
                 <input type="checkbox" checked={depotForm.is_default} onChange={(event) => setDepotForm((current) => ({ ...current, is_default: event.target.checked }))} />
-                Depot par defaut
+                Dépôt par défaut
               </label>
             </div>
           </div>

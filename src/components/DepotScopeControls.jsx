@@ -34,7 +34,7 @@ export default function DepotScopeControls({
   loading = false,
   selectedValue = '',
   onChange,
-  label = 'Depot',
+  label = 'Dépôt',
   allowAll = false,
   canSelectAll = false,
   allLabel = 'Tous les dépôts',

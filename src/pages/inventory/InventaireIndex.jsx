@@ -162,7 +162,7 @@ export default function InventaireIndex() {
     <div>
       <PageHeader
         title="Inventaire"
-        subtitle={`Comptage physique du stock et historique d’ajustement${selectedDepot ? ` | Depot ${selectedDepot.name}` : ''}`}
+        subtitle={`Comptage physique du stock et historique d’ajustement${selectedDepot ? ` | Dépôt ${selectedDepot.name}` : ''}`}
         action={(
           <div className="flex flex-wrap items-end justify-end gap-2">
             {canBrowseAll && (
@@ -338,7 +338,7 @@ export default function InventaireIndex() {
                         {movement.product?.reference || '-'} | {movement.user?.name || '-'}
                       </div>
                       <div className="text-[11px] text-muted-color mt-1">
-                        Depot: {movement.depot?.name ?? '-'}
+                        Dépôt : {movement.depot?.name ?? '-'}
                       </div>
                     </div>
                     <div className="text-right">

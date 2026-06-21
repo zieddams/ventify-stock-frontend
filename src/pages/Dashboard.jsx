@@ -45,7 +45,7 @@ function getSessionPresenceMeta(session) {
 
   if (state === 'never_seen') {
     return {
-      label: 'Aucune remontee',
+      label: 'Aucune remontée',
       textClassName: 'text-muted-color',
       dotClassName: 'bg-slate-300',
     }
@@ -130,7 +130,7 @@ function SessionPreviewPanel({ session, pinned }) {
             {session?.user?.name ?? 'Aperçu carte'}
           </div>
           <div className="text-xs text-muted-color mt-1">
-            {session?.app_version || session?.native_app_version || 'Version non remontee'}
+            {session?.app_version || session?.native_app_version || 'Version non remontée'}
             {lastSeenAge ? ` · ${lastSeenAge}` : ''}
           </div>
         </div>
@@ -191,7 +191,7 @@ function SessionPreviewPanel({ session, pinned }) {
             <div className="rounded-xl border border-theme px-3 py-3">
               <div className="text-muted-color">Precision</div>
               <div className="text-base-color font-medium mt-1">
-                {session?.latest_location?.accuracy != null ? `${Number(session.latest_location.accuracy).toFixed(0)} m` : 'Non remontee'}
+                {session?.latest_location?.accuracy != null ? `${Number(session.latest_location.accuracy).toFixed(0)} m` : 'Non remontée'}
               </div>
             </div>
           </div>
@@ -351,7 +351,7 @@ function AgingWidget({ depotId = null, depotName = '' }) {
 
       {depotName && (
         <div className="text-xs text-muted-color mb-4">
-          Perimetre: {depotName}
+          Périmètre : {depotName}
         </div>
       )}
 
@@ -595,7 +595,7 @@ export default function Dashboard() {
               </h2>
               <div className="text-xs text-muted-color">
                 {showSessionDepotColumn
-                  ? `Scope ${dashboardScopeLabel} - survol pour apercu carte, epingle pour garder le suivi visible.`
+                  ? `Périmètre ${dashboardScopeLabel} - survol pour aperçu carte, épingle pour garder le suivi visible.`
                   : 'Survol pour aperçu carte, épingle pour garder le suivi visible.'}
               </div>
             </div>

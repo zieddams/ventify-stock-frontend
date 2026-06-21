@@ -300,7 +300,7 @@ export default function UsersIndex() {
           <table className="w-full text-sm">
             <thead>
               <tr>
-                {['Utilisateur', 'Email', 'Rôle', 'Zone', 'Depot', 'Liste clients', 'Statut', 'Créé le', 'Actions'].map((heading) => (
+                {['Utilisateur', 'Email', 'Rôle', 'Zone', 'Dépôt', 'Liste clients', 'Statut', 'Créé le', 'Actions'].map((heading) => (
                   <th key={heading} className="pb-3 pr-4 text-left">{heading}</th>
                 ))}
               </tr>

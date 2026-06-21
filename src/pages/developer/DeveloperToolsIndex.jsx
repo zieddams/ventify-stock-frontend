@@ -12,7 +12,7 @@ const EMPTY_OVERVIEW = {
     enabled: false,
     global: false,
     paths: [],
-    message: 'Maintenance en cours. Revenez bientot.',
+    message: 'Maintenance en cours. Revenez bientôt.',
   },
   demo: {
     has_demo: false,
@@ -42,7 +42,7 @@ const MAINTENANCE_PAGE_OPTIONS = [
   { path: '/customers', label: 'Clients' },
   { path: '/products', label: 'Produits' },
   { path: '/routes', label: 'Sessions terrain' },
-  { path: '/depot', label: 'Depot' },
+  { path: '/depot', label: 'Dépôt' },
   { path: '/camions', label: 'Camions' },
   { path: '/map', label: 'Carte' },
   { path: '/inventory', label: 'Inventaire' },
@@ -152,7 +152,7 @@ function CountTable({ title, description, values, tone = 'neutral' }) {
       </div>
 
       {entries.length === 0 ? (
-        <div className="text-sm text-muted-color">Aucune table remontee.</div>
+          <div className="text-sm text-muted-color">Aucune table remontée.</div>
       ) : (
         <div className="space-y-2">
           {entries.map(([key, count]) => (
@@ -178,7 +178,7 @@ export default function DeveloperToolsIndex() {
   const [runningFreshInstall, setRunningFreshInstall] = useState(false)
   const [maintenanceForm, setMaintenanceForm] = useState({
     enabled: false,
-    message: 'Maintenance en cours. Revenez bientot.',
+    message: 'Maintenance en cours. Revenez bientôt.',
     pathsText: '',
   })
   const [freshInstallConfirmation, setFreshInstallConfirmation] = useState('')
@@ -192,7 +192,7 @@ export default function DeveloperToolsIndex() {
   const syncMaintenanceForm = useCallback((maintenance) => {
     setMaintenanceForm({
       enabled: Boolean(maintenance?.enabled),
-      message: maintenance?.message || 'Maintenance en cours. Revenez bientot.',
+      message: maintenance?.message || 'Maintenance en cours. Revenez bientôt.',
       pathsText: Array.isArray(maintenance?.paths) ? maintenance.paths.join('\n') : '',
     })
   }, [])
@@ -205,7 +205,7 @@ export default function DeveloperToolsIndex() {
       syncMaintenanceForm(payload.maintenance)
       setLoadError('')
     } catch (error) {
-      setLoadError(error.response?.data?.message || 'Impossible de charger les outils developpeur pour le moment.')
+      setLoadError(error.response?.data?.message || 'Impossible de charger les outils développeur pour le moment.')
     } finally {
       setLoading(false)
     }
@@ -219,7 +219,7 @@ export default function DeveloperToolsIndex() {
       const response = await api.get('/system/tasks')
       setTaskSnapshot(response.data ?? EMPTY_TASK_SNAPSHOT)
     } catch (error) {
-      setTaskLoadError(error.response?.data?.message || 'Impossible de charger les taches serveur.')
+      setTaskLoadError(error.response?.data?.message || 'Impossible de charger les tâches serveur.')
     } finally {
       setTaskLoading(false)
     }
@@ -285,7 +285,7 @@ export default function DeveloperToolsIndex() {
         ...current,
         demo: response.data?.demo ?? current.demo,
       }))
-      setNotice(enabled ? 'Le mode demo a ete active.' : 'Les donnees demo ont ete purgees.')
+      setNotice(enabled ? 'Le mode démo a été activé.' : 'Les données démo ont été purgées.')
     } catch (error) {
       setActionError(error.response?.data?.message || 'Impossible de mettre à jour le mode démo.')
     } finally {
@@ -295,7 +295,7 @@ export default function DeveloperToolsIndex() {
 
   const runFreshInstall = async () => {
     if (freshInstallConfirmation.trim() !== 'FRESH INSTALL') {
-      setActionError('Tapez exactement FRESH INSTALL pour confirmer la reinitialisation.')
+      setActionError('Tapez exactement FRESH INSTALL pour confirmer la réinitialisation.')
       return
     }
 
@@ -310,10 +310,10 @@ export default function DeveloperToolsIndex() {
 
       const deletedTotal = sumValues(response.data?.result?.deleted ?? {})
       setFreshInstallConfirmation('')
-      setNotice(`Fresh install execute. ${formatCount(deletedTotal)} enregistrement(s) operationnels ont ete purges.`)
+      setNotice(`Fresh install exécuté. ${formatCount(deletedTotal)} enregistrement(s) opérationnels ont été purgés.`)
       await Promise.all([loadOverview(), loadTasks()])
     } catch (error) {
-      setActionError(error.response?.data?.message || 'La reinitialisation fraiche a echoue.')
+      setActionError(error.response?.data?.message || 'La réinitialisation fraîche a échoué.')
     } finally {
       setRunningFreshInstall(false)
     }
@@ -327,9 +327,9 @@ export default function DeveloperToolsIndex() {
     try {
       const response = await api.post(`/system/tasks/${taskKey}/run`)
       setTaskSnapshot(response.data?.snapshot ?? EMPTY_TASK_SNAPSHOT)
-      setTaskNotice(response.data?.message || 'Tache executee avec succes.')
+      setTaskNotice(response.data?.message || 'Tâche exécutée avec succès.')
     } catch (error) {
-      setTaskActionError(error.response?.data?.message || 'La tache a echoue.')
+      setTaskActionError(error.response?.data?.message || 'La tâche a échoué.')
 
       if (error.response?.data?.snapshot) {
         setTaskSnapshot(error.response.data.snapshot)
@@ -356,8 +356,8 @@ export default function DeveloperToolsIndex() {
     return (
       <div className="space-y-6">
         <PageHeader
-          title="Outils developpeur"
-          subtitle="Console reservee au role developpeur."
+          title="Outils développeur"
+          subtitle="Console réservée au rôle développeur."
         />
 
         <div className="card">
@@ -375,8 +375,8 @@ export default function DeveloperToolsIndex() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Outils developpeur"
-        subtitle="Maintenance globale ou ciblee, mode demo, fresh install, bug center et diagnostic VPS reserves au role developpeur."
+        title="Outils développeur"
+        subtitle="Maintenance globale ou ciblée, mode démo, fresh install, bug center et diagnostic VPS réservés au rôle développeur."
         action={(
           <div className="flex flex-wrap gap-2">
             <Link to="/bug-reports" className="btn-secondary text-xs">
@@ -404,18 +404,18 @@ export default function DeveloperToolsIndex() {
         <MetricCard
           label="Maintenance"
           value={overview.maintenance?.enabled
-            ? (overview.maintenance?.global ? 'Globale active' : 'Ciblee active')
+            ? (overview.maintenance?.global ? 'Globale active' : 'Ciblée active')
             : 'Inactive'}
           icon="fa-solid fa-screwdriver-wrench"
           color="#0d9488"
-          helper={overview.maintenance?.enabled ? `${overview.maintenance?.paths?.length || 0} page(s) ciblee(s)` : 'Application ouverte'}
+          helper={overview.maintenance?.enabled ? `${overview.maintenance?.paths?.length || 0} page(s) ciblée(s)` : 'Application ouverte'}
         />
         <MetricCard
-          label="Mode demo"
+          label="Mode démo"
           value={overview.demo?.has_demo ? 'Actif' : 'Inactif'}
           icon="fa-solid fa-flask"
           color="#2563eb"
-          helper={`${formatCount(overview.demo?.count)} facture(s) demo`}
+          helper={`${formatCount(overview.demo?.count)} facture(s) démo`}
         />
         <MetricCard
           label="Fresh install"
@@ -440,7 +440,7 @@ export default function DeveloperToolsIndex() {
               <div>
                 <h2 className="text-sm font-semibold text-base-color">Maintenance applicative</h2>
                 <p className="text-xs text-muted-color mt-1">
-                  Activez une maintenance complete ou ciblez seulement certaines pages. Les developpeurs gardent toujours l'acces.
+                  Activez une maintenance complète ou ciblez seulement certaines pages. Les développeurs gardent toujours l'accès.
                 </p>
               </div>
               <button onClick={saveMaintenance} disabled={savingMaintenance} className="btn-primary text-xs">
@@ -466,7 +466,7 @@ export default function DeveloperToolsIndex() {
                   rows="3"
                   value={maintenanceForm.message}
                   onChange={(event) => setMaintenanceForm((current) => ({ ...current, message: event.target.value }))}
-                  placeholder="Maintenance en cours. Revenez bientot."
+                  placeholder="Maintenance en cours. Revenez bientôt."
                 />
               </FormField>
 
@@ -493,7 +493,7 @@ export default function DeveloperToolsIndex() {
                 </div>
               </div>
 
-              <FormField label="Pages ciblees (une ligne = un chemin)">
+              <FormField label="Pages ciblées (une ligne = un chemin)">
                 <textarea
                   rows="5"
                   value={maintenanceForm.pathsText}
@@ -503,7 +503,7 @@ export default function DeveloperToolsIndex() {
               </FormField>
 
               <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                Laissez la liste vide pour une maintenance globale. Quand une ou plusieurs pages sont renseignees,
+                Laissez la liste vide pour une maintenance globale. Quand une ou plusieurs pages sont renseignées,
                 seule cette sélection est bloquée pour les profils non développeurs.
               </div>
             </div>
@@ -512,9 +512,9 @@ export default function DeveloperToolsIndex() {
           <div className="card">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5">
               <div>
-                <h2 className="text-sm font-semibold text-base-color">Mode demo</h2>
+                <h2 className="text-sm font-semibold text-base-color">Mode démo</h2>
                 <p className="text-xs text-muted-color mt-1">
-                  Seed demo pour une instance de presentation ou purge rapide des donnees de demonstration.
+                  Seed démo pour une instance de présentation ou purge rapide des données de démonstration.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -538,19 +538,19 @@ export default function DeveloperToolsIndex() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <MetricCard label="Factures demo" value={formatCount(overview.demo?.count)} icon="fa-solid fa-file-invoice" color="#0d9488" />
-              <MetricCard label="Clients demo" value={formatCount(overview.demo?.customers)} icon="fa-solid fa-users" color="#2563eb" />
-              <MetricCard label="Sessions demo" value={formatCount(overview.demo?.sessions)} icon="fa-solid fa-route" color="#8b5cf6" />
+              <MetricCard label="Factures démo" value={formatCount(overview.demo?.count)} icon="fa-solid fa-file-invoice" color="#0d9488" />
+              <MetricCard label="Clients démo" value={formatCount(overview.demo?.customers)} icon="fa-solid fa-users" color="#2563eb" />
+              <MetricCard label="Sessions démo" value={formatCount(overview.demo?.sessions)} icon="fa-solid fa-route" color="#8b5cf6" />
             </div>
           </div>
 
           <div className="card">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5">
               <div>
-                <h2 className="text-sm font-semibold text-base-color">Fresh install securise</h2>
+                <h2 className="text-sm font-semibold text-base-color">Fresh install sécurisé</h2>
                 <p className="text-xs text-muted-color mt-1">
-                  Reinitialise l'operationnel, recree un depot principal propre et deux camions El Irtiwaa,
-                  tout en conservant les bases metier: utilisateurs, produits, zones et configuration.
+                  Réinitialise l'opérationnel, recrée un dépôt principal propre et deux camions El Irtiwaa,
+                  tout en conservant les bases métier : utilisateurs, produits, zones et configuration.
                 </p>
               </div>
               <button onClick={loadOverview} className="btn-secondary text-xs">
@@ -560,17 +560,17 @@ export default function DeveloperToolsIndex() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <CountTable
-                title="Donnees conservees"
-                description="Base metier conservee apres la remise a zero."
+                title="Données conservées"
+                description="Base métier conservée après la remise à zéro."
                 values={overview.fresh_install?.keep}
               />
               <CountTable
-                title="Elements recrees"
+                title="Éléments recréés"
                 description="Dépôts et flotte régénérés pour repartir sur une base propre."
                 values={overview.fresh_install?.reset}
               />
               <CountTable
-                title="Donnees supprimees"
+                title="Données supprimées"
                 description="Opérationnel, mouvements, sessions, tickets, notifications et historique."
                 values={overview.fresh_install?.delete}
                 tone="danger"
@@ -580,7 +580,7 @@ export default function DeveloperToolsIndex() {
             <div className="rounded-2xl px-4 py-4 mt-4" style={{ background: 'rgba(249,115,22,0.08)', boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.16)' }}>
               <div className="text-sm font-semibold" style={{ color: '#c2410c' }}>Confirmation stricte requise</div>
               <div className="text-sm mt-2" style={{ color: '#9a3412' }}>
-                Tapez exactement <span className="font-mono font-semibold">FRESH INSTALL</span> avant d'executer la purge.
+                Tapez exactement <span className="font-mono font-semibold">FRESH INSTALL</span> avant d'exécuter la purge.
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] gap-3 mt-4">
                 <input
@@ -594,7 +594,7 @@ export default function DeveloperToolsIndex() {
                   className="btn-danger"
                 >
                   {runningFreshInstall
-                    ? <><i className="fa-solid fa-spinner fa-spin" /> Execution...</>
+                    ? <><i className="fa-solid fa-spinner fa-spin" /> Exécution...</>
                     : <><i className="fa-solid fa-power-off" /> Lancer le fresh install</>}
                 </button>
               </div>
@@ -606,7 +606,7 @@ export default function DeveloperToolsIndex() {
           <div className="card">
             <div className="flex items-center gap-2 mb-4">
               <i className="fa-solid fa-envelope-open-text text-violet-500" />
-              <h2 className="text-sm font-semibold text-base-color">Destinataires support figes</h2>
+              <h2 className="text-sm font-semibold text-base-color">Destinataires support figés</h2>
             </div>
 
             <div className="space-y-2">
@@ -634,13 +634,13 @@ export default function DeveloperToolsIndex() {
           <div className="card">
             <div className="flex items-center gap-2 mb-4">
               <i className="fa-solid fa-terminal text-teal-500" />
-              <h2 className="text-sm font-semibold text-base-color">Snapshot systeme</h2>
+              <h2 className="text-sm font-semibold text-base-color">Snapshot système</h2>
             </div>
 
             <InfoRow label="Laravel" value={overview.system?.laravel} />
             <InfoRow label="PHP" value={overview.system?.php} />
             <InfoRow label="Environnement" value={overview.system?.env} />
-            <InfoRow label="Base" value={overview.system?.db_ok ? 'Connexion OK' : 'A verifier'} />
+            <InfoRow label="Base" value={overview.system?.db_ok ? 'Connexion OK' : 'À vérifier'} />
             <InfoRow label="Driver DB" value={overview.system?.db_driver} />
             <InfoRow label="Queue" value={overview.system?.queue} />
             <InfoRow label="Cache" value={overview.system?.cache} />
@@ -653,7 +653,7 @@ export default function DeveloperToolsIndex() {
           <div className="card">
             <div className="flex items-center gap-2 mb-4">
               <i className="fa-solid fa-compass-drafting text-sky-500" />
-              <h2 className="text-sm font-semibold text-base-color">Raccourcis developpeur</h2>
+              <h2 className="text-sm font-semibold text-base-color">Raccourcis développeur</h2>
             </div>
 
             <div className="space-y-2">
@@ -670,7 +670,7 @@ export default function DeveloperToolsIndex() {
 
             <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color mt-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
               Cette console centralise les actions sensibles du cycle de vie environnement: maintenance, reset
-              operationnel, mode demo, verification serveur et suivi des tickets.
+              opérationnel, mode démo, vérification serveur et suivi des tickets.
             </div>
           </div>
         </div>
@@ -689,4 +689,3 @@ export default function DeveloperToolsIndex() {
     </div>
   )
 }
-

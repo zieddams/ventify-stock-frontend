@@ -374,7 +374,7 @@ function getPresenceMeta(rep) {
 
   if (state === 'never_seen') {
     return {
-      label: 'Aucune remontee',
+      label: 'Aucune remontée',
       color: '#94a3b8',
       bg: 'rgba(148,163,184,0.14)',
       dot: 'bg-slate-300',
@@ -890,10 +890,10 @@ function TerrainTab({
                   <DetailRow label="Rôle" value={formatRôleLabel(selectedRep.role)} />
                   <DetailRow label="Dernier ping" value={`${formatRelativeTime(selectedRep.presence?.last_seen)} · ${formatDateTime(selectedRep.presence?.last_seen)}`} />
                   <DetailRow label="Appareil" value={selectedRep.device?.device_name || `${selectedRep.device?.brand ?? ''} ${selectedRep.device?.model ?? ''}`.trim() || 'Non remonte'} />
-                  <DetailRow label="Version mobile" value={selectedRep.device?.app_version || 'Non remontee'} />
+                  <DetailRow label="Version mobile" value={selectedRep.device?.app_version || 'Non remontée'} />
                   <DetailRow label="OS / API" value={selectedRep.device?.os_version ? `Android ${selectedRep.device.os_version}${selectedRep.device.api_level ? ` (API ${selectedRep.device.api_level})` : ''}` : 'Non remonte'} />
                   <DetailRow label="Ecran / locale" value={[selectedRep.device?.screen_res, selectedRep.device?.locale, selectedRep.device?.timezone].filter(Boolean).join(' · ') || 'Non remonte'} />
-                  <DetailRow label="Adresse IP" value={selectedRep.device?.ip || 'Non remontee'} />
+                  <DetailRow label="Adresse IP" value={selectedRep.device?.ip || 'Non remontée'} />
                 </div>
               </div>
 
@@ -904,7 +904,7 @@ function TerrainTab({
                     Stock embarqué
                   </h2>
                   <span className="text-xs text-muted-color">
-                    {selectedRep.camion_stock?.items?.length ?? 0} reference(s)
+                    {selectedRep.camion_stock?.items?.length ?? 0} référence(s)
                   </span>
                 </div>
 
@@ -1044,7 +1044,7 @@ function TerrainTab({
                           Trace GPS recente · {selectedTerrainLocation.recorded_at ? formatDateTime(selectedTerrainLocation.recorded_at) : 'heure inconnue'}
                         </div>
                         <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
-                          Le point courant n est pas exploitable, la carte utilise le dernier point valide de la trace.
+                          Le point courant n’est pas exploitable, la carte utilise le dernier point valide de la trace.
                         </div>
                       </div>
                     </Popup>
@@ -1073,7 +1073,7 @@ function TerrainTab({
                 <div>
                   <div className="text-sm font-semibold text-base-color">Position introuvable pour ce compte</div>
                   <div className="text-xs text-muted-color mt-1">
-                    La carte reste limitee a la Tunisie. Cette position est absente ou hors Tunisie, donc elle n'est pas affichee.
+                    La carte reste limitée à la Tunisie. Cette position est absente ou hors Tunisie, donc elle n’est pas affichée.
                   </div>
                 </div>
               </div>
@@ -1176,10 +1176,10 @@ function TerrainTab({
                       <div className="divide-y" style={{ '--tw-divide-opacity': 1 }}>
                         <DetailRow label="Factures aujourd'hui" value={selectedRep.today.invoices_count} />
                         <DetailRow label="CA du terrain" value={formatMoney(selectedRep.today.invoices_total)} />
-                        <DetailRow label="Version app" value={selectedRep.device?.app_version || selectedRep.device?.native_app_version || 'Non remontee'} />
+                        <DetailRow label="Version app" value={selectedRep.device?.app_version || selectedRep.device?.native_app_version || 'Non remontée'} />
                         <DetailRow label="Plateforme / build" value={[selectedRep.device?.platform, selectedRep.device?.native_build_version].filter(Boolean).join(' · ') || 'Non remonte'} />
-                        <DetailRow label="Execution" value={[selectedRep.device?.app_ownership, selectedRep.device?.execution_environment].filter(Boolean).join(' · ') || 'Non remontee'} />
-                        <DetailRow label="Dernier ping" value={selectedRep.presence?.last_seen ? `${formatRelativeTime(selectedRep.presence.last_seen)} · ${formatDateTime(selectedRep.presence.last_seen)}` : 'Aucune remontee'} />
+                        <DetailRow label="Exécution" value={[selectedRep.device?.app_ownership, selectedRep.device?.execution_environment].filter(Boolean).join(' · ') || 'Non remontée'} />
+                        <DetailRow label="Dernier ping" value={selectedRep.presence?.last_seen ? `${formatRelativeTime(selectedRep.presence.last_seen)} · ${formatDateTime(selectedRep.presence.last_seen)}` : 'Aucune remontée'} />
                         <DetailRow label="Ecran / locale" value={[selectedRep.device?.screen_res, selectedRep.device?.locale].filter(Boolean).join(' · ') || 'Non remonte'} />
                         <DetailRow label="Trace chargee" value={routeTrace.length > 0 ? `${routeTrace.length} point(s)` : 'Aucune trace pour le moment'} />
                       </div>
@@ -1452,7 +1452,7 @@ export default function LiveMapIndex() {
                 onChange={setSelectedDepotValue}
                 allowAll
                 canSelectAll={canSelectAll}
-                label="Perimetre terrain"
+                label="Périmètre terrain"
               />
             )}
             <button

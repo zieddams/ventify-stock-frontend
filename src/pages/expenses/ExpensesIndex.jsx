@@ -157,7 +157,7 @@ export default function ExpensesIndex() {
     <div>
       <PageHeader
         title="Depenses"
-        subtitle={`Enregistrement et suivi des charges${canSelectAll ? ` | ${selectedDepot ? `Depot ${selectedDepot.name}` : 'Tous les dépôts'}` : ''}`}
+        subtitle={`Enregistrement et suivi des charges${canSelectAll ? ` | ${selectedDepot ? `Dépôt ${selectedDepot.name}` : 'Tous les dépôts'}` : ''}`}
         action={(
           <div className="flex flex-wrap items-end justify-end gap-2">
             {canSelectAll && (
@@ -186,7 +186,7 @@ export default function ExpensesIndex() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="card">
           <h2 className="text-sm font-semibold text-base-color mb-4 flex items-center gap-2">
-            <i className="fa-solid fa-plus text-teal-500" /> Nouvelle depense
+            <i className="fa-solid fa-plus text-teal-500" /> Nouvelle dépense
           </h2>
           {error && (
             <div
@@ -202,7 +202,7 @@ export default function ExpensesIndex() {
               <input type="date" value={form.expense_date} onChange={(event) => setForm((current) => ({ ...current, expense_date: event.target.value }))} required />
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Categorie</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Catégorie</label>
               <select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}>
                 {activeCategories.map((item) => (
                   <option key={item.id} value={item.value}>
@@ -212,12 +212,12 @@ export default function ExpensesIndex() {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Depot</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Dépôt</label>
               {singleDepot ? (
                 <DepotSelectionInfo depot={singleDepot} />
               ) : (
                 <select value={form.depot_id} onChange={(event) => setForm((current) => ({ ...current, depot_id: event.target.value }))}>
-                  <option value="">Selectionner...</option>
+                  <option value="">Sélectionner...</option>
                   {depots.filter((depot) => depot.active !== false).map((depot) => (
                     <option key={depot.id} value={depot.id}>
                       {depot.code ? `${depot.name} (${depot.code})` : depot.name}
@@ -227,7 +227,7 @@ export default function ExpensesIndex() {
               )}
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Libelle</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Libellé</label>
               <input type="text" placeholder="Description..." value={form.label} onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))} required />
             </div>
             <div>
@@ -267,7 +267,7 @@ export default function ExpensesIndex() {
               />
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Categorie</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Catégorie</label>
               <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
                 <option value="">Toutes</option>
                 {allCategories.map((item) => (
@@ -326,7 +326,7 @@ export default function ExpensesIndex() {
               <table className="w-full text-sm">
                 <thead>
                   <tr>
-                    {['Date', 'Categorie', 'Depot', 'Libelle', 'Montant', ''].map((heading) => (
+                    {['Date', 'Catégorie', 'Dépôt', 'Libellé', 'Montant', ''].map((heading) => (
                       <th key={heading} className={`pb-3 pr-3 ${heading === 'Montant' ? 'text-right' : 'text-left'}`}>
                         {heading}
                       </th>
@@ -338,7 +338,7 @@ export default function ExpensesIndex() {
                     <tr>
                       <td colSpan={6} className="py-12 text-center">
                         <i className="fa-solid fa-receipt text-3xl text-muted-color opacity-30 mb-2 block" />
-                        <p className="text-muted-color text-sm">Aucune depense sur cette periode</p>
+                        <p className="text-muted-color text-sm">Aucune dépense sur cette période</p>
                       </td>
                     </tr>
                   )}
@@ -396,7 +396,7 @@ export default function ExpensesIndex() {
                 setPerPage(value)
                 setPage(1)
               }}
-              itemLabel="depenses"
+              itemLabel="dépenses"
             />
           )}
         </div>

@@ -428,7 +428,7 @@ export default function CustomersIndex() {
           <div className="grid grid-cols-2 gap-3">
             <FormField label="Gouvernorat" error={errors.wilaya?.[0]}>
               <select value={form.wilaya} onChange={(event) => setForm((current) => ({ ...current, wilaya: event.target.value }))}>
-                <option value="">Selectionner...</option>
+                <option value="">Sélectionner...</option>
                 {governorates.map((item) => (
                   <option key={item.id} value={item.value}>
                     {getConfigItemLabel(item)}

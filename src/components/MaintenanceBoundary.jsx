@@ -8,7 +8,7 @@ const INITIAL_STATUS = {
     enabled: false,
     global: false,
     paths: [],
-    message: 'Maintenance en cours. Revenez bientot.',
+    message: 'Maintenance en cours. Revenez bientôt.',
   },
   support: {
     contact_label: 'Équipe El Irtiwaa',
@@ -53,18 +53,18 @@ function MaintenanceScreen({ maintenance, contactLabel }) {
               </div>
               <div className="min-w-0">
                 <div className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-color">Mode maintenance</div>
-                <h1 className="text-2xl md:text-3xl font-bold text-base-color mt-2">Cette zone est temporairement reservee a la maintenance.</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-base-color mt-2">Cette zone est temporairement réservée à la maintenance.</h1>
                 <p className="text-sm md:text-base text-secondary-color mt-3 max-w-2xl">
-                  {maintenance.message || 'Maintenance en cours. Revenez bientot.'}
+                  {maintenance.message || 'Maintenance en cours. Revenez bientôt.'}
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-6">
               <div className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                <div className="text-xs text-muted-color">Portee</div>
+                <div className="text-xs text-muted-color">Portée</div>
                 <div className="text-sm font-semibold text-base-color mt-1">
-                  {maintenance.global ? 'Application complete' : 'Pages ciblees'}
+                  {maintenance.global ? 'Application complète' : 'Pages ciblées'}
                 </div>
               </div>
               <div className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
@@ -72,8 +72,8 @@ function MaintenanceScreen({ maintenance, contactLabel }) {
                 <div className="text-sm font-semibold text-base-color mt-1">{contactLabel || 'Équipe El Irtiwaa'}</div>
               </div>
               <div className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                <div className="text-xs text-muted-color">Acces developpeur</div>
-                <div className="text-sm font-semibold text-base-color mt-1">Toujours autorise</div>
+                <div className="text-xs text-muted-color">Accès développeur</div>
+                <div className="text-sm font-semibold text-base-color mt-1">Toujours autorisé</div>
               </div>
             </div>
 
@@ -143,7 +143,7 @@ export default function MaintenanceBoundary({ children }) {
             enabled: Boolean(payload?.maintenance?.enabled),
             global: Boolean(payload?.maintenance?.global),
             paths: Array.isArray(payload?.maintenance?.paths) ? payload.maintenance.paths : [],
-            message: payload?.maintenance?.message || 'Maintenance en cours. Revenez bientot.',
+            message: payload?.maintenance?.message || 'Maintenance en cours. Revenez bientôt.',
           },
           support: {
             contact_label: payload?.support?.contact_label || 'Équipe El Irtiwaa',
@@ -207,4 +207,3 @@ export default function MaintenanceBoundary({ children }) {
 
   return children
 }
-

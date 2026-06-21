@@ -35,7 +35,7 @@ const SUPPORT_NAV = [
 ]
 
 const DEVELOPER_NAV = [
-  { to: '/developer-tools', icon: 'fa-solid fa-code', label: 'Outils developpeur' },
+  { to: '/developer-tools', icon: 'fa-solid fa-code', label: 'Outils développeur' },
 ]
 
 const DEFAULT_SYSTEM_STATUS = {
@@ -65,7 +65,7 @@ const PAGE_TITLES = {
   '/help': { label: 'Aide et documentation', icon: 'fa-solid fa-circle-question' },
   '/notifications-center': { label: 'Centre de notifications', icon: 'fa-solid fa-bell' },
   '/bug-reports': { label: 'Support et signalements', icon: 'fa-solid fa-bug' },
-  '/developer-tools': { label: 'Outils developpeur', icon: 'fa-solid fa-code' },
+  '/developer-tools': { label: 'Outils développeur', icon: 'fa-solid fa-code' },
 }
 
 const TOPBAR_ALLOW_ALL_PATHS = new Set(['/', '/credit', '/expenses', '/invoices', '/reports', '/routes', '/users'])
@@ -195,7 +195,7 @@ function UserMenu({ user, onLogout }) {
               className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-secondary-color hover:bg-surface-2 transition-colors"
             >
               <i className="fa-solid fa-code w-4" />
-              Outils developpeur
+              Outils développeur
             </NavLink>
           )}
           <button
@@ -293,7 +293,7 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper
 
           {isDeveloper() && (
             <div>
-              <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Developpement</div>
+              <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Développement</div>
               <div className="space-y-0.5">
                 {DEVELOPER_NAV.map((item) => (
                   <RailLink key={item.to} {...item} expanded onClick={onClose} />
@@ -436,7 +436,7 @@ export default function AppLayout() {
             )}
 
             {isDeveloper() && (
-              <NavSection title="Developpement" items={DEVELOPER_NAV} expanded={isSidebarExpanded} />
+              <NavSection title="Développement" items={DEVELOPER_NAV} expanded={isSidebarExpanded} />
             )}
           </div>
         </div>

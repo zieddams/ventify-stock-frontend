@@ -465,7 +465,7 @@ export default function CamionsIndex() {
         {camions.length === 0 ? (
           <div className="card text-center py-12">
             <i className="fa-solid fa-truck text-3xl text-muted-color opacity-30 mb-2 block" />
-            <p className="text-sm text-muted-color">Aucun camion physique n est configure pour le moment.</p>
+            <p className="text-sm text-muted-color">Aucun camion physique n’est configuré pour le moment.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -520,7 +520,7 @@ export default function CamionsIndex() {
                           </span>
                         </div>
                         <div className="text-xs text-muted-color mt-1">
-                          {camion.plate || 'Immatriculation non renseignee'}
+                          {camion.plate || 'Immatriculation non renseignée'}
                         </div>
                         <div className="text-xs mt-2" style={{ color: assignment ? '#2563eb' : '#64748b' }}>
                           {assignment
@@ -700,7 +700,7 @@ export default function CamionsIndex() {
                         <table className="w-full text-sm">
                           <thead>
                             <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                              {['Produit', 'Reference', 'Quantite', 'Min'].map((heading) => (
+                  {['Produit', 'Référence', 'Quantité', 'Min'].map((heading) => (
                                 <th key={heading} className="pb-2 pr-4 text-left text-xs font-semibold text-muted-color uppercase tracking-wider">
                                   {heading}
                                 </th>
@@ -856,7 +856,7 @@ export default function CamionsIndex() {
             </select>
           </FormField>
 
-          <FormField label="Quantite" error={transferErrors.qty?.[0]} required>
+            <FormField label="Quantité" error={transferErrors.qty?.[0]} required>
             <input
               type="number"
               step="0.001"
@@ -977,7 +977,7 @@ export default function CamionsIndex() {
                     </select>
                   </FormField>
 
-                  <FormField label={index === 0 ? 'Quantite' : `Quantite ${index + 1}`}>
+              <FormField label={index === 0 ? 'Quantité' : `Quantité ${index + 1}`}>
                     <input
                       type="number"
                       step="0.001"

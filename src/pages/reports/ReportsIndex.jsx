@@ -51,9 +51,9 @@ function OverviewTab({ stats }) {
     <>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <KpiCard label="CA aujourd'hui" value={`${fmt(stats?.today_revenue)} TND`} icon="fa-solid fa-arrow-trend-up" color="#0d9488" />
-        <KpiCard label="Benefice (mois)" value={`${fmt(stats?.month_profit)} TND`} icon="fa-solid fa-coins" color="#10b981" />
-        <KpiCard label="Impayes totaux" value={`${fmt(stats?.unpaid_total)} TND`} icon="fa-solid fa-triangle-exclamation" color="#dc2626" />
-        <KpiCard label="Depenses (mois)" value={`${fmt(stats?.month_expenses)} TND`} icon="fa-solid fa-receipt" color="#f59e0b" />
+        <KpiCard label="Bénéfice (mois)" value={`${fmt(stats?.month_profit)} TND`} icon="fa-solid fa-coins" color="#10b981" />
+        <KpiCard label="Impayés totaux" value={`${fmt(stats?.unpaid_total)} TND`} icon="fa-solid fa-triangle-exclamation" color="#dc2626" />
+        <KpiCard label="Dépenses (mois)" value={`${fmt(stats?.month_expenses)} TND`} icon="fa-solid fa-receipt" color="#f59e0b" />
       </div>
 
       {chartData.length > 0 && (
@@ -64,9 +64,9 @@ function OverviewTab({ stats }) {
               <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} />
               <XAxis dataKey="date" stroke={theme.axis} tick={{ fontSize: 10, fill: theme.axis }} />
               <YAxis stroke={theme.axis} tick={{ fontSize: 10, fill: theme.axis }} />
-              <Tooltip contentStyle={theme.tooltip} formatter={(value, name) => [`${fmt(value)} TND`, name === 'revenue' ? 'CA' : 'Benefice']} />
+              <Tooltip contentStyle={theme.tooltip} formatter={(value, name) => [`${fmt(value)} TND`, name === 'revenue' ? 'CA' : 'Bénéfice']} />
               <Bar dataKey="revenue" fill="#0d9488" radius={[4, 4, 0, 0]} name="CA" />
-              <Bar dataKey="profit" fill="#10b981" radius={[4, 4, 0, 0]} name="Benefice" />
+              <Bar dataKey="profit" fill="#10b981" radius={[4, 4, 0, 0]} name="Bénéfice" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -136,7 +136,7 @@ function ProfitTab({ scopeParams }) {
   return (
     <>
       <div className="flex items-center gap-2 mb-5 flex-wrap">
-        {[['today', 'Auj.'], ['week', 'Semaine'], ['month', 'Mois'], ['custom', 'Personnalise']].map(([key, label]) => (
+        {[['today', 'Auj.'], ['week', 'Semaine'], ['month', 'Mois'], ['custom', 'Personnalisé']].map(([key, label]) => (
           <button
             key={key}
             onClick={() => setPeriod(key)}
@@ -166,9 +166,9 @@ function ProfitTab({ scopeParams }) {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <KpiCard label="CA total" value={`${fmt(data?.totals?.revenue)} TND`} icon="fa-solid fa-sack-dollar" color="#0d9488" />
-        <KpiCard label="Cout des ventes" value={`${fmt(data?.totals?.cost)} TND`} icon="fa-solid fa-boxes-stacked" color="#64748b" />
-        <KpiCard label="Benefice brut" value={`${fmt(data?.totals?.profit)} TND`} icon="fa-solid fa-coins" color="#10b981" sub={`Marge: ${data?.totals?.margin_pct ?? 0}%`} />
-        <KpiCard label="Ventes sous cout" value={data?.totals?.below_cost_lines ?? 0} icon="fa-solid fa-triangle-exclamation" color="#dc2626" sub="lignes sous prix achat" />
+        <KpiCard label="Coût des ventes" value={`${fmt(data?.totals?.cost)} TND`} icon="fa-solid fa-boxes-stacked" color="#64748b" />
+        <KpiCard label="Bénéfice brut" value={`${fmt(data?.totals?.profit)} TND`} icon="fa-solid fa-coins" color="#10b981" sub={`Marge: ${data?.totals?.margin_pct ?? 0}%`} />
+        <KpiCard label="Ventes sous coût" value={data?.totals?.below_cost_lines ?? 0} icon="fa-solid fa-triangle-exclamation" color="#dc2626" sub="lignes sous prix achat" />
       </div>
 
       {chartData.length > 0 && (
@@ -179,7 +179,7 @@ function ProfitTab({ scopeParams }) {
               <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} />
               <XAxis dataKey="date" stroke={theme.axis} tick={{ fontSize: 10, fill: theme.axis }} />
               <YAxis stroke={theme.axis} tick={{ fontSize: 10, fill: theme.axis }} />
-              <Tooltip contentStyle={theme.tooltip} formatter={(value, name) => [`${fmt(value)} TND`, name === 'revenue' ? 'CA' : 'Benefice']} />
+              <Tooltip contentStyle={theme.tooltip} formatter={(value, name) => [`${fmt(value)} TND`, name === 'revenue' ? 'CA' : 'Bénéfice']} />
               <Bar dataKey="revenue" fill="#0d9488" radius={[4, 4, 0, 0]} />
               <Bar dataKey="profit" fill="#10b981" radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -192,7 +192,7 @@ function ProfitTab({ scopeParams }) {
         <table className="w-full text-sm">
           <thead>
             <tr>
-              {['Representant', 'CA', 'Cout', 'Benefice', 'Factures'].map((heading, index) => (
+              {['Représentant', 'CA', 'Coût', 'Bénéfice', 'Factures'].map((heading, index) => (
                 <th key={heading} className={`pb-3 pr-4 ${index > 0 ? 'text-right' : 'text-left'}`}>
                   {heading}
                 </th>
@@ -232,7 +232,7 @@ function SitationTab({ scopeParams }) {
     <>
       <div className="flex items-center gap-3 mb-5">
         <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} style={{ width: 'auto' }} />
-        <span className="text-xs text-muted-color">SITATION mensuelle El Irtiwaa</span>
+        <span className="text-xs text-muted-color">Situation mensuelle El Irtiwaa</span>
       </div>
 
       {loading ? (
@@ -248,7 +248,7 @@ function SitationTab({ scopeParams }) {
             <table className="w-full text-sm mb-3">
               <thead>
                 <tr>
-                  {['Representant', 'CA', 'Benefice'].map((heading, index) => (
+                  {['Représentant', 'CA', 'Bénéfice'].map((heading, index) => (
                     <th key={heading} className={`pb-3 pr-4 ${index > 0 ? 'text-right' : 'text-left'}`}>
                       {heading}
                     </th>
@@ -270,19 +270,19 @@ function SitationTab({ scopeParams }) {
               <span className="text-base-color font-mono">{fmt(data.recettes?.total_revenue)} TND</span>
             </div>
             <div className="flex justify-between text-sm font-semibold mt-1">
-              <span className="text-secondary-color">Benefice brut</span>
+              <span className="text-secondary-color">Bénéfice brut</span>
               <span className="font-mono" style={{ color: '#059669' }}>{fmt(data.recettes?.total_profit)} TND</span>
             </div>
           </div>
 
           <div className="card">
             <h2 className="text-sm font-semibold text-base-color mb-3 flex items-center gap-2">
-              <i className="fa-solid fa-receipt" style={{ color: '#ea580c' }} /> Depenses
+              <i className="fa-solid fa-receipt" style={{ color: '#ea580c' }} /> Dépenses
             </h2>
             <table className="w-full text-sm mb-3">
               <thead>
                 <tr>
-                  {['Categorie', 'Montant'].map((heading, index) => (
+                  {['Catégorie', 'Montant'].map((heading, index) => (
                     <th key={heading} className={`pb-3 pr-4 ${index > 0 ? 'text-right' : 'text-left'}`}>
                       {heading}
                     </th>
@@ -299,7 +299,7 @@ function SitationTab({ scopeParams }) {
               </tbody>
             </table>
             <div className="flex justify-between text-sm font-semibold pt-2" style={{ borderTop: '1px solid var(--border)' }}>
-              <span className="text-secondary-color">Total depenses</span>
+              <span className="text-secondary-color">Total dépenses</span>
               <span className="font-mono" style={{ color: '#ea580c' }}>{fmt(data.depenses?.total)} TND</span>
             </div>
           </div>
@@ -319,7 +319,7 @@ function SitationTab({ scopeParams }) {
                   <span className="font-mono font-bold" style={{ color: '#059669' }}>{fmt(data.credit?.credit_collecte)} TND</span>
                 </div>
                 <div className="flex justify-between pt-2" style={{ borderTop: '1px solid var(--border)' }}>
-                  <span className="text-secondary-color font-medium">Valeur stock depot</span>
+                  <span className="text-secondary-color font-medium">Valeur stock dépôt</span>
                   <span className="text-base-color font-mono">{fmt(data.stock_valeur)} TND</span>
                 </div>
               </div>
@@ -327,7 +327,7 @@ function SitationTab({ scopeParams }) {
 
             <div className="card" style={{ background: 'rgba(16,185,129,0.04)', border: '1px solid rgba(16,185,129,0.2)' }}>
               <h2 className="text-sm font-semibold text-base-color mb-3 flex items-center gap-2">
-                <i className="fa-solid fa-coins" style={{ color: '#059669' }} /> Benefice net
+                <i className="fa-solid fa-coins" style={{ color: '#059669' }} /> Bénéfice net
               </h2>
               <div className="text-3xl font-bold font-mono mb-1" style={{ color: '#059669' }}>
                 {fmt(data.benefice_net)} <span className="text-sm font-normal text-muted-color">TND</span>
@@ -353,7 +353,7 @@ function MovementsTab({ scopeParams }) {
   }, [scopeParams.depot_id])
 
   const typeConfig = {
-    depot_in: { label: 'Reception', color: '#10b981' },
+    depot_in: { label: 'Réception', color: '#10b981' },
     depot_to_camion: { label: 'Vers camion', color: '#3b82f6' },
     camion_to_customer: { label: 'Vers client', color: '#ef4444' },
     return: { label: 'Retour', color: '#f59e0b' },
@@ -373,8 +373,8 @@ function MovementsTab({ scopeParams }) {
       <table className="w-full text-sm">
         <thead>
           <tr>
-            {['Type', 'Produit', 'Depot', 'Commercial', 'Quantite', 'Date'].map((heading) => (
-              <th key={heading} className={`pb-3 pr-4 ${heading === 'Quantite' ? 'text-right' : 'text-left'}`}>
+            {['Type', 'Produit', 'Dépôt', 'Commercial', 'Quantité', 'Date'].map((heading) => (
+              <th key={heading} className={`pb-3 pr-4 ${heading === 'Quantité' ? 'text-right' : 'text-left'}`}>
                 {heading}
               </th>
             ))}
@@ -437,15 +437,15 @@ export default function ReportsIndex() {
 
   const tabs = [
     { key: 'overview', label: "Vue d'ensemble", icon: 'fa-solid fa-chart-pie' },
-    { key: 'profit', label: 'Benefices', icon: 'fa-solid fa-coins' },
-    { key: 'sitation', label: 'SITATION', icon: 'fa-solid fa-file-lines' },
+    { key: 'profit', label: 'Bénéfices', icon: 'fa-solid fa-coins' },
+    { key: 'sitation', label: 'Situation', icon: 'fa-solid fa-file-lines' },
     { key: 'movements', label: 'Mouvements', icon: 'fa-solid fa-arrows-up-down' },
   ]
 
   const exportConfig = {
     overview: { csvEntity: 'invoices', csvFilename: 'rapport_vue_ensemble', csvParams: scopeParams },
     profit: { csvEntity: 'invoices', csvFilename: 'rapport_benefices', csvParams: scopeParams },
-    sitation: { csvEntity: 'expenses', csvFilename: 'rapport_sitation', csvParams: scopeParams },
+    sitation: { csvEntity: 'expenses', csvFilename: 'rapport_situation', csvParams: scopeParams },
     movements: { csvEntity: 'stock_movements', csvFilename: 'rapport_mouvements', csvParams: scopeParams },
   }
 
@@ -457,7 +457,7 @@ export default function ReportsIndex() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-base-color tracking-tight">Rapports</h1>
-            <p className="text-sm text-muted-color mt-0.5">Statistiques, bénéfices et SITATION{canSelectAll ? ` | ${selectedDepot ? `Depot ${selectedDepot.name}` : 'Tous les dépôts'}` : ''}</p>
+            <p className="text-sm text-muted-color mt-0.5">Statistiques, bénéfices et situation{canSelectAll ? ` | ${selectedDepot ? `Dépôt ${selectedDepot.name}` : 'Tous les dépôts'}` : ''}</p>
           </div>
           <div className="flex flex-wrap items-end justify-end gap-2">
             {canSelectAll && (

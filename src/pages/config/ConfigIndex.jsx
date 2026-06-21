@@ -632,9 +632,9 @@ export default function ConfigIndex() {
     try {
       const response = await api.post(`/system/tasks/${taskKey}/run`)
       setTaskSnapshot(response.data?.snapshot ?? { generated_at: null, stats: {}, tasks: [], recent_runs: [] })
-      setTaskNotice(response.data?.message || 'Tache executee avec succes.')
+      setTaskNotice(response.data?.message || 'Tâche exécutée avec succès.')
     } catch (error) {
-      setTaskActionError(error.response?.data?.message || 'La tache a echoue.')
+      setTaskActionError(error.response?.data?.message || 'La tâche a échoué.')
 
       if (error.response?.data?.snapshot) {
         setTaskSnapshot(error.response.data.snapshot)

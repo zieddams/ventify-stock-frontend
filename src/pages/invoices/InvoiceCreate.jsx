@@ -266,16 +266,16 @@ export default function InvoiceCreate() {
                   <div className="col-span-4">
                     {index === 0 && <div className="text-xs text-muted-color mb-1 font-medium">Produit</div>}
                     <select value={line.product_id} onChange={(event) => updateLine(index, 'product_id', event.target.value)}>
-                      <option value="">Selectionner...</option>
+                      <option value="">Sélectionner...</option>
                       {products.map((product) => (
                         <option key={product.id} value={product.id}>
-                          {product.name} {product.depot_qty != null ? `- depot ${fmt(product.depot_qty)}` : ''}
+                          {product.name} {product.depot_qty != null ? `- dépôt ${fmt(product.depot_qty)}` : ''}
                         </option>
                       ))}
                     </select>
                   </div>
                   <div className="col-span-2">
-                    {index === 0 && <div className="text-xs text-muted-color mb-1 font-medium">Quantite</div>}
+                    {index === 0 && <div className="text-xs text-muted-color mb-1 font-medium">Quantité</div>}
                     <input type="number" step="0.001" min="0.001" value={line.qty} onChange={(event) => updateLine(index, 'qty', event.target.value)} placeholder="Qte" />
                   </div>
                   <div className="col-span-2">

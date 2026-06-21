@@ -338,7 +338,7 @@ export default function HelpCenterIndex() {
                 description="Se concentre sur la finance et la consolidation."
                 bullets={[
                   'Voit les clients, factures, crédits, dépenses et rapports utiles à la finance.',
-                  'Ne pilote pas les outils techniques reserves aux admins et developpeurs.',
+                  'Ne pilote pas les outils techniques réservés aux admins et développeurs.',
                   'Participe au suivi des encaissements et des vues de synthèse.',
                 ]}
                 tone="#2563eb"
@@ -378,7 +378,7 @@ export default function HelpCenterIndex() {
                 <div className="space-y-3 mt-4 text-sm text-secondary-color">
                   <p>La carte terrain n’affiche utilement une position que si le mobile partage réellement sa localisation et que la session reste ouverte.</p>
                   <p>Les derniers pings, le heartbeat et l’activité récente servent à distinguer un vrai arrêt terrain d’une application simplement fermée ou hors réseau.</p>
-                  <p>La page Carte, les widgets dashboard et les notifications doivent toujours raconter la meme histoire. Si ce n'est pas le cas, il faut verifier la session, puis le mobile, puis la file d'evenements.</p>
+                  <p>La page Carte, les widgets dashboard et les notifications doivent toujours raconter la même histoire. Si ce n'est pas le cas, il faut vérifier la session, puis le mobile, puis la file d'événements.</p>
                 </div>
               </div>
             </div>
@@ -423,7 +423,7 @@ export default function HelpCenterIndex() {
                 <div className="space-y-3 mt-4 text-sm text-secondary-color">
                   <p>Chaque signalement doit idéalement contenir un sujet clair, la page concernée, la sévérité et une description reproductible.</p>
                   <p>Les destinataires e-mail sont maintenant fixes cote application pour eviter les erreurs de configuration sur la prod.</p>
-                  <p>Le ticket reste aussi dans le web app pour permettre un suivi, une reponse developpeur et une cloture propre.</p>
+                  <p>Le ticket reste aussi dans le web app pour permettre un suivi, une réponse développeur et une clôture propre.</p>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-4">
                   <Link to="/bug-reports" className="btn-secondary text-xs">
@@ -438,14 +438,14 @@ export default function HelpCenterIndex() {
               <div className="rounded-[24px] px-5 py-5" style={{ background: 'rgba(139,92,246,0.06)', boxShadow: 'inset 0 0 0 1px rgba(139,92,246,0.12)' }}>
                 <div className="text-sm font-semibold text-base-color">Maintenance et operations sensibles</div>
                 <div className="space-y-3 mt-4 text-sm text-secondary-color">
-                  <p>La console developpeur permet d'activer une maintenance globale ou seulement sur certaines pages, sans couper l'acces au role developpeur.</p>
-                  <p>Le fresh install reinitialise l'operationnel tout en conservant la base metier: utilisateurs, produits, zones, camions et configurations.</p>
-                  <p>Les taches de fond, les snapshots systeme et les historiques d'execution servent a verifier rapidement si la prod suit bien le comportement attendu.</p>
+                  <p>La console développeur permet d'activer une maintenance globale ou seulement sur certaines pages, sans couper l'accès au rôle développeur.</p>
+                  <p>Le fresh install réinitialise l'opérationnel tout en conservant la base métier : utilisateurs, produits, zones, camions et configurations.</p>
+                  <p>Les tâches de fond, les snapshots système et les historiques d'exécution servent à vérifier rapidement si la prod suit bien le comportement attendu.</p>
                 </div>
                 {isDeveloper() && (
                   <div className="mt-4">
                     <Link to="/developer-tools" className="btn-secondary text-xs">
-                      <i className="fa-solid fa-code" /> Ouvrir la console developpeur
+                      <i className="fa-solid fa-code" /> Ouvrir la console développeur
                     </Link>
                   </div>
                 )}
@@ -456,8 +456,8 @@ export default function HelpCenterIndex() {
           <SectionShell
             id="faq"
             eyebrow="FAQ rapide"
-            title="Questions courantes a relire avant d'ouvrir un ticket."
-            description="Cette section vise surtout a accelerer le diagnostic en rappelant les points de logique souvent oublies."
+            title="Questions courantes à relire avant d'ouvrir un ticket."
+            description="Cette section vise surtout à accélérer le diagnostic en rappelant les points de logique souvent oubliés."
           >
             <div className="space-y-3">
               {FAQ_ITEMS.map((item) => (

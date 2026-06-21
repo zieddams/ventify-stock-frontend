@@ -17,7 +17,7 @@ const PERIODS = [
   { key: 'today', label: "Aujourd'hui" },
   { key: 'week', label: 'Cette semaine' },
   { key: 'month', label: 'Ce mois' },
-  { key: 'custom', label: 'Personnalise' },
+  { key: 'custom', label: 'Personnalisé' },
   { key: '', label: 'Tout' },
 ]
 
@@ -169,7 +169,7 @@ export default function InvoicesIndex() {
     ...scopeParams,
   }
   const depotSuffix = canSelectAll
-    ? ` | ${selectedDepot ? `Depot ${selectedDepot.name}` : 'Tous les dépôts'}`
+    ? ` | ${selectedDepot ? `Dépôt ${selectedDepot.name}` : 'Tous les dépôts'}`
     : ''
   const showDepotColumn = canSelectAll
 
@@ -208,8 +208,8 @@ export default function InvoicesIndex() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {[
-          { label: 'Total periode', value: `${fmt(total)} TND`, icon: 'fa-solid fa-sack-dollar', color: '#0d9488' },
-          { label: 'Impayees', value: `${fmt(unpaid)} TND`, icon: 'fa-solid fa-clock', color: '#dc2626' },
+          { label: 'Total période', value: `${fmt(total)} TND`, icon: 'fa-solid fa-sack-dollar', color: '#0d9488' },
+          { label: 'Impayées', value: `${fmt(unpaid)} TND`, icon: 'fa-solid fa-clock', color: '#dc2626' },
           { label: 'Factures', value: invoices.length, icon: 'fa-solid fa-file-invoice', color: '#3b82f6' },
           { label: 'Payées', value: invoices.filter((invoice) => invoice.payment_status === 'paid').length, icon: 'fa-solid fa-circle-check', color: '#10b981' },
         ].map((kpi) => (
@@ -299,7 +299,7 @@ export default function InvoicesIndex() {
                     'N°',
                     'Client',
                     ...(isAdmin() ? ['Commercial'] : []),
-                    ...(showDepotColumn ? ['Depot'] : []),
+                    ...(showDepotColumn ? ['Dépôt'] : []),
                     'Total',
                     'Paiement',
                     'Statut',
@@ -352,7 +352,7 @@ export default function InvoicesIndex() {
                   <tr>
                     <td colSpan={isAdmin() ? (showDepotColumn ? 9 : 8) : (showDepotColumn ? 8 : 7)} className="py-12 text-center">
                       <i className="fa-solid fa-file-invoice text-3xl text-muted-color opacity-30 mb-2 block" />
-                      <p className="text-muted-color text-sm">Aucune facture sur cette periode</p>
+                      <p className="text-muted-color text-sm">Aucune facture sur cette période</p>
                     </td>
                   </tr>
                 )}

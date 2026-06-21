@@ -96,7 +96,7 @@ export default function RouteSessionsIndex() {
     <div>
       <PageHeader
         title="Sorties journée"
-        subtitle={`BON DE SORTIE - sessions journalières par commercial${canSelectAll ? ` | ${selectedDepot ? `Depot ${selectedDepot.name}` : 'Tous les dépôts'}` : ''}`}
+        subtitle={`BON DE SORTIE - sessions journalières par commercial${canSelectAll ? ` | ${selectedDepot ? `Dépôt ${selectedDepot.name}` : 'Tous les dépôts'}` : ''}`}
         action={(
           <div className="flex flex-wrap items-end justify-end gap-2">
             {canSelectAll && (
@@ -127,7 +127,7 @@ export default function RouteSessionsIndex() {
           { label: 'Sessions', value: sessions.length, icon: 'fa-solid fa-calendar-days', color: '#0d9488' },
           { label: 'En cours', value: sessions.filter((session) => session.status === 'open').length, icon: 'fa-solid fa-circle-dot', color: '#10b981' },
           { label: 'Total vendu', value: `${fmt(totalVendu)} TND`, icon: 'fa-solid fa-sack-dollar', color: '#3b82f6' },
-          { label: 'Benefice', value: `${fmt(totalProfit)} TND`, icon: 'fa-solid fa-coins', color: '#8b5cf6' },
+          { label: 'Bénéfice', value: `${fmt(totalProfit)} TND`, icon: 'fa-solid fa-coins', color: '#8b5cf6' },
         ].map((kpi) => (
           <div key={kpi.label} className="card py-3 px-4 flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${kpi.color}1a` }}>
@@ -209,8 +209,8 @@ export default function RouteSessionsIndex() {
             <table className="w-full text-sm">
               <thead>
                 <tr>
-                  {['Date', 'Commercial', 'Depot', 'Zone', 'Camion', 'Total vendu', 'Benefice', 'Crédit accordé', 'Statut', ''].map((heading) => (
-                    <th key={heading} className={`pb-3 pr-4 ${['Total vendu', 'Benefice', 'Crédit accordé'].includes(heading) ? 'text-right' : 'text-left'}`}>
+                  {['Date', 'Commercial', 'Dépôt', 'Zone', 'Camion', 'Total vendu', 'Bénéfice', 'Crédit accordé', 'Statut', ''].map((heading) => (
+                    <th key={heading} className={`pb-3 pr-4 ${['Total vendu', 'Bénéfice', 'Crédit accordé'].includes(heading) ? 'text-right' : 'text-left'}`}>
                       {heading}
                     </th>
                   ))}

@@ -480,7 +480,7 @@ export default function DataToolsIndex() {
             {importRequiresDepot && (
               <div className="card">
                 <h2 className="text-sm font-semibold text-base-color mb-3">
-                  <i className="fa-solid fa-warehouse text-teal-500 mr-2" />Depot cible
+                  <i className="fa-solid fa-warehouse text-teal-500 mr-2" />Dépôt cible
                 </h2>
                 <DepotScopeControls
                   depots={importDepots}
@@ -490,7 +490,7 @@ export default function DataToolsIndex() {
                   label="Import vers"
                 />
                 <p className="text-xs text-muted-color mt-3">
-                  Les imports de depenses et de factures seront attaches a ce depot.
+                  Les imports de dépenses et de factures seront attachés à ce dépôt.
                 </p>
               </div>
             )}
@@ -696,7 +696,7 @@ export default function DataToolsIndex() {
                     onChange={setSelectedExportDepotValue}
                     allowAll
                     canSelectAll={canSelectAll}
-                    label="Perimetre export"
+                    label="Périmètre export"
                   />
                 </div>
               )}
@@ -728,7 +728,7 @@ export default function DataToolsIndex() {
                   <div className="text-sm font-semibold text-base-color">Export réussi à {lastExport.time}</div>
                   <div className="text-xs text-muted-color">{lastExport.filename}</div>
                   {lastExport.depotLabel && (
-                    <div className="text-xs text-muted-color mt-1">Depot: {lastExport.depotLabel}</div>
+                    <div className="text-xs text-muted-color mt-1">Dépôt : {lastExport.depotLabel}</div>
                   )}
                 </div>
               </div>

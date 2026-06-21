@@ -85,7 +85,7 @@ export default function Login() {
           </div>
 
           <p className="mt-5 text-sm leading-7 text-slate-300">
-            Acces direct au stock, aux sessions terrain, a la facturation et au suivi mobile.
+            Accès direct au stock, aux sessions terrain, à la facturation et au suivi mobile.
           </p>
 
           {error && (

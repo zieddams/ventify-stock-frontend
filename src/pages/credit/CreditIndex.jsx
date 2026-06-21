@@ -63,7 +63,7 @@ export default function CreditIndex() {
     <div>
       <PageHeader
         title="Crédit clients - Balance âgée"
-        subtitle={`Factures impayées par ancienneté (suivi comptable)${canSelectAll ? ` | ${selectedDepot ? `Depot ${selectedDepot.name}` : 'Tous les dépôts'}` : ''}`}
+        subtitle={`Factures impayées par ancienneté (suivi comptable)${canSelectAll ? ` | ${selectedDepot ? `Dépôt ${selectedDepot.name}` : 'Tous les dépôts'}` : ''}`}
         action={canSelectAll ? (
           <DepotScopeControls
             depots={depots}

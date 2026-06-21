@@ -224,7 +224,7 @@ export default function ProductsIndex() {
       setRestockProduct(null)
       await loadProducts()
     } catch (error) {
-      setRestockError(error.response?.data?.message || 'Impossible d enregistrer le reapprovisionnement.')
+      setRestockError(error.response?.data?.message || 'Impossible d’enregistrer le réapprovisionnement.')
     } finally {
       setRestockSaving(false)
     }
@@ -276,7 +276,7 @@ export default function ProductsIndex() {
     <div>
       <PageHeader
         title="Produits"
-        subtitle={`${products.length} produit(s)${selectedDepot ? ` | Depot ${selectedDepot.name}` : ''}`}
+        subtitle={`${products.length} produit(s)${selectedDepot ? ` | Dépôt ${selectedDepot.name}` : ''}`}
         action={(
           <div className="flex flex-wrap items-end justify-end gap-2">
             {canBrowseAll && (
@@ -377,7 +377,7 @@ export default function ProductsIndex() {
                   'Référence',
                   'Catégorie',
                   'Achat',
-                  'Depot',
+                  'Dépôt',
                   'Stock dépôt',
                   'Stock camion',
                   'Min stock',
@@ -485,7 +485,7 @@ export default function ProductsIndex() {
             </FormField>
             <FormField label="Unité" error={errors.unit?.[0]}>
               <select value={form.unit} onChange={(event) => setForm((current) => ({ ...current, unit: event.target.value }))}>
-                <option value="">Selectionner...</option>
+                <option value="">Sélectionner...</option>
                 {units.map((item) => (
                   <option key={item.id} value={item.value}>
                     {getConfigItemLabel(item)}
@@ -520,7 +520,7 @@ export default function ProductsIndex() {
 
           <FormField label="Catégorie" error={errors.category?.[0]}>
             <select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}>
-              <option value="">Selectionner...</option>
+              <option value="">Sélectionner...</option>
               {categories.map((item) => (
                 <option key={item.id} value={item.value}>
                   {getConfigItemLabel(item)}
@@ -594,7 +594,7 @@ export default function ProductsIndex() {
       <Modal
         open={Boolean(restockProduct)}
         onClose={() => setRestockProduct(null)}
-        title={restockProduct ? `Reapprovisionnement - ${restockProduct.name}` : 'Reapprovisionnement'}
+        title={restockProduct ? `Réapprovisionnement - ${restockProduct.name}` : 'Réapprovisionnement'}
       >
         <div className="space-y-4">
           <div className="rounded-xl border border-theme px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
@@ -623,7 +623,7 @@ export default function ProductsIndex() {
               rows="3"
               value={restockNote}
               onChange={(event) => setRestockNote(event.target.value)}
-              placeholder="Optionnel: origine du reapprovisionnement ou precision interne"
+              placeholder="Optionnel : origine du réapprovisionnement ou précision interne"
             />
           </FormField>
 
