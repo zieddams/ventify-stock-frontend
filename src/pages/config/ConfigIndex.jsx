@@ -15,6 +15,7 @@ import {
   getDocumentDefinition,
 } from '../../utils/documentDefinitions'
 import { resolveDocumentLayout } from '../../utils/documents'
+import { normalizePaymentMethodScopes } from '../../utils/paymentMethodScopes'
 
 const MANAGED_TYPES = [
   {
@@ -258,12 +259,19 @@ const SYSTEM_SETTING_KEYS = [
 
 const DOCUMENT_SETTING_KEYS = [DOCUMENT_LAYOUT_SETTING_KEY]
 
+const PAYMENT_SCOPE_OPTIONS = [
+  { value: 'customer', label: 'Clients / factures' },
+  { value: 'expense', label: 'Dépenses' },
+  { value: 'all', label: 'Tous les contextes' },
+]
+
 const EMPTY_FORM = {
   value: '',
   label: '',
   color: '',
   icon: '',
   description: '',
+  scopes: [],
   active: true,
 }
 
@@ -276,6 +284,8 @@ function slugifyValue(input) {
 }
 
 function ItemBadge({ item }) {
+  const paymentScopes = item.type === 'payment_method' ? normalizePaymentMethodScopes(item) : []
+
   return (
     <div className="flex items-center gap-2 flex-wrap">
       {item.is_system && (
@@ -291,6 +301,11 @@ function ItemBadge({ item }) {
       <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: item.active ? 'rgba(16,185,129,0.12)' : 'rgba(148,163,184,0.16)', color: item.active ? '#059669' : '#64748b' }}>
         {item.active ? 'Actif' : 'Inactif'}
       </span>
+      {paymentScopes.map((scope) => (
+        <span key={`${item.id}-${scope}`} className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(139,92,246,0.12)', color: '#7c3aed' }}>
+          {PAYMENT_SCOPE_OPTIONS.find((option) => option.value === scope)?.label ?? scope}
+        </span>
+      ))}
     </div>
   )
 }
@@ -702,6 +717,7 @@ export default function ConfigIndex() {
       color: item.color ?? '',
       icon: item.icon ?? '',
       description: item.description ?? '',
+      scopes: type === 'payment_method' ? normalizePaymentMethodScopes(item) : [],
       active: item.active !== false,
     })
     setErrors({})
@@ -731,6 +747,7 @@ export default function ConfigIndex() {
         color: form.color.trim() || null,
         icon: form.icon.trim() || null,
         description: form.description.trim() || null,
+        scopes: modalType === 'payment_method' ? form.scopes : undefined,
         active: form.active,
       }
 
@@ -757,6 +774,7 @@ export default function ConfigIndex() {
       color: item.color,
       icon: item.icon,
       description: item.description,
+      scopes: item.scopes,
       active: !item.active,
     })
     await loadConfig()
@@ -1012,8 +1030,8 @@ export default function ConfigIndex() {
                   <div>
                     <div className="text-sm font-semibold text-base-color">Cash verrouillé par le système</div>
                     <div className="text-sm text-secondary-color mt-1">
-                      Le mode cash reste actif, non supprimable et par défaut. Les autres moyens restent activables ou désactivables
-                      selon le besoin métier et seront réutilisés dans les pages facture, paiement et rapports.
+                      Le mode cash reste actif, non supprimable et par défaut. Les autres moyens peuvent maintenant être activés
+                      pour les factures clients, les dépenses, ou les deux selon le workflow métier.
                     </div>
                   </div>
                 </div>
@@ -1417,6 +1435,34 @@ export default function ConfigIndex() {
           <FormField label="Description" error={errors.description?.[0]}>
             <textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} rows={3} placeholder="Contexte ou aide interne..." />
           </FormField>
+
+          {modalType === 'payment_method' && (
+            <FormField label="Scopes d'utilisation" error={errors.scopes?.[0]}>
+              <div className="grid grid-cols-1 gap-2">
+                {PAYMENT_SCOPE_OPTIONS.map((option) => (
+                  <label
+                    key={option.value}
+                    className="rounded-xl px-3 py-3 border flex items-center gap-3 cursor-pointer"
+                    style={{ background: 'var(--surface-2)', borderColor: 'var(--border)' }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={form.scopes.includes(option.value)}
+                      disabled={isSystemItem && option.value !== 'all'}
+                      onChange={(event) => setForm((current) => ({
+                        ...current,
+                        scopes: event.target.checked
+                          ? Array.from(new Set([...current.scopes, option.value]))
+                          : current.scopes.filter((scope) => scope !== option.value),
+                      }))}
+                      style={{ width: 16, height: 16 }}
+                    />
+                    <span className="text-sm text-base-color">{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            </FormField>
+          )}
 
           {!isSystemItem && (
             <label className="flex items-center gap-2 text-sm text-base-color">

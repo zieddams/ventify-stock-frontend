@@ -51,7 +51,7 @@ export function useDepots(options = {}) {
 
   const [depots, setDepots] = useState([])
   const [loading, setLoading] = useState(Boolean(enabled))
-  const [selectedValue, setSelectedValue] = useState(() => {
+  const [storedValue, setStoredValue] = useState(() => {
     const stored = readStoredValue()
 
     if (stored) {
@@ -60,11 +60,11 @@ export function useDepots(options = {}) {
 
     return canSelectAll && defaultToAll ? ALL_DEPOTS_VALUE : ''
   })
-  const selectedValueRef = useRef(selectedValue)
+  const storedValueRef = useRef(storedValue)
 
   useEffect(() => {
-    selectedValueRef.current = selectedValue
-  }, [selectedValue])
+    storedValueRef.current = storedValue
+  }, [storedValue])
 
   const syncSelection = useCallback((value) => {
     if (typeof window === 'undefined') {
@@ -127,8 +127,8 @@ export function useDepots(options = {}) {
 
       const nextValue = detail.value || ''
 
-      if (selectedValueRef.current !== nextValue) {
-        setSelectedValue(nextValue)
+      if (storedValueRef.current !== nextValue) {
+        setStoredValue(nextValue)
       }
     }
 
@@ -139,8 +139,8 @@ export function useDepots(options = {}) {
 
       const nextValue = event.newValue || ''
 
-      if (selectedValueRef.current !== nextValue) {
-        setSelectedValue(nextValue)
+      if (storedValueRef.current !== nextValue) {
+        setStoredValue(nextValue)
       }
     }
 
@@ -176,27 +176,53 @@ export function useDepots(options = {}) {
     return defaultDepot ? String(defaultDepot.id) : (canSelectAll ? ALL_DEPOTS_VALUE : '')
   }, [canBrowseAll, canSelectAll, defaultToAll, depots, user?.depot_id])
 
-  useEffect(() => {
+  const selectedValue = useMemo(() => {
     if (!enabled) {
+      return ''
+    }
+
+    if (isDepotOptionValid(storedValue, depots, canSelectAll)) {
+      return storedValue
+    }
+
+    if (storedValue === ALL_DEPOTS_VALUE && !canSelectAll) {
+      return fallbackValue === ALL_DEPOTS_VALUE ? '' : fallbackValue
+    }
+
+    return fallbackValue
+  }, [canSelectAll, depots, enabled, fallbackValue, storedValue])
+
+  useEffect(() => {
+    if (!enabled || depots.length === 0) {
       return
     }
 
-    const stored = readStoredValue()
-    const currentIsValid = isDepotOptionValid(selectedValue, depots, canSelectAll)
-    const storedIsValid = isDepotOptionValid(stored, depots, canSelectAll)
-    const nextValue = currentIsValid
-      ? selectedValue
-      : storedIsValid
-        ? stored
-        : fallbackValue
+    const hasStoredValue = storedValue !== ''
+    const storedMatchesCurrentRules = isDepotOptionValid(storedValue, depots, canSelectAll)
+    const storedIsCrossPageAllSelection = storedValue === ALL_DEPOTS_VALUE && !canSelectAll
 
-    if (nextValue !== selectedValue) {
-      setSelectedValue(nextValue)
+    if (storedMatchesCurrentRules || storedIsCrossPageAllSelection) {
+      return
     }
-  }, [canSelectAll, depots, enabled, fallbackValue, readStoredValue, selectedValue])
+
+    if (selectedValue === storedValue || !isDepotOptionValid(selectedValue, depots, canSelectAll)) {
+      return
+    }
+
+    if (hasStoredValue && fallbackValue !== selectedValue) {
+      return
+    }
+
+    setStoredValue(selectedValue)
+    syncSelection(selectedValue)
+  }, [canSelectAll, depots, enabled, fallbackValue, selectedValue, storedValue, syncSelection])
 
   const selectionReady = useMemo(() => {
     if (!enabled) {
+      return false
+    }
+
+    if (loading) {
       return false
     }
 
@@ -205,15 +231,13 @@ export function useDepots(options = {}) {
     }
 
     return isDepotOptionValid(selectedValue, depots, canSelectAll)
-  }, [canSelectAll, depots, enabled, selectedValue])
+  }, [canSelectAll, depots, enabled, loading, selectedValue])
 
-  useEffect(() => {
-    if (!enabled || !selectionReady) {
-      return
-    }
-
-    syncSelection(selectedValue)
-  }, [enabled, selectedValue, selectionReady, syncSelection])
+  const setSelectedValue = useCallback((value) => {
+    const nextValue = value ?? ''
+    setStoredValue(nextValue)
+    syncSelection(nextValue)
+  }, [syncSelection])
 
   const selectedDepotId = useMemo(() => normalizeDepotId(selectedValue), [selectedValue])
   const selectedDepot = useMemo(

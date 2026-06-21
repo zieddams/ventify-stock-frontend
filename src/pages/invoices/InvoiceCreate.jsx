@@ -5,6 +5,7 @@ import { PageLoader } from '../../components/Spinner'
 import { useDepots } from '../../hooks/useDepots'
 import { getConfigItemLabel, getDefaultConfigValue, useConfigItems } from '../../hooks/useConfigItems'
 import api from '../../services/api'
+import { filterPaymentMethodsByScope } from '../../utils/paymentMethodScopes'
 
 const EMPTY_LINE = { product_id: '', product_name: '', unit: '', qty: 1, price: 0, total: 0, buy_price: null }
 
@@ -20,8 +21,9 @@ export default function InvoiceCreate() {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
   const { items: configItems } = useConfigItems('payment_method')
-  const paymentMethods = configItems.payment_method ?? []
-  const defaultPaymentMethod = getDefaultConfigValue(paymentMethods, 'cash')
+  const paymentMethods = filterPaymentMethodsByScope(configItems.payment_method ?? [], 'customer')
+  const availablePaymentMethods = paymentMethods.length > 0 ? paymentMethods : [{ value: 'cash', display_label: 'Espèces' }]
+  const defaultPaymentMethod = getDefaultConfigValue(availablePaymentMethods, 'cash')
   const {
     depots,
     selectedValue: selectedDepotValue,
@@ -30,6 +32,7 @@ export default function InvoiceCreate() {
     selectedDepot,
     canBrowseAll,
     scopeParams,
+    ready: depotsReady,
   } = useDepots({
     allowAll: false,
     storageKey: 'app-depot-scope',
@@ -44,6 +47,10 @@ export default function InvoiceCreate() {
   const [paymentMethod, setPaymentMethod] = useState(defaultPaymentMethod)
 
   useEffect(() => {
+    if (!depotsReady) {
+      return
+    }
+
     setLoading(true)
 
     Promise.all([
@@ -54,7 +61,7 @@ export default function InvoiceCreate() {
       setCustomers(Array.isArray(customersResponse.data) ? customersResponse.data : [])
       setLoading(false)
     })
-  }, [selectedDepotId])
+  }, [depotsReady, selectedDepotId, scopeParams])
 
   useEffect(() => {
     setPaymentMethod((current) => current || defaultPaymentMethod)
@@ -340,8 +347,8 @@ export default function InvoiceCreate() {
             <span className="flex items-center gap-2">
               Payé maintenant
               <select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} style={{ width: 160, padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>
-                {paymentMethods.map((method) => (
-                  <option key={method.id} value={method.value}>
+                {availablePaymentMethods.map((method) => (
+                  <option key={method.id ?? method.value} value={method.value}>
                     {getConfigItemLabel(method)}
                   </option>
                 ))}

@@ -10,6 +10,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { getConfigItemLabel, getDefaultConfigValue, useConfigItems } from '../../hooks/useConfigItems'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
+import { filterPaymentMethodsByScope } from '../../utils/paymentMethodScopes'
 import { paginateItems } from '../../utils/pagination'
 
 const EMPTY = {
@@ -48,8 +49,9 @@ export default function CustomersIndex() {
   const [customersPerPage, setCustomersPerPage] = useState(20)
   const { items: configItems } = useConfigItems(['governorate', 'payment_method'])
   const governorates = configItems.governorate ?? []
-  const paymentMethods = configItems.payment_method ?? []
-  const defaultPaymentMethod = getDefaultConfigValue(paymentMethods, 'cash')
+  const paymentMethods = filterPaymentMethodsByScope(configItems.payment_method ?? [], 'customer')
+  const availablePaymentMethods = paymentMethods.length > 0 ? paymentMethods : [{ value: 'cash', display_label: 'Espèces' }]
+  const defaultPaymentMethod = getDefaultConfigValue(availablePaymentMethods, 'cash')
   const [pay, setPay] = useState({ amount: '', method: defaultPaymentMethod, invoice_id: '', note: '' })
   const [paying, setPaying] = useState(false)
   const canAssignOwner = canManageAllCustomers()
@@ -319,8 +321,6 @@ export default function CustomersIndex() {
             </thead>
             <tbody>
               {paginatedCustomers.map((customer) => {
-                const mapped = customer.lat != null && customer.lng != null
-
                 return (
                   <tr key={customer.id} className="table-row">
                     <td className="py-3 pr-4 font-semibold text-base-color">{customer.name}</td>
@@ -339,12 +339,12 @@ export default function CustomersIndex() {
                       <span
                         className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full"
                         style={{
-                          background: mapped ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.12)',
-                          color: mapped ? '#059669' : '#d97706',
+                          background: 'rgba(148,163,184,0.14)',
+                          color: '#64748b',
                         }}
                       >
-                        <i className={`fa-solid ${mapped ? 'fa-location-dot' : 'fa-location-dot-slash'}`} />
-                        {mapped ? 'Position OK' : 'À géolocaliser'}
+                        <i className="fa-solid fa-location-dot-slash" />
+                        Carte désactivée
                       </span>
                     </td>
                     <td
@@ -509,8 +509,8 @@ export default function CustomersIndex() {
                   onChange={(event) => setPay((current) => ({ ...current, amount: event.target.value }))}
                 />
                 <select value={pay.method} onChange={(event) => setPay((current) => ({ ...current, method: event.target.value }))}>
-                  {paymentMethods.map((method) => (
-                    <option key={method.id} value={method.value}>
+                  {availablePaymentMethods.map((method) => (
+                    <option key={method.id ?? method.value} value={method.value}>
                       {getConfigItemLabel(method)}
                     </option>
                   ))}

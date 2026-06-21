@@ -31,6 +31,8 @@ function BucketCard({ label, value, colorKey }) {
 export default function CreditIndex() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const {
     depots,
     selectedValue: selectedDepotValue,
@@ -39,6 +41,7 @@ export default function CreditIndex() {
     selectedDepot,
     canSelectAll,
     scopeParams,
+    ready: depotsReady,
   } = useDepots({
     allowAll: true,
     storageKey: 'app-depot-scope',
@@ -46,14 +49,24 @@ export default function CreditIndex() {
   })
 
   useEffect(() => {
+    if (!depotsReady) {
+      return
+    }
+
     setLoading(true)
 
-    api.get('/reports/aging', { params: scopeParams })
+    api.get('/reports/aging', {
+      params: {
+        ...scopeParams,
+        ...(dateFrom ? { date_from: dateFrom } : {}),
+        ...(dateTo ? { date_to: dateTo } : {}),
+      },
+    })
       .then((response) => setData(response.data))
       .finally(() => setLoading(false))
-  }, [selectedDepotId])
+  }, [dateFrom, dateTo, depotsReady, selectedDepotId, scopeParams])
 
-  if (loading || !data) {
+  if ((loading && !data) || !data) {
     return <PageLoader />
   }
 
@@ -84,6 +97,30 @@ export default function CreditIndex() {
         <BucketCard label="Total du" value={t.total_due} colorKey="total" />
       </div>
 
+      <div className="card mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label className="block text-xs text-muted-color mb-1 font-medium">Du</label>
+            <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+          </div>
+          <div>
+            <label className="block text-xs text-muted-color mb-1 font-medium">Au</label>
+            <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+          </div>
+          <div className="flex items-end">
+            <button
+              onClick={() => {
+                setDateFrom('')
+                setDateTo('')
+              }}
+              className="btn-secondary w-full justify-center"
+            >
+              <i className="fa-solid fa-rotate-left" /> Réinitialiser
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="card">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -110,6 +147,51 @@ export default function CreditIndex() {
                   <td colSpan={6} className="py-12 text-center">
                     <i className="fa-solid fa-circle-check text-3xl text-emerald-500 mb-2 block opacity-60" />
                     <p className="text-muted-color text-sm">Aucune creance en cours</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="card mt-6">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 className="text-sm font-semibold text-base-color">Créances détaillées</h2>
+            <p className="text-xs text-muted-color mt-1">Date et heure de création visibles pour chaque facture crédit encore ouverte.</p>
+          </div>
+          {loading && <i className="fa-solid fa-spinner fa-spin text-muted-color" />}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr>
+                {['Date / heure', 'Facture', 'Client', 'Commercial', 'Dépôt', 'Reste dû'].map((heading, index) => (
+                  <th key={heading} className={`pb-3 pr-4 ${index === 5 ? 'text-right' : 'text-left'}`}>{heading}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {(data.entries ?? []).map((entry) => (
+                <tr key={entry.invoice_id} className="table-row">
+                  <td className="py-3 pr-4 text-secondary-color whitespace-nowrap">
+                    {entry.created_at ? new Date(entry.created_at).toLocaleString('fr-FR') : '-'}
+                  </td>
+                  <td className="py-3 pr-4 font-mono text-xs text-base-color">{entry.number}</td>
+                  <td className="py-3 pr-4 text-base-color">{entry.customer_name}</td>
+                  <td className="py-3 pr-4 text-secondary-color">{entry.rep_name || '-'}</td>
+                  <td className="py-3 pr-4 text-secondary-color">{entry.depot?.name ?? 'Tous'}</td>
+                  <td className="py-3 text-right font-mono font-semibold" style={{ color: '#7c3aed' }}>
+                    {fmt(entry.due_amount)} TND
+                  </td>
+                </tr>
+              ))}
+              {(data.entries ?? []).length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-10 text-center text-sm text-muted-color">
+                    Aucune facture crédit à afficher sur cette période.
                   </td>
                 </tr>
               )}

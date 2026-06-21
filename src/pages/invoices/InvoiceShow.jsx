@@ -7,6 +7,7 @@ import { getConfigItemLabel, getDefaultConfigValue, useConfigItems } from '../..
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
+import { filterPaymentMethodsByScope } from '../../utils/paymentMethodScopes'
 
 const STATUSES = ['draft', 'sent', 'paid', 'cancelled']
 const STATUS_LABELS = { draft: 'Brouillon', sent: 'Envoyée', paid: 'Payée', cancelled: 'Annulée' }
@@ -24,8 +25,9 @@ export default function InvoiceShow() {
   const [payAmount, setPayAmount] = useState('')
   const { items: configItems } = useConfigItems('payment_method')
   const { layouts: documentLayouts } = useDocumentLayouts()
-  const paymentMethods = configItems.payment_method ?? []
-  const defaultPaymentMethod = getDefaultConfigValue(paymentMethods, 'cash')
+  const paymentMethods = filterPaymentMethodsByScope(configItems.payment_method ?? [], 'customer')
+  const availablePaymentMethods = paymentMethods.length > 0 ? paymentMethods : [{ value: 'cash', display_label: 'Espèces' }]
+  const defaultPaymentMethod = getDefaultConfigValue(availablePaymentMethods, 'cash')
   const [payMethod, setPayMethod] = useState(defaultPaymentMethod)
   const [paying, setPaying] = useState(false)
   const { isAdmin } = useAuth()
@@ -208,8 +210,8 @@ export default function InvoiceShow() {
           <div className="flex gap-2">
             <input type="number" step="0.001" min="0" placeholder="Montant (TND)" value={payAmount} onChange={(event) => setPayAmount(event.target.value)} className="flex-1" />
             <select value={payMethod} onChange={(event) => setPayMethod(event.target.value)} className="w-44">
-              {paymentMethods.map((method) => (
-                <option key={method.id} value={method.value}>
+              {availablePaymentMethods.map((method) => (
+                <option key={method.id ?? method.value} value={method.value}>
                   {getConfigItemLabel(method)}
                 </option>
               ))}

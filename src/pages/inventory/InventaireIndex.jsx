@@ -24,6 +24,7 @@ export default function InventaireIndex() {
     selectedDepot,
     canBrowseAll,
     scopeParams,
+    ready: depotsReady,
   } = useDepots({
     allowAll: false,
     storageKey: 'app-depot-scope',
@@ -48,6 +49,10 @@ export default function InventaireIndex() {
   const [historyDateTo, setHistoryDateTo] = useState('')
 
   const loadProducts = async () => {
+    if (!depotsReady) {
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -60,6 +65,10 @@ export default function InventaireIndex() {
   }
 
   const loadHistory = async (page = historyPage) => {
+    if (!depotsReady) {
+      return
+    }
+
     setHistoryLoading(true)
 
     try {
@@ -87,12 +96,20 @@ export default function InventaireIndex() {
   }
 
   useEffect(() => {
+    if (!depotsReady) {
+      return
+    }
+
     loadProducts()
-  }, [selectedDepotId])
+  }, [depotsReady, selectedDepotId])
 
   useEffect(() => {
+    if (!depotsReady) {
+      return
+    }
+
     loadHistory(historyPage)
-  }, [historyPage, historySearch, historyDateFrom, historyDateTo, selectedDepotId])
+  }, [depotsReady, historyPage, historySearch, historyDateFrom, historyDateTo, selectedDepotId])
 
   const handleCount = (id, value) => {
     setCounts((current) => ({ ...current, [id]: value }))

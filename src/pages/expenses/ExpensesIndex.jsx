@@ -8,6 +8,7 @@ import { useDepots } from '../../hooks/useDepots'
 import { getConfigItemLabel, getDefaultConfigValue, useConfigItems } from '../../hooks/useConfigItems'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
+import { filterPaymentMethodsByScope } from '../../utils/paymentMethodScopes'
 import { paginateItems } from '../../utils/pagination'
 
 const DEFAULT_MONTH = new Date().toISOString().slice(0, 7)
@@ -18,16 +19,21 @@ function buildEmptyExpense(defaultCategory, depotId = null) {
     category: defaultCategory,
     label: '',
     amount: '',
+    payment_method: 'cash',
     depot_id: depotId ? String(depotId) : '',
   }
 }
 
 export default function ExpensesIndex() {
-  const { items: configItems } = useConfigItems('expense_category', { includeInactive: true })
+  const { items: configItems } = useConfigItems(['expense_category', 'payment_method'], { includeInactive: true })
   const { layouts: documentLayouts } = useDocumentLayouts()
   const allCategories = configItems.expense_category ?? []
   const activeCategories = allCategories.filter((item) => item.active !== false)
   const defaultCategory = getDefaultConfigValue(activeCategories, allCategories[0]?.value ?? 'divers')
+  const allPaymentMethods = configItems.payment_method ?? []
+  const paymentMethods = filterPaymentMethodsByScope(allPaymentMethods.filter((item) => item.active !== false), 'expense')
+  const availablePaymentMethods = paymentMethods.length > 0 ? paymentMethods : [{ value: 'cash', display_label: 'Espèces' }]
+  const defaultPaymentMethod = getDefaultConfigValue(availablePaymentMethods, 'cash')
   const {
     depots,
     selectedValue: selectedDepotValue,
@@ -36,6 +42,7 @@ export default function ExpensesIndex() {
     selectedDepot,
     canSelectAll,
     scopeParams,
+    ready: depotsReady,
   } = useDepots({
     allowAll: true,
     storageKey: 'app-depot-scope',
@@ -60,11 +67,16 @@ export default function ExpensesIndex() {
     setForm((current) => ({
       ...current,
       category: current.category || defaultCategory,
+      payment_method: current.payment_method || defaultPaymentMethod,
       depot_id: current.depot_id || (selectedDepotId ? String(selectedDepotId) : (singleDepot ? String(singleDepot.id) : '')),
     }))
-  }, [defaultCategory, selectedDepotId, singleDepot])
+  }, [defaultCategory, defaultPaymentMethod, selectedDepotId, singleDepot])
 
   const load = async () => {
+    if (!depotsReady) {
+      return
+    }
+
     setLoading(true)
 
     const params = { ...scopeParams }
@@ -92,7 +104,7 @@ export default function ExpensesIndex() {
 
   useEffect(() => {
     load()
-  }, [month, categoryFilter, dateFrom, dateTo, selectedDepotId])
+  }, [month, categoryFilter, dateFrom, dateTo, depotsReady, selectedDepotId])
 
   const total = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0)
   const { items: paginatedExpenses, meta: expensesMeta } = useMemo(
@@ -122,7 +134,10 @@ export default function ExpensesIndex() {
         ...form,
         depot_id: form.depot_id === '' ? (selectedDepotId ?? singleDepot?.id ?? null) : Number(form.depot_id),
       })
-      setForm(buildEmptyExpense(defaultCategory, selectedDepotId))
+      setForm({
+        ...buildEmptyExpense(defaultCategory, selectedDepotId),
+        payment_method: defaultPaymentMethod,
+      })
       await load()
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Erreur lors de l'enregistrement")
@@ -234,6 +249,16 @@ export default function ExpensesIndex() {
               <label className="block text-xs text-muted-color mb-1 font-medium">Montant (TND)</label>
               <input type="number" step="0.001" min="0" placeholder="0.000" value={form.amount} onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))} required />
             </div>
+            <div>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Mode de paiement</label>
+              <select value={form.payment_method} onChange={(event) => setForm((current) => ({ ...current, payment_method: event.target.value }))}>
+                {availablePaymentMethods.map((method) => (
+                  <option key={method.id ?? method.value} value={method.value}>
+                    {getConfigItemLabel(method)}
+                  </option>
+                ))}
+              </select>
+            </div>
             <button type="submit" disabled={saving} className="btn-primary w-full justify-center">
               {saving ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</> : <><i className="fa-solid fa-check" /> Enregistrer</>}
             </button>
@@ -326,7 +351,7 @@ export default function ExpensesIndex() {
               <table className="w-full text-sm">
                 <thead>
                   <tr>
-                    {['Date', 'Catégorie', 'Dépôt', 'Libellé', 'Montant', ''].map((heading) => (
+                    {['Date', 'Catégorie', 'Dépôt', 'Libellé', 'Paiement', 'Montant', ''].map((heading) => (
                       <th key={heading} className={`pb-3 pr-3 ${heading === 'Montant' ? 'text-right' : 'text-left'}`}>
                         {heading}
                       </th>
@@ -336,7 +361,7 @@ export default function ExpensesIndex() {
                 <tbody>
                   {expenses.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center">
+                      <td colSpan={7} className="py-12 text-center">
                         <i className="fa-solid fa-receipt text-3xl text-muted-color opacity-30 mb-2 block" />
                         <p className="text-muted-color text-sm">Aucune dépense sur cette période</p>
                       </td>
@@ -362,6 +387,7 @@ export default function ExpensesIndex() {
                         </td>
                         <td className="py-3 pr-3 text-muted-color text-xs">{expense.depot?.name ?? '-'}</td>
                         <td className="py-3 pr-3 text-base-color">{expense.label}</td>
+                        <td className="py-3 pr-3 text-muted-color text-xs">{expense.payment_method_label ?? expense.payment_method ?? 'Espèces'}</td>
                         <td className="py-3 pr-3 text-right font-mono font-bold text-sm" style={{ color: '#ea580c' }}>
                           {Number(expense.amount).toFixed(3)}
                         </td>

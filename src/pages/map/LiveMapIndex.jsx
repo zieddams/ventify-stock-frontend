@@ -26,6 +26,7 @@ const TUNISIA_BOUNDS = [
 const DEFAULT_CENTER = [34.2, 9.6]
 const DEFAULT_ZOOM = 6
 const HEARTBEAT_REFRESH_MS = 20 * 1000
+const GEO_TRACKING_ENABLED = false
 const GOOGLE_MAP_PROVIDERS = new Set(['google_roadmap', 'google_satellite'])
 const GOOGLE_MAP_TYPES = new Set(['roadmap', 'satellite', 'terrain', 'hybrid'])
 const GOOGLE_MAPS_SCRIPT_ID = 'irtiwaa-google-maps-sdk'
@@ -352,6 +353,15 @@ function makeRepIcon(color, selected = false) {
 }
 
 function getPresenceMeta(rep) {
+  if (!GEO_TRACKING_ENABLED) {
+    return {
+      label: 'Presence en pause',
+      color: '#64748b',
+      bg: 'rgba(100,116,139,0.12)',
+      dot: 'bg-slate-400',
+    }
+  }
+
   const state = rep?.presence?.state
 
   if (state === 'online' || rep?.presence?.is_online) {
@@ -562,8 +572,12 @@ function ClientsTab({
     return true
   })
 
-  const mapped = filtered.filter(customer => getTunisiaPoint(customer.lat, customer.lng))
-  const unmapped = filtered.filter(customer => !getTunisiaPoint(customer.lat, customer.lng))
+  const mapped = GEO_TRACKING_ENABLED
+    ? filtered.filter(customer => getTunisiaPoint(customer.lat, customer.lng))
+    : []
+  const unmapped = GEO_TRACKING_ENABLED
+    ? filtered.filter(customer => !getTunisiaPoint(customer.lat, customer.lng))
+    : filtered
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -640,6 +654,16 @@ function ClientsTab({
         <div className="card overflow-hidden p-0" style={{ height: 560 }}>
           {loading ? (
             <PageLoader />
+          ) : !GEO_TRACKING_ENABLED ? (
+            <div className="flex items-center justify-center h-full text-center px-6">
+              <div className="max-w-md">
+                <i className="fa-solid fa-location-slash text-2xl text-amber-500 mb-3 block" />
+                <p className="text-sm font-semibold text-base-color">Carte clients temporairement desactivee</p>
+                <p className="text-xs text-muted-color mt-1">
+                  La geolocalisation clients est en pause. Les listes, zones et donnees commerciales restent disponibles.
+                </p>
+              </div>
+            </div>
           ) : (
             <MapContainer
               center={DEFAULT_CENTER}
@@ -692,8 +716,18 @@ function ClientsTab({
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
           <MetricCard label="Total clients" value={customers.length} color="#0d9488" icon="fa-solid fa-users" />
-          <MetricCard label="Sur la carte" value={mapped.length} color="#3b82f6" icon="fa-solid fa-location-dot" />
-          <MetricCard label="Sans position" value={unmapped.length} color="#f59e0b" icon="fa-solid fa-location-dot-slash" />
+          <MetricCard
+            label={GEO_TRACKING_ENABLED ? 'Sur la carte' : 'Carte client'}
+            value={GEO_TRACKING_ENABLED ? mapped.length : 'Pause'}
+            color="#3b82f6"
+            icon={GEO_TRACKING_ENABLED ? 'fa-solid fa-location-dot' : 'fa-solid fa-location-slash'}
+          />
+          <MetricCard
+            label={GEO_TRACKING_ENABLED ? 'Sans position' : 'Clients filtres'}
+            value={GEO_TRACKING_ENABLED ? unmapped.length : filtered.length}
+            color="#f59e0b"
+            icon={GEO_TRACKING_ENABLED ? 'fa-solid fa-location-dot-slash' : 'fa-solid fa-list'}
+          />
         </div>
       </div>
     </div>
@@ -715,7 +749,7 @@ function TerrainTab({
   traceLoading,
 }) {
   const filteredReps = (terrain.reps ?? []).filter(rep => {
-    if (onlineOnly && !rep.presence?.is_online) return false
+    if (onlineOnly && !(GEO_TRACKING_ENABLED ? rep.presence?.is_online : rep.route_session?.status === 'open')) return false
 
     const needle = repSearch.trim().toLowerCase()
     if (!needle) return true
@@ -733,18 +767,24 @@ function TerrainTab({
   const selectedRep = (terrain.reps ?? []).find(rep => String(rep.id) === String(selectedRepId))
   const presenceMeta = getPresenceMeta(selectedRep)
   const routeMeta = getRouteMeta(selectedRep?.route_session)
-  const routeTracePoints = routeTrace
-    .map(item => getTunisiaPoint(item.latitude, item.longitude))
-    .filter(Boolean)
-  const terrainPositions = (terrain.reps ?? []).filter(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
-  const selectedTerrainLocation = getSelectedTerrainLocation(selectedRep, routeTrace)
-  const selectedRepHasMapPosition = Boolean(selectedTerrainLocation?.point)
-  const selectedRepUsesTraceFallback = selectedTerrainLocation?.source === 'trace'
-  const mapDisabledReason = selectedRep && !selectedRepHasMapPosition
+  const routeTracePoints = GEO_TRACKING_ENABLED
+    ? routeTrace.map(item => getTunisiaPoint(item.latitude, item.longitude)).filter(Boolean)
+    : []
+  const terrainPositions = GEO_TRACKING_ENABLED
+    ? (terrain.reps ?? []).filter(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
+    : []
+  const selectedTerrainLocation = GEO_TRACKING_ENABLED ? getSelectedTerrainLocation(selectedRep, routeTrace) : null
+  const selectedRepHasMapPosition = GEO_TRACKING_ENABLED && Boolean(selectedTerrainLocation?.point)
+  const selectedRepUsesTraceFallback = GEO_TRACKING_ENABLED && selectedTerrainLocation?.source === 'trace'
+  let mapDisabledReason = selectedRep && !selectedRepHasMapPosition
     ? (selectedRep.presence?.last_seen
       ? 'Aucun point GPS exploitable en Tunisie n’a encore été remonté pour ce compte.'
       : 'Ce compte n’a pas encore partagé de position exploitable pour la carte terrain.')
     : ''
+
+  if (!GEO_TRACKING_ENABLED) {
+    mapDisabledReason = 'La geolocalisation terrain est temporairement desactivee. Le suivi temps reel reste base sur les sessions, les factures et les recharges.'
+  }
 
   if (terrainLoading && !terrain.reps?.length) {
     return <PageLoader />
@@ -754,9 +794,9 @@ function TerrainTab({
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
         <MetricCard
-          label="Mobiles en ligne"
-          value={terrain.stats?.online_users ?? terrain.stats?.online_reps ?? 0}
-          sub={`${terrain.stats?.active_users ?? terrain.stats?.active_reps ?? 0} comptes actifs`}
+          label={GEO_TRACKING_ENABLED ? 'Mobiles en ligne' : 'Presence mobile'}
+          value={GEO_TRACKING_ENABLED ? (terrain.stats?.online_users ?? terrain.stats?.online_reps ?? 0) : 'Pause'}
+          sub={GEO_TRACKING_ENABLED ? `${terrain.stats?.active_users ?? terrain.stats?.active_reps ?? 0} comptes actifs` : 'Suivi session uniquement'}
           icon="fa-solid fa-signal"
           color="#0d9488"
         />
@@ -800,7 +840,7 @@ function TerrainTab({
               </h2>
               <label className="flex items-center gap-2 text-xs text-muted-color cursor-pointer">
                 <input type="checkbox" checked={onlineOnly} onChange={event => onOnlineOnly(event.target.checked)} />
-                En ligne seulement
+                {GEO_TRACKING_ENABLED ? 'En ligne seulement' : 'Session ouverte seulement'}
               </label>
             </div>
             <input
@@ -888,7 +928,12 @@ function TerrainTab({
 
                 <div className="divide-y" style={{ '--tw-divide-opacity': 1 }}>
                   <DetailRow label="Rôle" value={formatRôleLabel(selectedRep.role)} />
-                  <DetailRow label="Dernier ping" value={`${formatRelativeTime(selectedRep.presence?.last_seen)} · ${formatDateTime(selectedRep.presence?.last_seen)}`} />
+                  <DetailRow
+                    label="Dernier ping"
+                    value={GEO_TRACKING_ENABLED
+                      ? `${formatRelativeTime(selectedRep.presence?.last_seen)} · ${formatDateTime(selectedRep.presence?.last_seen)}`
+                      : 'Presence mobile en pause'}
+                  />
                   <DetailRow label="Appareil" value={selectedRep.device?.device_name || `${selectedRep.device?.brand ?? ''} ${selectedRep.device?.model ?? ''}`.trim() || 'Non remonte'} />
                   <DetailRow label="Version mobile" value={selectedRep.device?.app_version || 'Non remontée'} />
                   <DetailRow label="OS / API" value={selectedRep.device?.os_version ? `Android ${selectedRep.device.os_version}${selectedRep.device.api_level ? ` (API ${selectedRep.device.api_level})` : ''}` : 'Non remonte'} />
@@ -1109,10 +1154,10 @@ function TerrainTab({
                   color="#8b5cf6"
                 />
                 <MetricCard
-                  label="Points GPS"
-                  value={selectedRep.route_session?.locations_count ?? 0}
-                  sub={traceLoading ? 'Trace en cours...' : `${routeTrace.length} point(s) charges`}
-                  icon="fa-solid fa-location-crosshairs"
+                  label={GEO_TRACKING_ENABLED ? 'Points GPS' : 'Carte terrain'}
+                  value={GEO_TRACKING_ENABLED ? (selectedRep.route_session?.locations_count ?? 0) : 'Pause'}
+                  sub={GEO_TRACKING_ENABLED ? (traceLoading ? 'Trace en cours...' : `${routeTrace.length} point(s) charges`) : 'Sessions et stock en temps reel'}
+                  icon={GEO_TRACKING_ENABLED ? 'fa-solid fa-location-crosshairs' : 'fa-solid fa-location-slash'}
                   color="#f59e0b"
                 />
               </div>
@@ -1137,9 +1182,12 @@ function TerrainTab({
                     <DetailRow label="Chargée / vendue / retour" value={`${formatNumber(selectedRep.route_session?.loaded_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.sold_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.returned_qty_total ?? 0)}`} />
                     <DetailRow label="Reste camion" value={formatNumber(selectedRep.route_session?.remaining_qty_total ?? 0)} />
                     <DetailRow label="Cash / credit" value={`${formatMoney(selectedRep.route_session?.cash_collected ?? 0)} / ${formatMoney(selectedRep.route_session?.credit_given ?? 0)}`} />
-                    <DetailRow label="Precision GPS" value={selectedTerrainLocation?.accuracy != null ? `${formatNumber(selectedTerrainLocation.accuracy)} m` : '--'} />
-                    <DetailRow label="Vitesse" value={selectedTerrainLocation?.speed != null ? `${formatNumber(selectedTerrainLocation.speed)} km/h` : '--'} />
-                    <DetailRow label="Dernier point carte" value={selectedTerrainLocation ? `${formatMapSourceLabel(selectedTerrainLocation.source)} · ${formatDateTime(selectedTerrainLocation.recorded_at)}` : 'Aucun point'} />
+                    <DetailRow
+                      label="Carte terrain"
+                      value={GEO_TRACKING_ENABLED
+                        ? (selectedTerrainLocation ? `${formatMapSourceLabel(selectedTerrainLocation.source)} · ${formatDateTime(selectedTerrainLocation.recorded_at)}` : 'Aucun point')
+                        : 'Geolocalisation desactivee'}
+                    />
                   </div>
                 </div>
 
@@ -1179,9 +1227,17 @@ function TerrainTab({
                         <DetailRow label="Version app" value={selectedRep.device?.app_version || selectedRep.device?.native_app_version || 'Non remontée'} />
                         <DetailRow label="Plateforme / build" value={[selectedRep.device?.platform, selectedRep.device?.native_build_version].filter(Boolean).join(' · ') || 'Non remonte'} />
                         <DetailRow label="Exécution" value={[selectedRep.device?.app_ownership, selectedRep.device?.execution_environment].filter(Boolean).join(' · ') || 'Non remontée'} />
-                        <DetailRow label="Dernier ping" value={selectedRep.presence?.last_seen ? `${formatRelativeTime(selectedRep.presence.last_seen)} · ${formatDateTime(selectedRep.presence.last_seen)}` : 'Aucune remontée'} />
+                        <DetailRow
+                          label="Dernier ping"
+                          value={GEO_TRACKING_ENABLED
+                            ? (selectedRep.presence?.last_seen ? `${formatRelativeTime(selectedRep.presence.last_seen)} · ${formatDateTime(selectedRep.presence.last_seen)}` : 'Aucune remontée')
+                            : 'Presence mobile en pause'}
+                        />
                         <DetailRow label="Ecran / locale" value={[selectedRep.device?.screen_res, selectedRep.device?.locale].filter(Boolean).join(' · ') || 'Non remonte'} />
-                        <DetailRow label="Trace chargee" value={routeTrace.length > 0 ? `${routeTrace.length} point(s)` : 'Aucune trace pour le moment'} />
+                        <DetailRow
+                          label="Trace chargee"
+                          value={GEO_TRACKING_ENABLED ? (routeTrace.length > 0 ? `${routeTrace.length} point(s)` : 'Aucune trace pour le moment') : 'Desactivee'}
+                        />
                       </div>
                     </div>
                   ) : (
@@ -1294,6 +1350,12 @@ export default function LiveMapIndex() {
   }, [selectedDepotId])
 
   const loadRouteTrace = useCallback(async (routeSessionId) => {
+    if (!GEO_TRACKING_ENABLED) {
+      setRouteTrace([])
+      setTraceLoading(false)
+      return
+    }
+
     if (!routeSessionId) {
       setRouteTrace([])
       return
@@ -1421,17 +1483,23 @@ export default function LiveMapIndex() {
     }
   }, [])
 
-  const customerSubtitle = `${customers.length} clients · ${customers.filter(customer => getTunisiaPoint(customer.lat, customer.lng)).length} geolocalises`
+  const customerSubtitle = GEO_TRACKING_ENABLED
+    ? `${customers.length} clients · ${customers.filter(customer => getTunisiaPoint(customer.lat, customer.lng)).length} geolocalises`
+    : `${customers.length} clients - carte client temporairement desactivee`
   const terrainTrackedCount = terrain.stats?.users_total ?? terrain.stats?.reps_total ?? 0
-  const terrainMappedCount = terrain.reps.filter(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude)).length
-  const terrainOnlineCount = terrain.stats?.online_users ?? terrain.stats?.online_reps ?? 0
+  const terrainMappedCount = GEO_TRACKING_ENABLED
+    ? terrain.reps.filter(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude)).length
+    : (terrain.stats?.open_sessions ?? terrainTrackedCount)
+  const terrainOnlineCount = GEO_TRACKING_ENABLED
+    ? (terrain.stats?.online_users ?? terrain.stats?.online_reps ?? 0)
+    : (terrain.stats?.open_sessions ?? 0)
   const providerConfig = resolveProviderConfig(mapSettings)
   const terrainScopeLabel = selectedDepot
     ? `${selectedDepot.name}${selectedDepot.code ? ` (${selectedDepot.code})` : ''}`
     : 'Tous les dépôts'
   const terrainSubtitle = terrain.generated_at
     ? `${terrain.stats?.reps_total ?? 0} commerciaux suivis · MAJ ${formatDateTime(terrain.generated_at)}`
-    : 'Suivi mobile, GPS et stock terrain'
+    : (GEO_TRACKING_ENABLED ? 'Suivi mobile, GPS et stock terrain' : 'Suivi sessions, stock camion et facturation en temps reel')
 
   return (
     <div>

@@ -11,6 +11,7 @@ import { useDepots } from '../hooks/useDepots'
 import QuantityInput from '../components/QuantityInput'
 
 const HEARTBEAT_REFRESH_MS = 20 * 1000
+const WEB_GEO_ENABLED = false
 const TUNISIA_BOUNDS = [[30.0, 7.0], [38.5, 12.5]]
 const MINI_MAP_CENTER = [34.0, 9.5]
 const SESSION_MAP_ICON = L.divIcon({
@@ -25,6 +26,14 @@ function fmt(n) {
 }
 
 function getSessionPresenceMeta(session) {
+  if (!WEB_GEO_ENABLED) {
+    return {
+      label: 'Presence en pause',
+      textClassName: 'text-muted-color',
+      dotClassName: 'bg-slate-300',
+    }
+  }
+
   const state = session?.presence?.state
 
   if (state === 'online' || session?.is_online) {
@@ -119,7 +128,7 @@ function getSessionMapPoint(session) {
 }
 
 function SessionPreviewPanel({ session, pinned }) {
-  const point = getSessionMapPoint(session)
+  const point = WEB_GEO_ENABLED ? getSessionMapPoint(session) : null
   const lastSeenAge = formatLastSeenAge(session?.presence?.last_seen_age_seconds)
 
   return (
@@ -144,6 +153,16 @@ function SessionPreviewPanel({ session, pinned }) {
       {!session ? (
         <div className="h-[260px] rounded-2xl border border-theme flex items-center justify-center text-center px-5 text-sm text-muted-color">
           Survolez une session commerciale pour afficher sa position recente.
+        </div>
+      ) : !WEB_GEO_ENABLED ? (
+        <div className="h-[260px] rounded-2xl border border-theme flex items-center justify-center text-center px-5">
+          <div>
+            <i className="fa-solid fa-location-slash text-amber-500 text-xl mb-3 block" />
+            <div className="text-sm font-semibold text-base-color">Carte terrain temporairement desactivee</div>
+            <div className="text-xs text-muted-color mt-2">
+              Le suivi en temps reel reste actif pour les sessions, les factures et les recharges, sans geolocalisation.
+            </div>
+          </div>
         </div>
       ) : !point ? (
         <div className="h-[260px] rounded-2xl border border-theme flex items-center justify-center text-center px-5">
@@ -595,8 +614,8 @@ export default function Dashboard() {
               </h2>
               <div className="text-xs text-muted-color">
                 {showSessionDepotColumn
-                  ? `Périmètre ${dashboardScopeLabel} - survol pour aperçu carte, épingle pour garder le suivi visible.`
-                  : 'Survol pour aperçu carte, épingle pour garder le suivi visible.'}
+                  ? `Périmètre ${dashboardScopeLabel} - geolocalisation terrain en pause, suivi session conserve.`
+                  : 'Geolocalisation terrain en pause, suivi session conserve.'}
               </div>
             </div>
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.45fr)_360px] gap-4">
@@ -614,8 +633,6 @@ export default function Dashboard() {
                       const presenceMeta = getSessionPresenceMeta(s)
                       const lastSeenAge = formatLastSeenAge(s.presence?.last_seen_age_seconds)
                       const isPinned = String(pinnedSessionId) === String(s.id)
-                      const hasMapPoint = Boolean(getSessionMapPoint(s))
-
                       return (
                         <tr
                           key={s.id}
@@ -624,18 +641,7 @@ export default function Dashboard() {
                           onMouseLeave={() => setHoveredSessionId((current) => (String(current) === String(s.id) ? null : current))}
                         >
                           <td className="py-3 pr-4 font-semibold text-base-color">
-                            <div className="flex items-center gap-2">
-                              <span>{s.user?.name ?? '—'}</span>
-                              <button
-                                type="button"
-                                onClick={() => setPinnedSessionId((current) => (String(current) === String(s.id) ? null : s.id))}
-                                className="text-muted-color hover:text-base-color transition-colors"
-                                title={isPinned ? 'Détacher la carte' : 'Épingler la carte'}
-                              >
-                                <i className={`fa-solid ${isPinned ? 'fa-thumbtack text-teal-600' : 'fa-thumbtack opacity-50'}`} />
-                              </button>
-                              {!hasMapPoint && <i className="fa-solid fa-location-slash text-[11px] text-amber-500" title="Aucun point carte exploitable" />}
-                            </div>
+                            <span>{s.user?.name ?? '—'}</span>
                           </td>
                           <td className="py-3 pr-4 text-secondary-color">{s.brand} {s.model}</td>
                           <td className="py-3 pr-4 text-muted-color">{s.app_version || s.native_app_version || '—'}</td>
@@ -646,9 +652,11 @@ export default function Dashboard() {
                             </span>
                           </td>
                           <td className="py-3 text-muted-color text-xs">
-                            {s.last_seen
-                              ? `${new Date(s.last_seen).toLocaleString('fr-FR')}${lastSeenAge ? ` · ${lastSeenAge}` : ''}`
-                              : '—'}
+                            {WEB_GEO_ENABLED
+                              ? (s.last_seen
+                                ? `${new Date(s.last_seen).toLocaleString('fr-FR')}${lastSeenAge ? ` · ${lastSeenAge}` : ''}`
+                                : '—')
+                              : 'Presence mobile en pause'}
                           </td>
                         </tr>
                       )
