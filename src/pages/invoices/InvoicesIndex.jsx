@@ -169,7 +169,7 @@ export default function InvoicesIndex() {
     ...scopeParams,
   }
   const depotSuffix = canSelectAll
-    ? ` | ${selectedDepot ? `Depot ${selectedDepot.name}` : 'Tous les depots'}`
+    ? ` | ${selectedDepot ? `Depot ${selectedDepot.name}` : 'Tous les dépôts'}`
     : ''
   const showDepotColumn = canSelectAll
 
@@ -188,7 +188,7 @@ export default function InvoicesIndex() {
               onChange={setSelectedDepotValue}
               allowAll
               canSelectAll={canSelectAll}
-              allLabel="Tous les depots"
+              allLabel="Tous les dépôts"
             />
           )}
           <PageExportActions
@@ -211,7 +211,7 @@ export default function InvoicesIndex() {
           { label: 'Total periode', value: `${fmt(total)} TND`, icon: 'fa-solid fa-sack-dollar', color: '#0d9488' },
           { label: 'Impayees', value: `${fmt(unpaid)} TND`, icon: 'fa-solid fa-clock', color: '#dc2626' },
           { label: 'Factures', value: invoices.length, icon: 'fa-solid fa-file-invoice', color: '#3b82f6' },
-          { label: 'Payees', value: invoices.filter((invoice) => invoice.payment_status === 'paid').length, icon: 'fa-solid fa-circle-check', color: '#10b981' },
+          { label: 'Payées', value: invoices.filter((invoice) => invoice.payment_status === 'paid').length, icon: 'fa-solid fa-circle-check', color: '#10b981' },
         ].map((kpi) => (
           <div key={kpi.label} className="card py-3 px-4 flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${kpi.color}1a` }}>
@@ -243,7 +243,7 @@ export default function InvoicesIndex() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div>
             <label className="block text-xs text-muted-color mb-1 font-medium">Recherche</label>
-            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Numero, client ou commercial..." />
+            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Numéro, client ou commercial..." />
           </div>
           <div>
             <label className="block text-xs text-muted-color mb-1 font-medium">Paiement</label>
@@ -251,7 +251,7 @@ export default function InvoicesIndex() {
               <option value="">Tous</option>
               <option value="unpaid">Impaye</option>
               <option value="partial">Partiel</option>
-              <option value="paid">Paye</option>
+              <option value="paid">Payé</option>
             </select>
           </div>
           <div>
@@ -281,7 +281,7 @@ export default function InvoicesIndex() {
         {hasFilters && (
           <div className="mt-3 flex justify-end">
             <button onClick={resetFilters} className="btn-secondary text-xs">
-              <i className="fa-solid fa-rotate-left" /> Reinitialiser les filtres
+              <i className="fa-solid fa-rotate-left" /> Réinitialiser les filtres
             </button>
           </div>
         )}

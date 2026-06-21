@@ -95,8 +95,8 @@ export default function RouteSessionsIndex() {
   return (
     <div>
       <PageHeader
-        title="Sorties journee"
-        subtitle={`BON DE SORTIE - sessions journalieres par commercial${canSelectAll ? ` | ${selectedDepot ? `Depot ${selectedDepot.name}` : 'Tous les depots'}` : ''}`}
+        title="Sorties journée"
+        subtitle={`BON DE SORTIE - sessions journalières par commercial${canSelectAll ? ` | ${selectedDepot ? `Depot ${selectedDepot.name}` : 'Tous les dépôts'}` : ''}`}
         action={(
           <div className="flex flex-wrap items-end justify-end gap-2">
             {canSelectAll && (
@@ -106,11 +106,11 @@ export default function RouteSessionsIndex() {
                 onChange={setSelectedDepotValue}
                 allowAll
                 canSelectAll={canSelectAll}
-                allLabel="Tous les depots"
+                allLabel="Tous les dépôts"
               />
             )}
             <PageExportActions
-              title="Sorties journee"
+              title="Sorties journée"
               csvEntity="route_sessions"
               csvParams={exportParams}
               csvFilename="sorties_journee"
@@ -144,7 +144,7 @@ export default function RouteSessionsIndex() {
       <div className="card mb-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs text-muted-color mb-1 font-medium">Jour precis</label>
+            <label className="block text-xs text-muted-color mb-1 font-medium">Jour précis</label>
             <input
               type="date"
               value={date}
@@ -195,7 +195,7 @@ export default function RouteSessionsIndex() {
               }}
               className="btn-secondary text-xs"
             >
-              <i className="fa-solid fa-rotate-left" /> Reinitialiser les filtres
+              <i className="fa-solid fa-rotate-left" /> Réinitialiser les filtres
             </button>
           </div>
         )}
@@ -209,8 +209,8 @@ export default function RouteSessionsIndex() {
             <table className="w-full text-sm">
               <thead>
                 <tr>
-                  {['Date', 'Commercial', 'Depot', 'Zone', 'Camion', 'Total vendu', 'Benefice', 'Credit accorde', 'Statut', ''].map((heading) => (
-                    <th key={heading} className={`pb-3 pr-4 ${['Total vendu', 'Benefice', 'Credit accorde'].includes(heading) ? 'text-right' : 'text-left'}`}>
+                  {['Date', 'Commercial', 'Depot', 'Zone', 'Camion', 'Total vendu', 'Benefice', 'Crédit accordé', 'Statut', ''].map((heading) => (
+                    <th key={heading} className={`pb-3 pr-4 ${['Total vendu', 'Benefice', 'Crédit accordé'].includes(heading) ? 'text-right' : 'text-left'}`}>
                       {heading}
                     </th>
                   ))}
@@ -221,7 +221,7 @@ export default function RouteSessionsIndex() {
                   <tr>
                     <td colSpan={10} className="py-12 text-center">
                       <i className="fa-solid fa-truck-fast text-3xl text-muted-color opacity-30 mb-2 block" />
-                      <p className="text-muted-color text-sm">Aucune session trouvee</p>
+                      <p className="text-muted-color text-sm">Aucune session trouvée</p>
                     </td>
                   </tr>
                 )}
@@ -238,7 +238,7 @@ export default function RouteSessionsIndex() {
                           <div className="text-[11px] text-muted-color mt-0.5">{session.camion.plate ?? 'Sans plaque'}</div>
                         </div>
                       ) : (
-                        'Non assigne'
+                        'Non assigné'
                       )}
                     </td>
                     <td className="py-3 pr-4 text-right font-mono font-semibold text-base-color">{fmt(session.total_sold)}</td>

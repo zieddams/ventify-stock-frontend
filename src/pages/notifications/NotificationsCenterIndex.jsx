@@ -1,41 +1,57 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
 import { subscribeToOpsMonitor } from '../../services/realtime'
 import {
   formatNotificationAge,
-  LIVE_NOTIFICATION_EVENT_KINDS,
+  shouldRefreshNotificationsForEvent,
   notificationChanges,
   resolveNotificationConfig,
 } from '../../utils/notificationActivity'
 
+function notificationMessage(notification, fallbackLabel) {
+  return notification?.data?.message || fallbackLabel || 'Notification'
+}
+
 export default function NotificationsCenterIndex() {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const [notifications, setNotifications] = useState([])
   const [preferences, setPreferences] = useState([])
   const [loading, setLoading] = useState(true)
   const [savingKey, setSavingKey] = useState('')
+  const loadPromiseRef = useRef(null)
 
   const unreadCount = useMemo(
     () => notifications.filter((notification) => !notification.read_at).length,
-    [notifications]
+    [notifications],
   )
 
   const load = useCallback(async () => {
+    if (loadPromiseRef.current) {
+      return loadPromiseRef.current
+    }
+
     setLoading(true)
 
-    try {
-      const [notificationResponse, preferenceResponse] = await Promise.all([
-        api.get('/notifications'),
-        api.get('/notification-preferences'),
-      ])
+    const request = Promise.all([
+      api.get('/notifications'),
+      api.get('/notification-preferences'),
+    ])
+      .then(([notificationResponse, preferenceResponse]) => {
+        setNotifications(notificationResponse.data.notifications ?? [])
+        setPreferences(preferenceResponse.data.preferences ?? [])
+      })
+      .catch(() => null)
+      .finally(() => {
+        setLoading(false)
+        loadPromiseRef.current = null
+      })
 
-      setNotifications(notificationResponse.data.notifications ?? [])
-      setPreferences(preferenceResponse.data.preferences ?? [])
-    } finally {
-      setLoading(false)
-    }
+    loadPromiseRef.current = request
+    return request
   }, [])
 
   useEffect(() => {
@@ -48,21 +64,47 @@ export default function NotificationsCenterIndex() {
     }
 
     return subscribeToOpsMonitor((event) => {
-      if (LIVE_NOTIFICATION_EVENT_KINDS.has(event.kind)) {
+      if (shouldRefreshNotificationsForEvent(event.kind)) {
         load()
       }
     })
   }, [load, user?.id])
 
-  const markAll = async () => {
-    await api.post('/notifications/read-all')
-    await load()
-  }
+  const markAll = useCallback(async () => {
+    setNotifications((current) => current.map((item) => ({ ...item, read_at: item.read_at || new Date().toISOString() })))
 
-  const markRead = async (notificationId) => {
-    await api.post(`/notifications/${notificationId}/read`)
-    await load()
-  }
+    try {
+      await api.post('/notifications/read-all')
+    } finally {
+      await load()
+    }
+  }, [load])
+
+  const markRead = useCallback(async (notificationId) => {
+    setNotifications((current) => current.map((item) => (
+      item.id === notificationId && !item.read_at
+        ? { ...item, read_at: new Date().toISOString() }
+        : item
+    )))
+
+    try {
+      await api.post(`/notifications/${notificationId}/read`)
+    } finally {
+      await load()
+    }
+  }, [load])
+
+  const openNotification = useCallback(async (notification) => {
+    const config = resolveNotificationConfig(notification)
+
+    if (!notification.read_at) {
+      await markRead(notification.id)
+    }
+
+    if (config.route) {
+      navigate(config.route)
+    }
+  }, [markRead, navigate])
 
   const togglePreference = async (preference) => {
     setSavingKey(preference.key)
@@ -114,7 +156,7 @@ export default function NotificationsCenterIndex() {
           </div>
         </div>
         <div className="card py-4 px-4">
-          <div className="text-xs text-muted-color">Préférences actives</div>
+          <div className="text-xs text-muted-color">Preferences actives</div>
           <div className="text-2xl font-bold text-base-color mt-1">
             {preferences.filter((item) => item.enabled).length}/{preferences.length}
           </div>
@@ -125,12 +167,16 @@ export default function NotificationsCenterIndex() {
         <div className="card">
           <div className="flex items-center gap-2 mb-4">
             <i className="fa-solid fa-sliders text-teal-500" />
-            <h2 className="text-sm font-semibold text-base-color">Préférences utilisateur</h2>
+            <h2 className="text-sm font-semibold text-base-color">Preferences utilisateur</h2>
           </div>
 
           <div className="space-y-3">
             {preferences.map((preference) => (
-              <div key={preference.key} className="rounded-2xl px-4 py-4 flex items-start justify-between gap-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+              <div
+                key={preference.key}
+                className="rounded-2xl px-4 py-4 flex items-start justify-between gap-3"
+                style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+              >
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-base-color">{preference.label}</div>
                   <div className="text-sm text-secondary-color mt-1">{preference.description}</div>
@@ -143,9 +189,9 @@ export default function NotificationsCenterIndex() {
                   {savingKey === preference.key ? (
                     <><i className="fa-solid fa-spinner fa-spin" /> En cours...</>
                   ) : preference.enabled ? (
-                    <><i className="fa-solid fa-toggle-on" /> Activée</>
+                    <><i className="fa-solid fa-toggle-on" /> Activee</>
                   ) : (
-                    <><i className="fa-solid fa-toggle-off" /> Désactivée</>
+                    <><i className="fa-solid fa-toggle-off" /> Desactivee</>
                   )}
                 </button>
               </div>
@@ -156,7 +202,7 @@ export default function NotificationsCenterIndex() {
         <div className="card">
           <div className="flex items-center gap-2 mb-4">
             <i className="fa-solid fa-stream text-sky-500" />
-            <h2 className="text-sm font-semibold text-base-color">Historique récent</h2>
+            <h2 className="text-sm font-semibold text-base-color">Historique recent</h2>
           </div>
 
           {loading ? (
@@ -175,7 +221,24 @@ export default function NotificationsCenterIndex() {
                 const unread = !notification.read_at
 
                 return (
-                  <div key={notification.id} className="rounded-2xl px-4 py-4" style={{ background: unread ? 'rgba(13,148,136,0.06)' : 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                  <div
+                    key={notification.id}
+                    className="rounded-2xl px-4 py-4 transition-colors"
+                    style={{
+                      background: unread ? 'rgba(13,148,136,0.06)' : 'var(--surface-2)',
+                      boxShadow: 'inset 0 0 0 1px var(--border)',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => openNotification(notification)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        openNotification(notification)
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: config.bg, color: config.color }}>
                         <i className={config.icon} />
@@ -190,7 +253,7 @@ export default function NotificationsCenterIndex() {
                           )}
                         </div>
                         <div className="text-sm text-secondary-color mt-1">
-                          {notification.data?.message || 'Aucun message détaillé'}
+                          {notificationMessage(notification, config.label)}
                         </div>
                         {changes.length > 0 && (
                           <div className="mt-3 space-y-1.5">
@@ -205,12 +268,23 @@ export default function NotificationsCenterIndex() {
                             ))}
                           </div>
                         )}
-                        <div className="text-xs text-muted-color mt-2">
-                          {formatNotificationAge(notification.created_at)}
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                          <div className="text-xs text-muted-color">{formatNotificationAge(notification.created_at)}</div>
+                          {config.route && (
+                            <div className="text-xs font-medium" style={{ color: config.color }}>
+                              Ouvrir la page liee
+                            </div>
+                          )}
                         </div>
                       </div>
                       {unread && (
-                        <button onClick={() => markRead(notification.id)} className="btn-secondary text-xs flex-shrink-0">
+                        <button
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            markRead(notification.id)
+                          }}
+                          className="btn-secondary text-xs flex-shrink-0"
+                        >
                           <i className="fa-solid fa-check" /> Marquer lue
                         </button>
                       )}

@@ -306,7 +306,7 @@ export default function DataToolsIndex() {
   const handleImport = async () => {
     if (!file) return
     if (importRequiresDepot && !selectedImportDepotId) {
-      setImportError('Selectionnez un depot cible avant de lancer cet import.')
+      setImportError('Sélectionnez un dépôt cible avant de lancer cet import.')
       return
     }
 
@@ -364,7 +364,7 @@ export default function DataToolsIndex() {
         entity: selectedExport.label,
         filename,
         time: new Date().toLocaleTimeString('fr-FR'),
-        depotLabel: exportSupportsDepot ? (selectedExportDepot?.name ?? (canSelectAll ? 'Tous les depots' : 'Depot courant')) : null,
+        depotLabel: exportSupportsDepot ? (selectedExportDepot?.name ?? (canSelectAll ? 'Tous les dépôts' : 'Dépôt courant')) : null,
       })
       setTransferHistory(appendDataTransferHistory({
         direction: 'export',
@@ -379,11 +379,11 @@ export default function DataToolsIndex() {
           dateTo,
           ...(exportSupportsDepot ? {
             depotId: selectedExportDepotId,
-            depotLabel: selectedExportDepot?.name ?? (canSelectAll ? 'Tous les depots' : 'Depot courant'),
+            depotLabel: selectedExportDepot?.name ?? (canSelectAll ? 'Tous les dépôts' : 'Dépôt courant'),
           } : {}),
         } : exportSupportsDepot ? {
           depotId: selectedExportDepotId,
-          depotLabel: selectedExportDepot?.name ?? (canSelectAll ? 'Tous les depots' : 'Depot courant'),
+          depotLabel: selectedExportDepot?.name ?? (canSelectAll ? 'Tous les dépôts' : 'Dépôt courant'),
         } : null,
       }))
     } catch (error) {

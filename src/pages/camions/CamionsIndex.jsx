@@ -35,7 +35,7 @@ function statusMeta(routeSession) {
   }
 
   return {
-    label: 'Session cloturee',
+    label: 'Session clôturée',
     color: '#d97706',
     bg: 'rgba(217,119,6,0.10)',
     icon: 'fa-solid fa-flag-checkered',
@@ -302,7 +302,7 @@ export default function CamionsIndex() {
       await load({ keepLoading: true })
     } catch (error) {
       setSessionErrors(error.response?.data?.errors ?? {
-        general: [error.response?.data?.message || 'Impossible d ouvrir la session.'],
+        general: [error.response?.data?.message || 'Impossible d’ouvrir la session.'],
       })
     } finally {
       setSavingSession(false)
@@ -338,7 +338,7 @@ export default function CamionsIndex() {
       await load({ keepLoading: true })
     } catch (error) {
       setCloseErrors(error.response?.data?.errors ?? {
-        general: [error.response?.data?.message || 'Impossible de cloturer la session.'],
+        general: [error.response?.data?.message || 'Impossible de clôturer la session.'],
       })
     } finally {
       setClosingSession(false)
@@ -375,7 +375,7 @@ export default function CamionsIndex() {
         <div>
           <h1 className="text-xl font-bold text-base-color tracking-tight">Camions & sessions terrain</h1>
           <p className="text-sm text-muted-color mt-0.5">
-            Camions physiques, affectation par session et stock embarque des commerciaux{selectedDepot ? ` | Depot ${selectedDepot.name}` : ''}.
+            Camions physiques, affectation par session et stock embarqué des commerciaux{selectedDepot ? ` | Dépôt ${selectedDepot.name}` : ''}.
           </p>
         </div>
 
@@ -385,11 +385,11 @@ export default function CamionsIndex() {
               depots={depots}
               selectedValue={selectedDepotValue}
               onChange={setSelectedDepotValue}
-              label="Depot terrain"
+              label="Dépôt terrain"
             />
           )}
           <button onClick={() => openSession()} className="btn-secondary">
-            <i className="fa-solid fa-play" /> Demarrer une session
+            <i className="fa-solid fa-play" /> Démarrer une session
           </button>
           <button onClick={() => openTransfer()} className="btn-secondary">
             <i className="fa-solid fa-truck-ramp-box" /> Charger un commercial
@@ -424,7 +424,7 @@ export default function CamionsIndex() {
             color: '#8b5cf6',
           },
           {
-            label: 'Stock embarque',
+            label: 'Stock embarqué',
             value: fmt(totals.stockQty),
             sub: 'Unites sur le terrain',
             icon: 'fa-solid fa-boxes-stacked',
@@ -638,12 +638,12 @@ export default function CamionsIndex() {
                         <div className="rounded-2xl px-3 py-2" style={{ background: 'var(--surface-2)' }}>
                           <div className="text-[11px] text-muted-color">Camion physique</div>
                           <div className="text-sm font-semibold text-base-color mt-1">
-                            {camion?.name || 'Aucun camion assigne'}
+                            {camion?.name || 'Aucun camion assigné'}
                           </div>
                           <div className="text-[11px] text-muted-color mt-1">{camion?.plate || 'Sans immatriculation'}</div>
                         </div>
                         <div className="rounded-2xl px-3 py-2" style={{ background: 'var(--surface-2)' }}>
-                          <div className="text-[11px] text-muted-color">Stock embarque</div>
+                          <div className="text-[11px] text-muted-color">Stock embarqué</div>
                           <div className="text-sm font-semibold text-base-color mt-1">{fmt(rep.total_qty)}</div>
                           <div className="text-[11px] text-muted-color mt-1">{stockItems.length} reference(s)</div>
                         </div>
@@ -663,7 +663,7 @@ export default function CamionsIndex() {
                   <div className="flex flex-wrap gap-2">
                     {session?.status === 'open' ? (
                       <button onClick={() => openCloseSession(rep)} className="btn-secondary text-xs">
-                        <i className="fa-solid fa-flag-checkered" /> Cloturer
+                        <i className="fa-solid fa-flag-checkered" /> Clôturer
                       </button>
                     ) : (
                       <button onClick={() => openSession({ rep })} className="btn-secondary text-xs">
@@ -823,7 +823,7 @@ export default function CamionsIndex() {
       >
         <div className="space-y-4">
           <div className="rounded-2xl px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
-            Depot de chargement: <strong className="text-base-color">{selectedDepot?.name || 'Depot non defini'}</strong>.
+            Depot de chargement: <strong className="text-base-color">{selectedDepot?.name || 'Dépôt non défini'}</strong>.
           </div>
 
           <FormField label="Commercial" error={transferErrors.user_id?.[0]} required>
@@ -876,7 +876,7 @@ export default function CamionsIndex() {
           </FormField>
 
           <p className="text-xs text-muted-color">
-            Le mouvement sera trace dans l audit stock avec la session terrain et le camion physique s ils sont deja affectes.
+            Le mouvement sera tracé dans l’audit stock avec la session terrain et le camion physique s’ils sont déjà affectés.
           </p>
 
           <div className="flex justify-end gap-3 pt-2">
@@ -895,7 +895,7 @@ export default function CamionsIndex() {
       <Modal
         open={sessionModal}
         onClose={() => setSessionModal(false)}
-        title="Demarrer une session terrain"
+        title="Démarrer une session terrain"
         size="lg"
       >
         <div className="space-y-4">
@@ -909,7 +909,7 @@ export default function CamionsIndex() {
                 {reps.map((rep) => (
                   <option key={rep.user?.id} value={rep.user?.id} disabled={rep.route_session?.status === 'open'}>
                     {rep.user?.name}
-                    {rep.route_session?.status === 'open' ? ' - session deja ouverte' : ''}
+                    {rep.route_session?.status === 'open' ? ' - session déjà ouverte' : ''}
                   </option>
                 ))}
               </select>
@@ -931,7 +931,7 @@ export default function CamionsIndex() {
           </div>
 
           <div className="rounded-2xl px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
-            Depot applique: {selectedDepot?.name || 'Depot non defini'}.
+            Depot applique: {selectedDepot?.name || 'Dépôt non défini'}.
             {' '}Zone appliquee: {selectedRep?.user?.zone?.name || 'Zone non definie pour ce commercial'}.
           </div>
 
@@ -940,7 +940,7 @@ export default function CamionsIndex() {
               <div>
                 <div className="text-sm font-semibold text-base-color">Chargement initial</div>
                 <div className="text-xs text-muted-color mt-1">
-                  Seuls les produits avec stock depot disponible sont proposes ici pour eviter une ouverture incoherente.
+                  Seuls les produits avec stock dépôt disponible sont proposés ici pour éviter une ouverture incohérente.
                 </div>
               </div>
               <button onClick={addSessionLine} className="btn-secondary text-xs">
@@ -999,7 +999,7 @@ export default function CamionsIndex() {
 
             {sessionLoadProducts.length === 0 && (
               <div className="rounded-2xl px-4 py-3 text-sm text-amber-700" style={{ background: 'rgba(245,158,11,0.10)' }}>
-                Aucun produit n a de stock depot disponible pour un chargement initial.
+                Aucun produit n’a de stock dépôt disponible pour un chargement initial.
               </div>
             )}
           </div>
@@ -1020,12 +1020,12 @@ export default function CamionsIndex() {
       <Modal
         open={closeModal}
         onClose={() => setCloseModal(false)}
-        title="Cloturer une session terrain"
+        title="Clôturer une session terrain"
         size="sm"
       >
         <div className="space-y-4">
           <div className="rounded-2xl px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
-            Renseignez les montants deja recuperes si vous souhaitez les consolider au moment de la cloture.
+            Renseignez les montants déjà récupérés si vous souhaitez les consolider au moment de la clôture.
           </div>
 
           {closeErrors.general?.[0] && (
@@ -1045,7 +1045,7 @@ export default function CamionsIndex() {
             />
           </FormField>
 
-          <FormField label="Credit collecte" error={closeErrors.credit_collected?.[0]}>
+          <FormField label="Crédit collecté" error={closeErrors.credit_collected?.[0]}>
             <input
               type="number"
               step="0.001"
@@ -1062,7 +1062,7 @@ export default function CamionsIndex() {
               {closingSession ? (
                 <><i className="fa-solid fa-spinner fa-spin" /> Cloture...</>
               ) : (
-                <><i className="fa-solid fa-flag-checkered" /> Cloturer la session</>
+                <><i className="fa-solid fa-flag-checkered" /> Clôturer la session</>
               )}
             </button>
           </div>

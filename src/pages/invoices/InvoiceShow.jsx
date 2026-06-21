@@ -9,7 +9,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
 
 const STATUSES = ['draft', 'sent', 'paid', 'cancelled']
-const STATUS_LABELS = { draft: 'Brouillon', sent: 'Envoyee', paid: 'Payee', cancelled: 'Annulee' }
+const STATUS_LABELS = { draft: 'Brouillon', sent: 'Envoyée', paid: 'Payée', cancelled: 'Annulée' }
 
 function fmt(value) {
   return new Intl.NumberFormat('fr-TN', { minimumFractionDigits: 3 }).format(value ?? 0)
@@ -71,7 +71,7 @@ export default function InvoiceShow() {
   }
 
   const removeInvoice = async () => {
-    if (!confirm('Supprimer definitivement cette facture ?')) {
+    if (!confirm('Supprimer définitivement cette facture ?')) {
       return
     }
 
@@ -185,7 +185,7 @@ export default function InvoiceShow() {
           {invoice.payment_status && (
             <>
               <div className="flex justify-between text-secondary-color">
-                <span>Paye</span>
+                <span>Payé</span>
                 <span className="font-mono" style={{ color: '#059669' }}>{fmt(invoice.paid_amount)} TND</span>
               </div>
               <div className="flex justify-between font-semibold">

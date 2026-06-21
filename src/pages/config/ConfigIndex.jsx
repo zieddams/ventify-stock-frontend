@@ -127,7 +127,7 @@ const SETUP_SECTIONS = [
     key: 'system-support',
     module: 'system',
     title: 'Support et signalements',
-    description: "Destinataires support figes et libelle d'aide interne.",
+    description: "Destinataires support figés et libellé d’aide interne.",
     icon: 'fa-solid fa-life-ring',
   },
   {
@@ -171,7 +171,7 @@ const DOCUMENT_ENTITY_GROUPS = [
   {
     key: 'invoices',
     label: 'Factures',
-    description: 'Liste facture, piece simple et detail complet.',
+    description: 'Liste facture, pièce simple et détail complet.',
     icon: 'fa-solid fa-file-invoice',
     definitionKeys: ['invoices_list', 'invoice_item', 'invoice_detail'],
   },
@@ -285,7 +285,7 @@ function ItemBadge({ item }) {
       )}
       {item.is_default && (
         <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(13,148,136,0.12)', color: '#0d9488' }}>
-          Defaut
+          Défaut
         </span>
       )}
       <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: item.active ? 'rgba(16,185,129,0.12)' : 'rgba(148,163,184,0.16)', color: item.active ? '#059669' : '#64748b' }}>
@@ -396,7 +396,7 @@ function ConfigSection({ config, items, onAdd, onEdit, onToggle, onDelete }) {
                 {!item.is_system && (
                   <button onClick={() => onToggle(config.key, item)} className="btn-secondary text-xs">
                     <i className={`fa-solid ${item.active ? 'fa-toggle-on' : 'fa-toggle-off'}`} />
-                    {item.active ? 'Desactiver' : 'Activer'}
+                    {item.active ? 'Désactiver' : 'Activer'}
                   </button>
                 )}
                 <button onClick={() => onEdit(config.key, item)} className="btn-secondary text-xs">
@@ -448,7 +448,7 @@ function DocumentTemplateCard({
             <option value="landscape">Paysage</option>
           </select>
           <button onClick={() => onReset(definition)} className="btn-secondary text-xs">
-            <i className="fa-solid fa-rotate-left" /> Defaut
+            <i className="fa-solid fa-rotate-left" /> Défaut
           </button>
         </div>
       </div>
@@ -763,7 +763,7 @@ export default function ConfigIndex() {
   }
 
   const deleteItem = async (_type, item) => {
-    if (!confirm(`Desactiver "${item.display_label || item.label || item.value}" ?`)) {
+    if (!confirm(`Désactiver "${item.display_label || item.label || item.value}" ?`)) {
       return
     }
 

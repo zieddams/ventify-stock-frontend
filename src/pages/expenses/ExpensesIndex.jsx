@@ -132,7 +132,7 @@ export default function ExpensesIndex() {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('Supprimer cette depense ?')) {
+    if (!confirm('Supprimer cette dépense ?')) {
       return
     }
 
@@ -157,7 +157,7 @@ export default function ExpensesIndex() {
     <div>
       <PageHeader
         title="Depenses"
-        subtitle={`Enregistrement et suivi des charges${canSelectAll ? ` | ${selectedDepot ? `Depot ${selectedDepot.name}` : 'Tous les depots'}` : ''}`}
+        subtitle={`Enregistrement et suivi des charges${canSelectAll ? ` | ${selectedDepot ? `Depot ${selectedDepot.name}` : 'Tous les dépôts'}` : ''}`}
         action={(
           <div className="flex flex-wrap items-end justify-end gap-2">
             {canSelectAll && (
@@ -167,7 +167,7 @@ export default function ExpensesIndex() {
                 onChange={setSelectedDepotValue}
                 allowAll
                 canSelectAll={canSelectAll}
-                allLabel="Tous les depots"
+                allLabel="Tous les dépôts"
               />
             )}
             <PageExportActions
@@ -312,7 +312,7 @@ export default function ExpensesIndex() {
                 }}
                 className="btn-secondary text-xs"
               >
-                <i className="fa-solid fa-rotate-left" /> Reinitialiser les filtres
+                <i className="fa-solid fa-rotate-left" /> Réinitialiser les filtres
               </button>
             </div>
           )}

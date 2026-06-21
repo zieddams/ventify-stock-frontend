@@ -127,7 +127,7 @@ function SessionPreviewPanel({ session, pinned }) {
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-base-color truncate">
-            {session?.user?.name ?? 'Apercu carte'}
+            {session?.user?.name ?? 'Aperçu carte'}
           </div>
           <div className="text-xs text-muted-color mt-1">
             {session?.app_version || session?.native_app_version || 'Version non remontee'}
@@ -252,7 +252,7 @@ function RestockRow({ item, onDone }) {
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium text-base-color truncate">{item.product?.name ?? '—'}</div>
         <div className="text-xs text-muted-color">
-          {[item.product?.unit, item.depot?.name].filter(Boolean).join(' | ') || 'Depot non defini'}
+          {[item.product?.unit, item.depot?.name].filter(Boolean).join(' | ') || 'Dépôt non défini'}
         </div>
       </div>
 
@@ -470,7 +470,7 @@ export default function Dashboard() {
   const previewSession = sessions.find((session) => String(session.id) === String(previewSessionId)) ?? null
   const dashboardScopeLabel = selectedDepot
     ? `${selectedDepot.name}${selectedDepot.code ? ` (${selectedDepot.code})` : ''}`
-    : 'Tous les depots'
+    : 'Tous les dépôts'
   const showSessionDepotColumn = canSelectAll && depots.length > 1
 
   return (
@@ -596,7 +596,7 @@ export default function Dashboard() {
               <div className="text-xs text-muted-color">
                 {showSessionDepotColumn
                   ? `Scope ${dashboardScopeLabel} - survol pour apercu carte, epingle pour garder le suivi visible.`
-                  : 'Survol pour apercu carte, epingle pour garder le suivi visible.'}
+                  : 'Survol pour aperçu carte, épingle pour garder le suivi visible.'}
               </div>
             </div>
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.45fr)_360px] gap-4">
@@ -630,7 +630,7 @@ export default function Dashboard() {
                                 type="button"
                                 onClick={() => setPinnedSessionId((current) => (String(current) === String(s.id) ? null : s.id))}
                                 className="text-muted-color hover:text-base-color transition-colors"
-                                title={isPinned ? 'Detacher la carte' : 'Epingler la carte'}
+                                title={isPinned ? 'Détacher la carte' : 'Épingler la carte'}
                               >
                                 <i className={`fa-solid ${isPinned ? 'fa-thumbtack text-teal-600' : 'fa-thumbtack opacity-50'}`} />
                               </button>

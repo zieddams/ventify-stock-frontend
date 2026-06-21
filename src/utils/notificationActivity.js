@@ -3,7 +3,7 @@ const TYPE_CONFIG = {
     icon: 'fa-solid fa-triangle-exclamation',
     color: '#f59e0b',
     bg: 'rgba(245,158,11,0.12)',
-    label: 'Stock bas',
+    label: 'Alerte stock dépôt',
     route: '/depot',
   },
   DailySummaryNotification: {
@@ -16,7 +16,7 @@ const TYPE_CONFIG = {
   default: {
     icon: 'fa-solid fa-bell',
     color: '#64748b',
-    bg: 'rgba(100,116,139,0.1)',
+    bg: 'rgba(100,116,139,0.10)',
     label: 'Notification',
     route: null,
   },
@@ -75,7 +75,7 @@ export const ACTIVITY_KIND_CONFIG = {
     icon: 'fa-solid fa-box-archive',
     color: '#ef4444',
     bg: 'rgba(239,68,68,0.12)',
-    label: 'Produit retire',
+    label: 'Produit retiré',
   },
   'customer.created': {
     icon: 'fa-solid fa-user-plus',
@@ -99,7 +99,7 @@ export const ACTIVITY_KIND_CONFIG = {
     icon: 'fa-solid fa-list-check',
     color: '#2563eb',
     bg: 'rgba(37,99,235,0.12)',
-    label: 'Liste clients mise a jour',
+    label: 'Liste clients mise à jour',
   },
   'expense.created': {
     icon: 'fa-solid fa-receipt',
@@ -123,7 +123,7 @@ export const ACTIVITY_KIND_CONFIG = {
     icon: 'fa-solid fa-scale-balanced',
     color: '#7c3aed',
     bg: 'rgba(124,58,237,0.12)',
-    label: 'Inventaire ajuste',
+    label: 'Inventaire ajusté',
   },
   'config.item.created': {
     icon: 'fa-solid fa-sliders',
@@ -165,19 +165,19 @@ export const ACTIVITY_KIND_CONFIG = {
     icon: 'fa-solid fa-user-plus',
     color: '#16a34a',
     bg: 'rgba(22,163,74,0.12)',
-    label: 'Compte cree',
+    label: 'Compte créé',
   },
   'user.updated': {
     icon: 'fa-solid fa-user-gear',
     color: '#4f46e5',
     bg: 'rgba(79,70,229,0.12)',
-    label: 'Compte modifie',
+    label: 'Compte modifié',
   },
   'session.reported': {
     icon: 'fa-solid fa-mobile-screen-button',
     color: '#14b8a6',
     bg: 'rgba(20,184,166,0.12)',
-    label: 'Presence mobile',
+    label: 'Présence mobile',
   },
   'session.offline': {
     icon: 'fa-solid fa-mobile-screen',
@@ -193,13 +193,25 @@ export const ACTIVITY_KIND_CONFIG = {
   },
 }
 
+const NOTIFICATION_REFRESH_EXCLUDED_KINDS = new Set([
+  'session.ping',
+  'session.reported',
+])
+
 export const LIVE_NOTIFICATION_EVENT_KINDS = new Set(Object.keys(ACTIVITY_KIND_CONFIG))
+export const NOTIFICATION_REFRESH_EVENT_KINDS = new Set(
+  [...LIVE_NOTIFICATION_EVENT_KINDS].filter((kind) => !NOTIFICATION_REFRESH_EXCLUDED_KINDS.has(kind)),
+)
+
+export function shouldRefreshNotificationsForEvent(kind) {
+  return NOTIFICATION_REFRESH_EVENT_KINDS.has(kind)
+}
 
 export function formatNotificationAge(dateStr) {
-  if (!dateStr) return "À l'instant"
+  if (!dateStr) return 'À l’instant'
 
   const minutes = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000)
-  if (minutes < 1) return "À l'instant"
+  if (minutes < 1) return 'À l’instant'
   if (minutes < 60) return `Il y a ${minutes} min`
 
   const hours = Math.floor(minutes / 60)
@@ -227,14 +239,33 @@ export function resolveNotificationConfig(notification) {
 }
 
 export function notificationChanges(notification, limit = 4) {
-  const changes = notification?.data?.changes
+  const explicitChanges = notification?.data?.changes
 
-  if (!Array.isArray(changes)) {
-    return []
+  if (Array.isArray(explicitChanges)) {
+    return explicitChanges
+      .map((item) => String(item ?? '').trim())
+      .filter(Boolean)
+      .slice(0, limit)
   }
 
-  return changes
-    .map((item) => String(item ?? '').trim())
-    .filter(Boolean)
-    .slice(0, limit)
+  const stockItems = notification?.data?.items
+  if (Array.isArray(stockItems)) {
+    return stockItems
+      .map((item) => {
+        const productName = String(item?.product_name ?? '').trim()
+        const depotName = String(item?.depot_name ?? '').trim()
+        const qty = Number(item?.qty ?? 0)
+        const minStock = Number(item?.min_stock ?? 0)
+
+        if (!productName) {
+          return ''
+        }
+
+        return `${productName} - ${depotName || 'Depot'}: ${qty} / min ${minStock}`
+      })
+      .filter(Boolean)
+      .slice(0, limit)
+  }
+
+  return []
 }

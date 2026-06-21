@@ -58,7 +58,7 @@ function OverviewTab({ stats }) {
 
       {chartData.length > 0 && (
         <div className="card mb-6">
-          <h2 className="text-sm font-semibold text-base-color mb-4">CA et benefice - 30 derniers jours</h2>
+          <h2 className="text-sm font-semibold text-base-color mb-4">CA et bénéfice - 30 derniers jours</h2>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} />
@@ -173,7 +173,7 @@ function ProfitTab({ scopeParams }) {
 
       {chartData.length > 0 && (
         <div className="card mb-6">
-          <h2 className="text-sm font-semibold text-base-color mb-4">Evolution CA / benefice</h2>
+          <h2 className="text-sm font-semibold text-base-color mb-4">Évolution CA / bénéfice</h2>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} />
@@ -307,15 +307,15 @@ function SitationTab({ scopeParams }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="card">
               <h2 className="text-sm font-semibold text-base-color mb-3 flex items-center gap-2">
-                <i className="fa-solid fa-credit-card" style={{ color: '#d97706' }} /> Credit exterieur
+                <i className="fa-solid fa-credit-card" style={{ color: '#d97706' }} /> Crédit extérieur
               </h2>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-color">Credit accorde (impaye)</span>
+                  <span className="text-muted-color">Crédit accordé (impaye)</span>
                   <span className="font-mono font-bold" style={{ color: '#dc2626' }}>{fmt(data.credit?.credit_du)} TND</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-color">Credit collecte</span>
+                  <span className="text-muted-color">Crédit collecté</span>
                   <span className="font-mono font-bold" style={{ color: '#059669' }}>{fmt(data.credit?.credit_collecte)} TND</span>
                 </div>
                 <div className="flex justify-between pt-2" style={{ borderTop: '1px solid var(--border)' }}>
@@ -457,7 +457,7 @@ export default function ReportsIndex() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-base-color tracking-tight">Rapports</h1>
-            <p className="text-sm text-muted-color mt-0.5">Statistiques, benefices et SITATION{canSelectAll ? ` | ${selectedDepot ? `Depot ${selectedDepot.name}` : 'Tous les depots'}` : ''}</p>
+            <p className="text-sm text-muted-color mt-0.5">Statistiques, bénéfices et SITATION{canSelectAll ? ` | ${selectedDepot ? `Depot ${selectedDepot.name}` : 'Tous les dépôts'}` : ''}</p>
           </div>
           <div className="flex flex-wrap items-end justify-end gap-2">
             {canSelectAll && (
@@ -467,7 +467,7 @@ export default function ReportsIndex() {
                 onChange={setSelectedDepotValue}
                 allowAll
                 canSelectAll={canSelectAll}
-                allLabel="Tous les depots"
+                allLabel="Tous les dépôts"
               />
             )}
             <PageExportActions title="Rapports" {...currentExport} />

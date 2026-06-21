@@ -243,7 +243,7 @@ export default function CustomersIndex() {
     }
 
     if (selectedOwner) {
-      return `${filteredCustomers.length} client(s) affecte(s) a ${selectedOwner.name}`
+      return `${filteredCustomers.length} client(s) affecté(s) a ${selectedOwner.name}`
     }
 
     return `${filteredCustomers.length} client(s) sur tous les portefeuilles`
@@ -301,7 +301,7 @@ export default function CustomersIndex() {
           </div>
           {canAssignOwner && (
             <p className="text-xs text-muted-color mt-2">
-              Chaque client reste rattache a un seul compte. Les roles globaux voient toute la base, les autres comptes voient seulement leur liste.
+              Chaque client reste rattaché à un seul compte. Les rôles globaux voient toute la base, les autres comptes voient seulement leur liste.
             </p>
           )}
         </div>
@@ -344,7 +344,7 @@ export default function CustomersIndex() {
                         }}
                       >
                         <i className={`fa-solid ${mapped ? 'fa-location-dot' : 'fa-location-dot-slash'}`} />
-                        {mapped ? 'Position OK' : 'A geolocaliser'}
+                        {mapped ? 'Position OK' : 'À géolocaliser'}
                       </span>
                     </td>
                     <td
@@ -409,7 +409,7 @@ export default function CustomersIndex() {
           </div>
 
           {canAssignOwner && (
-            <FormField label="Compte proprietaire" error={errors.user_id?.[0]}>
+            <FormField label="Compte propriétaire" error={errors.user_id?.[0]}>
               <select value={form.user_id} onChange={(event) => setForm((current) => ({ ...current, user_id: event.target.value }))}>
                 <option value="">Mon compte ({user?.name || 'courant'})</option>
                 {assignableUsers.map((entry) => (
@@ -473,7 +473,7 @@ export default function CustomersIndex() {
         </div>
       </Modal>
 
-      <Modal open={!!ledgerCustomer} onClose={() => setLedgerCustomer(null)} title={`Credit - ${ledgerCustomer?.name ?? ''}`} size="lg">
+      <Modal open={!!ledgerCustomer} onClose={() => setLedgerCustomer(null)} title={`Crédit - ${ledgerCustomer?.name ?? ''}`} size="lg">
         {!ledger ? (
           <PageLoader />
         ) : (

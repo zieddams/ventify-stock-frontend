@@ -18,7 +18,7 @@ export function DepotSelectionInfo({
       style={{ background: 'var(--surface-2)' }}
     >
       <div className="text-sm font-medium text-base-color">
-        {formatDepotLabel(depot) || 'Depot non defini'}
+        {formatDepotLabel(depot) || 'Dépôt non défini'}
       </div>
       {hint && (
         <div className="text-[11px] text-muted-color mt-1">
@@ -37,7 +37,7 @@ export default function DepotScopeControls({
   label = 'Depot',
   allowAll = false,
   canSelectAll = false,
-  allLabel = 'Tous les depots',
+  allLabel = 'Tous les dépôts',
   disabled = false,
 }) {
   const selectedDepot = depots.find((depot) => String(depot.id) === String(selectedValue)) ?? depots[0] ?? null

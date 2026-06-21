@@ -43,8 +43,8 @@ export default function RowDocumentActions({
       await downloadDocumentPdf(buildOptions)
     } catch (error) {
       alert(error?.message === 'print_window_blocked'
-        ? 'La fenetre d impression a ete bloquee par le navigateur.'
-        : 'Impossible de generer ce PDF pour le moment.')
+        ? 'La fenêtre d’impression a été bloquée par le navigateur.'
+        : 'Impossible de générer ce PDF pour le moment.')
     } finally {
       setBusyAction('')
     }
@@ -57,8 +57,8 @@ export default function RowDocumentActions({
       printGeneratedDocument(buildOptions)
     } catch (error) {
       alert(error?.message === 'print_window_blocked'
-        ? 'La fenetre d impression a ete bloquee par le navigateur.'
-        : 'Impossible d ouvrir l impression pour le moment.')
+        ? 'La fenêtre d’impression a été bloquée par le navigateur.'
+        : 'Impossible d’ouvrir l’impression pour le moment.')
     } finally {
       window.setTimeout(() => setBusyAction(''), 400)
     }
@@ -67,7 +67,7 @@ export default function RowDocumentActions({
   return (
     <div className="flex items-center gap-1">
       <ActionButton
-        title="Telecharger le PDF"
+        title="Télécharger le PDF"
         disabled={busyAction !== ''}
         onClick={handlePdf}
       >

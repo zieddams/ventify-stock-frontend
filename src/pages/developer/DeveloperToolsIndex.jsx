@@ -265,10 +265,10 @@ export default function DeveloperToolsIndex() {
       setOverview((current) => ({ ...current, maintenance }))
       syncMaintenanceForm(maintenance)
       setNotice(maintenance.enabled
-        ? (maintenancePaths.length > 0 ? 'Maintenance ciblee mise a jour.' : 'Maintenance globale activee.')
-        : 'Maintenance desactivee.')
+        ? (maintenancePaths.length > 0 ? 'Maintenance ciblée mise à jour.' : 'Maintenance globale activee.')
+        : 'Maintenance désactivée.')
     } catch (error) {
-      setActionError(error.response?.data?.message || 'Impossible de mettre a jour la maintenance.')
+      setActionError(error.response?.data?.message || 'Impossible de mettre à jour la maintenance.')
     } finally {
       setSavingMaintenance(false)
     }
@@ -287,7 +287,7 @@ export default function DeveloperToolsIndex() {
       }))
       setNotice(enabled ? 'Le mode demo a ete active.' : 'Les donnees demo ont ete purgees.')
     } catch (error) {
-      setActionError(error.response?.data?.message || 'Impossible de mettre a jour le mode demo.')
+      setActionError(error.response?.data?.message || 'Impossible de mettre à jour le mode démo.')
     } finally {
       setTogglingDemo(false)
     }
@@ -429,7 +429,7 @@ export default function DeveloperToolsIndex() {
           value={`${overview.bug_recipients?.length || SUPPORT_BUG_RECIPIENTS.length} destinataire(s)`}
           icon="fa-solid fa-envelope-circle-check"
           color="#8b5cf6"
-          helper="Liste figee cote application"
+          helper="Liste figée côté application"
         />
       </div>
 
@@ -504,7 +504,7 @@ export default function DeveloperToolsIndex() {
 
               <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                 Laissez la liste vide pour une maintenance globale. Quand une ou plusieurs pages sont renseignees,
-                seule cette selection est bloquee pour les profils non developpeurs.
+                seule cette sélection est bloquée pour les profils non développeurs.
               </div>
             </div>
           </div>
@@ -566,12 +566,12 @@ export default function DeveloperToolsIndex() {
               />
               <CountTable
                 title="Elements recrees"
-                description="Depots et flotte regeneree pour repartir sur une base propre."
+                description="Dépôts et flotte régénérés pour repartir sur une base propre."
                 values={overview.fresh_install?.reset}
               />
               <CountTable
                 title="Donnees supprimees"
-                description="Operationnel, mouvements, sessions, tickets, notifications et historique."
+                description="Opérationnel, mouvements, sessions, tickets, notifications et historique."
                 values={overview.fresh_install?.delete}
                 tone="danger"
               />
@@ -647,7 +647,7 @@ export default function DeveloperToolsIndex() {
             <InfoRow label="Frontend" value={overview.system?.frontend_url || overview.system?.frontend_path} mono />
             <InfoRow label="App URL" value={overview.system?.app_url} mono />
             <InfoRow label="Mail from" value={overview.system?.mail_from} mono />
-            <InfoRow label="Mis a jour" value={formatDateTime(overview.system?.timestamp)} />
+            <InfoRow label="Mis à jour" value={formatDateTime(overview.system?.timestamp)} />
           </div>
 
           <div className="card">

@@ -162,7 +162,7 @@ export default function InventaireIndex() {
     <div>
       <PageHeader
         title="Inventaire"
-        subtitle={`Comptage physique du stock et historique d'ajustement${selectedDepot ? ` | Depot ${selectedDepot.name}` : ''}`}
+        subtitle={`Comptage physique du stock et historique d’ajustement${selectedDepot ? ` | Depot ${selectedDepot.name}` : ''}`}
         action={(
           <div className="flex flex-wrap items-end justify-end gap-2">
             {canBrowseAll && (
@@ -170,7 +170,7 @@ export default function InventaireIndex() {
                 depots={depots}
                 selectedValue={selectedDepotValue}
                 onChange={setSelectedDepotValue}
-                label="Depot inventorie"
+                label="Dépôt inventorié"
               />
             )}
             <PageExportActions
@@ -202,7 +202,7 @@ export default function InventaireIndex() {
       <div className="mb-5 rounded-2xl p-4 border flex items-start gap-3" style={{ background: 'rgba(59,130,246,0.04)', borderColor: 'rgba(59,130,246,0.18)' }}>
         <i className="fa-solid fa-circle-info mt-0.5 flex-shrink-0" style={{ color: '#3b82f6' }} />
         <div className="text-sm" style={{ color: '#2563eb' }}>
-          Saisissez uniquement les produits comptes. Chaque ecart cree un mouvement d'ajustement historise avec l'utilisateur, la date, le depot et la note de batch.
+          Saisissez uniquement les produits comptés. Chaque écart crée un mouvement d’ajustement historisé avec l’utilisateur, la date, le dépôt et la note de batch.
         </div>
       </div>
 
@@ -214,7 +214,7 @@ export default function InventaireIndex() {
               <input type="text" placeholder="Rechercher un produit..." value={search} onChange={(event) => setSearch(event.target.value)} style={{ paddingLeft: '2.25rem' }} />
             </div>
             <div className="flex-1">
-              <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Note de batch (optionnel) : inventaire mensuel, correction depot..." />
+              <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Note de batch (optionnel) : inventaire mensuel, correction dépôt..." />
             </div>
             {countedProducts.length > 0 && (
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full h-fit" style={{ background: 'rgba(13,148,136,0.1)', color: '#0d9488' }}>
@@ -228,10 +228,10 @@ export default function InventaireIndex() {
               <thead>
                 <tr>
                   <th className="text-left pb-3 pr-4">Produit</th>
-                  <th className="text-right pb-3 pr-4">Stock systeme</th>
+                  <th className="text-right pb-3 pr-4">Stock système</th>
                   <th className="text-right pb-3 pr-4">Stock min</th>
-                  <th className="pb-3 pr-4" style={{ width: 180 }}>Qte comptee</th>
-                  <th className="text-right pb-3">Ecart</th>
+                  <th className="pb-3 pr-4" style={{ width: 180 }}>Qté comptée</th>
+                  <th className="text-right pb-3">Écart</th>
                 </tr>
               </thead>
               <tbody>
@@ -326,14 +326,14 @@ export default function InventaireIndex() {
             <div className="space-y-2">
               {history.length === 0 && (
                 <div className="rounded-xl border border-theme px-3 py-6 text-center text-sm text-muted-color">
-                  Aucun ajustement trouve.
+                  Aucun ajustement trouvé.
                 </div>
               )}
               {history.map((movement) => (
                 <div key={movement.id} className="rounded-xl border border-theme px-3 py-3" style={{ background: 'var(--surface-2)' }}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm font-semibold text-base-color">{movement.product?.name ?? 'Produit supprime'}</div>
+                      <div className="text-sm font-semibold text-base-color">{movement.product?.name ?? 'Produit supprimé'}</div>
                       <div className="text-xs text-muted-color mt-0.5">
                         {movement.product?.reference || '-'} | {movement.user?.name || '-'}
                       </div>
@@ -372,12 +372,12 @@ export default function InventaireIndex() {
           setShowModal(false)
           setResult(null)
         }}
-        title="Inventaire enregistre"
+        title="Inventaire enregistré"
         size="md"
       >
         <div className="mb-4 flex items-center gap-2 text-sm font-semibold" style={{ color: '#059669' }}>
           <i className="fa-solid fa-circle-check text-lg" />
-          Ajustements de stock crees avec succes
+          Ajustements de stock créés avec succès
         </div>
 
         {result?.adjustments && result.adjustments.length > 0 ? (
@@ -387,8 +387,8 @@ export default function InventaireIndex() {
                 <tr>
                   <th className="text-left pb-2 pr-3">Produit</th>
                   <th className="text-right pb-2 pr-3">Avant</th>
-                  <th className="text-right pb-2 pr-3">Apres</th>
-                  <th className="text-right pb-2">Ecart</th>
+                  <th className="text-right pb-2 pr-3">Après</th>
+                  <th className="text-right pb-2">Écart</th>
                 </tr>
               </thead>
               <tbody>
@@ -406,7 +406,7 @@ export default function InventaireIndex() {
             </table>
           </div>
         ) : (
-          <p className="text-muted-color text-sm">Aucun ecart detecte. Le stock etait deja conforme.</p>
+          <p className="text-muted-color text-sm">Aucun écart détecté. Le stock était déjà conforme.</p>
         )}
 
         <div className="mt-5 flex justify-end">

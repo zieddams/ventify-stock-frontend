@@ -307,10 +307,10 @@ function formatRelativeTime(value) {
   return `Il y a ${Math.floor(hours / 24)}j`
 }
 
-function formatRoleLabel(role) {
+function formatRôleLabel(role) {
   if (role === 'rep') return 'Commercial'
   if (role === 'admin') return 'Admin'
-  if (role === 'developer') return 'Developpeur'
+  if (role === 'developer') return 'Développeur'
   if (role === 'comptable') return 'Comptable'
   return role || 'Utilisateur'
 }
@@ -409,7 +409,7 @@ function getRouteMeta(session) {
   }
 
   return {
-    label: 'Session cloturee',
+    label: 'Session clôturée',
     color: '#f97316',
     bg: 'rgba(249,115,22,0.12)',
     icon: 'fa-solid fa-flag-checkered',
@@ -742,8 +742,8 @@ function TerrainTab({
   const selectedRepUsesTraceFallback = selectedTerrainLocation?.source === 'trace'
   const mapDisabledReason = selectedRep && !selectedRepHasMapPosition
     ? (selectedRep.presence?.last_seen
-      ? 'Aucun point GPS exploitable en Tunisie n a encore ete remonte pour ce compte.'
-      : 'Ce compte n a pas encore partage de position exploitable pour la carte terrain.')
+      ? 'Aucun point GPS exploitable en Tunisie n’a encore été remonté pour ce compte.'
+      : 'Ce compte n’a pas encore partagé de position exploitable pour la carte terrain.')
     : ''
 
   if (terrainLoading && !terrain.reps?.length) {
@@ -782,7 +782,7 @@ function TerrainTab({
           color="#f59e0b"
         />
         <MetricCard
-          label="Derniere mise a jour"
+          label="Dernière mise à jour"
           value={formatRelativeTime(terrain.generated_at)}
           sub={formatDateTime(terrain.generated_at)}
           icon="fa-solid fa-tower-broadcast"
@@ -796,7 +796,7 @@ function TerrainTab({
             <div className="flex items-center justify-between gap-3 mb-3">
               <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
                 <i className="fa-solid fa-mobile-screen-button text-teal-500" />
-                Equipe terrain
+                Équipe terrain
               </h2>
               <label className="flex items-center gap-2 text-xs text-muted-color cursor-pointer">
                 <input type="checkbox" checked={onlineOnly} onChange={event => onOnlineOnly(event.target.checked)} />
@@ -804,7 +804,7 @@ function TerrainTab({
               </label>
             </div>
             <input
-              placeholder="Rechercher un utilisateur, un role ou une version app..."
+              placeholder="Rechercher un utilisateur, un rôle ou une version app..."
               value={repSearch}
               onChange={event => onRepSearch(event.target.value)}
             />
@@ -826,7 +826,7 @@ function TerrainTab({
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-base-color truncate">{rep.name}</div>
-                        <div className="text-[11px] uppercase tracking-wide text-muted-color mt-0.5">{formatRoleLabel(rep.role)}</div>
+                        <div className="text-[11px] uppercase tracking-wide text-muted-color mt-0.5">{formatRôleLabel(rep.role)}</div>
                         <div className="text-xs text-muted-color truncate">
                           {rep.zone?.name ?? 'Zone non définie'} · {rep.device?.brand || rep.device?.model
                             ? `${rep.device?.brand ?? ''} ${rep.device?.model ?? ''}`.trim()
@@ -887,7 +887,7 @@ function TerrainTab({
                 </div>
 
                 <div className="divide-y" style={{ '--tw-divide-opacity': 1 }}>
-                  <DetailRow label="Role" value={formatRoleLabel(selectedRep.role)} />
+                  <DetailRow label="Rôle" value={formatRôleLabel(selectedRep.role)} />
                   <DetailRow label="Dernier ping" value={`${formatRelativeTime(selectedRep.presence?.last_seen)} · ${formatDateTime(selectedRep.presence?.last_seen)}`} />
                   <DetailRow label="Appareil" value={selectedRep.device?.device_name || `${selectedRep.device?.brand ?? ''} ${selectedRep.device?.model ?? ''}`.trim() || 'Non remonte'} />
                   <DetailRow label="Version mobile" value={selectedRep.device?.app_version || 'Non remontee'} />
@@ -901,7 +901,7 @@ function TerrainTab({
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
                     <i className="fa-solid fa-box-open text-amber-500" />
-                    Stock embarque
+                    Stock embarqué
                   </h2>
                   <span className="text-xs text-muted-color">
                     {selectedRep.camion_stock?.items?.length ?? 0} reference(s)
@@ -920,7 +920,7 @@ function TerrainTab({
                 </div>
 
                   <div className="text-[11px] text-muted-color mb-2">
-                    Camion physique: {selectedRep.camion_stock?.configured_camion?.name ?? 'aucun camion assigne'}
+                    Camion physique: {selectedRep.camion_stock?.configured_camion?.name ?? 'aucun camion assigné'}
                     {selectedRep.camion_stock?.configured_camion?.plate
                       ? ` - ${selectedRep.camion_stock.configured_camion.plate}`
                       : ''}
@@ -947,7 +947,7 @@ function TerrainTab({
 
                   {(selectedRep.camion_stock?.items ?? []).length === 0 && (
                     <div className="rounded-2xl px-4 py-6 text-center" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                      <p className="text-sm text-muted-color">Aucun stock embarque pour ce commercial.</p>
+                      <p className="text-sm text-muted-color">Aucun stock embarqué pour ce commercial.</p>
                     </div>
                   )}
                 </div>
@@ -975,10 +975,10 @@ function TerrainTab({
               <div className="flex items-center justify-center h-full text-center px-6">
                 <div className="max-w-md">
                   <i className="fa-solid fa-location-slash text-2xl text-amber-500 mb-3 block" />
-                  <p className="text-sm text-base-color font-semibold">Carte desactive pour ce commercial</p>
+                  <p className="text-sm text-base-color font-semibold">Carte désactivée pour ce commercial</p>
                   <p className="text-xs text-muted-color mt-1">{mapDisabledReason}</p>
                   <p className="text-xs text-secondary-color mt-3">
-                    Le suivi restera sur OpenStreetMap et se reactivera automatiquement des qu un point GPS valide sera recu.
+                    Le suivi restera sur OpenStreetMap et se réactivera automatiquement dès qu’un point GPS valide sera reçu.
                   </p>
                 </div>
               </div>
@@ -1091,7 +1091,7 @@ function TerrainTab({
                   color="#0d9488"
                 />
                 <MetricCard
-                  label="Charge du jour"
+                  label="Chargé du jour"
                   value={formatNumber(selectedRep.route_session?.loaded_qty_total ?? 0)}
                   sub={formatMoney(selectedRep.route_session?.loaded_value_total ?? 0)}
                   icon="fa-solid fa-truck-ramp-box"
@@ -1133,8 +1133,8 @@ function TerrainTab({
                     <DetailRow label="Ouverture" value={formatDateTime(selectedRep.route_session?.opened_at)} />
                     <DetailRow label="Cloture" value={formatDateTime(selectedRep.route_session?.closed_at)} />
                     <DetailRow label="Zone session" value={selectedRep.route_session?.zone?.name || selectedRep.zone?.name || '—'} />
-                    <DetailRow label="Camion assigne" value={selectedRep.route_session?.camion?.name || selectedRep.camion_stock?.configured_camion?.name || 'Aucun'} />
-                    <DetailRow label="Chargee / vendue / retour" value={`${formatNumber(selectedRep.route_session?.loaded_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.sold_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.returned_qty_total ?? 0)}`} />
+                    <DetailRow label="Camion assigné" value={selectedRep.route_session?.camion?.name || selectedRep.camion_stock?.configured_camion?.name || 'Aucun'} />
+                    <DetailRow label="Chargée / vendue / retour" value={`${formatNumber(selectedRep.route_session?.loaded_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.sold_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.returned_qty_total ?? 0)}`} />
                     <DetailRow label="Reste camion" value={formatNumber(selectedRep.route_session?.remaining_qty_total ?? 0)} />
                     <DetailRow label="Cash / credit" value={`${formatMoney(selectedRep.route_session?.cash_collected ?? 0)} / ${formatMoney(selectedRep.route_session?.credit_given ?? 0)}`} />
                     <DetailRow label="Precision GPS" value={selectedTerrainLocation?.accuracy != null ? `${formatNumber(selectedTerrainLocation.accuracy)} m` : '--'} />
@@ -1428,7 +1428,7 @@ export default function LiveMapIndex() {
   const providerConfig = resolveProviderConfig(mapSettings)
   const terrainScopeLabel = selectedDepot
     ? `${selectedDepot.name}${selectedDepot.code ? ` (${selectedDepot.code})` : ''}`
-    : 'Tous les depots'
+    : 'Tous les dépôts'
   const terrainSubtitle = terrain.generated_at
     ? `${terrain.stats?.reps_total ?? 0} commerciaux suivis · MAJ ${formatDateTime(terrain.generated_at)}`
     : 'Suivi mobile, GPS et stock terrain'

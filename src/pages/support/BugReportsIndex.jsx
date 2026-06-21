@@ -230,7 +230,7 @@ export default function BugReportsIndex() {
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.2fr)_420px] gap-6">
         <div className="card">
           <div className="rounded-2xl px-4 py-4 mb-4 text-sm text-secondary-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-            Le signalement sera enregistre dans la plateforme, remontera au centre developpement et enverra un email au canal support configure.
+            Le signalement sera enregistré dans la plateforme, remontera au centre développement et enverra un email au canal support configuré.
           </div>
 
           <div className="card" style={{ background: 'transparent', boxShadow: 'none', padding: 0 }}>
@@ -434,7 +434,7 @@ export default function BugReportsIndex() {
             </FormField>
           </div>
 
-          <FormField label="Page concernee" error={errors.page_url?.[0]}>
+          <FormField label="Page concernée" error={errors.page_url?.[0]}>
             <input
               value={form.page_url}
               onChange={(event) => setForm((current) => ({ ...current, page_url: event.target.value }))}

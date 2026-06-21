@@ -450,10 +450,10 @@ export default function AppLayout() {
                   loading={topbarDepotsLoading}
                   selectedValue={topbarDepotValue}
                   onChange={setTopbarDepotValue}
-                  label="Depot actif"
+                  label="Dépôt actif"
                   allowAll={topbarAllowsAll}
                   canSelectAll={topbarCanSelectAll}
-                  allLabel="Tous les depots"
+                  allLabel="Tous les dépôts"
                 />
               </div>
             ) : (
@@ -461,10 +461,10 @@ export default function AppLayout() {
                 type="button"
                 onClick={toggleSidebarMode}
                 className="rail-link"
-                title="Depot actif"
+                title="Dépôt actif"
               >
                 <i className="fa-solid fa-warehouse text-base" />
-                <span className="rail-tooltip">Depot actif</span>
+                <span className="rail-tooltip">Dépôt actif</span>
               </button>
             )}
           </div>

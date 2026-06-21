@@ -43,7 +43,7 @@ export function PaymentStatusBadge({ status }) {
   return <Badge color={color} icon={icon}>{label}</Badge>
 }
 
-export function RoleBadge({ role }) {
+export function RôleBadge({ role }) {
   const map = {
     admin:     { color: 'teal',   label: 'Admin'       },
     developer: { color: 'violet', label: 'Développeur' },

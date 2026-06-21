@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext'
 
 const SECTION_INDEX = [
   { id: 'overview', label: "Vue d'ensemble", icon: 'fa-solid fa-compass' },
-  { id: 'roles', label: 'Roles et acces', icon: 'fa-solid fa-user-shield' },
+  { id: 'roles', label: 'Rôles et accès', icon: 'fa-solid fa-user-shield' },
   { id: 'terrain', label: 'Sessions et terrain', icon: 'fa-solid fa-route' },
   { id: 'billing', label: 'Facturation et finance', icon: 'fa-solid fa-file-invoice-dollar' },
   { id: 'support', label: 'Support et maintenance', icon: 'fa-solid fa-life-ring' },
@@ -13,43 +13,43 @@ const SECTION_INDEX = [
 
 const OPERATING_STEPS = [
   {
-    title: '1. Preparer la base metier',
-    description: 'Verifiez d abord les produits, les unites, les zones, les moyens de paiement et les categories de depense.',
+    title: '1. Préparer la base métier',
+    description: 'Vérifiez d’abord les produits, les unités, les zones, les moyens de paiement et les catégories de dépense.',
   },
   {
-    title: '2. Organiser les equipes',
-    description: 'Les administrateurs et developpeurs gerent les comptes, les camions, les sessions et les listes clients.',
+    title: '2. Organiser les équipes',
+    description: 'Les administrateurs et développeurs gèrent les comptes, les camions, les sessions et les listes clients.',
   },
   {
     title: '3. Ouvrir le terrain',
-    description: 'Une session relie un commercial, un camion, un stock embarque, des pings GPS et les factures du jour.',
+    description: 'Une session relie un commercial, un camion, un stock embarqué, des pings GPS et les factures du jour.',
   },
   {
-    title: '4. Suivre puis cloturer',
-    description: 'La carte, les notifications, l inventaire, les rapports et les exports servent au pilotage et a l audit.',
+    title: '4. Suivre puis clôturer',
+    description: 'La carte, les notifications, l’inventaire, les rapports et les exports servent au pilotage et à l’audit.',
   },
 ]
 
 const FAQ_ITEMS = [
   {
     question: 'Pourquoi un commercial ne voit-il pas tous les clients ?',
-    answer: 'Parce que le portefeuille client est filtre par affectation. Les admins, developpeurs et comptables gardent une vision globale.',
+    answer: 'Parce que le portefeuille client est filtré par affectation. Les admins, développeurs et comptables gardent une vision globale.',
   },
   {
-    question: 'A quoi sert une session terrain ?',
-    answer: 'Elle centralise le camion, le commercial, le chargement initial, les mouvements de stock, le suivi GPS et les ventes de la journee.',
+    question: 'À quoi sert une session terrain ?',
+    answer: 'Elle centralise le camion, le commercial, le chargement initial, les mouvements de stock, le suivi GPS et les ventes de la journée.',
   },
   {
-    question: 'Ou regler les impressions, les exports et les catalogues ?',
-    answer: 'La page Configuration centralise les catalogues, les documents, les depenses, le support et les taches systeme.',
+    question: 'Où régler les impressions, les exports et les catalogues ?',
+    answer: 'La page Configuration centralise les catalogues, les documents, les dépenses, le support et les tâches système.',
   },
   {
     question: 'Comment signaler un bug exploitable ?',
-    answer: "Utilisez la page Support et signalements avec le sujet, la zone concernee, la severite, l URL et le contexte navigateur.",
+    answer: "Utilisez la page Support et signalements avec le sujet, la zone concernée, la sévérité, l’URL et le contexte navigateur.",
   },
   {
     question: 'Qui peut activer la maintenance ou lancer un fresh install ?',
-    answer: 'Seul le role developpeur accede a la console developpeur et aux actions sensibles de maintenance environnement.',
+    answer: 'Seul le rôle développeur accède à la console développeur et aux actions sensibles de maintenance environnement.',
   },
 ]
 
@@ -105,7 +105,7 @@ function SectionShell({ id, eyebrow, title, description, children }) {
   )
 }
 
-function RoleCard({ title, description, bullets, tone = '#0d9488' }) {
+function RôleCard({ title, description, bullets, tone = '#0d9488' }) {
   return (
     <div className="rounded-[24px] px-5 py-5 h-full" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
       <div className="text-sm font-semibold text-base-color">{title}</div>
@@ -128,7 +128,7 @@ export default function HelpCenterIndex() {
   const quickLinks = [
     {
       title: 'Factures et encaissements',
-      description: 'Creer, regler, imprimer et suivre les factures au niveau ligne ou document complet.',
+      description: 'Créer, régler, imprimer et suivre les factures au niveau ligne ou document complet.',
       to: '/invoices',
       icon: 'fa-solid fa-file-invoice',
     },
@@ -139,14 +139,14 @@ export default function HelpCenterIndex() {
       icon: 'fa-solid fa-users',
     },
     {
-      title: 'Produits et depot',
-      description: 'Verifier les references, les minimums obligatoires, les stocks et les reappros rapides.',
+      title: 'Produits et dépôt',
+      description: 'Vérifier les références, les minimums obligatoires, les stocks et les réappros rapides.',
       to: '/products',
       icon: 'fa-solid fa-box-open',
     },
     {
       title: 'Support et signalements',
-      description: 'Signaler un incident avec le contexte technique pour accelerer le correctif.',
+      description: 'Signaler un incident avec le contexte technique pour accélérer le correctif.',
       to: '/bug-reports',
       icon: 'fa-solid fa-bug',
       cta: 'Signaler',
@@ -157,19 +157,19 @@ export default function HelpCenterIndex() {
     quickLinks.push(
       {
         title: 'Sessions terrain',
-        description: 'Ouvrir, suivre et cloturer les sorties commerciales avec chargement et retours.',
+        description: 'Ouvrir, suivre et clôturer les sorties commerciales avec chargement et retours.',
         to: '/routes',
         icon: 'fa-solid fa-route',
       },
       {
         title: 'Carte et monitoring',
-        description: 'Relire les pings GPS, l activite terrain et les remontees mobiles en temps reel.',
+        description: 'Relire les pings GPS, l’activité terrain et les remontées mobiles en temps réel.',
         to: '/map',
         icon: 'fa-solid fa-map-location-dot',
       },
       {
         title: 'Configuration',
-        description: 'Regrouper catalogues, documents, support et modules systeme dans un meme hub.',
+        description: 'Regrouper catalogues, documents, support et modules système dans un même hub.',
         to: '/config',
         icon: 'fa-solid fa-sliders',
       },
@@ -178,8 +178,8 @@ export default function HelpCenterIndex() {
 
   if (isFinance()) {
     quickLinks.push({
-      title: 'Depenses et credit',
-      description: 'Suivre les depenses quotidiennes, le credit client et les vues finance du depot.',
+      title: 'Dépenses et crédit',
+      description: 'Suivre les dépenses quotidiennes, le crédit client et les vues finance du dépôt.',
       to: '/expenses',
       icon: 'fa-solid fa-receipt',
     })
@@ -187,8 +187,8 @@ export default function HelpCenterIndex() {
 
   if (isDeveloper()) {
     quickLinks.push({
-      title: 'Console developpeur',
-      description: 'Maintenance, mode demo, fresh install, taches serveur et diagnostic environnement.',
+      title: 'Console développeur',
+      description: 'Maintenance, mode démo, fresh install, tâches serveur et diagnostic environnement.',
       to: '/developer-tools',
       icon: 'fa-solid fa-code',
     })
@@ -198,14 +198,14 @@ export default function HelpCenterIndex() {
     <div className="space-y-6">
       <PageHeader
         title="Centre d'aide et documentation"
-        subtitle="Une vue documentee du fonctionnement Irtiwaa: flux metier, roles, terrain, finance, support et operations systeme."
+        subtitle="Une vue documentée du fonctionnement Irtiwaa : flux métier, rôles, terrain, finance, support et opérations système."
         action={(
           <div className="flex flex-wrap gap-2">
             <Link to="/notifications-center" className="btn-secondary text-xs">
               <i className="fa-solid fa-bell" /> Notifications
             </Link>
             <Link to="/bug-reports" className="btn-primary text-xs">
-              <i className="fa-solid fa-bug" /> Signaler un probleme
+              <i className="fa-solid fa-bug" /> Signaler un problème
             </Link>
           </div>
         )}
@@ -265,8 +265,8 @@ export default function HelpCenterIndex() {
           <SectionShell
             id="overview"
             eyebrow="Vue d'ensemble"
-            title="Le systeme s'organise autour d'un flux depot -> terrain -> facturation -> audit."
-            description="Irtiwaa n'est pas une simple liste de pages. Chaque module alimente le suivant, et la qualite des donnees depend surtout du respect de cet enchainement."
+            title="Le système s’organise autour d’un flux dépôt -> terrain -> facturation -> audit."
+            description="Irtiwaa n’est pas une simple liste de pages. Chaque module alimente le suivant, et la qualité des données dépend surtout du respect de cet enchaînement."
           >
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
               {OPERATING_STEPS.map((step) => (
@@ -281,18 +281,18 @@ export default function HelpCenterIndex() {
               <div className="rounded-[24px] px-5 py-5" style={{ background: 'rgba(13,148,136,0.06)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.14)' }}>
                 <div className="text-sm font-semibold text-base-color">Relations entre modules</div>
                 <div className="space-y-3 mt-3 text-sm text-secondary-color">
-                  <p>Les produits, unites, zones, paiements et categories de depense forment la base commune. Tant que cette base n'est pas propre, les sorties terrain, les factures et les impressions restent fragiles.</p>
-                  <p>Les clients sont ensuite relies aux comptes utilisateurs. Les commerciaux ne voient que leur portefeuille, alors que les profils de back-office gardent une vue complete pour le pilotage et l'audit.</p>
-                  <p>Les sessions terrain servent de lien entre le camion, le stock embarque, la position mobile, les reappros et les ventes de la journee.</p>
+                  <p>Les produits, unités, zones, paiements et catégories de dépense forment la base commune. Tant que cette base n’est pas propre, les sorties terrain, les factures et les impressions restent fragiles.</p>
+                  <p>Les clients sont ensuite reliés aux comptes utilisateurs. Les commerciaux ne voient que leur portefeuille, alors que les profils de back-office gardent une vue complète pour le pilotage et l’audit.</p>
+                  <p>Les sessions terrain servent de lien entre le camion, le stock embarqué, la position mobile, les réappros et les ventes de la journée.</p>
                 </div>
               </div>
 
               <div className="rounded-[24px] px-5 py-5" style={{ background: 'rgba(59,130,246,0.06)', boxShadow: 'inset 0 0 0 1px rgba(59,130,246,0.12)' }}>
-                <div className="text-sm font-semibold text-base-color">Points de controle quotidiens</div>
+                <div className="text-sm font-semibold text-base-color">Points de contrôle quotidiens</div>
                 <div className="space-y-2 mt-3 text-sm text-secondary-color">
                   <div className="flex items-start gap-2">
                     <i className="fa-solid fa-circle-dot mt-1 text-[10px]" style={{ color: '#2563eb' }} />
-                    <span>Verifier les minimums stock et les reappros depot avant ouverture terrain.</span>
+                    <span>Vérifier les minimums stock et les réappros dépôt avant ouverture terrain.</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <i className="fa-solid fa-circle-dot mt-1 text-[10px]" style={{ color: '#2563eb' }} />
@@ -300,7 +300,7 @@ export default function HelpCenterIndex() {
                   </div>
                   <div className="flex items-start gap-2">
                     <i className="fa-solid fa-circle-dot mt-1 text-[10px]" style={{ color: '#2563eb' }} />
-                    <span>Relire la carte, les notifications et l'historique avant cloture de journee.</span>
+                    <span>Relire la carte, les notifications et l'historique avant clôture de journée.</span>
                   </div>
                 </div>
               </div>
@@ -309,47 +309,47 @@ export default function HelpCenterIndex() {
 
           <SectionShell
             id="roles"
-            eyebrow="Roles et acces"
-            title="Chaque role a un perimetre clair pour eviter les erreurs de visibilite."
-            description="Les ecrans ne suffisent pas: l'API applique aussi les regles de role pour garantir la coherence entre web, mobile et automatisations."
+            eyebrow="Rôles et accès"
+            title="Chaque rôle a un périmètre clair pour éviter les erreurs de visibilité."
+            description="Les écrans ne suffisent pas : l’API applique aussi les règles de rôle pour garantir la cohérence entre web, mobile et automatisations."
           >
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              <RoleCard
+              <RôleCard
                 title="Administrateur"
-                description="Pilote les operations et garde la vision globale metier."
+                description="Pilote les opérations et garde la vision globale métier."
                 bullets={[
-                  'Voit tous les clients, sessions, camions, depots et pages de configuration.',
-                  'Peut gerer les utilisateurs, les affectations clients et les modules de stock.',
-                  'Travaille avec le developer sur les cas systeme ou les incidents majeurs.',
+                  'Voit tous les clients, sessions, camions, dépôts et pages de configuration.',
+                  'Peut gérer les utilisateurs, les affectations clients et les modules de stock.',
+                  'Travaille avec le développeur sur les cas système ou les incidents majeurs.',
                 ]}
               />
-              <RoleCard
-                title="Developpeur"
-                description="Dispose des droits admin et d'une console technique supplementaire."
+              <RôleCard
+                title="Développeur"
+                description="Dispose des droits admin et d’une console technique supplémentaire."
                 bullets={[
-                  'Accede seul aux outils developpeur: maintenance, mode demo, fresh install et diagnostics.',
-                  'Suit les bugs, les taches planifiees et les verrous d environnement.',
-                  'Reste autorise meme quand une maintenance est activee.',
+                  'Accède seul aux outils développeur : maintenance, mode démo, fresh install et diagnostics.',
+                  'Suit les bugs, les tâches planifiées et les verrous d’environnement.',
+                  'Reste autorisé même quand une maintenance est activée.',
                 ]}
                 tone="#8b5cf6"
               />
-              <RoleCard
+              <RôleCard
                 title="Comptable"
                 description="Se concentre sur la finance et la consolidation."
                 bullets={[
-                  'Voit les clients, factures, credits, depenses et rapports utiles a la finance.',
+                  'Voit les clients, factures, crédits, dépenses et rapports utiles à la finance.',
                   'Ne pilote pas les outils techniques reserves aux admins et developpeurs.',
-                  'Participe au suivi des encaissements et des vues de synthese.',
+                  'Participe au suivi des encaissements et des vues de synthèse.',
                 ]}
                 tone="#2563eb"
               />
-              <RoleCard
+              <RôleCard
                 title="Commercial"
                 description="Travaille surtout depuis le mobile et sur son portefeuille."
                 bullets={[
-                  "Ne voit que les clients qui lui sont affectes, sauf creation d'un nouveau client.",
-                  'Cree des factures terrain et remonte les pings GPS via la session active.',
-                  'Depend de la bonne configuration depot, produits et camion en amont.',
+                  "Ne voit que les clients qui lui sont affectés, sauf création d'un nouveau client.",
+                  'Crée des factures terrain et remonte les pings GPS via la session active.',
+                  'Dépend de la bonne configuration dépôt, produits et camion en amont.',
                 ]}
                 tone="#f97316"
               />
@@ -360,24 +360,24 @@ export default function HelpCenterIndex() {
             id="terrain"
             eyebrow="Sessions et terrain"
             title="La session terrain est le point de synchronisation entre le mobile, le stock et la carte."
-            description="Sans session propre, les positions, les mouvements et les ventes deviennent difficiles a relire ou a auditer."
+            description="Sans session propre, les positions, les mouvements et les ventes deviennent difficiles à relire ou à auditer."
           >
             <div className="grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-4">
               <div className="rounded-[24px] px-5 py-5" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                 <div className="text-sm font-semibold text-base-color">Ce qu'une session doit toujours contenir</div>
                 <div className="space-y-2 mt-4 text-sm text-secondary-color">
-                  <div className="flex items-start gap-2"><i className="fa-solid fa-check text-xs mt-1 text-teal-500" /><span>Un commercial actif et clairement rattache a la sortie du jour.</span></div>
-                  <div className="flex items-start gap-2"><i className="fa-solid fa-check text-xs mt-1 text-teal-500" /><span>Un camion avec un statut exploitable et un chargement initial coherent.</span></div>
-                  <div className="flex items-start gap-2"><i className="fa-solid fa-check text-xs mt-1 text-teal-500" /><span>Des pings reguliers pour la carte, le monitoring et l'historique d'activite.</span></div>
-                  <div className="flex items-start gap-2"><i className="fa-solid fa-check text-xs mt-1 text-teal-500" /><span>Des retours ou ajustements en fin de cycle pour rapprocher le terrain du depot.</span></div>
+                  <div className="flex items-start gap-2"><i className="fa-solid fa-check text-xs mt-1 text-teal-500" /><span>Un commercial actif et clairement rattaché à la sortie du jour.</span></div>
+                  <div className="flex items-start gap-2"><i className="fa-solid fa-check text-xs mt-1 text-teal-500" /><span>Un camion avec un statut exploitable et un chargement initial cohérent.</span></div>
+                  <div className="flex items-start gap-2"><i className="fa-solid fa-check text-xs mt-1 text-teal-500" /><span>Des pings réguliers pour la carte, le monitoring et l’historique d’activité.</span></div>
+                  <div className="flex items-start gap-2"><i className="fa-solid fa-check text-xs mt-1 text-teal-500" /><span>Des retours ou ajustements en fin de cycle pour rapprocher le terrain du dépôt.</span></div>
                 </div>
               </div>
 
               <div className="rounded-[24px] px-5 py-5" style={{ background: 'rgba(14,165,233,0.06)', boxShadow: 'inset 0 0 0 1px rgba(14,165,233,0.12)' }}>
                 <div className="text-sm font-semibold text-base-color">Lecture de la carte et du monitoring</div>
                 <div className="space-y-3 mt-4 text-sm text-secondary-color">
-                  <p>La carte terrain n'affiche utilement une position que si le mobile partage reellement sa localisation et que la session reste ouverte.</p>
-                  <p>Les derniers pings, le heartbeat et l'activite recente servent a distinguer un vrai arret terrain d'une application simplement fermee ou hors reseau.</p>
+                  <p>La carte terrain n’affiche utilement une position que si le mobile partage réellement sa localisation et que la session reste ouverte.</p>
+                  <p>Les derniers pings, le heartbeat et l’activité récente servent à distinguer un vrai arrêt terrain d’une application simplement fermée ou hors réseau.</p>
                   <p>La page Carte, les widgets dashboard et les notifications doivent toujours raconter la meme histoire. Si ce n'est pas le cas, il faut verifier la session, puis le mobile, puis la file d'evenements.</p>
                 </div>
               </div>
@@ -387,25 +387,25 @@ export default function HelpCenterIndex() {
           <SectionShell
             id="billing"
             eyebrow="Facturation et finance"
-            title="Les modules finance relisent le depot, la session et la relation client."
-            description="Une facture correcte depend autant du portefeuille client que du stock et du contexte terrain dans lequel elle est emise."
+            title="Les modules finance relisent le dépôt, la session et la relation client."
+            description="Une facture correcte dépend autant du portefeuille client que du stock et du contexte terrain dans lequel elle est émise."
           >
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
               <div className="rounded-[24px] px-5 py-5" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                 <div className="text-sm font-semibold text-base-color">Bonnes pratiques facturation</div>
                 <div className="space-y-3 mt-4 text-sm text-secondary-color">
-                  <p>Avant validation, controlez le client, le mode de paiement, les prix actifs et la disponibilite reelle des produits.</p>
-                  <p>Les impressions et exports utilisent les reglages documentaires. Si un champ manque sur un PDF, il faut d'abord verifier la configuration des documents.</p>
-                  <p>Le credit, les paiements et les depenses alimentent ensuite les vues finance et les rapports journaliers.</p>
+                  <p>Avant validation, contrôlez le client, le mode de paiement, les prix actifs et la disponibilité réelle des produits.</p>
+                  <p>Les impressions et exports utilisent les réglages documentaires. Si un champ manque sur un PDF, il faut d’abord vérifier la configuration des documents.</p>
+                  <p>Le crédit, les paiements et les dépenses alimentent ensuite les vues finance et les rapports journaliers.</p>
                 </div>
               </div>
 
               <div className="rounded-[24px] px-5 py-5" style={{ background: 'rgba(245,158,11,0.08)', boxShadow: 'inset 0 0 0 1px rgba(245,158,11,0.14)' }}>
                 <div className="text-sm font-semibold text-base-color">Points d'attention</div>
                 <div className="space-y-2 mt-4 text-sm text-secondary-color">
-                  <div className="flex items-start gap-2"><i className="fa-solid fa-triangle-exclamation text-xs mt-1 text-amber-500" /><span>Un minimum produit par defaut n'interdit pas l'usage; il sert a detecter les references sous seuil.</span></div>
-                  <div className="flex items-start gap-2"><i className="fa-solid fa-triangle-exclamation text-xs mt-1 text-amber-500" /><span>Un stock nul ne devrait pas permettre de lancer un chargement incoherent sans verification metier.</span></div>
-                  <div className="flex items-start gap-2"><i className="fa-solid fa-triangle-exclamation text-xs mt-1 text-amber-500" /><span>Les listings pagines, impressions ligne a ligne et exports doivent rester alignes sur les memes filtres.</span></div>
+                  <div className="flex items-start gap-2"><i className="fa-solid fa-triangle-exclamation text-xs mt-1 text-amber-500" /><span>Un minimum produit par défaut n’interdit pas l’usage ; il sert à détecter les références sous seuil.</span></div>
+                  <div className="flex items-start gap-2"><i className="fa-solid fa-triangle-exclamation text-xs mt-1 text-amber-500" /><span>Un stock nul ne devrait pas permettre de lancer un chargement incohérent sans vérification métier.</span></div>
+                  <div className="flex items-start gap-2"><i className="fa-solid fa-triangle-exclamation text-xs mt-1 text-amber-500" /><span>Les listings paginés, impressions ligne à ligne et exports doivent rester alignés sur les mêmes filtres.</span></div>
                 </div>
               </div>
             </div>
@@ -414,14 +414,14 @@ export default function HelpCenterIndex() {
           <SectionShell
             id="support"
             eyebrow="Support et maintenance"
-            title="Le support melange tickets utilisateurs, notifications systeme et gestes d'environnement."
+            title="Le support mélange tickets utilisateurs, notifications système et gestes d’environnement."
             description="L'objectif n'est pas seulement de recevoir un bug, mais de pouvoir le relire, l'expliquer, le corriger et le verifier."
           >
             <div className="grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-4">
               <div className="rounded-[24px] px-5 py-5" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                 <div className="text-sm font-semibold text-base-color">Centre de support</div>
                 <div className="space-y-3 mt-4 text-sm text-secondary-color">
-                  <p>Chaque signalement doit idealement contenir un sujet clair, la page concernee, la severite et une description reproductible.</p>
+                  <p>Chaque signalement doit idéalement contenir un sujet clair, la page concernée, la sévérité et une description reproductible.</p>
                   <p>Les destinataires e-mail sont maintenant fixes cote application pour eviter les erreurs de configuration sur la prod.</p>
                   <p>Le ticket reste aussi dans le web app pour permettre un suivi, une reponse developpeur et une cloture propre.</p>
                 </div>

@@ -32,8 +32,8 @@ export function useDepots(options = {}) {
     enabled = true,
   } = options
 
-  const { user } = useAuth()
-  const canBrowseAll = ['admin', 'developer', 'comptable'].includes(user?.role)
+  const { user, canManageMultiDepot } = useAuth()
+  const canBrowseAll = canManageMultiDepot ? canManageMultiDepot() : user?.role === 'developer'
   const canSelectAll = allowAll && canBrowseAll
   const scopedStorageKey = `${storageKey}:${user?.role ?? 'guest'}`
 
@@ -195,18 +195,34 @@ export function useDepots(options = {}) {
     }
   }, [canSelectAll, depots, enabled, fallbackValue, readStoredValue, selectedValue])
 
-  useEffect(() => {
+  const selectionReady = useMemo(() => {
     if (!enabled) {
+      return false
+    }
+
+    if (depots.length === 0) {
+      return true
+    }
+
+    return isDepotOptionValid(selectedValue, depots, canSelectAll)
+  }, [canSelectAll, depots, enabled, selectedValue])
+
+  useEffect(() => {
+    if (!enabled || !selectionReady) {
       return
     }
 
     syncSelection(selectedValue)
-  }, [enabled, selectedValue, syncSelection])
+  }, [enabled, selectedValue, selectionReady, syncSelection])
 
   const selectedDepotId = useMemo(() => normalizeDepotId(selectedValue), [selectedValue])
   const selectedDepot = useMemo(
     () => depots.find((depot) => Number(depot.id) === selectedDepotId) ?? (depots.length === 1 ? depots[0] : null),
     [depots, selectedDepotId],
+  )
+  const scopeParams = useMemo(
+    () => (selectedDepotId ? { depot_id: selectedDepotId } : {}),
+    [selectedDepotId],
   )
 
   return {
@@ -219,6 +235,9 @@ export function useDepots(options = {}) {
     selectedDepot,
     canBrowseAll,
     canSelectAll,
-    scopeParams: selectedDepotId ? { depot_id: selectedDepotId } : {},
+    scopeParams,
+    ready: selectionReady,
   }
 }
+
+

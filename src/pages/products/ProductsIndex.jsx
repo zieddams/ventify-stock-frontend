@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import DepotScopeControls from '../../components/DepotScopeControls'
 import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
@@ -66,6 +66,7 @@ export default function ProductsIndex() {
     selectedDepot,
     canBrowseAll,
     scopeParams,
+    ready: depotsReady,
   } = useDepots({
     allowAll: false,
     storageKey: 'app-depot-scope',
@@ -75,29 +76,48 @@ export default function ProductsIndex() {
   const categories = configItems.category ?? []
   const units = configItems.unit ?? []
 
-  const load = async () => {
+  const loadProducts = useCallback(async () => {
+    if (!depotsReady) {
+      return
+    }
+
     setLoading(true)
 
     try {
-      const [productsResponse, zonesResponse] = await Promise.all([
-        api.get('/products', { params: scopeParams }),
-        api.get('/zones'),
-      ])
+      const productsResponse = await api.get('/products', {
+        params: selectedDepotId ? { depot_id: selectedDepotId } : {},
+      })
 
       const productList = Array.isArray(productsResponse.data)
         ? productsResponse.data
         : (productsResponse.data?.data ?? [])
 
       setProducts(productList)
-      setZones(zonesResponse.data ?? [])
     } finally {
       setLoading(false)
     }
-  }
+  }, [depotsReady, selectedDepotId])
+
+  const loadZones = useCallback(async () => {
+    try {
+      const zonesResponse = await api.get('/zones')
+      setZones(zonesResponse.data ?? [])
+    } catch {
+      setZones([])
+    }
+  }, [])
 
   useEffect(() => {
-    load()
-  }, [selectedDepotId])
+    loadZones()
+  }, [loadZones])
+
+  useEffect(() => {
+    if (!depotsReady) {
+      return
+    }
+
+    loadProducts()
+  }, [depotsReady, loadProducts])
 
   const openCreate = () => {
     setEditing(null)
@@ -161,7 +181,7 @@ export default function ProductsIndex() {
       }
 
       setModal(false)
-      await load()
+      await loadProducts()
     } catch (error) {
       setErrors(error.response?.data?.errors ?? {})
     } finally {
@@ -175,7 +195,7 @@ export default function ProductsIndex() {
     }
 
     await api.delete(`/products/${product.id}`)
-    await load()
+    await loadProducts()
   }
 
   const openRestock = (product) => {
@@ -198,11 +218,11 @@ export default function ProductsIndex() {
         product_id: restockProduct.id,
         qty: Number(restockQty),
         depot_id: selectedDepotId,
-        note: restockNote || `Reapprovisionnement rapide depuis la fiche produit: ${restockProduct.name}`,
+        note: restockNote || `Réapprovisionnement rapide depuis la fiche produit: ${restockProduct.name}`,
       })
 
       setRestockProduct(null)
-      await load()
+      await loadProducts()
     } catch (error) {
       setRestockError(error.response?.data?.message || 'Impossible d enregistrer le reapprovisionnement.')
     } finally {
@@ -248,7 +268,7 @@ export default function ProductsIndex() {
     }
   }, [productMeta.current_page, productPage])
 
-  if (loading) {
+  if (loading || !depotsReady) {
     return <PageLoader />
   }
 
@@ -264,7 +284,7 @@ export default function ProductsIndex() {
                 depots={depots}
                 selectedValue={selectedDepotValue}
                 onChange={setSelectedDepotValue}
-                label="Depot consulte"
+                label="Dépôt consulté"
               />
             )}
             <PageExportActions
@@ -325,7 +345,7 @@ export default function ProductsIndex() {
                   </div>
                   {isAdmin() && (
                     <button onClick={() => openRestock(product)} className="btn-secondary text-xs mt-3">
-                      <i className="fa-solid fa-plus" /> Reappro.
+                      <i className="fa-solid fa-plus" /> Réappro.
                     </button>
                   )}
                 </div>
@@ -407,7 +427,7 @@ export default function ProductsIndex() {
                       <td className="py-3">
                         <div className="flex items-center gap-3 flex-wrap">
                           <button onClick={() => openRestock(product)} className="text-xs font-medium hover:underline" style={{ color: '#2563eb' }}>
-                            <i className="fa-solid fa-boxes-stacked mr-1" /> Reappro.
+                            <i className="fa-solid fa-boxes-stacked mr-1" /> Réappro.
                           </button>
                           <button onClick={() => openEdit(product)} className="text-xs font-medium hover:underline" style={{ color: '#0d9488' }}>
                             <i className="fa-solid fa-pen mr-1" /> Modifier
@@ -618,3 +638,4 @@ export default function ProductsIndex() {
     </div>
   )
 }
+

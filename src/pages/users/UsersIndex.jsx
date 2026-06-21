@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { RoleBadge } from '../../components/Badge'
+import { RôleBadge } from '../../components/Badge'
 import DepotScopeControls, { DepotSelectionInfo } from '../../components/DepotScopeControls'
 import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
@@ -174,7 +174,7 @@ export default function UsersIndex() {
 
   const toggle = async (entry) => {
     if (entry.id === me?.id) {
-      alert('Vous ne pouvez pas desactiver votre propre compte.')
+      alert('Vous ne pouvez pas désactiver votre propre compte.')
       return
     }
 
@@ -188,7 +188,7 @@ export default function UsersIndex() {
       return
     }
 
-    if (!confirm(`Supprimer le compte ${entry.name} ? Cette action reste bloquee si le compte possede deja un historique de sessions, factures ou mouvements.`)) {
+    if (!confirm(`Supprimer le compte ${entry.name} ? Cette action reste bloquée si le compte possède déjà un historique de sessions, factures ou mouvements.`)) {
       return
     }
 
@@ -273,7 +273,7 @@ export default function UsersIndex() {
     <div>
       <PageHeader
         title="Utilisateurs"
-        subtitle={`${users.length} utilisateur(s) enregistres · ${totalAssignedCustomers} client(s) affectes`}
+        subtitle={`${users.length} utilisateur(s) enregistrés · ${totalAssignedCustomers} client(s) affectés`}
         action={(
           <div className="flex flex-wrap items-end justify-end gap-2">
             {canSelectAll && (
@@ -283,7 +283,7 @@ export default function UsersIndex() {
                 onChange={setSelectedDepotValue}
                 allowAll
                 canSelectAll={canSelectAll}
-                allLabel="Tous les depots"
+                allLabel="Tous les dépôts"
               />
             )}
             {canManageUsers && (
@@ -300,7 +300,7 @@ export default function UsersIndex() {
           <table className="w-full text-sm">
             <thead>
               <tr>
-                {['Utilisateur', 'Email', 'Role', 'Zone', 'Depot', 'Liste clients', 'Statut', 'Cree le', 'Actions'].map((heading) => (
+                {['Utilisateur', 'Email', 'Rôle', 'Zone', 'Depot', 'Liste clients', 'Statut', 'Créé le', 'Actions'].map((heading) => (
                   <th key={heading} className="pb-3 pr-4 text-left">{heading}</th>
                 ))}
               </tr>
@@ -320,7 +320,7 @@ export default function UsersIndex() {
                     </div>
                   </td>
                   <td className="py-3 pr-4 text-secondary-color text-xs font-mono">{entry.email}</td>
-                  <td className="py-3 pr-4"><RoleBadge role={entry.role} /></td>
+                  <td className="py-3 pr-4"><RôleBadge role={entry.role} /></td>
                   <td className="py-3 pr-4 text-muted-color text-xs">{zoneName(entry.zone_id)}</td>
                   <td className="py-3 pr-4 text-muted-color text-xs">{entry.depot?.name ?? depotName(entry.depot_id)}</td>
                   <td className="py-3 pr-4 text-secondary-color text-xs font-semibold">{Number(entry.customers_count ?? 0)} client(s)</td>
@@ -357,7 +357,7 @@ export default function UsersIndex() {
                             onClick={() => toggle(entry)}
                             className={`text-xs font-medium ${entry.active ? 'text-amber-600' : 'text-emerald-600'}`}
                           >
-                            {entry.active ? 'Desactiver' : 'Activer'}
+                            {entry.active ? 'Désactiver' : 'Activer'}
                           </button>
                           {entry.id !== me?.id && (
                             <button
@@ -414,12 +414,12 @@ export default function UsersIndex() {
           </FormField>
 
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="Role" error={errors.role?.[0]} required>
+            <FormField label="Rôle" error={errors.role?.[0]} required>
               <select value={form.role} onChange={(event) => setForm((current) => ({ ...current, role: event.target.value }))}>
                 <option value="rep">Commercial</option>
                 <option value="comptable">Comptable</option>
                 <option value="admin">Administrateur</option>
-                <option value="developer">Developpeur</option>
+                <option value="developer">Développeur</option>
               </select>
             </FormField>
 
@@ -433,7 +433,7 @@ export default function UsersIndex() {
             </FormField>
           </div>
 
-          <FormField label="Depot principal" error={errors.depot_id?.[0]}>
+          <FormField label="Dépôt principal" error={errors.depot_id?.[0]}>
             {singleDepot ? (
               <DepotSelectionInfo depot={singleDepot} />
             ) : (
@@ -465,7 +465,7 @@ export default function UsersIndex() {
       >
         <div className="space-y-4">
           <div className="rounded-2xl px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
-            Cette liste pilote les clients visibles sur le web et le mobile pour ce compte. Un client selectionne ici sera rattache a ce compte.
+            Cette liste pilote les clients visibles sur le web et le mobile pour ce compte. Un client sélectionné ici sera rattaché à ce compte.
           </div>
 
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
@@ -511,12 +511,12 @@ export default function UsersIndex() {
                           )}
                         </div>
                         <div className="text-xs text-secondary-color mt-1">
-                          {customer.phone || 'Sans telephone'}
+                          {customer.phone || 'Sans téléphone'}
                           {customer.wilaya ? ` · ${customer.wilaya}` : ''}
                           {customer.zone?.name ? ` · ${customer.zone.name}` : ''}
                         </div>
                         <div className="text-[11px] text-muted-color mt-1">
-                          Proprietaire actuel: {customer.owner?.name || 'Aucun'}
+                          Propriétaire actuel: {customer.owner?.name || 'Aucun'}
                         </div>
                       </div>
                     </label>
@@ -525,7 +525,7 @@ export default function UsersIndex() {
 
                 {filteredAssignmentCustomers.length === 0 && (
                   <div className="px-4 py-12 text-center text-sm text-muted-color">
-                    Aucun client ne correspond a la recherche.
+                    Aucun client ne correspond à la recherche.
                   </div>
                 )}
               </div>
@@ -535,7 +535,7 @@ export default function UsersIndex() {
           <div className="flex justify-end gap-3 pt-2">
             <button onClick={closeAssignments} className="btn-secondary">Annuler</button>
             <button onClick={saveAssignments} disabled={assignmentLoading || assignmentSaving} className="btn-primary">
-              {assignmentSaving ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</> : 'Sauver la liste'}
+              {assignmentSaving ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</> : 'Sauvegarder la liste'}
             </button>
           </div>
         </div>

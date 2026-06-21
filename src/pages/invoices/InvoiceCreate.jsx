@@ -96,17 +96,17 @@ export default function InvoiceCreate() {
 
   const submit = async () => {
     if (!customer) {
-      setErrors({ customer: ['Selectionner un client'] })
+      setErrors({ customer: ['Sélectionner un client'] })
       return
     }
 
     if (!selectedDepotId) {
-      setErrors({ depot_id: ['Selectionnez un depot pour cette facture.'] })
+      setErrors({ depot_id: ['Sélectionnez un dépôt pour cette facture.'] })
       return
     }
 
     if (lines.some((line) => !line.product_id || Number(line.qty) <= 0)) {
-      setErrors({ lines: ['Toutes les lignes doivent avoir un produit et une quantite'] })
+      setErrors({ lines: ['Toutes les lignes doivent avoir un produit et une quantité'] })
       return
     }
 
@@ -169,7 +169,7 @@ export default function InvoiceCreate() {
         <div>
           <h1 className="text-xl font-bold text-base-color">Nouvelle facture</h1>
           <p className="text-sm text-muted-color mt-1">
-            {selectedDepot ? `Depot courant: ${selectedDepot.name}` : 'Selection du depot requise'}
+            {selectedDepot ? `Dépôt courant: ${selectedDepot.name}` : 'Sélection du dépôt requise'}
           </p>
         </div>
         {canBrowseAll && (
@@ -177,7 +177,7 @@ export default function InvoiceCreate() {
             depots={depots}
             selectedValue={selectedDepotValue}
             onChange={setSelectedDepotValue}
-            label="Depot de facturation"
+            label="Dépôt de facturation"
           />
         )}
       </div>
@@ -338,7 +338,7 @@ export default function InvoiceCreate() {
           </div>
           <div className="flex items-center justify-between text-secondary-color pt-1">
             <span className="flex items-center gap-2">
-              Paye maintenant
+              Payé maintenant
               <select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} style={{ width: 160, padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>
                 {paymentMethods.map((method) => (
                   <option key={method.id} value={method.value}>
