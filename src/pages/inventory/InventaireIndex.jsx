@@ -14,6 +14,20 @@ function fmt(value) {
   return value != null ? Number(value).toFixed(3) : '-'
 }
 
+const INVENTORY_FILTER_OPTIONS = [
+  { value: 'all', label: 'Tous' },
+  { value: 'low_stock', label: 'Stock bas' },
+  { value: 'normal_stock', label: 'Stock normal' },
+  { value: 'counted', label: 'Produits saisis' },
+]
+
+const INVENTORY_SORT_OPTIONS = [
+  { value: 'low_stock_first', label: 'Stock bas en premier' },
+  { value: 'updated_desc', label: 'Derniere modification' },
+  { value: 'created_desc', label: 'Derniere creation' },
+  { value: 'name_asc', label: 'Nom A-Z' },
+]
+
 export default function InventaireIndex() {
   const { layouts: documentLayouts } = useDocumentLayouts()
   const {
@@ -37,6 +51,8 @@ export default function InventaireIndex() {
   const [showModal, setShowModal] = useState(false)
   const [search, setSearch] = useState('')
   const [note, setNote] = useState('')
+  const [stockFilter, setStockFilter] = useState('all')
+  const [sortBy, setSortBy] = useState('low_stock_first')
   const [productPage, setProductPage] = useState(1)
   const [productPerPage, setProductPerPage] = useState(15)
 
@@ -150,11 +166,68 @@ export default function InventaireIndex() {
     }
   }
 
-  const filteredProducts = products.filter((product) => (
-    !search
-    || product.name.toLowerCase().includes(search.toLowerCase())
-    || product.reference?.toLowerCase().includes(search.toLowerCase())
-  ))
+  const filteredProducts = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase()
+
+    return products
+      .filter((product) => (
+        !normalizedSearch
+        || product.name.toLowerCase().includes(normalizedSearch)
+        || product.reference?.toLowerCase().includes(normalizedSearch)
+      ))
+      .filter((product) => {
+        const systemQty = Number(product.depot_qty ?? product.qty ?? 0)
+        const minStock = Math.max(Number(product.min_stock ?? 1), 1)
+        const hasCounted = counts[product.id] !== undefined && counts[product.id] !== ''
+
+        if (stockFilter === 'low_stock') {
+          return systemQty <= minStock
+        }
+
+        if (stockFilter === 'normal_stock') {
+          return systemQty > minStock
+        }
+
+        if (stockFilter === 'counted') {
+          return hasCounted
+        }
+
+        return true
+      })
+      .sort((left, right) => {
+        const leftQty = Number(left.depot_qty ?? left.qty ?? 0)
+        const rightQty = Number(right.depot_qty ?? right.qty ?? 0)
+        const leftMin = Math.max(Number(left.min_stock ?? 1), 1)
+        const rightMin = Math.max(Number(right.min_stock ?? 1), 1)
+        const leftLow = leftQty <= leftMin ? 1 : 0
+        const rightLow = rightQty <= rightMin ? 1 : 0
+
+        if (sortBy === 'updated_desc') {
+          return new Date(right.updated_at ?? 0).getTime() - new Date(left.updated_at ?? 0).getTime()
+        }
+
+        if (sortBy === 'created_desc') {
+          return new Date(right.created_at ?? 0).getTime() - new Date(left.created_at ?? 0).getTime()
+        }
+
+        if (sortBy === 'name_asc') {
+          return String(left.name || '').localeCompare(String(right.name || ''), 'fr')
+        }
+
+        if (leftLow !== rightLow) {
+          return rightLow - leftLow
+        }
+
+        const leftGap = leftMin - leftQty
+        const rightGap = rightMin - rightQty
+
+        if (rightGap !== leftGap) {
+          return rightGap - leftGap
+        }
+
+        return String(left.name || '').localeCompare(String(right.name || ''), 'fr')
+      })
+  }, [counts, products, search, sortBy, stockFilter])
 
   const { items: paginatedProducts, meta: productsMeta } = useMemo(
     () => paginateItems(filteredProducts, productPage, productPerPage),
@@ -163,7 +236,7 @@ export default function InventaireIndex() {
 
   useEffect(() => {
     setProductPage(1)
-  }, [search, selectedDepotId])
+  }, [search, selectedDepotId, stockFilter, sortBy])
 
   useEffect(() => {
     if (productPage !== productsMeta.current_page) {
@@ -229,6 +302,20 @@ export default function InventaireIndex() {
             <div className="relative flex-1 max-w-sm">
               <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-color" style={{ fontSize: 13 }} />
               <input type="text" placeholder="Rechercher un produit..." value={search} onChange={(event) => setSearch(event.target.value)} style={{ paddingLeft: '2.25rem' }} />
+            </div>
+            <div className="w-full lg:w-52">
+              <select value={stockFilter} onChange={(event) => setStockFilter(event.target.value)}>
+                {INVENTORY_FILTER_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="w-full lg:w-60">
+              <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+                {INVENTORY_SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
             </div>
             <div className="flex-1">
               <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Note de batch (optionnel) : inventaire mensuel, correction dépôt..." />

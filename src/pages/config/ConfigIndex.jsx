@@ -258,6 +258,7 @@ const SYSTEM_SETTING_KEYS = [
 ]
 
 const DOCUMENT_SETTING_KEYS = [DOCUMENT_LAYOUT_SETTING_KEY]
+const HIDDEN_CONFIG_SECTIONS = new Set(['map-provider', 'map-status'])
 
 const PAYMENT_SCOPE_OPTIONS = [
   { value: 'customer', label: 'Clients / factures' },
@@ -589,13 +590,17 @@ export default function ConfigIndex() {
     payment_method: itemsByType.payment_method?.length ?? 0,
     expense_category: itemsByType.expense_category?.length ?? 0,
   }), [itemsByType])
-  const setupSection = routeSectionKey ? SETUP_SECTIONS.find((item) => item.key === routeSectionKey) ?? null : null
+  const visibleSetupSections = useMemo(
+    () => SETUP_SECTIONS.filter((item) => !HIDDEN_CONFIG_SECTIONS.has(item.key)),
+    []
+  )
+  const setupSection = routeSectionKey ? visibleSetupSections.find((item) => item.key === routeSectionKey) ?? null : null
   const setupSectionsByModule = useMemo(() => (
     MODULES.map((module) => ({
       ...module,
-      sections: SETUP_SECTIONS.filter((section) => section.module === module.key),
+      sections: visibleSetupSections.filter((section) => section.module === module.key),
     }))
-  ), [])
+  ), [visibleSetupSections])
   const documentLayouts = normalizeDocumentLayouts(settingsByKey[DOCUMENT_LAYOUT_SETTING_KEY]?.value)
   const activeDocumentEntity = DOCUMENT_ENTITY_GROUPS.find((item) => item.key === documentEntityKey) ?? DOCUMENT_ENTITY_GROUPS[0]
   const documentDefinitions = useMemo(() => (

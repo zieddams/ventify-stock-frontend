@@ -27,6 +27,7 @@ const DEFAULT_CENTER = [34.2, 9.6]
 const DEFAULT_ZOOM = 6
 const HEARTBEAT_REFRESH_MS = 20 * 1000
 const GEO_TRACKING_ENABLED = false
+const MAP_TERRAIN_UI_ENABLED = false
 const GOOGLE_MAP_PROVIDERS = new Set(['google_roadmap', 'google_satellite'])
 const GOOGLE_MAP_TYPES = new Set(['roadmap', 'satellite', 'terrain', 'hybrid'])
 const GOOGLE_MAPS_SCRIPT_ID = 'irtiwaa-google-maps-sdk'
@@ -1258,6 +1259,36 @@ function TerrainTab({
 
 export default function LiveMapIndex() {
   const [searchParams, setSearchParams] = useSearchParams()
+
+  if (!MAP_TERRAIN_UI_ENABLED) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Carte et terrain"
+          subtitle="Module momentanement masque sur la plateforme."
+        />
+
+        <div className="card">
+          <div className="flex items-start gap-3">
+            <div
+              className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(13,148,136,0.12)', color: '#0d9488' }}
+            >
+              <i className="fa-solid fa-map-location-dot" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-base-color">Suivi cartographique en pause</div>
+              <div className="text-sm text-secondary-color mt-1">
+                La geolocalisation et les cartes restent desactivees pour cette phase. Le code est conserve pour une
+                reactivation future, mais l interface n expose plus ce module pour eviter toute confusion.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const {
     depots,
     loading: depotsLoading,

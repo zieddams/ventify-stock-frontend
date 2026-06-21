@@ -22,7 +22,6 @@ const OPERATIONS_NAV = [
   { to: '/routes', icon: 'fa-solid fa-truck-fast', label: 'Sorties journée' },
   { to: '/depot', icon: 'fa-solid fa-warehouse', label: 'Dépôt' },
   { to: '/camions', icon: 'fa-solid fa-truck', label: 'Camions' },
-  { to: '/map', icon: 'fa-solid fa-map-location-dot', label: 'Carte et terrain' },
   { to: '/inventory', icon: 'fa-solid fa-clipboard-list', label: 'Inventaire' },
   { to: '/reports', icon: 'fa-solid fa-chart-line', label: 'Rapports' },
   { to: '/data-tools', icon: 'fa-solid fa-file-arrow-up', label: 'Imports / exports' },

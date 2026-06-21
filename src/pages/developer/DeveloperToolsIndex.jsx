@@ -44,7 +44,6 @@ const MAINTENANCE_PAGE_OPTIONS = [
   { path: '/routes', label: 'Sessions terrain' },
   { path: '/depot', label: 'Dépôt' },
   { path: '/camions', label: 'Camions' },
-  { path: '/map', label: 'Carte' },
   { path: '/inventory', label: 'Inventaire' },
   { path: '/reports', label: 'Rapports' },
   { path: '/data-tools', label: 'Imports / exports' },
@@ -662,9 +661,6 @@ export default function DeveloperToolsIndex() {
               </Link>
               <Link to="/help" className="btn-secondary text-xs w-full justify-center">
                 <i className="fa-solid fa-book-open" /> Documentation
-              </Link>
-              <Link to="/map" className="btn-secondary text-xs w-full justify-center">
-                <i className="fa-solid fa-map-location-dot" /> Carte terrain
               </Link>
             </div>
 

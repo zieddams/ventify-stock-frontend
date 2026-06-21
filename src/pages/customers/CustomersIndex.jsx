@@ -312,7 +312,7 @@ export default function CustomersIndex() {
           <table className="w-full text-sm">
             <thead>
               <tr>
-                {['Nom', 'Telephone', 'Affecte a', 'Gouvernorat', 'Zone', 'Carte', 'Solde credit', 'Actions'].map((heading) => (
+                {['Nom', 'Telephone', 'Affecte a', 'Gouvernorat', 'Zone', 'Solde credit', 'Actions'].map((heading) => (
                   <th key={heading} className="pb-3 pr-4 text-left">
                     {heading}
                   </th>
@@ -335,18 +335,6 @@ export default function CustomersIndex() {
                     </td>
                     <td className="py-3 pr-4 text-secondary-color text-xs">{customer.wilaya ?? '-'}</td>
                     <td className="py-3 pr-4 text-secondary-color text-xs">{customer.zone?.name ?? '-'}</td>
-                    <td className="py-3 pr-4">
-                      <span
-                        className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full"
-                        style={{
-                          background: 'rgba(148,163,184,0.14)',
-                          color: '#64748b',
-                        }}
-                      >
-                        <i className="fa-solid fa-location-dot-slash" />
-                        Carte désactivée
-                      </span>
-                    </td>
                     <td
                       className="py-3 pr-4 font-bold font-mono text-sm"
                       style={{ color: Number(customer.credit_balance) > 0 ? '#dc2626' : '#059669' }}
@@ -371,7 +359,7 @@ export default function CustomersIndex() {
               })}
               {filteredCustomers.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center">
+                  <td colSpan={7} className="py-12 text-center">
                     <i className="fa-solid fa-users text-3xl text-muted-color opacity-30 mb-2 block" />
                     <p className="text-muted-color text-sm">Aucun client</p>
                   </td>
