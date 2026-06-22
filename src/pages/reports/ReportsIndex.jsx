@@ -212,6 +212,73 @@ function ProfitTab({ scopeParams }) {
           </tbody>
         </table>
       </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mt-5">
+        <div className="card">
+          <h2 className="text-sm font-semibold text-base-color mb-3">Benefice par camion</h2>
+          <table className="w-full text-sm">
+            <thead>
+              <tr>
+                {['Camion', 'Plaque', 'CA', 'Benefice', 'Factures'].map((heading, index) => (
+                  <th key={heading} className={`pb-3 pr-4 ${index > 1 ? 'text-right' : 'text-left'}`}>
+                    {heading}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {(data?.by_camion ?? []).map((camion, index) => (
+                <tr key={`${camion.camion_id ?? 'none'}-${index}`} className="table-row">
+                  <td className="py-3 pr-4 font-semibold text-base-color">{camion.camion_name}</td>
+                  <td className="py-3 pr-4 text-muted-color text-xs">{camion.camion_plate || '-'}</td>
+                  <td className="py-3 pr-4 text-right font-mono text-secondary-color">{fmt(camion.revenue)}</td>
+                  <td className="py-3 pr-4 text-right font-mono font-bold" style={{ color: '#059669' }}>{fmt(camion.profit)}</td>
+                  <td className="py-3 text-right text-muted-color">{camion.invoice_count}</td>
+                </tr>
+              ))}
+              {(data?.by_camion ?? []).length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-10 text-center text-muted-color">Aucun camion ne ressort sur cette periode.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="card">
+          <h2 className="text-sm font-semibold text-base-color mb-3">Benefice par commercial et camion</h2>
+          <table className="w-full text-sm">
+            <thead>
+              <tr>
+                {['Commercial', 'Camion', 'CA', 'Benefice', 'Factures'].map((heading, index) => (
+                  <th key={heading} className={`pb-3 pr-4 ${index > 1 ? 'text-right' : 'text-left'}`}>
+                    {heading}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {(data?.by_rep_camion ?? []).map((row, index) => (
+                <tr key={`${row.rep_id ?? 'rep'}-${row.camion_id ?? 'none'}-${index}`} className="table-row">
+                  <td className="py-3 pr-4 font-semibold text-base-color">{row.rep_name}</td>
+                  <td className="py-3 pr-4 text-secondary-color text-xs">
+                    {row.camion_name}
+                    {row.camion_plate ? ` - ${row.camion_plate}` : ''}
+                  </td>
+                  <td className="py-3 pr-4 text-right font-mono text-secondary-color">{fmt(row.revenue)}</td>
+                  <td className="py-3 pr-4 text-right font-mono font-bold" style={{ color: '#059669' }}>{fmt(row.profit)}</td>
+                  <td className="py-3 text-right text-muted-color">{row.invoice_count}</td>
+                </tr>
+              ))}
+              {(data?.by_rep_camion ?? []).length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-10 text-center text-muted-color">Aucune combinaison commercial/camion disponible.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </>
   )
 }

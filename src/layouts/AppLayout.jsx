@@ -70,7 +70,7 @@ const PAGE_TITLES = {
   '/developer-tools': { label: 'Outils développeur', icon: 'fa-solid fa-code' },
 }
 
-const TOPBAR_ALLOW_ALL_PATHS = new Set(['/', '/credit', '/expenses', '/invoices', '/reports', '/routes', '/users'])
+const TOPBAR_ALLOW_ALL_PATHS = new Set(['/', '/credit', '/invoices', '/reports', '/routes', '/users'])
 
 function RailLink({ to, icon, label, exact, expanded = false, onClick }) {
   return (
@@ -137,6 +137,22 @@ function getSystemStatusLabel(systemStatus) {
   }
 
   return "Vérification de l'API en cours"
+}
+
+function buildAppDisplayName(companyName) {
+  return companyName ? `${APP_NAME} (${companyName})` : APP_NAME
+}
+
+function setMetaContent(name, content) {
+  if (typeof document === 'undefined') {
+    return
+  }
+
+  const tag = document.querySelector(`meta[name="${name}"]`)
+
+  if (tag) {
+    tag.setAttribute('content', content)
+  }
 }
 
 function UserMenu({ user, onLogout }) {
@@ -224,7 +240,7 @@ function UserMenu({ user, onLogout }) {
   )
 }
 
-function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper, statusLabel }) {
+function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper, statusLabel, appDisplayName }) {
   if (!open) {
     return null
   }
@@ -239,7 +255,7 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper
               <img src={irtiwaaMark} alt="" className="w-5 h-5 object-contain" />
             </div>
             <div>
-              <div className="text-sm font-bold text-white">{APP_NAME}</div>
+              <div className="text-sm font-bold text-white">{appDisplayName}</div>
               <div className="text-xs" style={{ color: 'var(--rail-text)' }}>{statusLabel}</div>
             </div>
           </div>
@@ -400,6 +416,7 @@ export default function AppLayout() {
     loading: topbarDepotsLoading,
     selectedValue: topbarDepotValue,
     setSelectedValue: setTopbarDepotValue,
+    selectedDepot: topbarSelectedDepot,
     canSelectAll: topbarCanSelectAll,
   } = useDepots({
     allowAll: topbarAllowsAll,
@@ -409,6 +426,19 @@ export default function AppLayout() {
   })
   const statusLabel = getSystemStatusLabel(systemStatus)
   const canSeeDepotScope = isDeveloper()
+  const activeCompanyName = topbarSelectedDepot?.company?.name ?? user?.company?.name ?? null
+  const appDisplayName = buildAppDisplayName(activeCompanyName)
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return
+    }
+
+    document.title = `${pageInfo.label} | ${appDisplayName}`
+    setMetaContent('application-name', appDisplayName)
+    setMetaContent('apple-mobile-web-app-title', appDisplayName)
+    setMetaContent('description', `${pageInfo.label} - ${appDisplayName}`)
+  }, [appDisplayName, pageInfo.label])
 
   return (
     <div className="flex h-screen overflow-hidden bg-app">
@@ -420,13 +450,13 @@ export default function AppLayout() {
           <div
             className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shadow-lg cursor-pointer flex-shrink-0"
             onClick={() => navigate('/')}
-            title={APP_NAME}
+            title={appDisplayName}
           >
             <img src={irtiwaaMark} alt="" className="w-7 h-7 object-contain" />
           </div>
           {isSidebarExpanded && (
             <div className="min-w-0">
-              <div className="rail-brand-title">{APP_NAME}</div>
+              <div className="rail-brand-title">{appDisplayName}</div>
               <div className="rail-brand-subtitle">
                 <span className="app-version-label">v{APP_VERSION}</span>
               </div>
@@ -505,11 +535,19 @@ export default function AppLayout() {
               <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center shadow-sm">
                 <img src={irtiwaaMark} alt="" className="w-5 h-5 object-contain" />
               </div>
-              <span className="font-bold text-sm text-base-color">{APP_NAME}</span>
+              <span className="font-bold text-sm text-base-color truncate max-w-[180px]">{appDisplayName}</span>
             </div>
             <div className="min-w-0">
               <div className="hidden md:flex items-center gap-2 min-w-0">
                 <h1 className="text-sm font-semibold text-base-color truncate">{pageInfo.label}</h1>
+                {activeCompanyName && (
+                  <span
+                    className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                    style={{ background: 'rgba(13,148,136,0.10)', color: '#0f766e' }}
+                  >
+                    {activeCompanyName}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -557,6 +595,7 @@ export default function AppLayout() {
         isFinance={isFinance}
         isDeveloper={isDeveloper}
         statusLabel={statusLabel}
+        appDisplayName={appDisplayName}
       />
     </div>
   )
