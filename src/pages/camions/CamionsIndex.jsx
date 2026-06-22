@@ -101,6 +101,7 @@ export default function CamionsIndex() {
   const [camions, setCamions] = useState([])
   const [reps, setReps] = useState([])
   const [products, setProducts] = useState([])
+  const [showInactiveCamions, setShowInactiveCamions] = useState(false)
   const [loading, setLoading] = useState(true)
   const [fleetModal, setFleetModal] = useState(false)
   const [transferModal, setTransferModal] = useState(false)
@@ -143,7 +144,7 @@ export default function CamionsIndex() {
       const [camionResponse, repResponse, productResponse] = await Promise.all([
         api.get('/camions', {
           params: {
-            include_inactive: 1,
+            ...(showInactiveCamions ? { include_inactive: 1 } : {}),
             ...(canBrowseAll && selectedCompanyId ? { company_id: selectedCompanyId } : {}),
           },
         }),
@@ -161,7 +162,7 @@ export default function CamionsIndex() {
 
   useEffect(() => {
     load()
-  }, [selectedDepotId])
+  }, [selectedDepotId, showInactiveCamions])
 
   const totals = useMemo(() => {
     const physicalTotal = camions.length
@@ -412,6 +413,13 @@ export default function CamionsIndex() {
         </div>
 
         <div className="flex flex-wrap items-end gap-2">
+          <button
+            onClick={() => setShowInactiveCamions((current) => !current)}
+            className="btn-secondary"
+          >
+            <i className={`fa-solid ${showInactiveCamions ? 'fa-eye-slash' : 'fa-eye'}`} />
+            {showInactiveCamions ? 'Masquer les inactifs' : 'Afficher les inactifs'}
+          </button>
           {canBrowseAll && (
             <DepotScopeControls
               depots={depots}
