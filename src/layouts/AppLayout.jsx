@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import irtiwaaMark from '../assets/irtiwaa-mark.png'
 import NotificationBell from '../components/NotificationBell'
 import DepotScopeControls from '../components/DepotScopeControls'
-import { APP_VERSION } from '../config/appMeta'
+import { APP_NAME, APP_VERSION } from '../config/appMeta'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { useDepots } from '../hooks/useDepots'
@@ -35,6 +35,7 @@ const SUPPORT_NAV = [
 ]
 
 const DEVELOPER_NAV = [
+  { to: '/companies', icon: 'fa-solid fa-buildings', label: 'Societes' },
   { to: '/developer-tools', icon: 'fa-solid fa-code', label: 'Outils développeur' },
 ]
 
@@ -65,6 +66,7 @@ const PAGE_TITLES = {
   '/help': { label: 'Aide et documentation', icon: 'fa-solid fa-circle-question' },
   '/notifications-center': { label: 'Centre de notifications', icon: 'fa-solid fa-bell' },
   '/bug-reports': { label: 'Support et signalements', icon: 'fa-solid fa-bug' },
+  '/companies': { label: 'Societes', icon: 'fa-solid fa-buildings' },
   '/developer-tools': { label: 'Outils développeur', icon: 'fa-solid fa-code' },
 }
 
@@ -164,7 +166,9 @@ function UserMenu({ user, onLogout }) {
         </div>
         <div className="hidden sm:block text-left">
           <div className="text-xs font-semibold text-base-color leading-none">{user?.name}</div>
-          <div className="text-xs text-muted-color capitalize leading-none mt-0.5">{user?.role}</div>
+          <div className="text-xs text-muted-color capitalize leading-none mt-0.5">
+            {[user?.role, user?.company?.name].filter(Boolean).join(' · ')}
+          </div>
         </div>
         <i className="fa-solid fa-chevron-down text-muted-color" style={{ fontSize: 10 }} />
       </button>
@@ -190,13 +194,22 @@ function UserMenu({ user, onLogout }) {
             Support et signalements
           </NavLink>
           {user?.role === 'developer' && (
-            <NavLink
-              to="/developer-tools"
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-secondary-color hover:bg-surface-2 transition-colors"
-            >
-              <i className="fa-solid fa-code w-4" />
-              Outils développeur
-            </NavLink>
+            <>
+              <NavLink
+                to="/companies"
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-secondary-color hover:bg-surface-2 transition-colors"
+              >
+                <i className="fa-solid fa-buildings w-4" />
+                Societes
+              </NavLink>
+              <NavLink
+                to="/developer-tools"
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-secondary-color hover:bg-surface-2 transition-colors"
+              >
+                <i className="fa-solid fa-code w-4" />
+                Outils développeur
+              </NavLink>
+            </>
           )}
           <button
             onClick={onLogout}
@@ -226,7 +239,7 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper
               <img src={irtiwaaMark} alt="" className="w-5 h-5 object-contain" />
             </div>
             <div>
-              <div className="text-sm font-bold text-white">El Irtiwaa</div>
+              <div className="text-sm font-bold text-white">{APP_NAME}</div>
               <div className="text-xs" style={{ color: 'var(--rail-text)' }}>{statusLabel}</div>
             </div>
           </div>
@@ -407,13 +420,13 @@ export default function AppLayout() {
           <div
             className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shadow-lg cursor-pointer flex-shrink-0"
             onClick={() => navigate('/')}
-            title="El Irtiwaa"
+            title={APP_NAME}
           >
             <img src={irtiwaaMark} alt="" className="w-7 h-7 object-contain" />
           </div>
           {isSidebarExpanded && (
             <div className="min-w-0">
-              <div className="rail-brand-title">El Irtiwaa</div>
+              <div className="rail-brand-title">{APP_NAME}</div>
               <div className="rail-brand-subtitle">
                 <span className="app-version-label">v{APP_VERSION}</span>
               </div>
@@ -492,7 +505,7 @@ export default function AppLayout() {
               <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center shadow-sm">
                 <img src={irtiwaaMark} alt="" className="w-5 h-5 object-contain" />
               </div>
-              <span className="font-bold text-sm text-base-color">El Irtiwaa</span>
+              <span className="font-bold text-sm text-base-color">{APP_NAME}</span>
             </div>
             <div className="min-w-0">
               <div className="hidden md:flex items-center gap-2 min-w-0">

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { APP_NAME } from '../config/appMeta'
 import { useDocumentLayouts } from '../hooks/useDocumentLayouts'
 import { downloadDocumentPdf, printGeneratedDocument } from '../utils/documents'
 import { downloadCsvExport, printCurrentDocument } from '../utils/exporting'
@@ -43,7 +44,7 @@ export default function PageExportActions({
 
   const handlePdf = async () => {
     if (!hasDocumentTemplate) {
-      printCurrentDocument(title ? `${title} | El Irtiwaa` : 'El Irtiwaa')
+      printCurrentDocument(title ? `${title} | ${APP_NAME}` : APP_NAME)
       return
     }
 
@@ -92,7 +93,7 @@ export default function PageExportActions({
       return
     }
 
-    printCurrentDocument(title ? `${title} | El Irtiwaa` : 'El Irtiwaa')
+    printCurrentDocument(title ? `${title} | ${APP_NAME}` : APP_NAME)
   }
 
   return (

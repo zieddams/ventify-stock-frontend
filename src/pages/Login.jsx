@@ -76,17 +76,17 @@ export default function Login() {
         <div className="login-shell w-full max-w-md rounded-[30px] px-6 py-7 sm:px-8">
           <div className="flex items-center gap-3">
             <div className="relative flex h-14 w-14 items-center justify-center rounded-[20px] bg-white/95 shadow-[0_18px_42px_rgba(15,23,42,0.2)]">
-              <img src={irtiwaaMark} alt="Logo El Irtiwaa" className="h-10 w-10 object-contain" />
+              <img src={irtiwaaMark} alt="Logo application" className="h-10 w-10 object-contain" />
               <div className="absolute inset-0 rounded-[20px] bg-[linear-gradient(135deg,rgba(255,255,255,0.38)_0%,rgba(255,255,255,0)_62%)]" />
             </div>
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-teal-200/80">El Irtiwaa</div>
-              <div className="text-xl font-bold text-white">Connexion plateforme</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-teal-200/80">Gestion de vente</div>
+              <div className="text-xl font-bold text-white">Connexion a la plateforme</div>
             </div>
           </div>
 
           <p className="mt-5 text-sm leading-7 text-slate-300">
-            Accès direct au stock, aux sessions terrain, à la facturation et au suivi mobile.
+            Acces direct au stock, aux sessions terrain, a la facturation et au suivi mobile.
           </p>
 
           {error && (
@@ -114,7 +114,7 @@ export default function Login() {
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="admin@irtiwaa.tn"
+                  placeholder="admin@gestion.local"
                   autoComplete="email"
                   required
                   autoFocus

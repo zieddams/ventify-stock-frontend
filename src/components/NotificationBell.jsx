@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { APP_NAME } from '../config/appMeta'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
@@ -113,7 +114,7 @@ export default function NotificationBell() {
     }
 
     try {
-      const desktopNotification = new window.Notification('El Irtiwaa', {
+      const desktopNotification = new window.Notification(APP_NAME, {
         body: message,
         tag: newest.id,
       })

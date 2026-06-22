@@ -364,7 +364,7 @@ export default function Dashboard() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-base-color tracking-tight">Tableau de bord</h1>
-        <p className="text-sm text-muted-color mt-0.5">El Irtiwaa — vue en temps réel <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-1 mb-0.5" /></p>
+        <p className="text-sm text-muted-color mt-0.5">Suivi operationnel en temps reel <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-1 mb-0.5" /></p>
       </div>
 
       {/* ── Admin view ──────────────────────────────────────────────────── */}

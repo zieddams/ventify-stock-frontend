@@ -3,6 +3,7 @@ import api from '../../services/api'
 import DepotScopeControls from '../../components/DepotScopeControls'
 import PageHeader from '../../components/PageHeader'
 import { APP_VERSION } from '../../config/appMeta'
+import { useAuth } from '../../contexts/AuthContext'
 import { useDepots } from '../../hooks/useDepots'
 import {
   appendDataTransferHistory,
@@ -240,6 +241,9 @@ function HistoryTab({
                         <span className="text-sm font-semibold text-base-color">{entry.entityLabel}</span>
                       </div>
                       <div className="text-xs text-muted-color mt-2">{summary}{scopeSuffix}</div>
+                      {entry.companyLabel && (
+                        <div className="text-xs text-secondary-color mt-2">Societe: {entry.companyLabel}</div>
+                      )}
                       {Array.isArray(entry.summary?.details) && entry.summary.details.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {entry.summary.details.slice(0, 4).map(detail => (
@@ -276,6 +280,7 @@ function HistoryTab({
 }
 
 export default function DataToolsIndex() {
+  const { user, isDeveloper } = useAuth()
   const [tab, setTab] = useState('import')
 
   const [importType, setImportType] = useState('customers')
@@ -322,18 +327,30 @@ export default function DataToolsIndex() {
     defaultToAll: true,
     storageKey: 'data-tools-export-depot',
   })
+  const { selectedDepot: selectedHistoryDepot } = useDepots({
+    allowAll: false,
+    storageKey: 'app-depot-scope',
+  })
 
   const selectedImport = IMPORT_TYPES.find(item => item.value === importType)
   const selectedExport = EXPORT_TYPES.find(item => item.value === exportType)
   const importRequiresDepot = IMPORT_TYPES_REQUIRING_DEPOT.has(importType)
   const exportSupportsDepot = EXPORT_TYPES_WITH_DEPOT_SCOPE.has(exportType)
+  const selectedHistoryCompanyId = isDeveloper()
+    ? (selectedHistoryDepot?.company_id ?? selectedHistoryDepot?.company?.id ?? user?.company_id ?? null)
+    : (user?.company_id ?? null)
 
   const loadServerHistory = async () => {
     setServerHistoryLoading(true)
     setServerHistoryError('')
 
     try {
-      const response = await api.get('/import/history', { params: { limit: 40 } })
+      const response = await api.get('/import/history', {
+        params: {
+          limit: 40,
+          ...(selectedHistoryCompanyId ? { company_id: selectedHistoryCompanyId } : {}),
+        },
+      })
       setServerHistory(Array.isArray(response.data) ? response.data : [])
     } catch (error) {
       setServerHistoryError(error.response?.data?.message || "Impossible de charger l'historique serveur.")
@@ -344,7 +361,7 @@ export default function DataToolsIndex() {
 
   useEffect(() => {
     loadServerHistory()
-  }, [])
+  }, [selectedHistoryCompanyId])
 
   const historyEntries = useMemo(
     () => [...serverHistory, ...transferHistory]

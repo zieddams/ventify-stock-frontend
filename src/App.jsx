@@ -26,6 +26,7 @@ import HelpCenterIndex from './pages/help/HelpCenterIndex'
 import NotificationsCenterIndex from './pages/notifications/NotificationsCenterIndex'
 import BugReportsIndex from './pages/support/BugReportsIndex'
 import DeveloperToolsIndex from './pages/developer/DeveloperToolsIndex'
+import CompaniesIndex from './pages/companies/CompaniesIndex'
 import { APP_BASE_PATH } from './utils/appPaths'
 
 function RequireAuth({ children }) {
@@ -89,6 +90,8 @@ export default function App() {
               <Route path="map"       element={<RequireAdmin><LiveMapIndex /></RequireAdmin>} />
               <Route path="inventory" element={<RequireAdmin><InventaireIndex /></RequireAdmin>} />
               <Route path="data-tools" element={<RequireAdmin><DataToolsIndex /></RequireAdmin>} />
+              <Route path="companies" element={<RequireDeveloper><CompaniesIndex /></RequireDeveloper>} />
+              <Route path="companies/:companyId" element={<RequireDeveloper><CompaniesIndex /></RequireDeveloper>} />
               <Route path="developer-tools" element={<RequireDeveloper><DeveloperToolsIndex /></RequireDeveloper>} />
               <Route path="help" element={<HelpCenterIndex />} />
               <Route path="notifications-center" element={<NotificationsCenterIndex />} />

@@ -11,7 +11,7 @@ const INITIAL_STATUS = {
     message: 'Maintenance en cours. Revenez bientôt.',
   },
   support: {
-    contact_label: 'Équipe El Irtiwaa',
+    contact_label: 'Equipe support',
   },
 }
 
@@ -69,7 +69,7 @@ function MaintenanceScreen({ maintenance, contactLabel }) {
               </div>
               <div className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                 <div className="text-xs text-muted-color">Support interne</div>
-                <div className="text-sm font-semibold text-base-color mt-1">{contactLabel || 'Équipe El Irtiwaa'}</div>
+                <div className="text-sm font-semibold text-base-color mt-1">{contactLabel || 'Equipe support'}</div>
               </div>
               <div className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                 <div className="text-xs text-muted-color">Accès développeur</div>
@@ -146,7 +146,7 @@ export default function MaintenanceBoundary({ children }) {
             message: payload?.maintenance?.message || 'Maintenance en cours. Revenez bientôt.',
           },
           support: {
-            contact_label: payload?.support?.contact_label || 'Équipe El Irtiwaa',
+            contact_label: payload?.support?.contact_label || 'Equipe support',
           },
         })
       } catch {

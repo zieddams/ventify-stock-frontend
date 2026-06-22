@@ -550,7 +550,11 @@ export default function ConfigIndex() {
             ...(configCompanyId ? { company_id: configCompanyId } : {}),
           },
         }),
-        api.get('/settings'),
+        api.get('/settings', {
+          params: {
+            ...(configCompanyId ? { company_id: configCompanyId } : {}),
+          },
+        }),
       ])
 
       setItemsByType(configResponse.data ?? {})
@@ -643,6 +647,7 @@ export default function ConfigIndex() {
 
     try {
       const response = await api.put('/settings', {
+        ...(configCompanyId ? { company_id: configCompanyId } : {}),
         settings: keys.map((key) => ({
           key,
           value: settingsByKey[key]?.value ?? '',

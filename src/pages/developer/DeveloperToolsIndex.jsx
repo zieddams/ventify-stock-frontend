@@ -454,6 +454,9 @@ export default function DeveloperToolsIndex() {
         subtitle="Maintenance globale ou ciblée, mode démo, fresh install, bug center et diagnostic VPS réservés au rôle développeur."
         action={(
           <div className="flex flex-wrap gap-2">
+            <Link to="/companies" className="btn-secondary text-xs">
+              <i className="fa-solid fa-buildings" /> Societes
+            </Link>
             <Link to="/bug-reports" className="btn-secondary text-xs">
               <i className="fa-solid fa-bug" /> Support
             </Link>
