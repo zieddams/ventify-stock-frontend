@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import irtiwaaMark from '../assets/irtiwaa-mark.png'
 import { useAuth } from '../contexts/AuthContext'
 
 const PARTICLES = Array.from({ length: 22 }, (_, index) => ({
@@ -74,9 +75,9 @@ export default function Login() {
       <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10">
         <div className="login-shell w-full max-w-md rounded-[30px] px-6 py-7 sm:px-8">
           <div className="flex items-center gap-3">
-            <div className="relative flex h-14 w-14 items-center justify-center rounded-[20px] bg-gradient-to-br from-teal-400 via-teal-500 to-teal-700 shadow-[0_18px_42px_rgba(13,148,136,0.32)]">
-              <i className="fa-solid fa-droplet text-xl text-white" />
-              <div className="absolute inset-0 rounded-[20px] bg-[linear-gradient(135deg,rgba(255,255,255,0.28)_0%,rgba(255,255,255,0)_62%)]" />
+            <div className="relative flex h-14 w-14 items-center justify-center rounded-[20px] bg-white/95 shadow-[0_18px_42px_rgba(15,23,42,0.2)]">
+              <img src={irtiwaaMark} alt="Logo El Irtiwaa" className="h-10 w-10 object-contain" />
+              <div className="absolute inset-0 rounded-[20px] bg-[linear-gradient(135deg,rgba(255,255,255,0.38)_0%,rgba(255,255,255,0)_62%)]" />
             </div>
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-teal-200/80">El Irtiwaa</div>

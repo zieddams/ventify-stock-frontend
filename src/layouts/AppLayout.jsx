@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import irtiwaaMark from '../assets/irtiwaa-mark.png'
 import NotificationBell from '../components/NotificationBell'
 import DepotScopeControls from '../components/DepotScopeControls'
 import { APP_VERSION } from '../config/appMeta'
@@ -221,8 +222,8 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper
       <div className="absolute left-0 top-0 bottom-0 w-80 rail flex flex-col animate-slide-in shadow-xl">
         <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center shadow">
-              <i className="fa-solid fa-droplet text-white text-sm" />
+            <div className="w-8 h-8 rounded-lg bg-white/95 flex items-center justify-center shadow">
+              <img src={irtiwaaMark} alt="" className="w-5 h-5 object-contain" />
             </div>
             <div>
               <div className="text-sm font-bold text-white">El Irtiwaa</div>
@@ -394,7 +395,7 @@ export default function AppLayout() {
     enabled: Boolean(user),
   })
   const statusLabel = getSystemStatusLabel(systemStatus)
-  const canSeeDepotScope = isFinance() || isAdmin()
+  const canSeeDepotScope = isDeveloper()
 
   return (
     <div className="flex h-screen overflow-hidden bg-app">
@@ -404,11 +405,11 @@ export default function AppLayout() {
       >
         <div className={`rail-brand${isSidebarExpanded ? ' expanded' : ''}`}>
           <div
-            className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center shadow-lg cursor-pointer flex-shrink-0"
+            className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shadow-lg cursor-pointer flex-shrink-0"
             onClick={() => navigate('/')}
             title="El Irtiwaa"
           >
-            <i className="fa-solid fa-droplet text-white" />
+            <img src={irtiwaaMark} alt="" className="w-7 h-7 object-contain" />
           </div>
           {isSidebarExpanded && (
             <div className="min-w-0">
@@ -488,8 +489,8 @@ export default function AppLayout() {
               <i className={`${pageInfo.icon} text-teal-600 dark:text-teal-400`} style={{ fontSize: 12 }} />
             </div>
             <div className="md:hidden flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center">
-                <i className="fa-solid fa-droplet text-white text-xs" />
+              <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center shadow-sm">
+                <img src={irtiwaaMark} alt="" className="w-5 h-5 object-contain" />
               </div>
               <span className="font-bold text-sm text-base-color">El Irtiwaa</span>
             </div>

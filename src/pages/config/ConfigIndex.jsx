@@ -6,6 +6,8 @@ import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
 import { SUPPORT_BUG_RECIPIENTS } from '../../config/supportRecipients'
+import { useAuth } from '../../contexts/AuthContext'
+import { useDepots } from '../../hooks/useDepots'
 import SystemTasksPanel from './SystemTasksPanel'
 import { DOCUMENT_LAYOUT_SETTING_KEY, normalizeDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
@@ -508,6 +510,11 @@ function DocumentTemplateCard({
 export default function ConfigIndex() {
   const navigate = useNavigate()
   const { sectionKey: routeSectionKey } = useParams()
+  const { user, isDeveloper } = useAuth()
+  const { selectedDepot } = useDepots({
+    allowAll: false,
+    storageKey: 'app-depot-scope',
+  })
   const [documentEntityKey, setDocumentEntityKey] = useState(DOCUMENT_ENTITY_GROUPS[0].key)
   const [itemsByType, setItemsByType] = useState({})
   const [settingsByKey, setSettingsByKey] = useState({})
@@ -526,6 +533,9 @@ export default function ConfigIndex() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
+  const configCompanyId = isDeveloper()
+    ? (selectedDepot?.company_id ?? selectedDepot?.company?.id ?? user?.company_id ?? null)
+    : (user?.company_id ?? null)
 
   const loadConfig = async () => {
     setLoading(true)
@@ -533,7 +543,13 @@ export default function ConfigIndex() {
     try {
       const types = MANAGED_TYPES.map((item) => item.key).join(',')
       const [configResponse, settingsResponse] = await Promise.all([
-        api.get('/config', { params: { types, all: 1 } }),
+        api.get('/config', {
+          params: {
+            types,
+            all: 1,
+            ...(configCompanyId ? { company_id: configCompanyId } : {}),
+          },
+        }),
         api.get('/settings'),
       ])
 
@@ -582,7 +598,7 @@ export default function ConfigIndex() {
     loadConfig()
     loadSystemInfo()
     loadBackgroundTasks()
-  }, [])
+  }, [configCompanyId])
 
   const summary = useMemo(() => ({
     category: itemsByType.category?.length ?? 0,
@@ -746,6 +762,7 @@ export default function ConfigIndex() {
       const value = (form.value.trim() || slugifyValue(label))
 
       const payload = {
+        ...(configCompanyId ? { company_id: configCompanyId } : {}),
         type: modalType,
         value,
         label: label || value,

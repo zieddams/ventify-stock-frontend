@@ -53,8 +53,11 @@ export default function UsersIndex() {
   })
 
   const singleDepot = depots.length === 1 ? depots[0] : null
+  const selectedFormDepot = depots.find((depot) => String(depot.id) === String(form.depot_id)) ?? singleDepot ?? null
   const canManageUsers = ['admin', 'developer'].includes(me?.role)
   const canManageAssignments = ['admin', 'developer', 'comptable'].includes(me?.role)
+  const isDeveloperUser = me?.role === 'developer'
+  const showDepotColumn = isDeveloperUser
   const totalAssignedCustomers = users.reduce((sum, entry) => sum + Number(entry.customers_count ?? 0), 0)
 
   const filteredAssignmentCustomers = useMemo(() => {
@@ -300,7 +303,17 @@ export default function UsersIndex() {
           <table className="w-full text-sm">
             <thead>
               <tr>
-                {['Utilisateur', 'Email', 'Rôle', 'Zone', 'Dépôt', 'Liste clients', 'Statut', 'Créé le', 'Actions'].map((heading) => (
+                {[
+                  'Utilisateur',
+                  'Email',
+                  'Rôle',
+                  'Zone',
+                  ...(showDepotColumn ? ['Dépôt'] : []),
+                  'Liste clients',
+                  'Statut',
+                  'Créé le',
+                  'Actions',
+                ].map((heading) => (
                   <th key={heading} className="pb-3 pr-4 text-left">{heading}</th>
                 ))}
               </tr>
@@ -322,7 +335,9 @@ export default function UsersIndex() {
                   <td className="py-3 pr-4 text-secondary-color text-xs font-mono">{entry.email}</td>
                   <td className="py-3 pr-4"><RôleBadge role={entry.role} /></td>
                   <td className="py-3 pr-4 text-muted-color text-xs">{zoneName(entry.zone_id)}</td>
-                  <td className="py-3 pr-4 text-muted-color text-xs">{entry.depot?.name ?? depotName(entry.depot_id)}</td>
+                  {showDepotColumn && (
+                    <td className="py-3 pr-4 text-muted-color text-xs">{entry.depot?.name ?? depotName(entry.depot_id)}</td>
+                  )}
                   <td className="py-3 pr-4 text-secondary-color text-xs font-semibold">{Number(entry.customers_count ?? 0)} client(s)</td>
                   <td className="py-3 pr-4">
                     <span className={`text-xs font-semibold ${entry.active ? 'text-emerald-600' : 'text-muted-color'}`}>
@@ -376,7 +391,7 @@ export default function UsersIndex() {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-muted-color">Aucun utilisateur</td>
+                  <td colSpan={showDepotColumn ? 9 : 8} className="py-12 text-center text-muted-color">Aucun utilisateur</td>
                 </tr>
               )}
             </tbody>
@@ -434,7 +449,12 @@ export default function UsersIndex() {
           </div>
 
           <FormField label="Dépôt principal" error={errors.depot_id?.[0]}>
-            {singleDepot ? (
+            {!isDeveloperUser ? (
+              <DepotSelectionInfo
+                depot={selectedFormDepot}
+                hint="Affectation automatique selon la société et le dépôt principal du compte."
+              />
+            ) : singleDepot ? (
               <DepotSelectionInfo depot={singleDepot} />
             ) : (
               <select value={form.depot_id} onChange={(event) => setForm((current) => ({ ...current, depot_id: event.target.value }))}>

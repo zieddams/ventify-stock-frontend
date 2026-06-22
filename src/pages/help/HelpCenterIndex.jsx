@@ -4,52 +4,57 @@ import { useAuth } from '../../contexts/AuthContext'
 
 const SECTION_INDEX = [
   { id: 'overview', label: "Vue d'ensemble", icon: 'fa-solid fa-compass' },
+  { id: 'operations', label: 'Référentiel et dépôt', icon: 'fa-solid fa-warehouse' },
   { id: 'roles', label: 'Rôles et accès', icon: 'fa-solid fa-user-shield' },
-  { id: 'terrain', label: 'Sessions et terrain', icon: 'fa-solid fa-route' },
-  { id: 'billing', label: 'Facturation et finance', icon: 'fa-solid fa-file-invoice-dollar' },
-  { id: 'support', label: 'Support et maintenance', icon: 'fa-solid fa-life-ring' },
+  { id: 'terrain', label: 'Sessions et camions', icon: 'fa-solid fa-route' },
+  { id: 'finance', label: 'Facturation et finance', icon: 'fa-solid fa-file-invoice-dollar' },
+  { id: 'support', label: 'Support et supervision', icon: 'fa-solid fa-life-ring' },
   { id: 'faq', label: 'FAQ rapide', icon: 'fa-solid fa-circle-question' },
 ]
 
-const OPERATING_STEPS = [
+const WORKFLOW_STEPS = [
   {
-    title: '1. Préparer la base métier',
-    description: 'Vérifiez d’abord les produits, les unités, les zones, les moyens de paiement et les catégories de dépense.',
+    title: '1. Préparer le référentiel',
+    description: 'Produits, unités, zones, moyens de paiement, catégories de dépense et documents doivent être propres avant toute exploitation.',
   },
   {
-    title: '2. Organiser les équipes',
-    description: 'Les administrateurs et développeurs gèrent les comptes, les camions, les sessions et les listes clients.',
+    title: '2. Cadrer le dépôt',
+    description: "Le dépôt actif donne le périmètre de travail. Le multi-dépôt reste un usage d'administration avancé.",
   },
   {
-    title: '3. Ouvrir le terrain',
-    description: 'Une session relie un commercial, un camion, un stock embarqué, des pings GPS et les factures du jour.',
+    title: '3. Ouvrir la session terrain',
+    description: "Une session relie un commercial, un camion disponible, un chargement initial et l'activité du jour.",
   },
   {
-    title: '4. Suivre puis clôturer',
-    description: 'La carte, les notifications, l’inventaire, les rapports et les exports servent au pilotage et à l’audit.',
+    title: '4. Facturer, clôturer, auditer',
+    description: 'Les factures, paiements, crédits, retours, exports et notifications doivent tous raconter la même journée.',
   },
 ]
 
 const FAQ_ITEMS = [
   {
     question: 'Pourquoi un commercial ne voit-il pas tous les clients ?',
-    answer: 'Parce que le portefeuille client est filtré par affectation. Les admins, développeurs et comptables gardent une vision globale.',
+    answer: "Parce que le portefeuille client est filtré par affectation. Les profils admin, développeur et comptable gardent une vision plus large.",
   },
   {
-    question: 'À quoi sert une session terrain ?',
-    answer: 'Elle centralise le camion, le commercial, le chargement initial, les mouvements de stock, le suivi GPS et les ventes de la journée.',
+    question: 'Pourquoi la carte semble-t-elle limitée ?',
+    answer: "La géolocalisation détaillée est volontairement en pause dans cette phase. Le suivi terrain reste basé sur les sessions, camions, recharges, factures et notifications.",
   },
   {
-    question: 'Où régler les impressions, les exports et les catalogues ?',
-    answer: 'La page Configuration centralise les catalogues, les documents, les dépenses, le support et les tâches système.',
+    question: 'Où régler les documents, impressions et champs PDF ?',
+    answer: "Depuis le hub Configuration, section Documents PDF et impression, avec un paramétrage par entité.",
   },
   {
-    question: 'Comment signaler un bug exploitable ?',
-    answer: "Utilisez la page Support et signalements avec le sujet, la zone concernée, la sévérité, l’URL et le contexte navigateur.",
+    question: "Où retrouver l'historique des imports et exports ?",
+    answer: "Dans Outils de données, onglet Historique. La page fusionne les traces locales du navigateur et l'historique remonté par le serveur.",
   },
   {
-    question: 'Qui peut activer la maintenance ou lancer un fresh install ?',
-    answer: 'Seul le rôle développeur accède à la console développeur et aux actions sensibles de maintenance environnement.',
+    question: 'Pourquoi certains écrans ne montrent plus un sélecteur de dépôt ?',
+    answer: "Quand un seul dépôt actif est exploitable, l'interface l'applique directement pour éviter un filtre inutile.",
+  },
+  {
+    question: 'Qui peut lancer la maintenance ou un fresh install ?',
+    answer: "Le rôle développeur uniquement. Ce sont des actions sensibles d'environnement, pas des opérations métier courantes.",
   },
 ]
 
@@ -82,7 +87,10 @@ function DocAsideLink({ section }) {
       className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-colors hover:bg-surface-2"
       style={{ color: 'var(--secondary)' }}
     >
-      <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(13,148,136,0.10)', color: '#0d9488' }}>
+      <span
+        className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ background: 'rgba(13,148,136,0.10)', color: '#0d9488' }}
+      >
         <i className={`${section.icon} text-xs`} />
       </span>
       <span className="font-medium">{section.label}</span>
@@ -105,9 +113,12 @@ function SectionShell({ id, eyebrow, title, description, children }) {
   )
 }
 
-function RôleCard({ title, description, bullets, tone = '#0d9488' }) {
+function RoleCard({ title, description, bullets, tone = '#0d9488' }) {
   return (
-    <div className="rounded-[24px] px-5 py-5 h-full" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+    <div
+      className="rounded-[24px] px-5 py-5 h-full"
+      style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+    >
       <div className="text-sm font-semibold text-base-color">{title}</div>
       <div className="text-sm text-secondary-color mt-2">{description}</div>
       <div className="space-y-2 mt-4">
@@ -122,34 +133,42 @@ function RôleCard({ title, description, bullets, tone = '#0d9488' }) {
   )
 }
 
+function InfoBullet({ children, color = '#0d9488', icon = 'fa-solid fa-circle-dot' }) {
+  return (
+    <div className="flex items-start gap-2 text-sm text-secondary-color">
+      <i className={`${icon} mt-1 text-[10px]`} style={{ color }} />
+      <span>{children}</span>
+    </div>
+  )
+}
+
 export default function HelpCenterIndex() {
   const { isAdmin, isFinance, isDeveloper } = useAuth()
 
   const quickLinks = [
     {
-      title: 'Factures et encaissements',
-      description: 'Créer, régler, imprimer et suivre les factures au niveau ligne ou document complet.',
+      title: 'Factures',
+      description: 'Créer, consulter, imprimer et relire les factures avec leur contexte métier.',
       to: '/invoices',
       icon: 'fa-solid fa-file-invoice',
     },
     {
-      title: 'Clients et portefeuille',
-      description: 'Suivre les clients visibles, les affectations par utilisateur et les droits de consultation.',
+      title: 'Clients',
+      description: "Suivre le portefeuille visible, les affectations et l'historique commercial.",
       to: '/customers',
       icon: 'fa-solid fa-users',
     },
     {
-      title: 'Produits et dépôt',
-      description: 'Vérifier les références, les minimums obligatoires, les stocks et les réappros rapides.',
+      title: 'Produits',
+      description: 'Contrôler les références, les seuils minimums, le stock dépôt et les réappros rapides.',
       to: '/products',
       icon: 'fa-solid fa-box-open',
     },
     {
-      title: 'Support et signalements',
-      description: 'Signaler un incident avec le contexte technique pour accélérer le correctif.',
-      to: '/bug-reports',
-      icon: 'fa-solid fa-bug',
-      cta: 'Signaler',
+      title: 'Notifications',
+      description: 'Relire les alertes métier, techniques et les événements récents de la plateforme.',
+      to: '/notifications-center',
+      icon: 'fa-solid fa-bell',
     },
   ]
 
@@ -157,38 +176,52 @@ export default function HelpCenterIndex() {
     quickLinks.push(
       {
         title: 'Sessions terrain',
-        description: 'Ouvrir, suivre et clôturer les sorties commerciales avec chargement et retours.',
+        description: 'Suivre les sorties du jour, les totaux vendus, le crédit et les clôtures.',
         to: '/routes',
         icon: 'fa-solid fa-route',
       },
       {
-        title: 'Carte et monitoring',
-        description: 'Relire les pings GPS, l’activité terrain et les remontées mobiles en temps réel.',
-        to: '/map',
-        icon: 'fa-solid fa-map-location-dot',
+        title: 'Camions',
+        description: 'Gérer les camions physiques, leur disponibilité et leur stock embarqué.',
+        to: '/camions',
+        icon: 'fa-solid fa-truck-fast',
       },
       {
         title: 'Configuration',
-        description: 'Regrouper catalogues, documents, support et modules système dans un même hub.',
+        description: 'Ouvrir le hub de configuration pour les catalogues, documents et tâches système.',
         to: '/config',
         icon: 'fa-solid fa-sliders',
+      },
+      {
+        title: 'Outils de données',
+        description: 'Importer, exporter et relire l’historique local et serveur des transferts.',
+        to: '/data-tools',
+        icon: 'fa-solid fa-file-arrow-up',
       },
     )
   }
 
   if (isFinance()) {
-    quickLinks.push({
-      title: 'Dépenses et crédit',
-      description: 'Suivre les dépenses quotidiennes, le crédit client et les vues finance du dépôt.',
-      to: '/expenses',
-      icon: 'fa-solid fa-receipt',
-    })
+    quickLinks.push(
+      {
+        title: 'Crédit clients',
+        description: 'Suivre les créances, les remboursements et les filtres par période.',
+        to: '/credit',
+        icon: 'fa-solid fa-credit-card',
+      },
+      {
+        title: 'Dépenses',
+        description: 'Piloter les dépenses, leurs catégories dynamiques et les vues de contrôle.',
+        to: '/expenses',
+        icon: 'fa-solid fa-receipt',
+      },
+    )
   }
 
   if (isDeveloper()) {
     quickLinks.push({
       title: 'Console développeur',
-      description: 'Maintenance, mode démo, fresh install, tâches serveur et diagnostic environnement.',
+      description: 'Maintenance, fresh install, mode démo, diagnostics et outils sensibles.',
       to: '/developer-tools',
       icon: 'fa-solid fa-code',
     })
@@ -198,7 +231,7 @@ export default function HelpCenterIndex() {
     <div className="space-y-6">
       <PageHeader
         title="Centre d'aide et documentation"
-        subtitle="Une vue documentée du fonctionnement Irtiwaa : flux métier, rôles, terrain, finance, support et opérations système."
+        subtitle="Référence fonctionnelle actuelle d'El Irtiwaa: dépôt, sessions, facturation, support, données et supervision."
         action={(
           <div className="flex flex-wrap gap-2">
             <Link to="/notifications-center" className="btn-secondary text-xs">
@@ -223,24 +256,29 @@ export default function HelpCenterIndex() {
           </div>
 
           <div className="card">
-            <div className="text-sm font-semibold text-base-color">Besoin d'une action rapide ?</div>
+            <div className="text-sm font-semibold text-base-color">Actions utiles</div>
             <div className="text-sm text-secondary-color mt-2">
-              Utilisez la documentation pour comprendre le flux, puis ouvrez directement le module cible.
+              Cette page résume la logique métier. Les raccourcis ci-dessous ouvrent directement les modules liés.
             </div>
             <div className="space-y-2 mt-4">
               {isAdmin() && (
                 <>
                   <Link to="/config" className="btn-secondary text-xs w-full justify-center">
-                    <i className="fa-solid fa-sliders" /> Configuration
+                    <i className="fa-solid fa-sliders" /> Hub configuration
                   </Link>
                   <Link to="/data-tools" className="btn-secondary text-xs w-full justify-center">
-                    <i className="fa-solid fa-file-arrow-up" /> Imports / exports
+                    <i className="fa-solid fa-file-arrow-up" /> Outils de données
                   </Link>
                 </>
               )}
+              {isDeveloper() && (
+                <Link to="/developer-tools" className="btn-secondary text-xs w-full justify-center">
+                  <i className="fa-solid fa-code" /> Console développeur
+                </Link>
+              )}
               {!isAdmin() && isFinance() && (
                 <Link to="/expenses" className="btn-secondary text-xs w-full justify-center">
-                  <i className="fa-solid fa-receipt" /> Depenses
+                  <i className="fa-solid fa-receipt" /> Dépenses
                 </Link>
               )}
               {!isAdmin() && !isFinance() && (
@@ -265,12 +303,16 @@ export default function HelpCenterIndex() {
           <SectionShell
             id="overview"
             eyebrow="Vue d'ensemble"
-            title="Le système s’organise autour d’un flux dépôt -> terrain -> facturation -> audit."
-            description="Irtiwaa n’est pas une simple liste de pages. Chaque module alimente le suivant, et la qualité des données dépend surtout du respect de cet enchaînement."
+            title="Le flux réel est: référentiel -> dépôt -> session -> facture -> contrôle."
+            description="Le système fonctionne correctement quand tous les modules racontent la même journée métier. La plateforme web, l'API et le mobile doivent rester alignés sur ce fil."
           >
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-              {OPERATING_STEPS.map((step) => (
-                <div key={step.title} className="rounded-[24px] px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+              {WORKFLOW_STEPS.map((step) => (
+                <div
+                  key={step.title}
+                  className="rounded-[24px] px-4 py-4"
+                  style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+                >
                   <div className="text-sm font-semibold text-base-color">{step.title}</div>
                   <div className="text-sm text-secondary-color mt-2">{step.description}</div>
                 </div>
@@ -278,31 +320,80 @@ export default function HelpCenterIndex() {
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-[1.2fr,0.8fr] gap-4 mt-5">
-              <div className="rounded-[24px] px-5 py-5" style={{ background: 'rgba(13,148,136,0.06)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.14)' }}>
-                <div className="text-sm font-semibold text-base-color">Relations entre modules</div>
-                <div className="space-y-3 mt-3 text-sm text-secondary-color">
-                  <p>Les produits, unités, zones, paiements et catégories de dépense forment la base commune. Tant que cette base n’est pas propre, les sorties terrain, les factures et les impressions restent fragiles.</p>
-                  <p>Les clients sont ensuite reliés aux comptes utilisateurs. Les commerciaux ne voient que leur portefeuille, alors que les profils de back-office gardent une vue complète pour le pilotage et l’audit.</p>
-                  <p>Les sessions terrain servent de lien entre le camion, le stock embarqué, la position mobile, les réappros et les ventes de la journée.</p>
+              <div
+                className="rounded-[24px] px-5 py-5"
+                style={{ background: 'rgba(13,148,136,0.06)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.14)' }}
+              >
+                <div className="text-sm font-semibold text-base-color">Ce qui pilote le reste du système</div>
+                <div className="space-y-3 mt-3">
+                  <InfoBullet>Le référentiel produit, les unités, zones, tarifs et moyens de paiement doivent être prêts avant toute session.</InfoBullet>
+                  <InfoBullet>Le dépôt actif donne le périmètre de stock, d'export, de rapports et de pilotage quotidien.</InfoBullet>
+                  <InfoBullet>Les imports et exports ont maintenant un historique local et serveur pour mieux auditer les opérations.</InfoBullet>
+                  <InfoBullet>Les notifications, rapports et écrans terrain doivent toujours rester cohérents avec les données API.</InfoBullet>
                 </div>
               </div>
 
-              <div className="rounded-[24px] px-5 py-5" style={{ background: 'rgba(59,130,246,0.06)', boxShadow: 'inset 0 0 0 1px rgba(59,130,246,0.12)' }}>
-                <div className="text-sm font-semibold text-base-color">Points de contrôle quotidiens</div>
-                <div className="space-y-2 mt-3 text-sm text-secondary-color">
-                  <div className="flex items-start gap-2">
-                    <i className="fa-solid fa-circle-dot mt-1 text-[10px]" style={{ color: '#2563eb' }} />
-                    <span>Vérifier les minimums stock et les réappros dépôt avant ouverture terrain.</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <i className="fa-solid fa-circle-dot mt-1 text-[10px]" style={{ color: '#2563eb' }} />
-                    <span>Confirmer le camion, le commercial et les lignes de chargement lors de la session.</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <i className="fa-solid fa-circle-dot mt-1 text-[10px]" style={{ color: '#2563eb' }} />
-                    <span>Relire la carte, les notifications et l'historique avant clôture de journée.</span>
-                  </div>
+              <div
+                className="rounded-[24px] px-5 py-5"
+                style={{ background: 'rgba(59,130,246,0.06)', boxShadow: 'inset 0 0 0 1px rgba(59,130,246,0.12)' }}
+              >
+                <div className="text-sm font-semibold text-base-color">Points importants pour la phase actuelle</div>
+                <div className="space-y-3 mt-3 text-sm text-secondary-color">
+                  <p>Le suivi cartographique détaillé reste volontairement en pause. La page Carte sert surtout de point de reprise futur et n'est plus le cœur du pilotage.</p>
+                  <p>Le mode multi-dépôt existe pour l'administration avancée, mais l'exploitation courante reste centrée sur le dépôt principal actif.</p>
+                  <p>Les écrans doivent privilégier la lisibilité métier: moins de bruit technique, plus de statut opérationnel utile.</p>
                 </div>
+              </div>
+            </div>
+          </SectionShell>
+
+          <SectionShell
+            id="operations"
+            eyebrow="Référentiel et dépôt"
+            title="Le hub Configuration centralise les briques qui structurent toute l'application."
+            description="Avant d'ouvrir le terrain, il faut d'abord garantir la qualité des données de base et des réglages communs."
+          >
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div
+                className="rounded-[24px] px-5 py-5"
+                style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+              >
+                <div className="text-sm font-semibold text-base-color">Ce qui se règle dans le hub</div>
+                <div className="space-y-2 mt-4">
+                  <InfoBullet>Catégories produits, unités, zones et grilles métier du dépôt.</InfoBullet>
+                  <InfoBullet>Méthodes de paiement avec scopes distincts pour la facturation client et les dépenses.</InfoBullet>
+                  <InfoBullet>Catégories de dépenses dynamiques avec nom, couleur, icône et activation.</InfoBullet>
+                  <InfoBullet>Documents PDF et impression par entité, avec sélection des champs visibles.</InfoBullet>
+                  <InfoBullet>Support, utilisateurs, tâches de fond et informations système.</InfoBullet>
+                </div>
+              </div>
+
+              <div
+                className="rounded-[24px] px-5 py-5"
+                style={{ background: 'rgba(245,158,11,0.08)', boxShadow: 'inset 0 0 0 1px rgba(245,158,11,0.14)' }}
+              >
+                <div className="text-sm font-semibold text-base-color">Règles d'exploitation à garder en tête</div>
+                <div className="space-y-2 mt-4">
+                  <InfoBullet color="#f59e0b" icon="fa-solid fa-triangle-exclamation">
+                    Un seul dépôt actif simplifie l'interface: plusieurs sélecteurs deviennent de simples labels informatifs.
+                  </InfoBullet>
+                  <InfoBullet color="#f59e0b" icon="fa-solid fa-triangle-exclamation">
+                    Le minimum produit sert d'alerte métier. Il n'est pas décoratif et doit être défini proprement dès la création.
+                  </InfoBullet>
+                  <InfoBullet color="#f59e0b" icon="fa-solid fa-triangle-exclamation">
+                    Les imports historiques doivent être relus dans l'onglet Historique pour confirmer ce qui a été traité côté serveur.
+                  </InfoBullet>
+                </div>
+                {isAdmin() && (
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    <Link to="/config" className="btn-secondary text-xs">
+                      <i className="fa-solid fa-sliders" /> Ouvrir le hub
+                    </Link>
+                    <Link to="/data-tools" className="btn-secondary text-xs">
+                      <i className="fa-solid fa-file-arrow-up" /> Outils de données
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           </SectionShell>
@@ -310,46 +401,46 @@ export default function HelpCenterIndex() {
           <SectionShell
             id="roles"
             eyebrow="Rôles et accès"
-            title="Chaque rôle a un périmètre clair pour éviter les erreurs de visibilité."
-            description="Les écrans ne suffisent pas : l’API applique aussi les règles de rôle pour garantir la cohérence entre web, mobile et automatisations."
+            title="Les droits sont pensés pour éviter les erreurs de visibilité et de manipulation."
+            description="L'interface filtre certains écrans, mais l'API applique aussi les règles de rôle pour garder le même comportement partout."
           >
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              <RôleCard
+              <RoleCard
                 title="Administrateur"
-                description="Pilote les opérations et garde la vision globale métier."
+                description="Pilote le métier et dispose d'une vision transversale."
                 bullets={[
-                  'Voit tous les clients, sessions, camions, dépôts et pages de configuration.',
-                  'Peut gérer les utilisateurs, les affectations clients et les modules de stock.',
-                  'Travaille avec le développeur sur les cas système ou les incidents majeurs.',
+                  'Voit les clients, le stock, les sessions, les camions, les dépôts et la configuration métier.',
+                  'Supervise les affectations, les contrôles quotidiens et les arbitrages opérationnels.',
+                  "Travaille avec le développeur quand l'incident dépasse le simple usage métier.",
                 ]}
               />
-              <RôleCard
+              <RoleCard
                 title="Développeur"
-                description="Dispose des droits admin et d’une console technique supplémentaire."
+                description="Dispose des droits admin et d'une console environnement supplémentaire."
                 bullets={[
-                  'Accède seul aux outils développeur : maintenance, mode démo, fresh install et diagnostics.',
-                  'Suit les bugs, les tâches planifiées et les verrous d’environnement.',
-                  'Reste autorisé même quand une maintenance est activée.',
+                  'Accède aux actions sensibles: maintenance, mode démo, fresh install et diagnostics.',
+                  'Suit les tâches planifiées, les anomalies système et les outils de reprise.',
+                  'Peut garder la main pendant une maintenance quand les autres rôles sont bloqués.',
                 ]}
                 tone="#8b5cf6"
               />
-              <RôleCard
+              <RoleCard
                 title="Comptable"
-                description="Se concentre sur la finance et la consolidation."
+                description="Se concentre sur les vues finance, le crédit et la consolidation."
                 bullets={[
-                  'Voit les clients, factures, crédits, dépenses et rapports utiles à la finance.',
-                  'Ne pilote pas les outils techniques réservés aux admins et développeurs.',
-                  'Participe au suivi des encaissements et des vues de synthèse.',
+                  'Suit les dépenses, crédits clients, encaissements et synthèses utiles à la finance.',
+                  'Ne pilote pas les outils développeur ni les actions de maintenance environnement.',
+                  'Travaille sur des données consolidées plutôt que sur la configuration système brute.',
                 ]}
                 tone="#2563eb"
               />
-              <RôleCard
+              <RoleCard
                 title="Commercial"
-                description="Travaille surtout depuis le mobile et sur son portefeuille."
+                description="Travaille surtout sur son portefeuille et sa session active."
                 bullets={[
-                  "Ne voit que les clients qui lui sont affectés, sauf création d'un nouveau client.",
-                  'Crée des factures terrain et remonte les pings GPS via la session active.',
-                  'Dépend de la bonne configuration dépôt, produits et camion en amont.',
+                  'Ne voit que les clients qui lui sont affectés, sauf règles métier prévues pour la création.',
+                  'Crée ses factures dans le cadre de sa session et de son stock disponible.',
+                  "N'a pas à gérer les réglages système, la maintenance ou le pilotage multi-dépôt.",
                 ]}
                 tone="#f97316"
               />
@@ -358,72 +449,118 @@ export default function HelpCenterIndex() {
 
           <SectionShell
             id="terrain"
-            eyebrow="Sessions et terrain"
-            title="La session terrain est le point de synchronisation entre le mobile, le stock et la carte."
-            description="Sans session propre, les positions, les mouvements et les ventes deviennent difficiles à relire ou à auditer."
+            eyebrow="Sessions et camions"
+            title="La session terrain est l'objet qui relie le commercial, le camion, le stock et le chiffre du jour."
+            description="Quand la session est propre, le web et le mobile restent cohérents. Quand elle est bancale, les ventes, recharges et clôtures deviennent difficiles à lire."
           >
             <div className="grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-4">
-              <div className="rounded-[24px] px-5 py-5" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                <div className="text-sm font-semibold text-base-color">Ce qu'une session doit toujours contenir</div>
-                <div className="space-y-2 mt-4 text-sm text-secondary-color">
-                  <div className="flex items-start gap-2"><i className="fa-solid fa-check text-xs mt-1 text-teal-500" /><span>Un commercial actif et clairement rattaché à la sortie du jour.</span></div>
-                  <div className="flex items-start gap-2"><i className="fa-solid fa-check text-xs mt-1 text-teal-500" /><span>Un camion avec un statut exploitable et un chargement initial cohérent.</span></div>
-                  <div className="flex items-start gap-2"><i className="fa-solid fa-check text-xs mt-1 text-teal-500" /><span>Des pings réguliers pour la carte, le monitoring et l’historique d’activité.</span></div>
-                  <div className="flex items-start gap-2"><i className="fa-solid fa-check text-xs mt-1 text-teal-500" /><span>Des retours ou ajustements en fin de cycle pour rapprocher le terrain du dépôt.</span></div>
+              <div
+                className="rounded-[24px] px-5 py-5"
+                style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+              >
+                <div className="text-sm font-semibold text-base-color">Ce qu'une session doit contenir</div>
+                <div className="space-y-2 mt-4">
+                  <InfoBullet>Un commercial clairement identifié pour la journée.</InfoBullet>
+                  <InfoBullet>Un camion disponible, non déjà engagé dans une autre session incompatible.</InfoBullet>
+                  <InfoBullet>Un chargement initial cohérent avec le stock réel du dépôt.</InfoBullet>
+                  <InfoBullet>Des recharges et retours audités pour rapprocher camion, dépôt et ventes.</InfoBullet>
+                  <InfoBullet>Une clôture avec synthèse exploitable: ventes, cash, crédit et retours.</InfoBullet>
                 </div>
               </div>
 
-              <div className="rounded-[24px] px-5 py-5" style={{ background: 'rgba(14,165,233,0.06)', boxShadow: 'inset 0 0 0 1px rgba(14,165,233,0.12)' }}>
-                <div className="text-sm font-semibold text-base-color">Lecture de la carte et du monitoring</div>
+              <div
+                className="rounded-[24px] px-5 py-5"
+                style={{ background: 'rgba(14,165,233,0.06)', boxShadow: 'inset 0 0 0 1px rgba(14,165,233,0.12)' }}
+              >
+                <div className="text-sm font-semibold text-base-color">Synchronisation attendue</div>
                 <div className="space-y-3 mt-4 text-sm text-secondary-color">
-                  <p>La carte terrain n’affiche utilement une position que si le mobile partage réellement sa localisation et que la session reste ouverte.</p>
-                  <p>Les derniers pings, le heartbeat et l’activité récente servent à distinguer un vrai arrêt terrain d’une application simplement fermée ou hors réseau.</p>
-                  <p>La page Carte, les widgets dashboard et les notifications doivent toujours raconter la même histoire. Si ce n'est pas le cas, il faut vérifier la session, puis le mobile, puis la file d'événements.</p>
+                  <p>Une session ouverte depuis le web ou depuis le mobile doit produire le même résultat métier pour le commercial concerné.</p>
+                  <p>Les factures et encaissements mettent à jour les totaux vendus, le cash, le crédit et les lignes vendues de la session active.</p>
+                  <p>La géolocalisation détaillée et la carte temps réel restent désactivées pour cette phase. Le suivi terrain reste donc centré sur les sessions, factures, recharges et notifications.</p>
                 </div>
+                {isAdmin() && (
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    <Link to="/routes" className="btn-secondary text-xs">
+                      <i className="fa-solid fa-route" /> Voir les sessions
+                    </Link>
+                    <Link to="/camions" className="btn-secondary text-xs">
+                      <i className="fa-solid fa-truck-fast" /> Voir les camions
+                    </Link>
+                    <Link to="/depot" className="btn-secondary text-xs">
+                      <i className="fa-solid fa-warehouse" /> Stock dépôt
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           </SectionShell>
 
           <SectionShell
-            id="billing"
+            id="finance"
             eyebrow="Facturation et finance"
-            title="Les modules finance relisent le dépôt, la session et la relation client."
-            description="Une facture correcte dépend autant du portefeuille client que du stock et du contexte terrain dans lequel elle est émise."
+            title="Les modules finance relisent la relation client, le stock et la session qui porte la vente."
+            description="Une facture fiable ne dépend pas seulement du formulaire: elle dépend aussi du client visible, du stock réellement disponible et du bon moyen de paiement."
           >
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              <div className="rounded-[24px] px-5 py-5" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                <div className="text-sm font-semibold text-base-color">Bonnes pratiques facturation</div>
-                <div className="space-y-3 mt-4 text-sm text-secondary-color">
-                  <p>Avant validation, contrôlez le client, le mode de paiement, les prix actifs et la disponibilité réelle des produits.</p>
-                  <p>Les impressions et exports utilisent les réglages documentaires. Si un champ manque sur un PDF, il faut d’abord vérifier la configuration des documents.</p>
-                  <p>Le crédit, les paiements et les dépenses alimentent ensuite les vues finance et les rapports journaliers.</p>
+              <div
+                className="rounded-[24px] px-5 py-5"
+                style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+              >
+                <div className="text-sm font-semibold text-base-color">Bonnes pratiques côté facture</div>
+                <div className="space-y-2 mt-4">
+                  <InfoBullet>Vérifier le client visible et son contexte de crédit avant validation.</InfoBullet>
+                  <InfoBullet>Utiliser une méthode de paiement activée pour le bon scope: client ou dépense.</InfoBullet>
+                  <InfoBullet>Relire le stock et les prix avant d'émettre un document depuis le web ou le mobile.</InfoBullet>
+                  <InfoBullet>Conserver les mêmes filtres entre listing, impression et export pour éviter les écarts d'audit.</InfoBullet>
                 </div>
               </div>
 
-              <div className="rounded-[24px] px-5 py-5" style={{ background: 'rgba(245,158,11,0.08)', boxShadow: 'inset 0 0 0 1px rgba(245,158,11,0.14)' }}>
-                <div className="text-sm font-semibold text-base-color">Points d'attention</div>
-                <div className="space-y-2 mt-4 text-sm text-secondary-color">
-                  <div className="flex items-start gap-2"><i className="fa-solid fa-triangle-exclamation text-xs mt-1 text-amber-500" /><span>Un minimum produit par défaut n’interdit pas l’usage ; il sert à détecter les références sous seuil.</span></div>
-                  <div className="flex items-start gap-2"><i className="fa-solid fa-triangle-exclamation text-xs mt-1 text-amber-500" /><span>Un stock nul ne devrait pas permettre de lancer un chargement incohérent sans vérification métier.</span></div>
-                  <div className="flex items-start gap-2"><i className="fa-solid fa-triangle-exclamation text-xs mt-1 text-amber-500" /><span>Les listings paginés, impressions ligne à ligne et exports doivent rester alignés sur les mêmes filtres.</span></div>
+              <div
+                className="rounded-[24px] px-5 py-5"
+                style={{ background: 'rgba(245,158,11,0.08)', boxShadow: 'inset 0 0 0 1px rgba(245,158,11,0.14)' }}
+              >
+                <div className="text-sm font-semibold text-base-color">Ce qui alimente la relecture finance</div>
+                <div className="space-y-2 mt-4">
+                  <InfoBullet color="#f59e0b" icon="fa-solid fa-sack-dollar">
+                    Les sorties journalières remontent le total vendu, le bénéfice, le cash et le crédit.
+                  </InfoBullet>
+                  <InfoBullet color="#f59e0b" icon="fa-solid fa-credit-card">
+                    Le module crédit suit la date, l'heure, la facture source et les échéances par période.
+                  </InfoBullet>
+                  <InfoBullet color="#f59e0b" icon="fa-solid fa-receipt">
+                    Les dépenses utilisent un catalogue dynamique, séparé des paiements client.
+                  </InfoBullet>
                 </div>
+                {isFinance() && (
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    <Link to="/credit" className="btn-secondary text-xs">
+                      <i className="fa-solid fa-credit-card" /> Crédit
+                    </Link>
+                    <Link to="/expenses" className="btn-secondary text-xs">
+                      <i className="fa-solid fa-receipt" /> Dépenses
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           </SectionShell>
 
           <SectionShell
             id="support"
-            eyebrow="Support et maintenance"
-            title="Le support mélange tickets utilisateurs, notifications système et gestes d’environnement."
-            description="L'objectif n'est pas seulement de recevoir un bug, mais de pouvoir le relire, l'expliquer, le corriger et le verifier."
+            eyebrow="Support et supervision"
+            title="Le support ne sert pas seulement à signaler un bug: il sert à reconstruire le contexte de ce qui s'est passé."
+            description="Notifications, signalements, tâches de fond et console développeur sont complémentaires. Ensemble, ils permettent de comprendre puis corriger."
           >
             <div className="grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-4">
-              <div className="rounded-[24px] px-5 py-5" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                <div className="text-sm font-semibold text-base-color">Centre de support</div>
+              <div
+                className="rounded-[24px] px-5 py-5"
+                style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+              >
+                <div className="text-sm font-semibold text-base-color">Centre de support et notifications</div>
                 <div className="space-y-3 mt-4 text-sm text-secondary-color">
-                  <p>Chaque signalement doit idéalement contenir un sujet clair, la page concernée, la sévérité et une description reproductible.</p>
-                  <p>Les destinataires e-mail sont maintenant fixes cote application pour eviter les erreurs de configuration sur la prod.</p>
-                  <p>Le ticket reste aussi dans le web app pour permettre un suivi, une réponse développeur et une clôture propre.</p>
+                  <p>Un bon signalement doit contenir la page concernée, la sévérité, le contexte de reproduction et si possible les symptômes observés.</p>
+                  <p>Le centre de notifications rassemble les événements métier et techniques utiles à la lecture quotidienne de la plateforme.</p>
+                  <p>Les adresses de réception support sont verrouillées côté application pour éviter les dérives de configuration sur le serveur.</p>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-4">
                   <Link to="/bug-reports" className="btn-secondary text-xs">
@@ -435,20 +572,28 @@ export default function HelpCenterIndex() {
                 </div>
               </div>
 
-              <div className="rounded-[24px] px-5 py-5" style={{ background: 'rgba(139,92,246,0.06)', boxShadow: 'inset 0 0 0 1px rgba(139,92,246,0.12)' }}>
-                <div className="text-sm font-semibold text-base-color">Maintenance et operations sensibles</div>
+              <div
+                className="rounded-[24px] px-5 py-5"
+                style={{ background: 'rgba(139,92,246,0.06)', boxShadow: 'inset 0 0 0 1px rgba(139,92,246,0.12)' }}
+              >
+                <div className="text-sm font-semibold text-base-color">Tâches de fond et outils sensibles</div>
                 <div className="space-y-3 mt-4 text-sm text-secondary-color">
-                  <p>La console développeur permet d'activer une maintenance globale ou seulement sur certaines pages, sans couper l'accès au rôle développeur.</p>
-                  <p>Le fresh install réinitialise l'opérationnel tout en conservant la base métier : utilisateurs, produits, zones, camions et configurations.</p>
-                  <p>Les tâches de fond, les snapshots système et les historiques d'exécution servent à vérifier rapidement si la prod suit bien le comportement attendu.</p>
+                  <p>Les tâches planifiées permettent de vérifier l'état des backups, synthèses, alertes stock et routines de nettoyage.</p>
+                  <p>Le développeur seul peut lancer les actions de maintenance, de reprise environnement ou de fresh install.</p>
+                  <p>Outils de données et console système servent aussi de garde-fou pour confirmer qu'une opération serveur a réellement abouti.</p>
                 </div>
-                {isDeveloper() && (
-                  <div className="mt-4">
-                    <Link to="/developer-tools" className="btn-secondary text-xs">
-                      <i className="fa-solid fa-code" /> Ouvrir la console développeur
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {isAdmin() && (
+                    <Link to="/config/background-tasks" className="btn-secondary text-xs">
+                      <i className="fa-solid fa-clock-rotate-left" /> Tâches de fond
                     </Link>
-                  </div>
-                )}
+                  )}
+                  {isDeveloper() && (
+                    <Link to="/developer-tools" className="btn-secondary text-xs">
+                      <i className="fa-solid fa-code" /> Console développeur
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
           </SectionShell>
@@ -456,12 +601,16 @@ export default function HelpCenterIndex() {
           <SectionShell
             id="faq"
             eyebrow="FAQ rapide"
-            title="Questions courantes à relire avant d'ouvrir un ticket."
-            description="Cette section vise surtout à accélérer le diagnostic en rappelant les points de logique souvent oubliés."
+            title="Questions fréquentes avant d'ouvrir un ticket."
+            description="Cette section sert surtout à rappeler les règles de fonctionnement qui créent le plus souvent de la confusion."
           >
             <div className="space-y-3">
               {FAQ_ITEMS.map((item) => (
-                <div key={item.question} className="rounded-[24px] px-5 py-5" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                <div
+                  key={item.question}
+                  className="rounded-[24px] px-5 py-5"
+                  style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+                >
                   <div className="text-sm font-semibold text-base-color">{item.question}</div>
                   <div className="text-sm text-secondary-color mt-2">{item.answer}</div>
                 </div>

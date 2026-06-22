@@ -132,6 +132,7 @@ export default function CamionsIndex() {
     allowAll: false,
     storageKey: 'app-depot-scope',
   })
+  const selectedCompanyId = selectedDepot?.company_id ?? selectedDepot?.company?.id ?? null
 
   const load = async ({ keepLoading = false } = {}) => {
     if (!keepLoading) {
@@ -140,7 +141,12 @@ export default function CamionsIndex() {
 
     try {
       const [camionResponse, repResponse, productResponse] = await Promise.all([
-        api.get('/camions', { params: { include_inactive: 1 } }),
+        api.get('/camions', {
+          params: {
+            include_inactive: 1,
+            ...(canBrowseAll && selectedCompanyId ? { company_id: selectedCompanyId } : {}),
+          },
+        }),
         api.get('/camion/all', { params: scopeParams }),
         api.get('/products', { params: scopeParams }),
       ])
@@ -213,7 +219,10 @@ export default function CamionsIndex() {
       if (fleetForm.id) {
         await api.put(`/camions/${fleetForm.id}`, fleetForm)
       } else {
-        await api.post('/camions', fleetForm)
+        await api.post('/camions', {
+          ...fleetForm,
+          ...(canBrowseAll && selectedCompanyId ? { company_id: selectedCompanyId } : {}),
+        })
       }
 
       setFleetModal(false)
@@ -545,6 +554,11 @@ export default function CamionsIndex() {
                         <div className="text-xs text-muted-color mt-1">
                           {camion.plate || 'Immatriculation non renseignée'}
                         </div>
+                        {canBrowseAll && camion.company?.name && (
+                          <div className="text-xs text-secondary-color mt-2">
+                            Société: <span className="font-medium text-base-color">{camion.company.name}</span>
+                          </div>
+                        )}
                         <div className="text-xs mt-2" style={{ color: assignment ? '#2563eb' : '#64748b' }}>
                           {assignment
                             ? `Affecte a ${assignment.rep?.name || 'un commercial'}`
@@ -766,6 +780,13 @@ export default function CamionsIndex() {
         size="md"
       >
         <div className="space-y-4">
+          {canBrowseAll && selectedDepot?.company?.name && (
+            <div className="rounded-2xl px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
+              Société appliquée: <strong className="text-base-color">{selectedDepot.company.name}</strong>
+              {selectedDepot.company?.max_camions ? ` · Limite flotte: ${selectedDepot.company.max_camions} camion(s)` : ''}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label="Nom du camion" error={fleetErrors.name?.[0]} required>
               <input

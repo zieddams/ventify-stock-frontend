@@ -35,7 +35,7 @@ export function useDepots(options = {}) {
   const { user, canManageMultiDepot } = useAuth()
   const canBrowseAll = canManageMultiDepot ? canManageMultiDepot() : user?.role === 'developer'
   const canSelectAll = allowAll && canBrowseAll
-  const scopedStorageKey = `${storageKey}:${user?.role ?? 'guest'}`
+  const scopedStorageKey = `${storageKey}:${user?.id ?? 'guest'}:${user?.role ?? 'guest'}:${user?.company_id ?? 'company'}`
 
   const readStoredValue = useCallback(() => {
     if (typeof window === 'undefined') {

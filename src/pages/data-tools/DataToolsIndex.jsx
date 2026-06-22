@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import api from '../../services/api'
 import DepotScopeControls from '../../components/DepotScopeControls'
 import PageHeader from '../../components/PageHeader'
@@ -32,7 +32,7 @@ const IMPORT_TYPES = [
   },
   {
     value: 'expenses',
-    label: 'Dépenses historiques',
+    label: 'Depenses historiques',
     icon: 'fa-solid fa-receipt',
     color: '#f59e0b',
     requiresDepot: true,
@@ -50,7 +50,7 @@ const IMPORT_TYPES = [
   },
   {
     value: 'credit',
-    label: 'Historique crédit',
+    label: 'Historique credit',
     icon: 'fa-solid fa-credit-card',
     color: '#ec4899',
     requiresDepot: false,
@@ -63,10 +63,10 @@ const EXPORT_TYPES = [
   { value: 'customers', label: 'Clients', icon: 'fa-solid fa-users', color: '#3b82f6', hasDateRange: false, supportsDepot: false },
   { value: 'products', label: 'Produits et stock', icon: 'fa-solid fa-box-open', color: '#0d9488', hasDateRange: false, supportsDepot: true },
   { value: 'invoices', label: 'Factures', icon: 'fa-solid fa-file-invoice', color: '#8b5cf6', hasDateRange: true, supportsDepot: true },
-  { value: 'expenses', label: 'Dépenses', icon: 'fa-solid fa-receipt', color: '#f59e0b', hasDateRange: true },
+  { value: 'expenses', label: 'Depenses', icon: 'fa-solid fa-receipt', color: '#f59e0b', hasDateRange: true },
   { value: 'stock_movements', label: 'Mouvements de stock', icon: 'fa-solid fa-arrows-rotate', color: '#06b6d4', hasDateRange: true },
-  { value: 'credit', label: 'Crédit clients', icon: 'fa-solid fa-credit-card', color: '#ec4899', hasDateRange: true },
-  { value: 'route_sessions', label: 'Sorties journée', icon: 'fa-solid fa-truck-fast', color: '#f97316', hasDateRange: true },
+  { value: 'credit', label: 'Credit clients', icon: 'fa-solid fa-credit-card', color: '#ec4899', hasDateRange: true },
+  { value: 'route_sessions', label: 'Sorties journee', icon: 'fa-solid fa-truck-fast', color: '#f97316', hasDateRange: true },
 ]
 
 const IMPORT_TYPES_REQUIRING_DEPOT = new Set(['expenses', 'invoices'])
@@ -100,7 +100,15 @@ function formatHistoryDate(value) {
   return new Date(value).toLocaleString('fr-FR')
 }
 
-function HistoryTab({ entries, onClear }) {
+function HistoryTab({
+  entries,
+  localCount,
+  serverCount,
+  loading,
+  error,
+  onRefresh,
+  onClearLocal,
+}) {
   const importCount = entries.filter(item => item.direction === 'import').length
   const exportCount = entries.filter(item => item.direction === 'export').length
 
@@ -113,14 +121,14 @@ function HistoryTab({ entries, onClear }) {
               <i className="fa-solid fa-clock-rotate-left text-teal-500 mr-2" />
               Historique local
             </h2>
-            {entries.length > 0 && (
-              <button onClick={onClear} className="btn-secondary text-xs">
+            {localCount > 0 && (
+              <button onClick={onClearLocal} className="btn-secondary text-xs">
                 <i className="fa-solid fa-trash-can" /> Effacer
               </button>
             )}
           </div>
           <p className="text-sm text-secondary-color">
-            Les imports et exports effectués sur ce navigateur sont conservés ici pour le suivi opérateur.
+            Les imports et exports effectues sur ce navigateur restent visibles ici pour le suivi operateur.
           </p>
           <div className="grid grid-cols-2 gap-3 mt-4">
             <div className="rounded-2xl p-3 border" style={{ background: 'rgba(13,148,136,0.05)', borderColor: 'rgba(13,148,136,0.18)' }}>
@@ -130,6 +138,16 @@ function HistoryTab({ entries, onClear }) {
             <div className="rounded-2xl p-3 border" style={{ background: 'rgba(59,130,246,0.05)', borderColor: 'rgba(59,130,246,0.18)' }}>
               <div className="text-xs text-muted-color">Exports</div>
               <div className="text-2xl font-bold" style={{ color: '#2563eb' }}>{exportCount}</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <div className="rounded-2xl p-3 border" style={{ background: 'rgba(15,23,42,0.04)', borderColor: 'rgba(15,23,42,0.08)' }}>
+              <div className="text-xs text-muted-color">Serveur</div>
+              <div className="text-xl font-bold text-base-color">{serverCount}</div>
+            </div>
+            <div className="rounded-2xl p-3 border" style={{ background: 'rgba(15,23,42,0.04)', borderColor: 'rgba(15,23,42,0.08)' }}>
+              <div className="text-xs text-muted-color">Navigateur</div>
+              <div className="text-xl font-bold text-base-color">{localCount}</div>
             </div>
           </div>
         </div>
@@ -143,8 +161,11 @@ function HistoryTab({ entries, onClear }) {
             v{APP_VERSION}
           </div>
           <p className="text-xs text-muted-color mt-3">
-            Utilisez cet historique pour vérifier rapidement les derniers fichiers traités après une mise à jour.
+            Les imports batch executes sur le VPS remontent dans l'historique serveur apres actualisation.
           </p>
+          <button onClick={onRefresh} className="btn-secondary text-xs mt-4">
+            <i className="fa-solid fa-rotate" /> Rafraichir le serveur
+          </button>
         </div>
       </div>
 
@@ -154,8 +175,28 @@ function HistoryTab({ entries, onClear }) {
             <i className="fa-solid fa-list-check text-teal-500 mr-2" />
             Derniers transferts
           </h2>
-          <span className="text-xs text-muted-color">{entries.length} élément(s)</span>
+          <span className="text-xs text-muted-color">{entries.length} element(s)</span>
         </div>
+
+        {error && (
+          <div
+            className="mb-4 rounded-2xl border px-4 py-3 text-sm"
+            style={{ background: 'rgba(239,68,68,0.05)', borderColor: 'rgba(239,68,68,0.18)', color: '#dc2626' }}
+          >
+            <i className="fa-solid fa-triangle-exclamation mr-2" />
+            {error}
+          </div>
+        )}
+
+        {loading && (
+          <div
+            className="mb-4 rounded-2xl border px-4 py-3 text-sm text-secondary-color"
+            style={{ background: 'var(--surface-2)', borderColor: 'var(--border)' }}
+          >
+            <i className="fa-solid fa-spinner fa-spin mr-2" />
+            Chargement de l'historique serveur...
+          </div>
+        )}
 
         {entries.length === 0 ? (
           <div
@@ -165,7 +206,7 @@ function HistoryTab({ entries, onClear }) {
             <i className="fa-solid fa-folder-open text-3xl text-muted-color opacity-40" />
             <div className="text-sm font-semibold text-base-color mt-4">Aucun historique pour le moment</div>
             <div className="text-xs text-muted-color mt-1">
-              Lancez un import CSV ou un export CSV depuis cette page pour commencer à tracer les opérations.
+              Lancez un import CSV, un export CSV, ou un import batch serveur pour commencer a tracer les operations.
             </div>
           </div>
         ) : (
@@ -175,9 +216,9 @@ function HistoryTab({ entries, onClear }) {
               const accent = isImport ? '#0d9488' : '#2563eb'
               const scopeSuffix = entry.filters?.depotLabel ? ` | Depot ${entry.filters.depotLabel}` : ''
               const summary = isImport
-                ? `${entry.summary.imported ?? 0} importés · ${entry.summary.skipped ?? 0} ignorés · ${entry.summary.errorCount ?? 0} erreurs`
+                ? `${entry.summary.imported ?? 0} importes · ${entry.summary.skipped ?? 0} ignores · ${entry.summary.errorCount ?? 0} erreurs`
                 : entry.filters?.dateFrom || entry.filters?.dateTo
-                  ? `P?riode ${entry.filters?.dateFrom || '...'} → ${entry.filters?.dateTo || '...'}`
+                  ? `Periode ${entry.filters?.dateFrom || '...'} -> ${entry.filters?.dateTo || '...'}`
                   : 'Export complet sans filtre date'
 
               return (
@@ -199,13 +240,29 @@ function HistoryTab({ entries, onClear }) {
                         <span className="text-sm font-semibold text-base-color">{entry.entityLabel}</span>
                       </div>
                       <div className="text-xs text-muted-color mt-2">{summary}{scopeSuffix}</div>
+                      {Array.isArray(entry.summary?.details) && entry.summary.details.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {entry.summary.details.slice(0, 4).map(detail => (
+                            <span
+                              key={`${entry.id}-${detail}`}
+                              className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
+                              style={{ background: `${accent}12`, color: accent }}
+                            >
+                              {detail}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       {entry.fileName && (
                         <div className="text-xs font-mono text-secondary-color mt-2">{entry.fileName}</div>
                       )}
                     </div>
                     <div className="text-right">
                       <div className="text-xs font-semibold text-base-color">{formatHistoryDate(entry.createdAt)}</div>
-                      <div className="text-[11px] text-muted-color mt-1">Historique du navigateur</div>
+                      <div className="text-[11px] text-muted-color mt-1">{entry.originLabel || 'Historique du navigateur'}</div>
+                      {entry.createdBy && (
+                        <div className="text-[11px] text-muted-color mt-1">{entry.createdBy}</div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -236,6 +293,10 @@ export default function DataToolsIndex() {
   const [exportError, setExportError] = useState('')
   const [lastExport, setLastExport] = useState(null)
   const [transferHistory, setTransferHistory] = useState(() => readDataTransferHistory())
+  const [serverHistory, setServerHistory] = useState([])
+  const [serverHistoryLoading, setServerHistoryLoading] = useState(false)
+  const [serverHistoryError, setServerHistoryError] = useState('')
+
   const {
     depots: importDepots,
     loading: importDepotsLoading,
@@ -247,6 +308,7 @@ export default function DataToolsIndex() {
     allowAll: false,
     storageKey: 'data-tools-import-depot',
   })
+
   const {
     depots: exportDepots,
     loading: exportDepotsLoading,
@@ -265,9 +327,30 @@ export default function DataToolsIndex() {
   const selectedExport = EXPORT_TYPES.find(item => item.value === exportType)
   const importRequiresDepot = IMPORT_TYPES_REQUIRING_DEPOT.has(importType)
   const exportSupportsDepot = EXPORT_TYPES_WITH_DEPOT_SCOPE.has(exportType)
+
+  const loadServerHistory = async () => {
+    setServerHistoryLoading(true)
+    setServerHistoryError('')
+
+    try {
+      const response = await api.get('/import/history', { params: { limit: 40 } })
+      setServerHistory(Array.isArray(response.data) ? response.data : [])
+    } catch (error) {
+      setServerHistoryError(error.response?.data?.message || "Impossible de charger l'historique serveur.")
+    } finally {
+      setServerHistoryLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadServerHistory()
+  }, [])
+
   const historyEntries = useMemo(
-    () => transferHistory.slice().sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()),
-    [transferHistory],
+    () => [...serverHistory, ...transferHistory]
+      .slice()
+      .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()),
+    [serverHistory, transferHistory],
   )
 
   const resetImport = () => {
@@ -306,7 +389,7 @@ export default function DataToolsIndex() {
   const handleImport = async () => {
     if (!file) return
     if (importRequiresDepot && !selectedImportDepotId) {
-      setImportError('Sélectionnez un dépôt cible avant de lancer cet import.')
+      setImportError('Selectionnez un depot cible avant de lancer cet import.')
       return
     }
 
@@ -342,6 +425,7 @@ export default function DataToolsIndex() {
           depotLabel: selectedImportDepot?.name || null,
         } : null,
       }))
+      loadServerHistory()
     } catch (error) {
       setImportError(error.response?.data?.message || "Erreur lors de l'import")
     } finally {
@@ -364,7 +448,7 @@ export default function DataToolsIndex() {
         entity: selectedExport.label,
         filename,
         time: new Date().toLocaleTimeString('fr-FR'),
-        depotLabel: exportSupportsDepot ? (selectedExportDepot?.name ?? (canSelectAll ? 'Tous les dépôts' : 'Dépôt courant')) : null,
+        depotLabel: exportSupportsDepot ? (selectedExportDepot?.name ?? (canSelectAll ? 'Tous les depots' : 'Depot courant')) : null,
       })
       setTransferHistory(appendDataTransferHistory({
         direction: 'export',
@@ -379,13 +463,14 @@ export default function DataToolsIndex() {
           dateTo,
           ...(exportSupportsDepot ? {
             depotId: selectedExportDepotId,
-            depotLabel: selectedExportDepot?.name ?? (canSelectAll ? 'Tous les dépôts' : 'Dépôt courant'),
+            depotLabel: selectedExportDepot?.name ?? (canSelectAll ? 'Tous les depots' : 'Depot courant'),
           } : {}),
         } : exportSupportsDepot ? {
           depotId: selectedExportDepotId,
-          depotLabel: selectedExportDepot?.name ?? (canSelectAll ? 'Tous les dépôts' : 'Dépôt courant'),
+          depotLabel: selectedExportDepot?.name ?? (canSelectAll ? 'Tous les depots' : 'Depot courant'),
         } : null,
       }))
+      loadServerHistory()
     } catch (error) {
       if (error.response?.data instanceof Blob) {
         const text = await error.response.data.text()
@@ -405,7 +490,7 @@ export default function DataToolsIndex() {
   return (
     <div>
       <PageHeader
-        title="Outils de données"
+        title="Outils de donnees"
         subtitle="Import historique et export global depuis une seule page"
       />
 
@@ -435,7 +520,7 @@ export default function DataToolsIndex() {
           <div className="space-y-4">
             <div className="card">
               <h2 className="text-sm font-semibold text-base-color mb-3">
-                <i className="fa-solid fa-table text-teal-500 mr-2" />Type de données
+                <i className="fa-solid fa-table text-teal-500 mr-2" />Type de donnees
               </h2>
               <div className="space-y-1.5">
                 {IMPORT_TYPES.map(item => (
@@ -480,7 +565,7 @@ export default function DataToolsIndex() {
             {importRequiresDepot && (
               <div className="card">
                 <h2 className="text-sm font-semibold text-base-color mb-3">
-                  <i className="fa-solid fa-warehouse text-teal-500 mr-2" />Dépôt cible
+                  <i className="fa-solid fa-warehouse text-teal-500 mr-2" />Depot cible
                 </h2>
                 <DepotScopeControls
                   depots={importDepots}
@@ -490,7 +575,7 @@ export default function DataToolsIndex() {
                   label="Import vers"
                 />
                 <p className="text-xs text-muted-color mt-3">
-                  Les imports de dépenses et de factures seront attachés à ce dépôt.
+                  Les imports de depenses et de factures seront rattaches a ce depot.
                 </p>
               </div>
             )}
@@ -524,7 +609,7 @@ export default function DataToolsIndex() {
                 ) : (
                   <>
                     <span className="font-medium text-sm text-secondary-color">Glissez un fichier CSV ici</span>
-                    <span className="text-xs text-muted-color mt-1">ou cliquez pour le sélectionner</span>
+                    <span className="text-xs text-muted-color mt-1">ou cliquez pour le selectionner</span>
                   </>
                 )}
                 <input
@@ -565,12 +650,12 @@ export default function DataToolsIndex() {
               <div className="card">
                 <div className="flex items-center gap-2 mb-4">
                   <i className="fa-solid fa-circle-check text-xl" style={{ color: '#059669' }} />
-                  <h2 className="text-sm font-semibold text-base-color">Import terminé</h2>
+                  <h2 className="text-sm font-semibold text-base-color">Import termine</h2>
                 </div>
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   {[
-                    { label: 'Importés', value: importResult.imported ?? 0, color: '#059669' },
-                    { label: 'Ignorés', value: importResult.skipped ?? 0, color: '#d97706' },
+                    { label: 'Importes', value: importResult.imported ?? 0, color: '#059669' },
+                    { label: 'Ignores', value: importResult.skipped ?? 0, color: '#d97706' },
                     { label: 'Erreurs', value: importResult.errors?.length ?? 0, color: '#dc2626' },
                   ].map(stat => (
                     <div
@@ -605,8 +690,8 @@ export default function DataToolsIndex() {
             {preview && !importResult && (
               <div className="card">
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-base-color">Aperçu - {preview.total} lignes détectées</h2>
-                  <span className="text-xs text-muted-color">5 premières lignes</span>
+                  <h2 className="text-sm font-semibold text-base-color">Apercu - {preview.total} lignes detectees</h2>
+                  <span className="text-xs text-muted-color">5 premieres lignes</span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
@@ -640,7 +725,7 @@ export default function DataToolsIndex() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="card">
             <h2 className="text-sm font-semibold text-base-color mb-3">
-                <i className="fa-solid fa-table text-teal-500 mr-2" />Données à exporter
+              <i className="fa-solid fa-table text-teal-500 mr-2" />Donnees a exporter
             </h2>
             <div className="space-y-1.5">
               {EXPORT_TYPES.map(item => (
@@ -683,7 +768,7 @@ export default function DataToolsIndex() {
                   style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}
                 >
                   <i className="fa-solid fa-info-circle mr-2" />
-                  Exportation de toutes les données {selectedExport.label.toLowerCase()}.
+                  Exportation de toutes les donnees {selectedExport.label.toLowerCase()}.
                 </div>
               )}
 
@@ -696,7 +781,7 @@ export default function DataToolsIndex() {
                     onChange={setSelectedExportDepotValue}
                     allowAll
                     canSelectAll={canSelectAll}
-                    label="Périmètre export"
+                    label="Perimetre export"
                   />
                 </div>
               )}
@@ -713,7 +798,7 @@ export default function DataToolsIndex() {
               <button onClick={handleExport} disabled={exporting} className="btn-primary w-full justify-center">
                 {exporting
                   ? <><i className="fa-solid fa-spinner fa-spin" /> Export en cours...</>
-                  : <><i className="fa-solid fa-download" /> Télécharger le CSV - {selectedExport.label}</>
+                  : <><i className="fa-solid fa-download" /> Telecharger le CSV - {selectedExport.label}</>
                 }
               </button>
             </div>
@@ -725,10 +810,10 @@ export default function DataToolsIndex() {
               >
                 <i className="fa-solid fa-circle-check text-xl" style={{ color: '#059669' }} />
                 <div>
-                  <div className="text-sm font-semibold text-base-color">Export réussi à {lastExport.time}</div>
+                  <div className="text-sm font-semibold text-base-color">Export reussi a {lastExport.time}</div>
                   <div className="text-xs text-muted-color">{lastExport.filename}</div>
                   {lastExport.depotLabel && (
-                    <div className="text-xs text-muted-color mt-1">Dépôt : {lastExport.depotLabel}</div>
+                    <div className="text-xs text-muted-color mt-1">Depot : {lastExport.depotLabel}</div>
                   )}
                 </div>
               </div>
@@ -736,20 +821,20 @@ export default function DataToolsIndex() {
 
             <div className="card">
               <h2 className="text-sm font-semibold text-base-color mb-3">
-                <i className="fa-solid fa-circle-info text-blue-500 mr-2" />À savoir
+                <i className="fa-solid fa-circle-info text-blue-500 mr-2" />A savoir
               </h2>
               <ul className="space-y-2 text-sm text-secondary-color">
                 <li className="flex items-start gap-2">
                   <i className="fa-solid fa-check text-teal-500 mt-0.5 text-xs" />
-                  Le fichier CSV est encodé en UTF-8 et compatible Excel.
+                  Le fichier CSV est encode en UTF-8 et compatible Excel.
                 </li>
                 <li className="flex items-start gap-2">
                   <i className="fa-solid fa-check text-teal-500 mt-0.5 text-xs" />
-                  Les montants restent en dinars tunisiens avec 3 décimales.
+                  Les montants restent en dinars tunisiens avec 3 decimales.
                 </li>
                 <li className="flex items-start gap-2">
                   <i className="fa-solid fa-check text-teal-500 mt-0.5 text-xs" />
-                  Le même format CSV peut être réutilisé pour les imports.
+                  Le meme format CSV peut etre reutilise pour les imports.
                 </li>
               </ul>
             </div>
@@ -760,7 +845,12 @@ export default function DataToolsIndex() {
       {tab === 'history' && (
         <HistoryTab
           entries={historyEntries}
-          onClear={() => setTransferHistory(clearDataTransferHistory())}
+          localCount={transferHistory.length}
+          serverCount={serverHistory.length}
+          loading={serverHistoryLoading}
+          error={serverHistoryError}
+          onRefresh={loadServerHistory}
+          onClearLocal={() => setTransferHistory(clearDataTransferHistory())}
         />
       )}
     </div>

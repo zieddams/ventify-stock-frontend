@@ -480,8 +480,8 @@ export default function Dashboard() {
               </h2>
               <div className="text-xs text-muted-color">
                 {showSessionDepotColumn
-                  ? `Périmètre ${dashboardScopeLabel} - suivi session actif, géolocalisation masquée.`
-                  : 'Suivi session actif, géolocalisation masquée.'}
+                  ? `Périmètre ${dashboardScopeLabel} - suivi session actif.`
+                  : 'Suivi session actif.'}
               </div>
             </div>
             <div className="overflow-x-auto">

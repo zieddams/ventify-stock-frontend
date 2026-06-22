@@ -35,9 +35,10 @@ function fmtDateTime(value) {
   })
 }
 
-function buildDepotForm(depot = null, depots = []) {
+function buildDepotForm(depot = null, depots = [], companyId = null) {
   return {
     id: depot?.id ?? null,
+    company_id: depot?.company_id ? String(depot.company_id) : (companyId ? String(companyId) : ''),
     name: depot?.name ?? '',
     code: depot?.code ?? '',
     address: depot?.address ?? '',
@@ -58,7 +59,8 @@ const MOVEMENT_CONFIG = {
 
 export default function DepotIndex() {
   const { layouts: documentLayouts } = useDocumentLayouts()
-  const { isAdmin } = useAuth()
+  const { isDeveloper } = useAuth()
+  const canManageDepots = isDeveloper()
   const {
     depots,
     loading: depotsLoading,
@@ -71,7 +73,7 @@ export default function DepotIndex() {
     ready: depotsReady,
   } = useDepots({
     allowAll: false,
-    includeInactive: isAdmin(),
+    includeInactive: canManageDepots,
     storageKey: 'app-depot-scope',
   })
 
@@ -98,6 +100,32 @@ export default function DepotIndex() {
   const [depotForm, setDepotForm] = useState(buildDepotForm())
   const [depotErrors, setDepotErrors] = useState({})
   const [savingDepot, setSavingDepot] = useState(false)
+  const [companies, setCompanies] = useState([])
+
+  useEffect(() => {
+    if (!canManageDepots) {
+      setCompanies([])
+      return
+    }
+
+    let cancelled = false
+
+    api.get('/companies')
+      .then((response) => {
+        if (!cancelled) {
+          setCompanies(Array.isArray(response.data) ? response.data : [])
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCompanies([])
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [canManageDepots])
 
   const loadBaseData = async () => {
     if (!depotsReady) {
@@ -186,14 +214,16 @@ export default function DepotIndex() {
     }
   }
 
+  const defaultCompanyId = selectedDepot?.company_id ?? selectedDepot?.company?.id ?? companies.find((company) => company.is_default)?.id ?? companies[0]?.id ?? ''
+
   const openCreateDepot = () => {
-    setDepotForm(buildDepotForm(null, depots))
+    setDepotForm(buildDepotForm(null, depots, defaultCompanyId))
     setDepotErrors({})
     setDepotModal(true)
   }
 
   const openEditDepot = (depot) => {
-    setDepotForm(buildDepotForm(depot, depots))
+    setDepotForm(buildDepotForm(depot, depots, depot?.company_id ?? defaultCompanyId))
     setDepotErrors({})
     setDepotModal(true)
   }
@@ -227,6 +257,7 @@ export default function DepotIndex() {
 
     try {
       const payload = {
+        ...(canManageDepots && depotForm.company_id ? { company_id: Number(depotForm.company_id) } : {}),
         name: depotForm.name,
         code: depotForm.code || null,
         address: depotForm.address || null,
@@ -338,7 +369,7 @@ export default function DepotIndex() {
         </div>
       </div>
 
-      {isAdmin() && (
+      {canManageDepots && (
         <div className="mb-5">
           <div className="flex items-center justify-between gap-3 mb-3">
             <h2 className="text-xs font-semibold text-muted-color uppercase tracking-wider">Dépôts configurés</h2>
@@ -368,6 +399,11 @@ export default function DepotIndex() {
                         {!depot.active && <span className="badge badge-red">Inactif</span>}
                       </div>
                       <div className="text-xs text-muted-color mt-1">{depot.code || 'Sans code'}</div>
+                      {depot.company?.name && (
+                        <div className="text-xs text-secondary-color mt-2">
+                          Société: <span className="font-medium text-base-color">{depot.company.name}</span>
+                        </div>
+                      )}
                       {depot.address && <div className="text-xs text-secondary-color mt-2">{depot.address}</div>}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -665,6 +701,19 @@ export default function DepotIndex() {
 
       <Modal open={depotModal} onClose={() => setDepotModal(false)} title={depotForm.id ? 'Modifier un dépôt' : 'Nouveau dépôt'} size="md">
         <div className="space-y-4">
+          {canManageDepots && (
+            <FormField label="Société" error={depotErrors.company_id?.[0]} required>
+              <select value={depotForm.company_id} onChange={(event) => setDepotForm((current) => ({ ...current, company_id: event.target.value }))}>
+                <option value="">Sélectionner une société...</option>
+                {companies.filter((company) => company.active !== false).map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <FormField label="Nom" error={depotErrors.name?.[0]} required>
               <input value={depotForm.name} onChange={(event) => setDepotForm((current) => ({ ...current, name: event.target.value }))} placeholder="Dépôt Bizerte" />
