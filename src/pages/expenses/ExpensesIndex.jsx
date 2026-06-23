@@ -37,7 +37,7 @@ export default function ExpensesIndex() {
   )
   const availablePaymentMethods = paymentMethods.length > 0
     ? paymentMethods
-    : [{ value: 'cash', display_label: 'Especes' }]
+    : [{ value: 'cash', display_label: 'Espèces' }]
   const defaultPaymentMethod = getDefaultConfigValue(availablePaymentMethods, 'cash')
 
   const {
@@ -138,7 +138,7 @@ export default function ExpensesIndex() {
     setError('')
 
     if (!scopedDepotId) {
-      setError("Aucun depot actif n'est disponible pour cette depense.")
+      setError("Aucun dépôt actif n'est disponible pour cette dépense.")
       setSaving(false)
       return
     }
@@ -158,7 +158,7 @@ export default function ExpensesIndex() {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('Supprimer cette depense ?')) {
+    if (!confirm('Supprimer cette dépense ?')) {
       return
     }
 
@@ -182,12 +182,12 @@ export default function ExpensesIndex() {
   return (
     <div>
       <PageHeader
-        title="Depenses"
-        subtitle={`Enregistrement et suivi des charges${currentDepot ? ` | Depot ${currentDepot.name}` : ''}`}
+        title="Dépenses"
+        subtitle={`Enregistrement et suivi des charges${currentDepot ? ` | Dépôt ${currentDepot.name}` : ''}`}
         action={(
           <div className="flex flex-wrap items-end justify-end gap-2">
             <PageExportActions
-              title="Depenses"
+              title="Dépenses"
               csvEntity="expenses"
               csvParams={exportParams}
               csvFilename="depenses"
@@ -202,7 +202,7 @@ export default function ExpensesIndex() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="card">
           <h2 className="text-sm font-semibold text-base-color mb-4 flex items-center gap-2">
-            <i className="fa-solid fa-plus text-teal-500" /> Nouvelle depense
+            <i className="fa-solid fa-plus text-teal-500" /> Nouvelle dépense
           </h2>
           {error && (
             <div
@@ -223,7 +223,7 @@ export default function ExpensesIndex() {
               />
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Categorie</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Catégorie</label>
               <select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}>
                 {activeCategories.map((item) => (
                   <option key={item.id} value={item.value}>
@@ -233,7 +233,7 @@ export default function ExpensesIndex() {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Depot</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Dépôt</label>
               {currentDepot ? (
                 <DepotSelectionInfo depot={currentDepot} />
               ) : (
@@ -241,12 +241,12 @@ export default function ExpensesIndex() {
                   className="rounded-2xl px-3 py-2 text-xs text-muted-color"
                   style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}
                 >
-                  Aucun depot actif n&apos;est encore lie a ce compte.
+                  Aucun dépôt actif n&apos;est encore lié à ce compte.
                 </div>
               )}
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Libelle</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Libellé</label>
               <input
                 type="text"
                 placeholder="Description..."
@@ -291,7 +291,7 @@ export default function ExpensesIndex() {
         <div className="lg:col-span-2 card">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-semibold text-base-color">Depenses</h2>
+              <h2 className="text-sm font-semibold text-base-color">Dépenses</h2>
               <p className="text-xs text-muted-color mt-0.5">
                 Total: <span className="font-mono font-semibold" style={{ color: '#ea580c' }}>{total.toFixed(3)} TND</span>
               </p>
@@ -315,7 +315,7 @@ export default function ExpensesIndex() {
               />
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Categorie</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">Catégorie</label>
               <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
                 <option value="">Toutes</option>
                 {allCategories.map((item) => (
@@ -360,7 +360,7 @@ export default function ExpensesIndex() {
                 }}
                 className="btn-secondary text-xs"
               >
-                <i className="fa-solid fa-rotate-left" /> Reinitialiser les filtres
+                <i className="fa-solid fa-rotate-left" /> Réinitialiser les filtres
               </button>
             </div>
           )}
@@ -374,7 +374,7 @@ export default function ExpensesIndex() {
               <table className="w-full text-sm">
                 <thead>
                   <tr>
-                    {['Date', 'Categorie', 'Depot', 'Libelle', 'Paiement', 'Montant', ''].map((heading) => (
+                    {['Date', 'Catégorie', 'Dépôt', 'Libellé', 'Paiement', 'Montant', ''].map((heading) => (
                       <th key={heading} className={`pb-3 pr-3 ${heading === 'Montant' ? 'text-right' : 'text-left'}`}>
                         {heading}
                       </th>
@@ -386,7 +386,7 @@ export default function ExpensesIndex() {
                     <tr>
                       <td colSpan={7} className="py-12 text-center">
                         <i className="fa-solid fa-receipt text-3xl text-muted-color opacity-30 mb-2 block" />
-                        <p className="text-muted-color text-sm">Aucune depense sur cette periode</p>
+                        <p className="text-muted-color text-sm">Aucune dépense sur cette période</p>
                       </td>
                     </tr>
                   )}
@@ -413,7 +413,7 @@ export default function ExpensesIndex() {
                         </td>
                         <td className="py-3 pr-3 text-muted-color text-xs">{expense.depot?.name ?? '-'}</td>
                         <td className="py-3 pr-3 text-base-color">{expense.label}</td>
-                        <td className="py-3 pr-3 text-muted-color text-xs">{expense.payment_method_label ?? expense.payment_method ?? 'Especes'}</td>
+                        <td className="py-3 pr-3 text-muted-color text-xs">{expense.payment_method_label ?? expense.payment_method ?? 'Espèces'}</td>
                         <td className="py-3 pr-3 text-right font-mono font-bold text-sm" style={{ color: '#ea580c' }}>
                           {Number(expense.amount).toFixed(3)}
                         </td>
@@ -423,7 +423,7 @@ export default function ExpensesIndex() {
                               documentKey="expense_item"
                               record={expense}
                               documentLayouts={documentLayouts}
-                              title={`Depense ${expense.label || expense.id}`}
+                              title={`Dépense ${expense.label || expense.id}`}
                               filename={`depense_${expense.id}`}
                             />
                             <button onClick={() => handleDelete(expense.id)} className="text-muted-color hover:text-red-500 transition-colors p-1">

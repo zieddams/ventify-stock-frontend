@@ -168,7 +168,7 @@ function ProfitTab({ scopeParams }) {
         <KpiCard label="CA total" value={`${fmt(data?.totals?.revenue)} TND`} icon="fa-solid fa-sack-dollar" color="#0d9488" />
         <KpiCard label="Coût des ventes" value={`${fmt(data?.totals?.cost)} TND`} icon="fa-solid fa-boxes-stacked" color="#64748b" />
         <KpiCard label="Bénéfice brut" value={`${fmt(data?.totals?.profit)} TND`} icon="fa-solid fa-coins" color="#10b981" sub={`Marge: ${data?.totals?.margin_pct ?? 0}%`} />
-        <KpiCard label="Ventes sous coût" value={data?.totals?.below_cost_lines ?? 0} icon="fa-solid fa-triangle-exclamation" color="#dc2626" sub="lignes sous prix achat" />
+        <KpiCard label="Ventes sous coût" value={data?.totals?.below_cost_lines ?? 0} icon="fa-solid fa-triangle-exclamation" color="#dc2626" sub="lignes sous prix d'achat" />
       </div>
 
       {chartData.length > 0 && (
@@ -188,7 +188,7 @@ function ProfitTab({ scopeParams }) {
       )}
 
       <div className="card">
-        <h2 className="text-sm font-semibold text-base-color mb-3">Par representant</h2>
+        <h2 className="text-sm font-semibold text-base-color mb-3">Par représentant</h2>
         <table className="w-full text-sm">
           <thead>
             <tr>
@@ -215,11 +215,11 @@ function ProfitTab({ scopeParams }) {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mt-5">
         <div className="card">
-          <h2 className="text-sm font-semibold text-base-color mb-3">Benefice par camion</h2>
+          <h2 className="text-sm font-semibold text-base-color mb-3">Bénéfice par camion</h2>
           <table className="w-full text-sm">
             <thead>
               <tr>
-                {['Camion', 'Plaque', 'CA', 'Benefice', 'Factures'].map((heading, index) => (
+                {['Camion', 'Plaque', 'CA', 'Bénéfice', 'Factures'].map((heading, index) => (
                   <th key={heading} className={`pb-3 pr-4 ${index > 1 ? 'text-right' : 'text-left'}`}>
                     {heading}
                   </th>
@@ -238,7 +238,7 @@ function ProfitTab({ scopeParams }) {
               ))}
               {(data?.by_camion ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center text-muted-color">Aucun camion ne ressort sur cette periode.</td>
+                  <td colSpan={5} className="py-10 text-center text-muted-color">Aucun camion ne ressort sur cette période.</td>
                 </tr>
               )}
             </tbody>
@@ -246,11 +246,11 @@ function ProfitTab({ scopeParams }) {
         </div>
 
         <div className="card">
-          <h2 className="text-sm font-semibold text-base-color mb-3">Benefice par commercial et camion</h2>
+          <h2 className="text-sm font-semibold text-base-color mb-3">Bénéfice par commercial et camion</h2>
           <table className="w-full text-sm">
             <thead>
               <tr>
-                {['Commercial', 'Camion', 'CA', 'Benefice', 'Factures'].map((heading, index) => (
+                {['Commercial', 'Camion', 'CA', 'Bénéfice', 'Factures'].map((heading, index) => (
                   <th key={heading} className={`pb-3 pr-4 ${index > 1 ? 'text-right' : 'text-left'}`}>
                     {heading}
                   </th>

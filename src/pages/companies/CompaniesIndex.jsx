@@ -60,7 +60,7 @@ function CompanyCard({ company, selected, onOpen }) {
           <div className="text-xs text-muted-color mt-1">{company.slug}</div>
         </div>
         <div className="flex flex-wrap gap-1.5 justify-end">
-          {company.is_default && <MetricPill label="Defaut" value="Oui" tone="success" />}
+          {company.is_default && <MetricPill label="Défaut" value="Oui" tone="success" />}
           {!company.active && <MetricPill label="Statut" value="Inactive" tone="warning" />}
         </div>
       </div>
@@ -71,7 +71,7 @@ function CompanyCard({ company, selected, onOpen }) {
 
       <div className="grid grid-cols-2 gap-2 mt-4">
         {[
-          { label: 'Depots', value: company.depots_count },
+          { label: 'Dépôts', value: company.depots_count },
           { label: 'Camions', value: `${company.camions_count}/${company.max_camions}` },
           { label: 'Utilisateurs', value: company.users_count },
           { label: 'Audits', value: company.audits_count },
@@ -95,7 +95,7 @@ function ActivityList({ title, emptyLabel, items, renderItem }) {
     <div className="card">
       <div className="flex items-center justify-between gap-3 mb-4">
         <h2 className="text-sm font-semibold text-base-color">{title}</h2>
-        <span className="text-xs text-muted-color">{items.length} element(s)</span>
+        <span className="text-xs text-muted-color">{items.length} élément(s)</span>
       </div>
 
       {items.length === 0 ? (
@@ -164,7 +164,7 @@ export default function CompaniesIndex() {
         navigate(`/companies/${preferredCompanyId}`, { replace: true })
       }
     } catch (error) {
-      setCompanyError(error.response?.data?.message || 'Impossible de charger les societes.')
+      setCompanyError(error.response?.data?.message || 'Impossible de charger les sociétés.')
       setCompanies([])
     } finally {
       setLoadingCompanies(false)
@@ -188,7 +188,7 @@ export default function CompaniesIndex() {
       setLogoFile(null)
       setCreating(false)
     } catch (error) {
-      setActionError(error.response?.data?.message || 'Impossible de charger le detail de la societe.')
+      setActionError(error.response?.data?.message || 'Impossible de charger le détail de la société.')
       setDetail(null)
     } finally {
       setDetailLoading(false)
@@ -276,7 +276,7 @@ export default function CompaniesIndex() {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
         const created = response.data ?? null
-        setNotice('Societe creee.')
+        setNotice('Société créée.')
         await loadCompanies(created?.id ?? null)
         if (created?.id) {
           await loadCompanyDetail(created.id)
@@ -285,7 +285,7 @@ export default function CompaniesIndex() {
         const response = await api.put(`/companies/${selectedCompany.id}`, payload, {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
-        setNotice('Societe mise a jour.')
+        setNotice('Société mise à jour.')
         await loadCompanies(selectedCompany.id)
         await loadCompanyDetail(response.data?.id ?? selectedCompany.id)
       }
@@ -294,7 +294,7 @@ export default function CompaniesIndex() {
         .flat()
         .filter(Boolean)
         .join(' ')
-      setActionError(fieldMessage || error.response?.data?.message || 'Impossible d enregistrer la societe.')
+      setActionError(fieldMessage || error.response?.data?.message || 'Impossible d’enregistrer la société.')
     } finally {
       setSaving(false)
     }
@@ -306,7 +306,7 @@ export default function CompaniesIndex() {
     }
 
     if (freshConfirmation.trim() !== 'FRESH INSTALL') {
-      setActionError('Tapez exactement FRESH INSTALL pour confirmer la reinitialisation.')
+      setActionError('Tapez exactement FRESH INSTALL pour confirmer la réinitialisation.')
       return
     }
 
@@ -319,11 +319,11 @@ export default function CompaniesIndex() {
         confirmation: freshConfirmation.trim(),
       })
       setFreshConfirmation('')
-      setNotice('Fresh install execute pour cette societe.')
+      setNotice('Fresh install exécuté pour cette société.')
       await loadCompanies(selectedCompany.id)
       await loadCompanyDetail(selectedCompany.id)
     } catch (error) {
-      setActionError(error.response?.data?.message || 'Le fresh install a echoue.')
+      setActionError(error.response?.data?.message || 'Le fresh install a échoué.')
     } finally {
       setRunningFreshInstall(false)
     }
@@ -342,11 +342,11 @@ export default function CompaniesIndex() {
     try {
       const response = await api.post(`/companies/${selectedCompany.id}/bootstrap-workspace`)
       setBootstrapResult(response.data?.result ?? null)
-      setNotice('Workspace de test prepare.')
+      setNotice('Workspace de test préparé.')
       await loadCompanies(selectedCompany.id)
       await loadCompanyDetail(selectedCompany.id)
     } catch (error) {
-      setActionError(error.response?.data?.message || 'Impossible de preparer ce workspace.')
+      setActionError(error.response?.data?.message || 'Impossible de préparer ce workspace.')
     } finally {
       setBootstrapping(false)
     }
@@ -373,15 +373,15 @@ export default function CompaniesIndex() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Societes"
-        subtitle="Workspace developpeur pour piloter les tenants, les audits, les imports et la remise a zero par societe."
+        title="Sociétés"
+        subtitle="Workspace développeur pour piloter les tenants, les audits, les imports et la remise à zéro par société."
         action={(
           <div className="flex flex-wrap gap-2">
             <button onClick={startCreate} className="btn-secondary text-xs">
-              <i className="fa-solid fa-plus" /> Nouvelle societe
+              <i className="fa-solid fa-plus" /> Nouvelle société
             </button>
             <Link to="/developer-tools" className="btn-secondary text-xs">
-              <i className="fa-solid fa-code" /> Outils developpeur
+              <i className="fa-solid fa-code" /> Outils développeur
             </Link>
           </div>
         )}
@@ -415,10 +415,10 @@ export default function CompaniesIndex() {
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5">
               <div>
                 <h2 className="text-sm font-semibold text-base-color">
-                  {creating ? 'Nouvelle societe' : (selectedCompany?.name ?? 'Fiche societe')}
+                  {creating ? 'Nouvelle société' : (selectedCompany?.name ?? 'Fiche société')}
                 </h2>
                 <p className="text-xs text-muted-color mt-1">
-                  Logo, limites flotte, flags d exploitation et acces vers la configuration ou les donnees.
+                  Logo, limites flotte, flags d’exploitation et accès vers la configuration ou les données.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -428,7 +428,7 @@ export default function CompaniesIndex() {
                       <i className="fa-solid fa-sliders" /> Configurer
                     </button>
                     <button onClick={() => openCompanyContext('/data-tools')} className="btn-secondary text-xs">
-                      <i className="fa-solid fa-file-arrow-up" /> Donnees
+                      <i className="fa-solid fa-file-arrow-up" /> Données
                     </button>
                   </>
                 )}
@@ -440,7 +440,7 @@ export default function CompaniesIndex() {
 
             {detailLoading ? (
               <div className="rounded-2xl px-4 py-10 text-center text-sm text-muted-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                <i className="fa-solid fa-spinner fa-spin mr-2" /> Chargement du detail...
+                <i className="fa-solid fa-spinner fa-spin mr-2" /> Chargement du détail...
               </div>
             ) : (
               <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6">
@@ -456,7 +456,7 @@ export default function CompaniesIndex() {
                   </div>
 
                   <FormField label="Note">
-                    <textarea rows="3" value={form.note} onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))} placeholder="Contexte metier, remarques internes, cible de ce tenant..." />
+                    <textarea rows="3" value={form.note} onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))} placeholder="Contexte métier, remarques internes, cible de ce tenant..." />
                   </FormField>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -481,10 +481,10 @@ export default function CompaniesIndex() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                     {[
-                      ['active', 'Societe active'],
-                      ['is_default', 'Societe par defaut'],
-                      ['fresh_install_enabled', 'Fresh install autorise'],
-                      ['background_tasks_enabled', 'Taches de fond autorisees'],
+                      ['active', 'Société active'],
+                      ['is_default', 'Société par défaut'],
+                      ['fresh_install_enabled', 'Fresh install autorisé'],
+                      ['background_tasks_enabled', 'Tâches de fond autorisées'],
                     ].map(([key, label]) => (
                       <label key={key} className="rounded-2xl px-4 py-3 text-sm text-base-color cursor-pointer" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                         <span className="flex items-center gap-3">
@@ -513,7 +513,7 @@ export default function CompaniesIndex() {
 
                 <div className="space-y-4">
                   <div className="rounded-[24px] px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                    <div className="text-xs font-semibold text-muted-color uppercase tracking-[0.18em] mb-3">Apercu</div>
+                    <div className="text-xs font-semibold text-muted-color uppercase tracking-[0.18em] mb-3">Aperçu</div>
                     <div className="flex items-center gap-3">
                       <div className="w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center overflow-hidden">
                         {companyPreviewImage ? (
@@ -523,15 +523,15 @@ export default function CompaniesIndex() {
                         )}
                       </div>
                       <div className="min-w-0">
-                        <div className="text-sm font-semibold text-base-color">{form.name || 'Nouvelle societe'}</div>
-                        <div className="text-xs text-muted-color mt-1">{form.slug || 'slug-a-definir'}</div>
+                        <div className="text-sm font-semibold text-base-color">{form.name || 'Nouvelle société'}</div>
+                        <div className="text-xs text-muted-color mt-1">{form.slug || 'slug-à-définir'}</div>
                       </div>
                     </div>
 
                     {!creating && detail?.company && (
                       <div className="space-y-2 mt-4">
                         <MetricPill label="Utilisateurs" value={detail.company.users_count} />
-                        <MetricPill label="Depots" value={detail.company.depots_count} />
+                        <MetricPill label="Dépôts" value={detail.company.depots_count} />
                         <MetricPill label="Camions" value={`${detail.company.camions_count}/${detail.company.max_camions}`} />
                         <MetricPill label="Transferts" value={detail.company.transfer_logs_count} />
                       </div>
@@ -540,13 +540,13 @@ export default function CompaniesIndex() {
 
                   {!creating && detail?.company && (
                     <div className="rounded-[24px] px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                      <div className="text-xs font-semibold text-muted-color uppercase tracking-[0.18em] mb-3">Pilotage societaire</div>
+                      <div className="text-xs font-semibold text-muted-color uppercase tracking-[0.18em] mb-3">Pilotage sociétaire</div>
                       <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-                        <DetailRow label="Creee" value={formatDateTime(detail.company.created_at)} />
-                        <DetailRow label="Mise a jour" value={formatDateTime(detail.company.updated_at)} />
-                        <DetailRow label="Settings" value={`${detail.company.settings_count ?? 0} cle(s)`} />
-                        <DetailRow label="Fresh install" value={detail.company.fresh_install_enabled ? 'Autorise' : 'Bloque'} />
-                        <DetailRow label="Taches de fond" value={detail.company.background_tasks_enabled ? 'Activees' : 'Bloquees'} />
+                        <DetailRow label="Créée" value={formatDateTime(detail.company.created_at)} />
+                        <DetailRow label="Mise à jour" value={formatDateTime(detail.company.updated_at)} />
+                        <DetailRow label="Settings" value={`${detail.company.settings_count ?? 0} clé(s)`} />
+                        <DetailRow label="Fresh install" value={detail.company.fresh_install_enabled ? 'Autorisé' : 'Bloqué'} />
+                        <DetailRow label="Tâches de fond" value={detail.company.background_tasks_enabled ? 'Activées' : 'Bloquées'} />
                       </div>
 
                       {Object.entries(detail.company.settings_groups ?? {}).length > 0 && (
@@ -567,9 +567,9 @@ export default function CompaniesIndex() {
 
                   {!creating && detail?.company?.fresh_install_preview && (
                     <div className="rounded-[24px] px-4 py-4" style={{ background: 'rgba(249,115,22,0.08)', boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.16)' }}>
-                      <div className="text-sm font-semibold" style={{ color: '#c2410c' }}>Fresh install societaire</div>
+                      <div className="text-sm font-semibold" style={{ color: '#c2410c' }}>Fresh install sociétaire</div>
                       <div className="text-xs mt-2" style={{ color: '#9a3412' }}>
-                        Cette action purge l operationnel de la societe, conserve les structures coeur et regenere depot principal + camions.
+                        Cette action purge l’opérationnel de la société, conserve les structures cœur et régénère dépôt principal + camions.
                       </div>
                       <div className="grid grid-cols-3 gap-2 mt-4">
                         <div className="rounded-2xl px-3 py-3 text-center" style={{ background: '#ffffffb8' }}>
@@ -592,7 +592,7 @@ export default function CompaniesIndex() {
                         placeholder="FRESH INSTALL"
                       />
                       <button onClick={runFreshInstall} disabled={runningFreshInstall} className="btn-danger text-xs mt-3 w-full justify-center">
-                        {runningFreshInstall ? <><i className="fa-solid fa-spinner fa-spin" /> Execution...</> : <><i className="fa-solid fa-power-off" /> Lancer le fresh install</>}
+                        {runningFreshInstall ? <><i className="fa-solid fa-spinner fa-spin" /> Exécution...</> : <><i className="fa-solid fa-power-off" /> Lancer le fresh install</>}
                       </button>
                     </div>
                   )}
@@ -601,10 +601,10 @@ export default function CompaniesIndex() {
                     <div className="rounded-[24px] px-4 py-4" style={{ background: 'rgba(59,130,246,0.08)', boxShadow: 'inset 0 0 0 1px rgba(59,130,246,0.16)' }}>
                       <div className="text-sm font-semibold text-base-color">Workspace de test</div>
                       <div className="text-xs text-secondary-color mt-2">
-                        Cree ou confirme un depot, deux camions, un comptable, deux commerciaux, des clients de test et un stock depot minimal.
+                        Crée ou confirme un dépôt, deux camions, un comptable, deux commerciaux, des clients de test et un stock dépôt minimal.
                       </div>
                       <button onClick={bootstrapWorkspace} disabled={bootstrapping} className="btn-primary text-xs mt-3 w-full justify-center">
-                        {bootstrapping ? <><i className="fa-solid fa-spinner fa-spin" /> Preparation...</> : <><i className="fa-solid fa-wand-magic-sparkles" /> Preparer l espace de test</>}
+                        {bootstrapping ? <><i className="fa-solid fa-spinner fa-spin" /> Préparation...</> : <><i className="fa-solid fa-wand-magic-sparkles" /> Préparer l’espace de test</>}
                       </button>
                     </div>
                   )}
@@ -617,8 +617,8 @@ export default function CompaniesIndex() {
             <>
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <ActivityList
-                  title="Audit societaire"
-                  emptyLabel="Aucune trace d audit pour cette societe."
+                  title="Audit sociétaire"
+                  emptyLabel="Aucune trace d’audit pour cette société."
                   items={detail.recent_audits ?? []}
                   renderItem={(item) => (
                     <div key={`audit-${item.id}`} className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
@@ -628,7 +628,7 @@ export default function CompaniesIndex() {
                           <div className="text-xs text-muted-color mt-1">{item.action}</div>
                         </div>
                         <div className="text-right text-[11px] text-muted-color">
-                          <div>{item.actor_name || 'Systeme'}</div>
+                          <div>{item.actor_name || 'Système'}</div>
                           <div className="mt-1">{formatDateTime(item.created_at)}</div>
                         </div>
                       </div>
@@ -647,7 +647,7 @@ export default function CompaniesIndex() {
 
                 <ActivityList
                   title="Historique import / export"
-                  emptyLabel="Aucun transfert de donnees pour cette societe."
+                  emptyLabel="Aucun transfert de données pour cette société."
                   items={detail.recent_transfers ?? []}
                   renderItem={(item) => (
                     <div key={`transfer-${item.id}`} className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
@@ -657,7 +657,7 @@ export default function CompaniesIndex() {
                           <div className="text-xs text-muted-color mt-1">{item.direction === 'import' ? 'Import' : 'Export'} - {item.source}</div>
                         </div>
                         <div className="text-right text-[11px] text-muted-color">
-                          <div>{item.created_by || 'Systeme'}</div>
+                          <div>{item.created_by || 'Système'}</div>
                           <div className="mt-1">{formatDateTime(item.created_at)}</div>
                         </div>
                       </div>
@@ -669,18 +669,18 @@ export default function CompaniesIndex() {
 
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 <div className="card">
-                  <h2 className="text-sm font-semibold text-base-color mb-4">Depots</h2>
+                  <h2 className="text-sm font-semibold text-base-color mb-4">Dépôts</h2>
                   <div className="space-y-2">
                     {(detail.depots ?? []).map((entry) => (
                       <div key={`depot-${entry.id}`} className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                         <div className="flex items-center gap-2 flex-wrap">
                           <div className="text-sm font-semibold text-base-color">{entry.name}</div>
-                          {entry.is_default && <MetricPill label="Defaut" value="Oui" tone="success" />}
+                          {entry.is_default && <MetricPill label="Défaut" value="Oui" tone="success" />}
                           {!entry.active && <MetricPill label="Statut" value="Inactive" tone="warning" />}
                         </div>
-                        <div className="text-xs text-muted-color mt-1">{entry.code || 'Code non defini'}</div>
-                        <div className="text-[11px] text-secondary-color mt-2">Cree le {formatDateTime(entry.created_at)}</div>
-                        <div className="text-[11px] text-secondary-color mt-1">Mis a jour le {formatDateTime(entry.updated_at)}</div>
+                        <div className="text-xs text-muted-color mt-1">{entry.code || 'Code non défini'}</div>
+                        <div className="text-[11px] text-secondary-color mt-2">Créé le {formatDateTime(entry.created_at)}</div>
+                        <div className="text-[11px] text-secondary-color mt-1">Mis à jour le {formatDateTime(entry.updated_at)}</div>
                       </div>
                     ))}
                   </div>
@@ -696,8 +696,8 @@ export default function CompaniesIndex() {
                           {!entry.active && <MetricPill label="Statut" value="Inactive" tone="warning" />}
                         </div>
                         <div className="text-xs text-muted-color mt-1">{entry.plate || 'Sans plaque'} - {entry.operational_status}</div>
-                        <div className="text-[11px] text-secondary-color mt-2">Cree le {formatDateTime(entry.created_at)}</div>
-                        <div className="text-[11px] text-secondary-color mt-1">Mis a jour le {formatDateTime(entry.updated_at)}</div>
+                        <div className="text-[11px] text-secondary-color mt-2">Créé le {formatDateTime(entry.created_at)}</div>
+                        <div className="text-[11px] text-secondary-color mt-1">Mis à jour le {formatDateTime(entry.updated_at)}</div>
                       </div>
                     ))}
                   </div>
@@ -710,9 +710,9 @@ export default function CompaniesIndex() {
                       <div key={`user-${entry.id}`} className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                         <div className="text-sm font-semibold text-base-color">{entry.name}</div>
                         <div className="text-xs text-muted-color mt-1">{entry.role} - {entry.email}</div>
-                        <div className="text-xs text-secondary-color mt-2">{entry.depot?.name || 'Depot a confirmer'}</div>
-                        <div className="text-[11px] text-secondary-color mt-2">Cree le {formatDateTime(entry.created_at)}</div>
-                        <div className="text-[11px] text-secondary-color mt-1">Mis a jour le {formatDateTime(entry.updated_at)}</div>
+                        <div className="text-xs text-secondary-color mt-2">{entry.depot?.name || 'Dépôt à confirmer'}</div>
+                        <div className="text-[11px] text-secondary-color mt-2">Créé le {formatDateTime(entry.created_at)}</div>
+                        <div className="text-[11px] text-secondary-color mt-1">Mis à jour le {formatDateTime(entry.updated_at)}</div>
                       </div>
                     ))}
                   </div>
@@ -722,7 +722,7 @@ export default function CompaniesIndex() {
               {bootstrapResult?.credentials?.length > 0 && (
                 <div className="card">
                   <div className="flex items-center justify-between gap-3 mb-4">
-                    <h2 className="text-sm font-semibold text-base-color">Identifiants crees pendant la preparation</h2>
+                    <h2 className="text-sm font-semibold text-base-color">Identifiants créés pendant la préparation</h2>
                     <span className="text-xs text-muted-color">{bootstrapResult.credentials.length} compte(s)</span>
                   </div>
                   <div className="space-y-3">
