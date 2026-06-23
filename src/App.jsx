@@ -28,6 +28,7 @@ import BugReportsIndex from './pages/support/BugReportsIndex'
 import DeveloperToolsIndex from './pages/developer/DeveloperToolsIndex'
 import CompaniesIndex from './pages/companies/CompaniesIndex'
 import { APP_BASE_PATH } from './utils/appPaths'
+import { isAnyMapExperienceEnabled } from './utils/companyFeatures'
 
 function RequireAuth({ children }) {
   const { user } = useAuth()
@@ -53,6 +54,14 @@ function RequireDeveloper({ children }) {
   const { user } = useAuth()
   if (!user) return <Navigate to="/login" replace />
   if (user.role !== 'developer') return <Navigate to="/" replace />
+  return children
+}
+
+function RequireMapFeature({ children }) {
+  const { user } = useAuth()
+  if (!user) return <Navigate to="/login" replace />
+  if (user.role !== 'admin' && user.role !== 'developer') return <Navigate to="/" replace />
+  if (!isAnyMapExperienceEnabled(user)) return <Navigate to="/config/terrain-visibility" replace />
   return children
 }
 
@@ -87,7 +96,7 @@ export default function App() {
               <Route path="routes"    element={<RequireAdmin><RouteSessionsIndex /></RequireAdmin>} />
               <Route path="config"    element={<RequireAdmin><ConfigIndex /></RequireAdmin>} />
               <Route path="config/:sectionKey" element={<RequireAdmin><ConfigIndex /></RequireAdmin>} />
-              <Route path="map"       element={<RequireAdmin><LiveMapIndex /></RequireAdmin>} />
+              <Route path="map"       element={<RequireMapFeature><LiveMapIndex /></RequireMapFeature>} />
               <Route path="inventory" element={<RequireAdmin><InventaireIndex /></RequireAdmin>} />
               <Route path="data-tools" element={<RequireAdmin><DataToolsIndex /></RequireAdmin>} />
               <Route path="companies" element={<RequireDeveloper><CompaniesIndex /></RequireDeveloper>} />

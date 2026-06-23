@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import irtiwaaMark from '../assets/irtiwaa-mark.png'
 import { useAuth } from '../contexts/AuthContext'
+import { DEFAULT_LOGIN_MARK } from '../utils/branding'
 
 const PARTICLES = Array.from({ length: 22 }, (_, index) => ({
   left: `${4 + ((index * 19) % 92)}%`,
@@ -76,7 +76,7 @@ export default function Login() {
         <div className="login-shell w-full max-w-md rounded-[30px] px-6 py-7 sm:px-8">
           <div className="flex items-center gap-3">
             <div className="relative flex h-14 w-14 items-center justify-center rounded-[20px] bg-white/95 shadow-[0_18px_42px_rgba(15,23,42,0.2)]">
-              <img src={irtiwaaMark} alt="Logo application" className="h-10 w-10 object-contain" />
+              <img src={DEFAULT_LOGIN_MARK} alt="Logo application" className="h-10 w-10 object-contain" />
               <div className="absolute inset-0 rounded-[20px] bg-[linear-gradient(135deg,rgba(255,255,255,0.38)_0%,rgba(255,255,255,0)_62%)]" />
             </div>
             <div>

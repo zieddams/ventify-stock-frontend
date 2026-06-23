@@ -6,6 +6,7 @@ import { PageLoader } from '../components/Spinner'
 import { useAuth } from '../contexts/AuthContext'
 import { useDepots } from '../hooks/useDepots'
 import QuantityInput from '../components/QuantityInput'
+import { isTerrainTrackingEnabled } from '../utils/companyFeatures'
 import {
   DEFAULT_APP_MARK,
   resolveUserBrandCaption,
@@ -15,14 +16,13 @@ import {
 } from '../utils/branding'
 
 const HEARTBEAT_REFRESH_MS = 20 * 1000
-const WEB_GEO_ENABLED = false
 
 function fmt(n) {
   return new Intl.NumberFormat('fr-TN', { minimumFractionDigits: 3 }).format(n ?? 0)
 }
 
-function getSessionPresenceMeta(session) {
-  if (!WEB_GEO_ENABLED) {
+function getSessionPresenceMeta(session, terrainTrackingEnabled) {
+  if (!terrainTrackingEnabled) {
     return {
       label: 'Suivi session',
       textClassName: 'text-muted-color',
@@ -342,6 +342,7 @@ export default function Dashboard() {
   const [sessions, setSessions] = useState([])
   const [loading, setLoading]   = useState(true)
   const { user, isAdmin }       = useAuth()
+  const terrainTrackingEnabled = isTerrainTrackingEnabled(user)
   const {
     depots,
     loading: depotsLoading,
@@ -533,7 +534,7 @@ export default function Dashboard() {
                 </thead>
                 <tbody>
                   {sessions.map(s => {
-                    const presenceMeta = getSessionPresenceMeta(s)
+                    const presenceMeta = getSessionPresenceMeta(s, terrainTrackingEnabled)
                     const lastSeenAge = formatLastSeenAge(s.presence?.last_seen_age_seconds)
                     const activityAt = s.updated_at || s.started_at || s.created_at || s.last_seen
 
@@ -551,7 +552,7 @@ export default function Dashboard() {
                           </span>
                         </td>
                         <td className="py-3 text-muted-color text-xs">
-                          {WEB_GEO_ENABLED
+                          {terrainTrackingEnabled
                             ? (s.last_seen
                               ? `${new Date(s.last_seen).toLocaleString('fr-FR')}${lastSeenAge ? ` · ${lastSeenAge}` : ''}`
                               : '—')

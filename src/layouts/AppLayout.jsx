@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import irtiwaaMark from '../assets/irtiwaa-mark.png'
 import NotificationBell from '../components/NotificationBell'
 import DepotScopeControls from '../components/DepotScopeControls'
 import { APP_NAME, APP_VERSION } from '../config/appMeta'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { useDepots } from '../hooks/useDepots'
+import { DEFAULT_APP_MARK, resolveUserBrandLogo } from '../utils/branding'
 
 const CORE_NAV = [
   { to: '/invoices', icon: 'fa-solid fa-file-invoice', label: 'Factures' },
@@ -139,7 +139,11 @@ function getSystemStatusLabel(systemStatus) {
   return "Vérification de l'API en cours"
 }
 
-function buildAppDisplayName(companyName) {
+function buildAppDisplayName(user, companyName) {
+  if (user?.role === 'developer') {
+    return APP_NAME
+  }
+
   return companyName ? `${APP_NAME} (${companyName})` : APP_NAME
 }
 
@@ -240,7 +244,43 @@ function UserMenu({ user, onLogout }) {
   )
 }
 
-function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper, statusLabel, appDisplayName }) {
+function BrandMark({
+  user,
+  title,
+  imageClassName,
+  shellClassName,
+  onClick = null,
+}) {
+  const [imageFailed, setImageFailed] = useState(false)
+  const logoSrc = imageFailed ? DEFAULT_APP_MARK : resolveUserBrandLogo(user)
+
+  useEffect(() => {
+    setImageFailed(false)
+  }, [user?.company?.logo_url])
+
+  const shell = (
+    <div className={shellClassName} title={title}>
+      <img
+        src={logoSrc}
+        alt={title || 'Logo application'}
+        className={imageClassName}
+        onError={() => setImageFailed(true)}
+      />
+    </div>
+  )
+
+  if (!onClick) {
+    return shell
+  }
+
+  return (
+    <button type="button" onClick={onClick} className="bg-transparent border-0 p-0">
+      {shell}
+    </button>
+  )
+}
+
+function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper, statusLabel, appDisplayName, user }) {
   if (!open) {
     return null
   }
@@ -251,9 +291,12 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper
       <div className="absolute left-0 top-0 bottom-0 w-80 rail flex flex-col animate-slide-in shadow-xl">
         <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-white/95 flex items-center justify-center shadow">
-              <img src={irtiwaaMark} alt="" className="w-5 h-5 object-contain" />
-            </div>
+            <BrandMark
+              user={user}
+              title={appDisplayName}
+              shellClassName="w-8 h-8 rounded-lg bg-white/95 flex items-center justify-center shadow"
+              imageClassName="w-5 h-5 object-contain"
+            />
             <div>
               <div className="text-sm font-bold text-white">{appDisplayName}</div>
               <div className="text-xs" style={{ color: 'var(--rail-text)' }}>{statusLabel}</div>
@@ -427,7 +470,7 @@ export default function AppLayout() {
   const statusLabel = getSystemStatusLabel(systemStatus)
   const canSeeDepotScope = isDeveloper()
   const activeCompanyName = topbarSelectedDepot?.company?.name ?? user?.company?.name ?? null
-  const appDisplayName = buildAppDisplayName(activeCompanyName)
+  const appDisplayName = buildAppDisplayName(user, activeCompanyName)
 
   useEffect(() => {
     if (typeof document === 'undefined') {
@@ -447,13 +490,13 @@ export default function AppLayout() {
         style={{ borderColor: 'var(--rail-border)' }}
       >
         <div className={`rail-brand${isSidebarExpanded ? ' expanded' : ''}`}>
-          <div
-            className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shadow-lg cursor-pointer flex-shrink-0"
-            onClick={() => navigate('/')}
+          <BrandMark
+            user={user}
             title={appDisplayName}
-          >
-            <img src={irtiwaaMark} alt="" className="w-7 h-7 object-contain" />
-          </div>
+            onClick={() => navigate('/')}
+            shellClassName="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shadow-lg cursor-pointer flex-shrink-0"
+            imageClassName="w-7 h-7 object-contain"
+          />
           {isSidebarExpanded && (
             <div className="min-w-0">
               <div className="rail-brand-title">{appDisplayName}</div>
@@ -532,9 +575,12 @@ export default function AppLayout() {
               <i className={`${pageInfo.icon} text-teal-600 dark:text-teal-400`} style={{ fontSize: 12 }} />
             </div>
             <div className="md:hidden flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center shadow-sm">
-                <img src={irtiwaaMark} alt="" className="w-5 h-5 object-contain" />
-              </div>
+              <BrandMark
+                user={user}
+                title={appDisplayName}
+                shellClassName="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center shadow-sm"
+                imageClassName="w-5 h-5 object-contain"
+              />
               <span className="font-bold text-sm text-base-color truncate max-w-[180px]">{appDisplayName}</span>
             </div>
             <div className="min-w-0">
@@ -596,6 +642,7 @@ export default function AppLayout() {
         isDeveloper={isDeveloper}
         statusLabel={statusLabel}
         appDisplayName={appDisplayName}
+        user={user}
       />
     </div>
   )

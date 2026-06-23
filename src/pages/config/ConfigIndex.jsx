@@ -127,6 +127,13 @@ const SETUP_SECTIONS = [
     icon: 'fa-solid fa-print',
   },
   {
+    key: 'terrain-visibility',
+    module: 'system',
+    title: 'Cartes et geolocalisation',
+    description: 'Active ou masque les cartes clients, le suivi terrain et les surfaces GPS pour la societe.',
+    icon: 'fa-solid fa-map-location-dot',
+  },
+  {
     key: 'system-support',
     module: 'system',
     title: 'Support et signalements',
@@ -253,6 +260,10 @@ const MAP_SETTING_KEYS = [
   'map.google_map_id',
   'map.custom_tile_url',
   'map.custom_tile_attribution',
+]
+const MAP_VISIBILITY_SETTING_KEYS = [
+  'map.customer_geolocation_enabled',
+  'map.terrain_tracking_enabled',
 ]
 
 const SYSTEM_SETTING_KEYS = [
@@ -510,7 +521,7 @@ function DocumentTemplateCard({
 export default function ConfigIndex() {
   const navigate = useNavigate()
   const { sectionKey: routeSectionKey } = useParams()
-  const { user, isDeveloper } = useAuth()
+  const { user, isDeveloper, refreshUser } = useAuth()
   const { selectedDepot } = useDepots({
     allowAll: false,
     storageKey: 'app-depot-scope',
@@ -630,6 +641,23 @@ export default function ConfigIndex() {
   ), [activeDocumentEntity])
 
   const settingValue = (key, fallback = '') => String(settingsByKey[key]?.value ?? fallback)
+  const settingBooleanValue = (key, fallback = false) => {
+    const rawValue = settingsByKey[key]?.value
+
+    if (typeof rawValue === 'boolean') {
+      return rawValue
+    }
+
+    if (typeof rawValue === 'number') {
+      return rawValue === 1
+    }
+
+    if (typeof rawValue === 'string') {
+      return ['1', 'true', 'yes', 'on'].includes(rawValue.trim().toLowerCase())
+    }
+
+    return fallback
+  }
 
   const updateSetting = (key, value) => {
     setSettingsByKey((current) => ({
@@ -660,6 +688,7 @@ export default function ConfigIndex() {
           return carry
         }, {})
       )
+      await refreshUser?.()
     } finally {
       setSavingSettings('')
     }
@@ -827,6 +856,8 @@ export default function ConfigIndex() {
   const currentTypeConfig = MANAGED_TYPES.find((item) => item.key === modalType)
   const isSystemItem = editing?.is_system === true
   const currentProvider = settingValue('map.provider', 'openstreetmap')
+  const mapExperienceEnabled = settingBooleanValue('map.terrain_tracking_enabled')
+    || settingBooleanValue('map.customer_geolocation_enabled')
   const categoryConfig = MANAGED_TYPES.find((item) => item.key === 'category')
   const unitConfig = MANAGED_TYPES.find((item) => item.key === 'unit')
   const paymentMethodConfig = MANAGED_TYPES.find((item) => item.key === 'payment_method')
@@ -1253,6 +1284,75 @@ export default function ConfigIndex() {
             </div>
           )}
 
+          {setupSection?.key === 'terrain-visibility' && (
+            <div className="space-y-6">
+              <div className="card">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <h2 className="text-sm font-semibold text-base-color">Activation par societe</h2>
+                    <p className="text-xs text-muted-color mt-1">
+                      Quand ce module est actif, la societe peut utiliser les cartes clients, le suivi terrain
+                      et les experiences GPS sur le web et le mobile. Sinon, ces surfaces restent masquees.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => saveSettings(MAP_VISIBILITY_SETTING_KEYS, 'map-visibility')}
+                    disabled={savingSettings === 'map-visibility'}
+                    className="btn-primary text-xs"
+                  >
+                    {savingSettings === 'map-visibility'
+                      ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</>
+                      : <><i className="fa-solid fa-floppy-disk" /> Sauver</>
+                    }
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateSetting('map.customer_geolocation_enabled', true)
+                      updateSetting('map.terrain_tracking_enabled', true)
+                    }}
+                    className="rounded-2xl px-4 py-4 text-left transition-all"
+                    style={mapExperienceEnabled
+                      ? { background: 'rgba(13,148,136,0.10)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)' }
+                      : { background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+                  >
+                    <div className="text-sm font-semibold text-base-color">Activer les cartes</div>
+                    <div className="text-xs text-secondary-color mt-1">
+                      Active les cartes clients, le suivi terrain et les zones GPS pour cette societe.
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateSetting('map.customer_geolocation_enabled', false)
+                      updateSetting('map.terrain_tracking_enabled', false)
+                    }}
+                    className="rounded-2xl px-4 py-4 text-left transition-all"
+                    style={!mapExperienceEnabled
+                      ? { background: 'rgba(100,116,139,0.12)', boxShadow: 'inset 0 0 0 1px rgba(100,116,139,0.18)' }
+                      : { background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+                  >
+                    <div className="text-sm font-semibold text-base-color">Masquer les cartes</div>
+                    <div className="text-xs text-secondary-color mt-1">
+                      Retire les cartes de l interface web et mobile pour la societe courante.
+                    </div>
+                  </button>
+                </div>
+
+                <div className="rounded-2xl px-4 py-3 mt-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-color mb-1">Etat courant</div>
+                  <div className="text-sm font-medium text-base-color">
+                    {mapExperienceEnabled ? 'Cartes actives pour cette societe.' : 'Cartes masquees pour cette societe.'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {setupSection?.key === 'map-status' && (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <div className="card">
@@ -1261,9 +1361,18 @@ export default function ConfigIndex() {
                   <h2 className="text-sm font-semibold text-base-color">Raccourcis</h2>
                 </div>
                 <div className="space-y-2">
-                  <Link to="/map" className="btn-secondary text-xs w-full justify-center">
-                    <i className="fa-solid fa-map-location-dot" /> Ouvrir la carte
-                  </Link>
+                  {mapExperienceEnabled ? (
+                    <Link to="/map" className="btn-secondary text-xs w-full justify-center">
+                      <i className="fa-solid fa-map-location-dot" /> Ouvrir la carte
+                    </Link>
+                  ) : (
+                    <div
+                      className="rounded-xl px-3 py-2 text-xs text-secondary-color"
+                      style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+                    >
+                      Activez d abord les cartes pour ouvrir le module terrain.
+                    </div>
+                  )}
                   <Link to="/notifications-center" className="btn-secondary text-xs w-full justify-center">
                     <i className="fa-solid fa-bell" /> Voir les notifications
                   </Link>

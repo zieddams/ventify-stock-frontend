@@ -1,33 +1,55 @@
-import irtiwaaMark from '../assets/irtiwaa-mark.png'
+import platformDefaultMark from '../assets/platform-default-mark.png'
+import irtiwaaLogo from '../assets/irtiwaa-logo.png'
 
-export const DEFAULT_APP_MARK = irtiwaaMark
+export const DEFAULT_APP_MARK = platformDefaultMark
+export const DEFAULT_LOGIN_MARK = platformDefaultMark
 
 function cleanString(value) {
   return String(value ?? '').trim()
 }
 
+function isDeveloperUser(user) {
+  return user?.role === 'developer'
+}
+
+function shouldUseCompanyBrand(user) {
+  return Boolean(user?.company?.id) && !isDeveloperUser(user)
+}
+
+function resolveCompanyFallbackLogo(user) {
+  return user?.company?.slug === 'el-irtiwaa' ? irtiwaaLogo : DEFAULT_APP_MARK
+}
+
 export function resolveUserBrandLogo(user) {
-  return cleanString(user?.company?.logo_url) || DEFAULT_APP_MARK
+  if (!shouldUseCompanyBrand(user)) {
+    return DEFAULT_APP_MARK
+  }
+
+  return cleanString(user?.company?.logo_url) || resolveCompanyFallbackLogo(user)
 }
 
 export function resolveUserBrandName(user) {
+  if (!shouldUseCompanyBrand(user)) {
+    return 'Gestion de vente'
+  }
+
   return cleanString(user?.company?.name) || 'Gestion de vente'
 }
 
 export function resolveUserBrandCaption(user) {
-  if (user?.company?.id) {
-    return 'Societe connectee'
+  if (isDeveloperUser(user)) {
+    return 'Compte developpeur'
   }
 
-  if (user?.role === 'developer') {
-    return 'Compte developpeur'
+  if (shouldUseCompanyBrand(user)) {
+    return 'Societe connectee'
   }
 
   return 'Plateforme'
 }
 
 export function resolveUserBrandHint(user) {
-  if (user?.company?.id) {
+  if (shouldUseCompanyBrand(user)) {
     return 'Logo actif pour le compte connecte.'
   }
 

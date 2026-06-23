@@ -7,9 +7,11 @@ import 'leaflet.gridlayer.googlemutant'
 import DepotScopeControls from '../../components/DepotScopeControls'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
+import { useAuth } from '../../contexts/AuthContext'
 import { useDepots } from '../../hooks/useDepots'
 import api from '../../services/api'
 import { subscribeToOpsMonitor } from '../../services/realtime'
+import { isAnyMapExperienceEnabled } from '../../utils/companyFeatures'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -26,8 +28,8 @@ const TUNISIA_BOUNDS = [
 const DEFAULT_CENTER = [34.2, 9.6]
 const DEFAULT_ZOOM = 6
 const HEARTBEAT_REFRESH_MS = 20 * 1000
-const GEO_TRACKING_ENABLED = false
-const MAP_TERRAIN_UI_ENABLED = false
+let GEO_TRACKING_ENABLED = false
+let MAP_TERRAIN_UI_ENABLED = false
 const GOOGLE_MAP_PROVIDERS = new Set(['google_roadmap', 'google_satellite'])
 const GOOGLE_MAP_TYPES = new Set(['roadmap', 'satellite', 'terrain', 'hybrid'])
 const GOOGLE_MAPS_SCRIPT_ID = 'irtiwaa-google-maps-sdk'
@@ -1259,13 +1261,18 @@ function TerrainTab({
 
 export default function LiveMapIndex() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const { user } = useAuth()
+  const mapExperienceEnabled = isAnyMapExperienceEnabled(user)
+
+  GEO_TRACKING_ENABLED = mapExperienceEnabled
+  MAP_TERRAIN_UI_ENABLED = mapExperienceEnabled
 
   if (!MAP_TERRAIN_UI_ENABLED) {
     return (
       <div className="space-y-6">
         <PageHeader
           title="Carte et terrain"
-          subtitle="Module momentanement masque sur la plateforme."
+          subtitle="Module masque pour cette societe."
         />
 
         <div className="card">
@@ -1277,10 +1284,10 @@ export default function LiveMapIndex() {
               <i className="fa-solid fa-map-location-dot" />
             </div>
             <div>
-              <div className="text-sm font-semibold text-base-color">Suivi cartographique en pause</div>
+              <div className="text-sm font-semibold text-base-color">Cartes et geolocalisation desactivees</div>
               <div className="text-sm text-secondary-color mt-1">
-                La geolocalisation et les cartes restent desactivees pour cette phase. Le code est conserve pour une
-                reactivation future, mais l interface n expose plus ce module pour eviter toute confusion.
+                La societe connectee n a pas active les cartes clients et le suivi terrain. Le module reste masque
+                jusqu a activation depuis la configuration.
               </div>
             </div>
           </div>
