@@ -6,6 +6,13 @@ import { PageLoader } from '../components/Spinner'
 import { useAuth } from '../contexts/AuthContext'
 import { useDepots } from '../hooks/useDepots'
 import QuantityInput from '../components/QuantityInput'
+import {
+  DEFAULT_APP_MARK,
+  resolveUserBrandCaption,
+  resolveUserBrandHint,
+  resolveUserBrandLogo,
+  resolveUserBrandName,
+} from '../utils/branding'
 
 const HEARTBEAT_REFRESH_MS = 20 * 1000
 const WEB_GEO_ENABLED = false
@@ -94,6 +101,36 @@ function formatLastSeenAge(seconds) {
 
   const years = Math.floor(days / 365)
   return `${years} an${years > 1 ? 's' : ''}`
+}
+
+function DashboardBrandCard({ user }) {
+  const [imageFailed, setImageFailed] = useState(false)
+  const brandLogo = imageFailed ? DEFAULT_APP_MARK : resolveUserBrandLogo(user)
+  const brandName = resolveUserBrandName(user)
+  const brandCaption = resolveUserBrandCaption(user)
+  const brandHint = resolveUserBrandHint(user)
+
+  useEffect(() => {
+    setImageFailed(false)
+  }, [user?.company?.logo_url])
+
+  return (
+    <div className="card w-full sm:w-auto sm:min-w-[280px] flex items-center gap-3 px-4 py-3">
+      <div className="w-14 h-14 rounded-2xl bg-surface-2 flex items-center justify-center shadow-sm flex-shrink-0">
+        <img
+          src={brandLogo}
+          alt={brandName}
+          className="w-10 h-10 object-contain"
+          onError={() => setImageFailed(true)}
+        />
+      </div>
+      <div className="min-w-0">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-color">{brandCaption}</div>
+        <div className="text-sm font-semibold text-base-color truncate">{brandName}</div>
+        <div className="text-xs text-muted-color mt-1">{brandHint}</div>
+      </div>
+    </div>
+  )
 }
 
 /* ─── KPI Card ─────────────────────────────────────────────────────────────── */
@@ -304,7 +341,7 @@ export default function Dashboard() {
   const [stats, setStats]       = useState(null)
   const [sessions, setSessions] = useState([])
   const [loading, setLoading]   = useState(true)
-  const { isAdmin }             = useAuth()
+  const { user, isAdmin }       = useAuth()
   const {
     depots,
     loading: depotsLoading,
@@ -369,6 +406,7 @@ export default function Dashboard() {
 
       {/* ── Admin view ──────────────────────────────────────────────────── */}
 
+        <DashboardBrandCard user={user} />
       </div>
 
       {isAdmin() && stats ? (
