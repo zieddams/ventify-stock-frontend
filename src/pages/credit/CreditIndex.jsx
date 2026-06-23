@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useDeferredValue, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import DepotScopeControls from '../../components/DepotScopeControls'
 import PageHeader from '../../components/PageHeader'
@@ -37,6 +37,7 @@ function formatDateTimeCell(value) {
 export default function CreditIndex() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const {
@@ -53,6 +54,7 @@ export default function CreditIndex() {
     storageKey: 'app-depot-scope',
     defaultToAll: true,
   })
+  const deferredSearch = useDeferredValue(search.trim())
 
   useEffect(() => {
     if (!depotsReady) {
@@ -64,13 +66,14 @@ export default function CreditIndex() {
     api.get('/reports/aging', {
       params: {
         ...scopeParams,
+        ...(deferredSearch ? { q: deferredSearch } : {}),
         ...(dateFrom ? { date_from: dateFrom } : {}),
         ...(dateTo ? { date_to: dateTo } : {}),
       },
     })
       .then((response) => setData(response.data))
       .finally(() => setLoading(false))
-  }, [dateFrom, dateTo, depotsReady, selectedDepotId, scopeParams])
+  }, [dateFrom, dateTo, deferredSearch, depotsReady, selectedDepotId, scopeParams])
 
   if ((loading && !data) || !data) {
     return <PageLoader />
@@ -106,7 +109,16 @@ export default function CreditIndex() {
       </div>
 
       <div className="card mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="md:col-span-2">
+            <label className="block text-xs text-muted-color mb-1 font-medium">Recherche</label>
+            <input
+              type="text"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Facture, client, commercial, session, camion"
+            />
+          </div>
           <div>
             <label className="block text-xs text-muted-color mb-1 font-medium">Du</label>
             <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
@@ -115,13 +127,14 @@ export default function CreditIndex() {
             <label className="block text-xs text-muted-color mb-1 font-medium">Au</label>
             <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
           </div>
-          <div className="flex items-end">
+          <div className="flex items-end md:col-span-4">
             <button
               onClick={() => {
+                setSearch('')
                 setDateFrom('')
                 setDateTo('')
               }}
-              className="btn-secondary w-full justify-center"
+              className="btn-secondary w-full md:w-auto justify-center"
             >
               <i className="fa-solid fa-rotate-left" /> Reinitialiser
             </button>
@@ -144,8 +157,8 @@ export default function CreditIndex() {
           <table className="w-full text-sm">
             <thead>
               <tr>
-                {['Date / heure', 'Facture', 'Client', 'Commercial', 'Depot', 'Total', 'Paye', 'Reste du'].map((heading, index) => (
-                  <th key={heading} className={`pb-3 pr-4 ${index >= 5 ? 'text-right' : 'text-left'}`}>{heading}</th>
+                {['Date / heure', 'Facture', 'Client', 'Commercial', 'Session / camion', 'Depot', 'Total', 'Paye', 'Reste du', 'Historique'].map((heading, index) => (
+                  <th key={heading} className={`pb-3 pr-4 ${index >= 6 && index <= 8 ? 'text-right' : 'text-left'}`}>{heading}</th>
                 ))}
               </tr>
             </thead>
@@ -164,17 +177,40 @@ export default function CreditIndex() {
                   </td>
                   <td className="py-3 pr-4 text-base-color">{entry.customer_name}</td>
                   <td className="py-3 pr-4 text-secondary-color">{entry.rep_name || '-'}</td>
+                  <td className="py-3 pr-4 text-xs text-secondary-color">
+                    {entry.route_session_id ? (
+                      <div className="space-y-1">
+                        <div>
+                          <Link to={entry.route_session_url} className="text-primary hover:underline">
+                            Session #{entry.route_session_id}
+                          </Link>
+                        </div>
+                        <div>
+                          {entry.camion?.name || 'Camion non renseigne'}
+                          {entry.camion?.plate ? ` | ${entry.camion.plate}` : ''}
+                        </div>
+                      </div>
+                    ) : (
+                      <span>-</span>
+                    )}
+                  </td>
                   <td className="py-3 pr-4 text-secondary-color">{entry.depot?.name ?? 'Tous'}</td>
                   <td className="py-3 pr-4 text-right font-mono text-secondary-color">{fmt(entry.total)} TND</td>
                   <td className="py-3 pr-4 text-right font-mono text-secondary-color">{fmt(entry.paid_amount)} TND</td>
                   <td className="py-3 text-right font-mono font-semibold" style={{ color: '#7c3aed' }}>
                     {fmt(entry.due_amount)} TND
                   </td>
+                  <td className="py-3 pr-4 text-xs text-secondary-color">
+                    <div className="space-y-1">
+                      <div>{entry.payment_attempt_count || 0} tentative(s)</div>
+                      <div>{formatDateTimeCell(entry.last_payment_at)}</div>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {entries.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center">
+                  <td colSpan={10} className="py-12 text-center">
                     <i className="fa-solid fa-circle-check text-3xl text-emerald-500 mb-2 block opacity-60" />
                     <p className="text-muted-color text-sm">Aucune facture credit a afficher sur cette periode</p>
                   </td>

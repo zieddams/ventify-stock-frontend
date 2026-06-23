@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { PaymentStatusBadge } from '../../components/Badge'
 import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
@@ -29,6 +30,31 @@ function fmt(value) {
   return Number(value ?? 0).toFixed(3)
 }
 
+function formatDateTime(value) {
+  return value ? new Date(value).toLocaleString('fr-FR') : '-'
+}
+
+function formatTransactionLabel(transaction) {
+  if (transaction.type === 'charge') {
+    return 'Facture'
+  }
+
+  if (transaction.type === 'payment') {
+    return 'Paiement'
+  }
+
+  return 'Ajustement'
+}
+
+function matchesLedgerQuery(values, query) {
+  if (!query) {
+    return true
+  }
+
+  const normalized = query.trim().toLowerCase()
+  return values.some((value) => String(value ?? '').toLowerCase().includes(normalized))
+}
+
 export default function CustomersIndex() {
   const { user, canManageAllCustomers } = useAuth()
   const { layouts: documentLayouts } = useDocumentLayouts()
@@ -45,6 +71,8 @@ export default function CustomersIndex() {
   const [errors, setErrors] = useState({})
   const [ledgerCustomer, setLedgerCustomer] = useState(null)
   const [ledger, setLedger] = useState(null)
+  const [ledgerQuery, setLedgerQuery] = useState('')
+  const [ledgerTypeFilter, setLedgerTypeFilter] = useState('all')
   const [customersPage, setCustomersPage] = useState(1)
   const [customersPerPage, setCustomersPerPage] = useState(20)
   const { items: configItems } = useConfigItems(['governorate', 'payment_method'])
@@ -166,6 +194,8 @@ export default function CustomersIndex() {
   const openLedger = async (customer) => {
     setLedgerCustomer(customer)
     setLedger(null)
+    setLedgerQuery('')
+    setLedgerTypeFilter('all')
     setPay({ amount: '', method: defaultPaymentMethod, invoice_id: '', note: '' })
 
     const response = await api.get(`/customers/${customer.id}/ledger`)
@@ -215,6 +245,47 @@ export default function CustomersIndex() {
       )
     })
   }, [customers, search])
+
+  const filteredOpenInvoices = useMemo(() => {
+    const items = ledger?.open_invoices ?? []
+
+    return items.filter((invoice) => matchesLedgerQuery([
+      invoice.number,
+      invoice.rep_name,
+      invoice.route_session_id,
+      invoice.camion_name,
+      invoice.camion_plate,
+      invoice.status,
+      invoice.payment_status,
+    ], ledgerQuery))
+  }, [ledger?.open_invoices, ledgerQuery])
+
+  const filteredTransactions = useMemo(() => {
+    const items = ledger?.transactions ?? []
+
+    return items.filter((transaction) => {
+      if (ledgerTypeFilter !== 'all' && transaction.type !== ledgerTypeFilter) {
+        return false
+      }
+
+      return matchesLedgerQuery([
+        transaction.type,
+        transaction.invoice_number,
+        transaction.rep_name,
+        transaction.payment_method,
+        transaction.payment_note,
+        transaction.route_session_id,
+        transaction.camion_name,
+        transaction.camion_plate,
+        ...(transaction.allocations ?? []).flatMap((allocation) => [
+          allocation.invoice_number,
+          allocation.route_session_id,
+          allocation.camion_name,
+          allocation.camion_plate,
+        ]),
+      ], ledgerQuery)
+    })
+  }, [ledger?.transactions, ledgerQuery, ledgerTypeFilter])
 
   const assignableUsers = useMemo(() => (
     users.filter((entry) => entry.active && ['admin', 'developer', 'rep', 'comptable'].includes(entry.role))
@@ -461,111 +532,276 @@ export default function CustomersIndex() {
         </div>
       </Modal>
 
-      <Modal open={!!ledgerCustomer} onClose={() => setLedgerCustomer(null)} title={`Crédit - ${ledgerCustomer?.name ?? ''}`} size="lg">
+      <Modal
+        open={!!ledgerCustomer}
+        onClose={() => {
+          setLedgerCustomer(null)
+          setLedger(null)
+          setLedgerQuery('')
+          setLedgerTypeFilter('all')
+        }}
+        title={`Credit - ${ledgerCustomer?.name ?? ''}`}
+        size="lg"
+      >
         {!ledger ? (
           <PageLoader />
         ) : (
           <div className="space-y-4">
-            <div
-              className="flex items-center justify-between p-4 rounded-xl border"
-              style={{
-                background: Number(ledger.customer.credit_balance) > 0 ? 'rgba(239,68,68,0.06)' : 'rgba(16,185,129,0.06)',
-                borderColor: Number(ledger.customer.credit_balance) > 0 ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)',
-              }}
-            >
-              <div>
-                <div className="text-xs text-muted-color mb-0.5">Solde du</div>
-                <div className="text-xs text-secondary-color">{ledger.open_invoices?.length ?? 0} facture(s) ouverte(s)</div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div
+                className="rounded-xl border p-4"
+                style={{
+                  background: Number(ledger.customer.credit_balance) > 0 ? 'rgba(239,68,68,0.06)' : 'rgba(16,185,129,0.06)',
+                  borderColor: Number(ledger.customer.credit_balance) > 0 ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)',
+                }}
+              >
+                <div className="text-xs text-muted-color mb-1">Solde client</div>
+                <div className="text-2xl font-bold" style={{ color: Number(ledger.customer.credit_balance) > 0 ? '#dc2626' : '#059669' }}>
+                  {fmt(ledger.customer.credit_balance)} <span className="text-sm font-normal text-muted-color">TND</span>
+                </div>
+                <div className="text-xs text-secondary-color mt-2">{ledger.summary?.open_invoice_count ?? 0} facture(s) ouverte(s)</div>
               </div>
-              <div className="text-2xl font-bold" style={{ color: Number(ledger.customer.credit_balance) > 0 ? '#dc2626' : '#059669' }}>
-                {fmt(ledger.customer.credit_balance)} <span className="text-sm font-normal text-muted-color">TND</span>
+
+              <div className="rounded-xl border border-theme p-4" style={{ background: 'var(--surface-2)' }}>
+                <div className="text-xs text-muted-color mb-1">Reste ouvert</div>
+                <div className="text-xl font-bold font-mono text-base-color">{fmt(ledger.summary?.open_due_total)} TND</div>
+                <div className="text-xs text-secondary-color mt-2">
+                  Plafond {ledger.customer.credit_limit ? `${fmt(ledger.customer.credit_limit)} TND` : 'non defini'}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-theme p-4" style={{ background: 'var(--surface-2)' }}>
+                <div className="text-xs text-muted-color mb-1">Paiements traces</div>
+                <div className="text-xl font-bold text-base-color">{ledger.summary?.payment_event_count ?? 0}</div>
+                <div className="text-xs text-secondary-color mt-2">
+                  Derniere activite {formatDateTime(ledger.summary?.last_activity_at)}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-theme p-4" style={{ background: 'var(--surface-2)' }}>
+                <div className="text-xs text-muted-color mb-1">Compte affecte</div>
+                <div className="text-base font-semibold text-base-color">{ledger.customer.owner?.name || 'Non affecte'}</div>
+                <div className="text-xs text-secondary-color mt-2">{ledger.customer.owner?.role || 'Aucun role'}</div>
               </div>
             </div>
 
-            <div className="rounded-xl p-4 border border-theme" style={{ background: 'var(--surface-2)' }}>
-              <div className="text-xs font-bold text-muted-color uppercase tracking-wider mb-3">
-                <i className="fa-solid fa-circle-plus mr-1.5" style={{ color: '#0d9488' }} />
-                Encaisser un paiement
-              </div>
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <input
-                  type="number"
-                  step="0.001"
-                  min="0"
-                  placeholder="Montant (TND)"
-                  value={pay.amount}
-                  onChange={(event) => setPay((current) => ({ ...current, amount: event.target.value }))}
-                />
-                <select value={pay.method} onChange={(event) => setPay((current) => ({ ...current, method: event.target.value }))}>
-                  {availablePaymentMethods.map((method) => (
-                    <option key={method.id ?? method.value} value={method.value}>
-                      {getConfigItemLabel(method)}
+            <div className="grid grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)] gap-4">
+              <div className="rounded-xl p-4 border border-theme" style={{ background: 'var(--surface-2)' }}>
+                <div className="text-xs font-bold text-muted-color uppercase tracking-wider mb-3">
+                  <i className="fa-solid fa-circle-plus mr-1.5" style={{ color: '#0d9488' }} />
+                  Encaisser un paiement
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    placeholder="Montant (TND)"
+                    value={pay.amount}
+                    onChange={(event) => setPay((current) => ({ ...current, amount: event.target.value }))}
+                  />
+                  <select value={pay.method} onChange={(event) => setPay((current) => ({ ...current, method: event.target.value }))}>
+                    {availablePaymentMethods.map((method) => (
+                      <option key={method.id ?? method.value} value={method.value}>
+                        {getConfigItemLabel(method)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <select className="mb-2" value={pay.invoice_id} onChange={(event) => setPay((current) => ({ ...current, invoice_id: event.target.value }))}>
+                  <option value="">Affecter automatiquement (plus ancienne d'abord)</option>
+                  {ledger.open_invoices?.map((invoice) => (
+                    <option key={invoice.id} value={invoice.id}>
+                      {invoice.number} - reste {fmt(invoice.due_amount)}
                     </option>
                   ))}
                 </select>
+                <input
+                  className="mb-2"
+                  value={pay.note}
+                  onChange={(event) => setPay((current) => ({ ...current, note: event.target.value }))}
+                  placeholder="Note interne (optionnel)"
+                />
+                <p className="text-[11px] text-muted-color mb-3">
+                  Le surplus regle d'abord la facture cible, puis les credits plus anciens du client.
+                </p>
+                <button onClick={submitPayment} disabled={paying || !pay.amount} className="btn-primary w-full">
+                  {paying ? <><i className="fa-solid fa-spinner fa-spin" /> Encaissement...</> : <><i className="fa-solid fa-circle-check" /> Encaisser</>}
+                </button>
               </div>
-              <select className="mb-2" value={pay.invoice_id} onChange={(event) => setPay((current) => ({ ...current, invoice_id: event.target.value }))}>
-                <option value="">Affecter automatiquement (plus ancienne d'abord)</option>
-                {ledger.open_invoices?.map((invoice) => (
-                  <option key={invoice.id} value={invoice.id}>
-                    {invoice.number} - du {fmt(invoice.total - invoice.paid_amount)}
-                  </option>
-                ))}
-              </select>
-              <input
-                className="mb-3"
-                value={pay.note}
-                onChange={(event) => setPay((current) => ({ ...current, note: event.target.value }))}
-                placeholder="Note interne (optionnel)"
-              />
-              <button onClick={submitPayment} disabled={paying || !pay.amount} className="btn-primary w-full">
-                {paying ? <><i className="fa-solid fa-spinner fa-spin" /> Encaissement...</> : <><i className="fa-solid fa-circle-check" /> Encaisser</>}
-              </button>
-            </div>
 
-            {ledger.open_invoices?.length > 0 && (
-              <div>
-                <div className="text-xs font-bold text-muted-color uppercase tracking-wider mb-2">Factures ouvertes</div>
-                <div className="space-y-1">
-                  {ledger.open_invoices.map((invoice) => (
-                    <div key={invoice.id} className="flex items-center justify-between text-sm py-2 px-3 rounded-xl border border-theme" style={{ background: 'var(--surface-2)' }}>
-                      <span className="text-secondary-color font-mono text-xs">{invoice.number}</span>
-                      <div className="flex items-center gap-3">
-                        <PaymentStatusBadge status={invoice.payment_status} />
-                        <span className="font-bold font-mono text-xs" style={{ color: '#dc2626' }}>
-                          {fmt(invoice.total - invoice.paid_amount)} TND
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+              <div className="rounded-xl p-4 border border-theme" style={{ background: 'var(--surface-2)' }}>
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <div className="text-xs font-bold text-muted-color uppercase tracking-wider">Filtres credit</div>
+                    <div className="text-xs text-secondary-color mt-1">Facture, commercial, session, camion, methode, note.</div>
+                  </div>
+                  <div className="text-xs text-muted-color">
+                    {filteredTransactions.length} mouvement(s) | {filteredOpenInvoices.length} facture(s)
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_180px] gap-2">
+                  <input
+                    value={ledgerQuery}
+                    onChange={(event) => setLedgerQuery(event.target.value)}
+                    placeholder="Rechercher dans le credit client"
+                  />
+                  <select value={ledgerTypeFilter} onChange={(event) => setLedgerTypeFilter(event.target.value)}>
+                    <option value="all">Tous les mouvements</option>
+                    <option value="charge">Factures</option>
+                    <option value="payment">Paiements</option>
+                    <option value="adjustment">Ajustements</option>
+                  </select>
                 </div>
               </div>
-            )}
+            </div>
 
-            <div>
-              <div className="text-xs font-bold text-muted-color uppercase tracking-wider mb-2">Historique des mouvements</div>
-              <div className="max-h-52 overflow-y-auto space-y-1 rounded-xl border border-theme" style={{ background: 'var(--surface-2)' }}>
-                {ledger.transactions?.map((transaction) => (
-                  <div key={transaction.id} className="flex items-center justify-between text-xs py-2.5 px-3" style={{ borderBottom: '1px solid var(--border)' }}>
-                    <div>
-                      <span className="text-secondary-color">
-                        {new Date(transaction.created_at).toLocaleDateString('fr-FR')}
-                      </span>
-                      <span className="mx-1.5 text-muted-color">|</span>
-                      <span className="text-secondary-color">
-                        {transaction.type === 'charge' ? 'Facture' : transaction.type === 'payment' ? 'Paiement' : 'Ajustement'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="font-bold font-mono" style={{ color: Number(transaction.amount) >= 0 ? '#dc2626' : '#059669' }}>
-                        {Number(transaction.amount) >= 0 ? '+' : ''}{fmt(transaction.amount)}
-                      </span>
-                      <span className="text-muted-color w-24 text-right font-mono">solde {fmt(transaction.balance_after)}</span>
+            <div className="rounded-xl border border-theme p-4" style={{ background: 'var(--surface-2)' }}>
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div>
+                  <div className="text-xs font-bold text-muted-color uppercase tracking-wider">Factures ouvertes</div>
+                  <div className="text-xs text-secondary-color mt-1">Suivi des restes, tentatives d'encaissement et rattachement session/camion.</div>
+                </div>
+                <div className="text-xs text-muted-color">{filteredOpenInvoices.length} resultat(s)</div>
+              </div>
+
+              <div className="space-y-2">
+                {filteredOpenInvoices.map((invoice) => (
+                  <div key={invoice.id} className="rounded-xl border border-theme p-3" style={{ background: 'var(--surface)' }}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <Link to={invoice.invoice_url} className="font-mono text-xs text-primary hover:underline">
+                            {invoice.number}
+                          </Link>
+                          <PaymentStatusBadge status={invoice.payment_status} />
+                        </div>
+                        <div className="text-xs text-secondary-color mt-1">
+                          {invoice.rep_name || 'Commercial non renseigne'} | {formatDateTime(invoice.created_at)}
+                        </div>
+                        <div className="text-xs text-secondary-color mt-1">
+                          {invoice.route_session_id ? (
+                            <>
+                              <Link to={invoice.route_session_url} className="text-primary hover:underline">
+                                Session #{invoice.route_session_id}
+                              </Link>
+                              {' | '}
+                              {invoice.camion_name || 'Camion non renseigne'}
+                              {invoice.camion_plate ? ` | ${invoice.camion_plate}` : ''}
+                            </>
+                          ) : (
+                            'Aucune session rattachee'
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="text-right space-y-1">
+                        <div className="font-bold font-mono text-sm" style={{ color: '#dc2626' }}>
+                          {fmt(invoice.due_amount)} TND
+                        </div>
+                        <div className="text-[11px] text-muted-color">
+                          {invoice.payment_attempt_count || 0} tentative(s)
+                        </div>
+                        <div className="text-[11px] text-muted-color">
+                          Dernier paiement {formatDateTime(invoice.last_payment_at)}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
-                {!ledger.transactions?.length && (
-                  <div className="text-center text-muted-color text-sm py-6">Aucun mouvement</div>
+                {!filteredOpenInvoices.length && (
+                  <div className="text-center text-muted-color text-sm py-8">Aucune facture ouverte pour ce filtre.</div>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-theme p-4" style={{ background: 'var(--surface-2)' }}>
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div>
+                  <div className="text-xs font-bold text-muted-color uppercase tracking-wider">Historique des mouvements</div>
+                  <div className="text-xs text-secondary-color mt-1">Chaque paiement montre les allocations facture par facture.</div>
+                </div>
+                <div className="text-xs text-muted-color">{filteredTransactions.length} resultat(s)</div>
+              </div>
+
+              <div className="max-h-[28rem] overflow-y-auto space-y-2 rounded-xl">
+                {filteredTransactions.map((transaction) => (
+                  <div key={transaction.id} className="rounded-xl border border-theme p-3" style={{ background: 'var(--surface)' }}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-base-color">{formatTransactionLabel(transaction)}</div>
+                        <div className="text-xs text-secondary-color mt-1">{formatDateTime(transaction.created_at)}</div>
+                        <div className="text-xs text-secondary-color mt-1">
+                          {transaction.invoice_id ? (
+                            <Link to={transaction.invoice_url} className="text-primary hover:underline">
+                              {transaction.invoice_number}
+                            </Link>
+                          ) : (
+                            'Sans facture rattachee'
+                          )}
+                          {transaction.rep_name ? ` | ${transaction.rep_name}` : ''}
+                        </div>
+                        <div className="text-xs text-secondary-color mt-1">
+                          {transaction.route_session_id ? (
+                            <>
+                              <Link to={transaction.route_session_url} className="text-primary hover:underline">
+                                Session #{transaction.route_session_id}
+                              </Link>
+                              {' | '}
+                              {transaction.camion_name || 'Camion non renseigne'}
+                              {transaction.camion_plate ? ` | ${transaction.camion_plate}` : ''}
+                            </>
+                          ) : (
+                            'Aucune session rattachee'
+                          )}
+                        </div>
+                        {(transaction.payment_method || transaction.payment_note) && (
+                          <div className="text-xs text-secondary-color mt-1">
+                            {transaction.payment_method ? `Mode ${transaction.payment_method}` : 'Mode non precise'}
+                            {transaction.payment_note ? ` | ${transaction.payment_note}` : ''}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="text-right space-y-1">
+                        <div className="font-bold font-mono" style={{ color: Number(transaction.amount) >= 0 ? '#dc2626' : '#059669' }}>
+                          {Number(transaction.amount) >= 0 ? '+' : ''}{fmt(transaction.amount)} TND
+                        </div>
+                        <div className="text-[11px] text-muted-color">Solde {fmt(transaction.balance_after)} TND</div>
+                        <div className="text-[11px] text-muted-color">{transaction.allocation_count || 0} allocation(s)</div>
+                      </div>
+                    </div>
+
+                    {transaction.allocations?.length > 0 && (
+                      <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {transaction.allocations.map((allocation, index) => (
+                          <div key={`${transaction.id}-${allocation.invoice_id || index}`} className="rounded-lg border border-theme px-3 py-2 text-xs" style={{ background: 'var(--surface-2)' }}>
+                            <div className="font-semibold text-base-color">
+                              {allocation.invoice_id ? (
+                                <Link to={allocation.invoice_url} className="text-primary hover:underline">
+                                  {allocation.invoice_number}
+                                </Link>
+                              ) : (
+                                'Facture non renseignee'
+                              )}
+                            </div>
+                            <div className="text-secondary-color mt-1">
+                              Montant {fmt(allocation.amount)} TND
+                            </div>
+                            <div className="text-secondary-color mt-1">
+                              {allocation.route_session_id ? `Session #${allocation.route_session_id}` : 'Sans session'}
+                              {allocation.camion_name ? ` | ${allocation.camion_name}` : ''}
+                              {allocation.camion_plate ? ` | ${allocation.camion_plate}` : ''}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {!filteredTransactions.length && (
+                  <div className="text-center text-muted-color text-sm py-8">Aucun mouvement pour ce filtre.</div>
                 )}
               </div>
             </div>
