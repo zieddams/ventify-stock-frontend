@@ -3,13 +3,11 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import DepotScopeControls from '../../components/DepotScopeControls'
 import PageExportActions from '../../components/PageExportActions'
 import { PageLoader } from '../../components/Spinner'
+import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import { useTheme } from '../../contexts/ThemeContext'
 import api from '../../services/api'
-
-function fmt(value) {
-  return new Intl.NumberFormat('fr-TN', { minimumFractionDigits: 3 }).format(value ?? 0)
-}
+import { formatCurrency, formatDate, formatNumber } from '../../utils/format'
 
 function useChartTheme() {
   const { isDark } = useTheme()
@@ -39,6 +37,7 @@ function KpiCard({ label, value, icon, color, sub }) {
 }
 
 function OverviewTab({ stats }) {
+  const { t } = useI18n()
   const theme = useChartTheme()
   const chartData = (stats?.revenue_by_day ?? []).map((day) => ({
     date: day.date?.slice(5),
@@ -50,23 +49,43 @@ function OverviewTab({ stats }) {
   return (
     <>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <KpiCard label="CA aujourd'hui" value={`${fmt(stats?.today_revenue)} TND`} icon="fa-solid fa-arrow-trend-up" color="#0d9488" />
-        <KpiCard label="Bénéfice (mois)" value={`${fmt(stats?.month_profit)} TND`} icon="fa-solid fa-coins" color="#10b981" />
-        <KpiCard label="Impayés totaux" value={`${fmt(stats?.unpaid_total)} TND`} icon="fa-solid fa-triangle-exclamation" color="#dc2626" />
-        <KpiCard label="Dépenses (mois)" value={`${fmt(stats?.month_expenses)} TND`} icon="fa-solid fa-receipt" color="#f59e0b" />
+        <KpiCard
+          label={t('reportsPage.overview.todayRevenue')}
+          value={formatCurrency(stats?.today_revenue)}
+          icon="fa-solid fa-arrow-trend-up"
+          color="#0d9488"
+        />
+        <KpiCard
+          label={t('reportsPage.overview.monthProfit')}
+          value={formatCurrency(stats?.month_profit)}
+          icon="fa-solid fa-coins"
+          color="#10b981"
+        />
+        <KpiCard
+          label={t('reportsPage.overview.unpaidTotal')}
+          value={formatCurrency(stats?.unpaid_total)}
+          icon="fa-solid fa-triangle-exclamation"
+          color="#dc2626"
+        />
+        <KpiCard
+          label={t('reportsPage.overview.monthExpenses')}
+          value={formatCurrency(stats?.month_expenses)}
+          icon="fa-solid fa-receipt"
+          color="#f59e0b"
+        />
       </div>
 
       {chartData.length > 0 && (
         <div className="card mb-6">
-          <h2 className="text-sm font-semibold text-base-color mb-4">CA et bénéfice - 30 derniers jours</h2>
+          <h2 className="text-sm font-semibold text-base-color mb-4">{t('reportsPage.overview.chartTitle')}</h2>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} />
               <XAxis dataKey="date" stroke={theme.axis} tick={{ fontSize: 10, fill: theme.axis }} />
               <YAxis stroke={theme.axis} tick={{ fontSize: 10, fill: theme.axis }} />
-              <Tooltip contentStyle={theme.tooltip} formatter={(value, name) => [`${fmt(value)} TND`, name === 'revenue' ? 'CA' : 'Bénéfice']} />
-              <Bar dataKey="revenue" fill="#0d9488" radius={[4, 4, 0, 0]} name="CA" />
-              <Bar dataKey="profit" fill="#10b981" radius={[4, 4, 0, 0]} name="Bénéfice" />
+              <Tooltip contentStyle={theme.tooltip} formatter={(value, name) => [formatCurrency(value), name]} />
+              <Bar dataKey="revenue" fill="#0d9488" radius={[4, 4, 0, 0]} name={t('reportsPage.overview.chartRevenue')} />
+              <Bar dataKey="profit" fill="#10b981" radius={[4, 4, 0, 0]} name={t('reportsPage.overview.chartProfit')} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -74,18 +93,21 @@ function OverviewTab({ stats }) {
 
       {topProducts.length > 0 && (
         <div className="card">
-          <h2 className="text-sm font-semibold text-base-color mb-3">Top 5 produits (ce mois)</h2>
+          <h2 className="text-sm font-semibold text-base-color mb-3">{t('reportsPage.overview.topProductsTitle')}</h2>
           <div className="space-y-2">
             {topProducts.map((product, index) => (
               <div key={index} className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}>
+                <div
+                  className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
+                  style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}
+                >
                   {index + 1}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-base-color truncate">{product.product_name}</div>
                 </div>
                 <div className="text-sm font-semibold font-mono" style={{ color: '#0d9488' }}>
-                  {fmt(product.total_revenue)} TND
+                  {formatCurrency(product.total_revenue)}
                 </div>
               </div>
             ))}
@@ -97,6 +119,8 @@ function OverviewTab({ stats }) {
 }
 
 function ProfitTab({ scopeParams }) {
+  const { t } = useI18n()
+  const notAvailable = t('common.notAvailable')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('month')
@@ -122,7 +146,7 @@ function ProfitTab({ scopeParams }) {
   if (loading) {
     return (
       <div className="py-12 text-center text-muted-color">
-        <i className="fa-solid fa-spinner fa-spin mr-2" /> Chargement...
+        <i className="fa-solid fa-spinner fa-spin mr-2" /> {t('reportsPage.profit.loading')}
       </div>
     )
   }
@@ -133,10 +157,41 @@ function ProfitTab({ scopeParams }) {
     profit: Number(day.profit ?? 0),
   }))
 
+  const periodOptions = [
+    ['today', t('reportsPage.profit.periods.today')],
+    ['week', t('reportsPage.profit.periods.week')],
+    ['month', t('reportsPage.profit.periods.month')],
+    ['custom', t('reportsPage.profit.periods.custom')],
+  ]
+
+  const repColumns = [
+    t('reportsPage.profit.columns.rep'),
+    t('reportsPage.profit.columns.revenue'),
+    t('reportsPage.profit.columns.cost'),
+    t('reportsPage.profit.columns.profit'),
+    t('reportsPage.profit.columns.invoices'),
+  ]
+
+  const camionColumns = [
+    t('reportsPage.profit.columns.camion'),
+    t('reportsPage.profit.columns.plate'),
+    t('reportsPage.profit.columns.revenue'),
+    t('reportsPage.profit.columns.profit'),
+    t('reportsPage.profit.columns.invoices'),
+  ]
+
+  const repCamionColumns = [
+    t('reportsPage.profit.columns.commercial'),
+    t('reportsPage.profit.columns.camion'),
+    t('reportsPage.profit.columns.revenue'),
+    t('reportsPage.profit.columns.profit'),
+    t('reportsPage.profit.columns.invoices'),
+  ]
+
   return (
     <>
       <div className="flex items-center gap-2 mb-5 flex-wrap">
-        {[['today', 'Auj.'], ['week', 'Semaine'], ['month', 'Mois'], ['custom', 'Personnalisé']].map(([key, label]) => (
+        {periodOptions.map(([key, label]) => (
           <button
             key={key}
             onClick={() => setPeriod(key)}
@@ -153,11 +208,11 @@ function ProfitTab({ scopeParams }) {
         <div className="card mb-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Du</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateFrom')}</label>
               <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Au</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateTo')}</label>
               <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
             </div>
           </div>
@@ -165,34 +220,46 @@ function ProfitTab({ scopeParams }) {
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <KpiCard label="CA total" value={`${fmt(data?.totals?.revenue)} TND`} icon="fa-solid fa-sack-dollar" color="#0d9488" />
-        <KpiCard label="Coût des ventes" value={`${fmt(data?.totals?.cost)} TND`} icon="fa-solid fa-boxes-stacked" color="#64748b" />
-        <KpiCard label="Bénéfice brut" value={`${fmt(data?.totals?.profit)} TND`} icon="fa-solid fa-coins" color="#10b981" sub={`Marge: ${data?.totals?.margin_pct ?? 0}%`} />
-        <KpiCard label="Ventes sous coût" value={data?.totals?.below_cost_lines ?? 0} icon="fa-solid fa-triangle-exclamation" color="#dc2626" sub="lignes sous prix d'achat" />
+        <KpiCard label={t('reportsPage.profit.totalRevenue')} value={formatCurrency(data?.totals?.revenue)} icon="fa-solid fa-sack-dollar" color="#0d9488" />
+        <KpiCard label={t('reportsPage.profit.totalCost')} value={formatCurrency(data?.totals?.cost)} icon="fa-solid fa-boxes-stacked" color="#64748b" />
+        <KpiCard
+          label={t('reportsPage.profit.grossProfit')}
+          value={formatCurrency(data?.totals?.profit)}
+          icon="fa-solid fa-coins"
+          color="#10b981"
+          sub={t('reportsPage.profit.margin', { value: data?.totals?.margin_pct ?? 0 })}
+        />
+        <KpiCard
+          label={t('reportsPage.profit.belowCost')}
+          value={data?.totals?.below_cost_lines ?? 0}
+          icon="fa-solid fa-triangle-exclamation"
+          color="#dc2626"
+          sub={t('reportsPage.profit.belowCostSub')}
+        />
       </div>
 
       {chartData.length > 0 && (
         <div className="card mb-6">
-          <h2 className="text-sm font-semibold text-base-color mb-4">Évolution CA / bénéfice</h2>
+          <h2 className="text-sm font-semibold text-base-color mb-4">{t('reportsPage.profit.chartTitle')}</h2>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} />
               <XAxis dataKey="date" stroke={theme.axis} tick={{ fontSize: 10, fill: theme.axis }} />
               <YAxis stroke={theme.axis} tick={{ fontSize: 10, fill: theme.axis }} />
-              <Tooltip contentStyle={theme.tooltip} formatter={(value, name) => [`${fmt(value)} TND`, name === 'revenue' ? 'CA' : 'Bénéfice']} />
-              <Bar dataKey="revenue" fill="#0d9488" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="profit" fill="#10b981" radius={[4, 4, 0, 0]} />
+              <Tooltip contentStyle={theme.tooltip} formatter={(value, name) => [formatCurrency(value), name]} />
+              <Bar dataKey="revenue" fill="#0d9488" radius={[4, 4, 0, 0]} name={t('reportsPage.overview.chartRevenue')} />
+              <Bar dataKey="profit" fill="#10b981" radius={[4, 4, 0, 0]} name={t('reportsPage.overview.chartProfit')} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       )}
 
       <div className="card">
-        <h2 className="text-sm font-semibold text-base-color mb-3">Par représentant</h2>
+        <h2 className="text-sm font-semibold text-base-color mb-3">{t('reportsPage.profit.byRepTitle')}</h2>
         <table className="w-full text-sm">
           <thead>
             <tr>
-              {['Représentant', 'CA', 'Coût', 'Bénéfice', 'Factures'].map((heading, index) => (
+              {repColumns.map((heading, index) => (
                 <th key={heading} className={`pb-3 pr-4 ${index > 0 ? 'text-right' : 'text-left'}`}>
                   {heading}
                 </th>
@@ -202,10 +269,10 @@ function ProfitTab({ scopeParams }) {
           <tbody>
             {(data?.by_rep ?? []).map((rep, index) => (
               <tr key={index} className="table-row">
-                <td className="py-3 pr-4 font-semibold text-base-color">{rep.rep_name}</td>
-                <td className="py-3 pr-4 text-right font-mono text-secondary-color">{fmt(rep.revenue)}</td>
-                <td className="py-3 pr-4 text-right font-mono text-muted-color">{fmt(rep.cost)}</td>
-                <td className="py-3 pr-4 text-right font-mono font-bold" style={{ color: '#059669' }}>{fmt(rep.profit)}</td>
+                <td className="py-3 pr-4 font-semibold text-base-color">{rep.rep_name || notAvailable}</td>
+                <td className="py-3 pr-4 text-right font-mono text-secondary-color">{formatCurrency(rep.revenue)}</td>
+                <td className="py-3 pr-4 text-right font-mono text-muted-color">{formatCurrency(rep.cost)}</td>
+                <td className="py-3 pr-4 text-right font-mono font-bold" style={{ color: '#059669' }}>{formatCurrency(rep.profit)}</td>
                 <td className="py-3 text-right text-muted-color">{rep.invoice_count}</td>
               </tr>
             ))}
@@ -215,11 +282,11 @@ function ProfitTab({ scopeParams }) {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mt-5">
         <div className="card">
-          <h2 className="text-sm font-semibold text-base-color mb-3">Bénéfice par camion</h2>
+          <h2 className="text-sm font-semibold text-base-color mb-3">{t('reportsPage.profit.byCamionTitle')}</h2>
           <table className="w-full text-sm">
             <thead>
               <tr>
-                {['Camion', 'Plaque', 'CA', 'Bénéfice', 'Factures'].map((heading, index) => (
+                {camionColumns.map((heading, index) => (
                   <th key={heading} className={`pb-3 pr-4 ${index > 1 ? 'text-right' : 'text-left'}`}>
                     {heading}
                   </th>
@@ -229,16 +296,16 @@ function ProfitTab({ scopeParams }) {
             <tbody>
               {(data?.by_camion ?? []).map((camion, index) => (
                 <tr key={`${camion.camion_id ?? 'none'}-${index}`} className="table-row">
-                  <td className="py-3 pr-4 font-semibold text-base-color">{camion.camion_name}</td>
-                  <td className="py-3 pr-4 text-muted-color text-xs">{camion.camion_plate || '-'}</td>
-                  <td className="py-3 pr-4 text-right font-mono text-secondary-color">{fmt(camion.revenue)}</td>
-                  <td className="py-3 pr-4 text-right font-mono font-bold" style={{ color: '#059669' }}>{fmt(camion.profit)}</td>
+                  <td className="py-3 pr-4 font-semibold text-base-color">{camion.camion_name || notAvailable}</td>
+                  <td className="py-3 pr-4 text-muted-color text-xs">{camion.camion_plate || notAvailable}</td>
+                  <td className="py-3 pr-4 text-right font-mono text-secondary-color">{formatCurrency(camion.revenue)}</td>
+                  <td className="py-3 pr-4 text-right font-mono font-bold" style={{ color: '#059669' }}>{formatCurrency(camion.profit)}</td>
                   <td className="py-3 text-right text-muted-color">{camion.invoice_count}</td>
                 </tr>
               ))}
               {(data?.by_camion ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center text-muted-color">Aucun camion ne ressort sur cette période.</td>
+                  <td colSpan={5} className="py-10 text-center text-muted-color">{t('reportsPage.profit.noCamion')}</td>
                 </tr>
               )}
             </tbody>
@@ -246,11 +313,11 @@ function ProfitTab({ scopeParams }) {
         </div>
 
         <div className="card">
-          <h2 className="text-sm font-semibold text-base-color mb-3">Bénéfice par commercial et camion</h2>
+          <h2 className="text-sm font-semibold text-base-color mb-3">{t('reportsPage.profit.byRepCamionTitle')}</h2>
           <table className="w-full text-sm">
             <thead>
               <tr>
-                {['Commercial', 'Camion', 'CA', 'Bénéfice', 'Factures'].map((heading, index) => (
+                {repCamionColumns.map((heading, index) => (
                   <th key={heading} className={`pb-3 pr-4 ${index > 1 ? 'text-right' : 'text-left'}`}>
                     {heading}
                   </th>
@@ -260,19 +327,19 @@ function ProfitTab({ scopeParams }) {
             <tbody>
               {(data?.by_rep_camion ?? []).map((row, index) => (
                 <tr key={`${row.rep_id ?? 'rep'}-${row.camion_id ?? 'none'}-${index}`} className="table-row">
-                  <td className="py-3 pr-4 font-semibold text-base-color">{row.rep_name}</td>
+                  <td className="py-3 pr-4 font-semibold text-base-color">{row.rep_name || notAvailable}</td>
                   <td className="py-3 pr-4 text-secondary-color text-xs">
-                    {row.camion_name}
+                    {row.camion_name || notAvailable}
                     {row.camion_plate ? ` - ${row.camion_plate}` : ''}
                   </td>
-                  <td className="py-3 pr-4 text-right font-mono text-secondary-color">{fmt(row.revenue)}</td>
-                  <td className="py-3 pr-4 text-right font-mono font-bold" style={{ color: '#059669' }}>{fmt(row.profit)}</td>
+                  <td className="py-3 pr-4 text-right font-mono text-secondary-color">{formatCurrency(row.revenue)}</td>
+                  <td className="py-3 pr-4 text-right font-mono font-bold" style={{ color: '#059669' }}>{formatCurrency(row.profit)}</td>
                   <td className="py-3 text-right text-muted-color">{row.invoice_count}</td>
                 </tr>
               ))}
               {(data?.by_rep_camion ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center text-muted-color">Aucune combinaison commercial/camion disponible.</td>
+                  <td colSpan={5} className="py-10 text-center text-muted-color">{t('reportsPage.profit.noRepCamion')}</td>
                 </tr>
               )}
             </tbody>
@@ -284,6 +351,8 @@ function ProfitTab({ scopeParams }) {
 }
 
 function SitationTab({ scopeParams }) {
+  const { t } = useI18n()
+  const notAvailable = t('common.notAvailable')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7))
@@ -295,27 +364,38 @@ function SitationTab({ scopeParams }) {
       .finally(() => setLoading(false))
   }, [month, scopeParams.depot_id])
 
+  const revenueColumns = [
+    t('reportsPage.sitation.columns.rep'),
+    t('reportsPage.sitation.columns.revenue'),
+    t('reportsPage.sitation.columns.profit'),
+  ]
+
+  const expenseColumns = [
+    t('reportsPage.sitation.columns.category'),
+    t('reportsPage.sitation.columns.amount'),
+  ]
+
   return (
     <>
       <div className="flex items-center gap-3 mb-5">
         <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} style={{ width: 'auto' }} />
-        <span className="text-xs text-muted-color">Situation mensuelle El Irtiwaa</span>
+        <span className="text-xs text-muted-color">{t('reportsPage.sitation.monthHint')}</span>
       </div>
 
       {loading ? (
         <div className="py-12 text-center text-muted-color">
-          <i className="fa-solid fa-spinner fa-spin mr-2" /> Chargement...
+          <i className="fa-solid fa-spinner fa-spin mr-2" /> {t('reportsPage.sitation.loading')}
         </div>
       ) : data && (
         <div className="space-y-5">
           <div className="card">
             <h2 className="text-sm font-semibold text-base-color mb-3 flex items-center gap-2">
-              <i className="fa-solid fa-arrow-trend-up text-teal-500" /> Recettes
+              <i className="fa-solid fa-arrow-trend-up text-teal-500" /> {t('reportsPage.sitation.revenueTitle')}
             </h2>
             <table className="w-full text-sm mb-3">
               <thead>
                 <tr>
-                  {['Représentant', 'CA', 'Bénéfice'].map((heading, index) => (
+                  {revenueColumns.map((heading, index) => (
                     <th key={heading} className={`pb-3 pr-4 ${index > 0 ? 'text-right' : 'text-left'}`}>
                       {heading}
                     </th>
@@ -325,31 +405,31 @@ function SitationTab({ scopeParams }) {
               <tbody>
                 {(data.recettes?.by_rep ?? []).map((rep, index) => (
                   <tr key={index} className="table-row">
-                    <td className="py-2.5 pr-4 text-base-color">{rep.rep_name}</td>
-                    <td className="py-2.5 pr-4 text-right font-mono text-secondary-color">{fmt(rep.revenue)} TND</td>
-                    <td className="py-2.5 text-right font-mono font-bold" style={{ color: '#059669' }}>{fmt(rep.profit)} TND</td>
+                    <td className="py-2.5 pr-4 text-base-color">{rep.rep_name || notAvailable}</td>
+                    <td className="py-2.5 pr-4 text-right font-mono text-secondary-color">{formatCurrency(rep.revenue)}</td>
+                    <td className="py-2.5 text-right font-mono font-bold" style={{ color: '#059669' }}>{formatCurrency(rep.profit)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <div className="flex justify-between text-sm font-semibold pt-2" style={{ borderTop: '1px solid var(--border)' }}>
-              <span className="text-secondary-color">Total CA</span>
-              <span className="text-base-color font-mono">{fmt(data.recettes?.total_revenue)} TND</span>
+              <span className="text-secondary-color">{t('reportsPage.sitation.totalRevenue')}</span>
+              <span className="text-base-color font-mono">{formatCurrency(data.recettes?.total_revenue)}</span>
             </div>
             <div className="flex justify-between text-sm font-semibold mt-1">
-              <span className="text-secondary-color">Bénéfice brut</span>
-              <span className="font-mono" style={{ color: '#059669' }}>{fmt(data.recettes?.total_profit)} TND</span>
+              <span className="text-secondary-color">{t('reportsPage.sitation.grossProfit')}</span>
+              <span className="font-mono" style={{ color: '#059669' }}>{formatCurrency(data.recettes?.total_profit)}</span>
             </div>
           </div>
 
           <div className="card">
             <h2 className="text-sm font-semibold text-base-color mb-3 flex items-center gap-2">
-              <i className="fa-solid fa-receipt" style={{ color: '#ea580c' }} /> Dépenses
+              <i className="fa-solid fa-receipt" style={{ color: '#ea580c' }} /> {t('reportsPage.sitation.expensesTitle')}
             </h2>
             <table className="w-full text-sm mb-3">
               <thead>
                 <tr>
-                  {['Catégorie', 'Montant'].map((heading, index) => (
+                  {expenseColumns.map((heading, index) => (
                     <th key={heading} className={`pb-3 pr-4 ${index > 0 ? 'text-right' : 'text-left'}`}>
                       {heading}
                     </th>
@@ -359,47 +439,49 @@ function SitationTab({ scopeParams }) {
               <tbody>
                 {(data.depenses?.by_category ?? []).map((expense, index) => (
                   <tr key={index} className="table-row">
-                    <td className="py-2.5 pr-4 text-secondary-color">{expense.label}</td>
-                    <td className="py-2.5 text-right font-mono" style={{ color: '#ea580c' }}>{fmt(expense.total)} TND</td>
+                    <td className="py-2.5 pr-4 text-secondary-color">{expense.label || notAvailable}</td>
+                    <td className="py-2.5 text-right font-mono" style={{ color: '#ea580c' }}>{formatCurrency(expense.total)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <div className="flex justify-between text-sm font-semibold pt-2" style={{ borderTop: '1px solid var(--border)' }}>
-              <span className="text-secondary-color">Total dépenses</span>
-              <span className="font-mono" style={{ color: '#ea580c' }}>{fmt(data.depenses?.total)} TND</span>
+              <span className="text-secondary-color">{t('reportsPage.sitation.totalExpenses')}</span>
+              <span className="font-mono" style={{ color: '#ea580c' }}>{formatCurrency(data.depenses?.total)}</span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="card">
               <h2 className="text-sm font-semibold text-base-color mb-3 flex items-center gap-2">
-                <i className="fa-solid fa-credit-card" style={{ color: '#d97706' }} /> Crédit extérieur
+                <i className="fa-solid fa-credit-card" style={{ color: '#d97706' }} /> {t('reportsPage.sitation.creditTitle')}
               </h2>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-color">Crédit accordé (impaye)</span>
-                  <span className="font-mono font-bold" style={{ color: '#dc2626' }}>{fmt(data.credit?.credit_du)} TND</span>
+                  <span className="text-muted-color">{t('reportsPage.sitation.creditDue')}</span>
+                  <span className="font-mono font-bold" style={{ color: '#dc2626' }}>{formatCurrency(data.credit?.credit_du)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-color">Crédit collecté</span>
-                  <span className="font-mono font-bold" style={{ color: '#059669' }}>{fmt(data.credit?.credit_collecte)} TND</span>
+                  <span className="text-muted-color">{t('reportsPage.sitation.creditCollected')}</span>
+                  <span className="font-mono font-bold" style={{ color: '#059669' }}>{formatCurrency(data.credit?.credit_collecte)}</span>
                 </div>
                 <div className="flex justify-between pt-2" style={{ borderTop: '1px solid var(--border)' }}>
-                  <span className="text-secondary-color font-medium">Valeur stock dépôt</span>
-                  <span className="text-base-color font-mono">{fmt(data.stock_valeur)} TND</span>
+                  <span className="text-secondary-color font-medium">{t('reportsPage.sitation.stockValue')}</span>
+                  <span className="text-base-color font-mono">{formatCurrency(data.stock_valeur)}</span>
                 </div>
               </div>
             </div>
 
             <div className="card" style={{ background: 'rgba(16,185,129,0.04)', border: '1px solid rgba(16,185,129,0.2)' }}>
               <h2 className="text-sm font-semibold text-base-color mb-3 flex items-center gap-2">
-                <i className="fa-solid fa-coins" style={{ color: '#059669' }} /> Bénéfice net
+                <i className="fa-solid fa-coins" style={{ color: '#059669' }} /> {t('reportsPage.sitation.netProfitTitle')}
               </h2>
               <div className="text-3xl font-bold font-mono mb-1" style={{ color: '#059669' }}>
-                {fmt(data.benefice_net)} <span className="text-sm font-normal text-muted-color">TND</span>
+                {formatNumber(data.benefice_net)} <span className="text-sm font-normal text-muted-color">TND</span>
               </div>
-              <div className="text-xs text-muted-color">Marge d'erreur (0.2%): {fmt(data.marge_erreur)} TND</div>
+              <div className="text-xs text-muted-color">
+                {t('reportsPage.sitation.errorMargin', { value: Number(data.marge_erreur ?? 0).toFixed(3) })}
+              </div>
             </div>
           </div>
         </div>
@@ -409,6 +491,8 @@ function SitationTab({ scopeParams }) {
 }
 
 function MovementsTab({ scopeParams }) {
+  const { t } = useI18n()
+  const notAvailable = t('common.notAvailable')
   const [movements, setMovements] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -420,28 +504,37 @@ function MovementsTab({ scopeParams }) {
   }, [scopeParams.depot_id])
 
   const typeConfig = {
-    depot_in: { label: 'Réception', color: '#10b981' },
-    depot_to_camion: { label: 'Vers camion', color: '#3b82f6' },
-    camion_to_customer: { label: 'Vers client', color: '#ef4444' },
-    return: { label: 'Retour', color: '#f59e0b' },
-    adjustment: { label: 'Ajustement', color: '#94a3b8' },
+    depot_in: { label: t('reportsPage.movements.types.depot_in'), color: '#10b981' },
+    depot_to_camion: { label: t('reportsPage.movements.types.depot_to_camion'), color: '#3b82f6' },
+    camion_to_customer: { label: t('reportsPage.movements.types.camion_to_customer'), color: '#ef4444' },
+    return: { label: t('reportsPage.movements.types.return'), color: '#f59e0b' },
+    adjustment: { label: t('reportsPage.movements.types.adjustment'), color: '#94a3b8' },
   }
 
   if (loading) {
     return (
       <div className="py-12 text-center text-muted-color">
-        <i className="fa-solid fa-spinner fa-spin mr-2" /> Chargement...
+        <i className="fa-solid fa-spinner fa-spin mr-2" /> {t('reportsPage.movements.loading')}
       </div>
     )
   }
+
+  const columns = [
+    t('reportsPage.movements.columns.type'),
+    t('reportsPage.movements.columns.product'),
+    t('reportsPage.movements.columns.depot'),
+    t('reportsPage.movements.columns.rep'),
+    t('reportsPage.movements.columns.qty'),
+    t('reportsPage.movements.columns.date'),
+  ]
 
   return (
     <div className="card">
       <table className="w-full text-sm">
         <thead>
           <tr>
-            {['Type', 'Produit', 'Dépôt', 'Commercial', 'Quantité', 'Date'].map((heading) => (
-              <th key={heading} className={`pb-3 pr-4 ${heading === 'Quantité' ? 'text-right' : 'text-left'}`}>
+            {columns.map((heading) => (
+              <th key={heading} className={`pb-3 pr-4 ${heading === t('reportsPage.movements.columns.qty') ? 'text-right' : 'text-left'}`}>
                 {heading}
               </th>
             ))}
@@ -455,19 +548,19 @@ function MovementsTab({ scopeParams }) {
             return (
               <tr key={movement.id} className="table-row">
                 <td className="py-2.5 pr-4 text-xs font-semibold" style={{ color: config.color }}>{config.label}</td>
-                <td className="py-2.5 pr-4 text-base-color">{movement.product?.name}</td>
-                <td className="py-2.5 pr-4 text-muted-color text-xs">{movement.depot?.name ?? '-'}</td>
-                <td className="py-2.5 pr-4 text-secondary-color text-xs">{movement.user?.name ?? '-'}</td>
+                <td className="py-2.5 pr-4 text-base-color">{movement.product?.name ?? notAvailable}</td>
+                <td className="py-2.5 pr-4 text-muted-color text-xs">{movement.depot?.name ?? notAvailable}</td>
+                <td className="py-2.5 pr-4 text-secondary-color text-xs">{movement.user?.name ?? notAvailable}</td>
                 <td className="py-2.5 pr-4 text-right font-mono font-bold" style={{ color: quantity >= 0 ? '#059669' : '#dc2626' }}>
-                  {quantity >= 0 ? '+' : ''}{quantity.toFixed(3)}
+                  {quantity >= 0 ? '+' : '-'}{formatNumber(Math.abs(quantity))}
                 </td>
-                <td className="py-2.5 text-muted-color text-xs">{new Date(movement.created_at).toLocaleDateString('fr-FR')}</td>
+                <td className="py-2.5 text-muted-color text-xs">{formatDate(movement.created_at)}</td>
               </tr>
             )
           })}
           {movements.length === 0 && (
             <tr>
-              <td colSpan={6} className="py-12 text-center text-muted-color">Aucun mouvement</td>
+              <td colSpan={6} className="py-12 text-center text-muted-color">{t('reportsPage.movements.empty')}</td>
             </tr>
           )}
         </tbody>
@@ -477,6 +570,7 @@ function MovementsTab({ scopeParams }) {
 }
 
 export default function ReportsIndex() {
+  const { t } = useI18n()
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('overview')
@@ -503,10 +597,10 @@ export default function ReportsIndex() {
   }
 
   const tabs = [
-    { key: 'overview', label: "Vue d'ensemble", icon: 'fa-solid fa-chart-pie' },
-    { key: 'profit', label: 'Bénéfices', icon: 'fa-solid fa-coins' },
-    { key: 'sitation', label: 'Situation', icon: 'fa-solid fa-file-lines' },
-    { key: 'movements', label: 'Mouvements', icon: 'fa-solid fa-arrows-up-down' },
+    { key: 'overview', label: t('reportsPage.tabs.overview'), icon: 'fa-solid fa-chart-pie' },
+    { key: 'profit', label: t('reportsPage.tabs.profit'), icon: 'fa-solid fa-coins' },
+    { key: 'sitation', label: t('reportsPage.tabs.sitation'), icon: 'fa-solid fa-file-lines' },
+    { key: 'movements', label: t('reportsPage.tabs.movements'), icon: 'fa-solid fa-arrows-up-down' },
   ]
 
   const exportConfig = {
@@ -517,14 +611,17 @@ export default function ReportsIndex() {
   }
 
   const currentExport = exportConfig[tab] ?? {}
+  const subtitle = selectedDepot
+    ? t('reportsPage.subtitleScoped', { depot: selectedDepot.name })
+    : t('reportsPage.subtitleSingle')
 
   return (
     <div>
       <div className="mb-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold text-base-color tracking-tight">Rapports</h1>
-            <p className="text-sm text-muted-color mt-0.5">Statistiques, bénéfices et situation{canSelectAll ? ` | ${selectedDepot ? `Dépôt ${selectedDepot.name}` : 'Tous les dépôts'}` : ''}</p>
+            <h1 className="text-xl font-bold text-base-color tracking-tight">{t('reportsPage.title')}</h1>
+            <p className="text-sm text-muted-color mt-0.5">{subtitle}</p>
           </div>
           <div className="flex flex-wrap items-end justify-end gap-2">
             {canSelectAll && (
@@ -534,10 +631,10 @@ export default function ReportsIndex() {
                 onChange={setSelectedDepotValue}
                 allowAll
                 canSelectAll={canSelectAll}
-                allLabel="Tous les dépôts"
+                allLabel={t('layout.depotAll')}
               />
             )}
-            <PageExportActions title="Rapports" {...currentExport} />
+            <PageExportActions title={t('reportsPage.exportTitle')} {...currentExport} />
           </div>
         </div>
       </div>

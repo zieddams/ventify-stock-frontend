@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useI18n } from '../contexts/I18nContext'
 import { downloadDocumentPdf, printGeneratedDocument } from '../utils/documents'
 
 function ActionButton({ children, title, disabled, onClick }) {
@@ -24,6 +25,7 @@ export default function RowDocumentActions({
   filename,
   meta = [],
 }) {
+  const { t } = useI18n()
   const [busyAction, setBusyAction] = useState('')
 
   const buildOptions = {
@@ -43,8 +45,8 @@ export default function RowDocumentActions({
       await downloadDocumentPdf(buildOptions)
     } catch (error) {
       alert(error?.message === 'print_window_blocked'
-        ? 'La fenêtre d’impression a été bloquée par le navigateur.'
-        : 'Impossible de générer ce PDF pour le moment.')
+        ? t('documents.printWindowBlocked')
+        : t('documents.rowPdfUnavailable'))
     } finally {
       setBusyAction('')
     }
@@ -57,8 +59,8 @@ export default function RowDocumentActions({
       printGeneratedDocument(buildOptions)
     } catch (error) {
       alert(error?.message === 'print_window_blocked'
-        ? 'La fenêtre d’impression a été bloquée par le navigateur.'
-        : 'Impossible d’ouvrir l’impression pour le moment.')
+        ? t('documents.printWindowBlocked')
+        : t('documents.rowPrintUnavailable'))
     } finally {
       window.setTimeout(() => setBusyAction(''), 400)
     }
@@ -67,7 +69,7 @@ export default function RowDocumentActions({
   return (
     <div className="flex items-center gap-1">
       <ActionButton
-        title="Télécharger le PDF"
+        title={t('documents.downloadPdf')}
         disabled={busyAction !== ''}
         onClick={handlePdf}
       >
@@ -77,7 +79,7 @@ export default function RowDocumentActions({
         }
       </ActionButton>
       <ActionButton
-        title="Imprimer la fiche"
+        title={t('documents.printRecord')}
         disabled={busyAction !== ''}
         onClick={handlePrint}
       >

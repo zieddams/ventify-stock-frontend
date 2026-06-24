@@ -5,30 +5,20 @@ import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
 import { PageLoader } from '../../components/Spinner'
+import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
+import { formatDateTime, formatNumber } from '../../utils/format'
 import { extractPaginationMeta, paginateItems } from '../../utils/pagination'
 
-function fmt(value) {
-  return value != null ? Number(value).toFixed(3) : '-'
+function fmt(value, fallback = '-') {
+  return value != null ? formatNumber(value) : fallback
 }
 
-const INVENTORY_FILTER_OPTIONS = [
-  { value: 'all', label: 'Tous' },
-  { value: 'low_stock', label: 'Stock bas' },
-  { value: 'normal_stock', label: 'Stock normal' },
-  { value: 'counted', label: 'Produits saisis' },
-]
-
-const INVENTORY_SORT_OPTIONS = [
-  { value: 'low_stock_first', label: 'Stock bas en premier' },
-  { value: 'updated_desc', label: 'Derniere modification' },
-  { value: 'created_desc', label: 'Derniere creation' },
-  { value: 'name_asc', label: 'Nom A-Z' },
-]
-
 export default function InventaireIndex() {
+  const { t } = useI18n()
+  const notAvailable = t('common.notAvailable')
   const { layouts: documentLayouts } = useDocumentLayouts()
   const {
     depots,
@@ -63,6 +53,20 @@ export default function InventaireIndex() {
   const [historySearch, setHistorySearch] = useState('')
   const [historyDateFrom, setHistoryDateFrom] = useState('')
   const [historyDateTo, setHistoryDateTo] = useState('')
+
+  const inventoryFilterOptions = useMemo(() => ([
+    { value: 'all', label: t('inventory.filters.all') },
+    { value: 'low_stock', label: t('inventory.filters.lowStock') },
+    { value: 'normal_stock', label: t('inventory.filters.normalStock') },
+    { value: 'counted', label: t('inventory.filters.counted') },
+  ]), [t])
+
+  const inventorySortOptions = useMemo(() => ([
+    { value: 'low_stock_first', label: t('inventory.sorts.lowStockFirst') },
+    { value: 'updated_desc', label: t('inventory.sorts.updatedDesc') },
+    { value: 'created_desc', label: t('inventory.sorts.createdDesc') },
+    { value: 'name_asc', label: t('inventory.sorts.nameAsc') },
+  ]), [t])
 
   const loadProducts = async () => {
     if (!depotsReady) {
@@ -160,7 +164,7 @@ export default function InventaireIndex() {
       setNote('')
       await Promise.all([loadProducts(), loadHistory(1)])
     } catch (error) {
-      alert(error.response?.data?.message ?? "Erreur lors de l'enregistrement")
+      alert(error.response?.data?.message ?? t('inventory.saveError'))
     } finally {
       setSaving(false)
     }
@@ -211,7 +215,7 @@ export default function InventaireIndex() {
         }
 
         if (sortBy === 'name_asc') {
-          return String(left.name || '').localeCompare(String(right.name || ''), 'fr')
+          return String(left.name || '').localeCompare(String(right.name || ''))
         }
 
         if (leftLow !== rightLow) {
@@ -225,7 +229,7 @@ export default function InventaireIndex() {
           return rightGap - leftGap
         }
 
-        return String(left.name || '').localeCompare(String(right.name || ''), 'fr')
+        return String(left.name || '').localeCompare(String(right.name || ''))
       })
   }, [counts, products, search, sortBy, stockFilter])
 
@@ -248,11 +252,13 @@ export default function InventaireIndex() {
     return <PageLoader />
   }
 
+  const depotSuffix = selectedDepot ? ` | ${t('inventory.selectedDepot', { name: selectedDepot.name })}` : ''
+
   return (
     <div>
       <PageHeader
-        title="Inventaire"
-        subtitle={`Comptage physique du stock et historique d’ajustement${selectedDepot ? ` | Dépôt ${selectedDepot.name}` : ''}`}
+        title={t('inventory.title')}
+        subtitle={t('inventory.subtitle', { depotSuffix })}
         action={(
           <div className="flex flex-wrap items-end justify-end gap-2">
             {canBrowseAll && (
@@ -260,11 +266,11 @@ export default function InventaireIndex() {
                 depots={depots}
                 selectedValue={selectedDepotValue}
                 onChange={setSelectedDepotValue}
-                label="Dépôt inventorié"
+                label={t('inventory.scopeLabel')}
               />
             )}
             <PageExportActions
-              title="Inventaire"
+              title={t('inventory.title')}
               csvEntity="stock_movements"
               csvParams={{
                 ...scopeParams,
@@ -280,8 +286,8 @@ export default function InventaireIndex() {
             {countedProducts.length > 0 && (
               <button onClick={handleSubmit} disabled={saving} className="btn-primary">
                 {saving
-                  ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</>
-                  : <><i className="fa-solid fa-check" /> Valider {countedProducts.length} produit{countedProducts.length > 1 ? 's' : ''}</>
+                  ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</>
+                  : <><i className="fa-solid fa-check" /> {t('inventory.validateCounted', { count: countedProducts.length })}</>
                 }
               </button>
             )}
@@ -292,7 +298,7 @@ export default function InventaireIndex() {
       <div className="mb-5 rounded-2xl p-4 border flex items-start gap-3" style={{ background: 'rgba(59,130,246,0.04)', borderColor: 'rgba(59,130,246,0.18)' }}>
         <i className="fa-solid fa-circle-info mt-0.5 flex-shrink-0" style={{ color: '#3b82f6' }} />
         <div className="text-sm" style={{ color: '#2563eb' }}>
-          Saisissez uniquement les produits comptés. Chaque écart crée un mouvement d’ajustement historisé avec l’utilisateur, la date, le dépôt et la note de batch.
+          {t('inventory.infoBanner')}
         </div>
       </div>
 
@@ -301,28 +307,28 @@ export default function InventaireIndex() {
           <div className="flex flex-col lg:flex-row gap-3 mb-4">
             <div className="relative flex-1 max-w-sm">
               <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-color" style={{ fontSize: 13 }} />
-              <input type="text" placeholder="Rechercher un produit..." value={search} onChange={(event) => setSearch(event.target.value)} style={{ paddingLeft: '2.25rem' }} />
+              <input type="text" placeholder={t('inventory.searchPlaceholder')} value={search} onChange={(event) => setSearch(event.target.value)} style={{ paddingLeft: '2.25rem' }} />
             </div>
             <div className="w-full lg:w-52">
               <select value={stockFilter} onChange={(event) => setStockFilter(event.target.value)}>
-                {INVENTORY_FILTER_OPTIONS.map((option) => (
+                {inventoryFilterOptions.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
             </div>
             <div className="w-full lg:w-60">
               <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-                {INVENTORY_SORT_OPTIONS.map((option) => (
+                {inventorySortOptions.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
             </div>
             <div className="flex-1">
-              <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Note de batch (optionnel) : inventaire mensuel, correction dépôt..." />
+              <input value={note} onChange={(event) => setNote(event.target.value)} placeholder={t('inventory.batchNotePlaceholder')} />
             </div>
             {countedProducts.length > 0 && (
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full h-fit" style={{ background: 'rgba(13,148,136,0.1)', color: '#0d9488' }}>
-                {countedProducts.length} saisi{countedProducts.length > 1 ? 's' : ''}
+                {t('inventory.countedBadge', { count: countedProducts.length })}
               </span>
             )}
           </div>
@@ -331,11 +337,11 @@ export default function InventaireIndex() {
             <table className="w-full text-sm">
               <thead>
                 <tr>
-                  <th className="text-left pb-3 pr-4">Produit</th>
-                  <th className="text-right pb-3 pr-4">Stock système</th>
-                  <th className="text-right pb-3 pr-4">Stock min</th>
-                  <th className="pb-3 pr-4" style={{ width: 180 }}>Qté comptée</th>
-                  <th className="text-right pb-3">Écart</th>
+                  <th className="text-left pb-3 pr-4">{t('inventory.columns.product')}</th>
+                  <th className="text-right pb-3 pr-4">{t('inventory.columns.systemStock')}</th>
+                  <th className="text-right pb-3 pr-4">{t('inventory.columns.minStock')}</th>
+                  <th className="pb-3 pr-4" style={{ width: 180 }}>{t('inventory.columns.countedQty')}</th>
+                  <th className="text-right pb-3">{t('inventory.columns.delta')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -343,7 +349,7 @@ export default function InventaireIndex() {
                   <tr>
                     <td colSpan={5} className="py-12 text-center">
                       <i className="fa-solid fa-clipboard-list text-3xl text-muted-color opacity-30 mb-2 block" />
-                      <p className="text-muted-color text-sm">Aucun produit trouve</p>
+                      <p className="text-muted-color text-sm">{t('inventory.emptyProducts')}</p>
                     </td>
                   </tr>
                 )}
@@ -360,19 +366,19 @@ export default function InventaireIndex() {
                       <td className="py-3 pr-4">
                         <div className="font-semibold text-base-color text-sm">{product.name}</div>
                         <div className="text-xs text-muted-color">
-                          {product.reference || '-'}{product.unit ? ` | ${product.unit}` : ''}
+                          {product.reference || notAvailable}{product.unit ? ` | ${product.unit}` : ''}
                         </div>
                       </td>
-                      <td className="py-3 pr-4 text-right font-mono font-semibold text-base-color">{fmt(systemQty)}</td>
+                      <td className="py-3 pr-4 text-right font-mono font-semibold text-base-color">{fmt(systemQty, notAvailable)}</td>
                       <td className="py-3 pr-4 text-right">
-                        <span className="text-xs font-mono" style={{ color: '#94a3b8' }}>{fmt(minStock)}</span>
+                        <span className="text-xs font-mono" style={{ color: '#94a3b8' }}>{fmt(minStock, notAvailable)}</span>
                       </td>
                       <td className="py-3 pr-4">
                         <input
                           type="number"
                           min="0"
                           step="0.001"
-                          placeholder="-"
+                          placeholder="0.000"
                           value={counted ?? ''}
                           onChange={(event) => handleCount(product.id, event.target.value)}
                           style={{ textAlign: 'right', width: '100%', padding: '0.35rem 0.6rem' }}
@@ -381,10 +387,10 @@ export default function InventaireIndex() {
                       <td className="py-3 text-right">
                         {delta !== null ? (
                           <span className="text-sm font-bold font-mono" style={{ color: delta === 0 ? '#059669' : delta > 0 ? '#3b82f6' : '#dc2626' }}>
-                            {delta > 0 ? '+' : ''}{fmt(delta)}
+                            {delta > 0 ? '+' : ''}{fmt(delta, notAvailable)}
                           </span>
                         ) : (
-                          <span className="text-muted-color">-</span>
+                          <span className="text-muted-color">{notAvailable}</span>
                         )}
                       </td>
                     </tr>
@@ -402,20 +408,20 @@ export default function InventaireIndex() {
               setProductPerPage(value)
               setProductPage(1)
             }}
-            itemLabel="produits"
+            itemLabel={t('inventory.itemLabel')}
           />
         </div>
 
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-semibold text-base-color">Historique audit</h2>
-              <p className="text-xs text-muted-color mt-0.5">Ajustements d'inventaire</p>
+              <h2 className="text-sm font-semibold text-base-color">{t('inventory.history.title')}</h2>
+              <p className="text-xs text-muted-color mt-0.5">{t('inventory.history.subtitle')}</p>
             </div>
           </div>
 
           <div className="space-y-3 mb-4">
-            <input value={historySearch} onChange={(event) => { setHistoryPage(1); setHistorySearch(event.target.value) }} placeholder="Produit, note ou utilisateur..." />
+            <input value={historySearch} onChange={(event) => { setHistoryPage(1); setHistorySearch(event.target.value) }} placeholder={t('inventory.history.searchPlaceholder')} />
             <div className="grid grid-cols-2 gap-2">
               <input type="date" value={historyDateFrom} onChange={(event) => { setHistoryPage(1); setHistoryDateFrom(event.target.value) }} />
               <input type="date" value={historyDateTo} onChange={(event) => { setHistoryPage(1); setHistoryDateTo(event.target.value) }} />
@@ -424,37 +430,37 @@ export default function InventaireIndex() {
 
           {historyLoading ? (
             <div className="flex items-center justify-center py-10 text-muted-color gap-2">
-              <i className="fa-solid fa-spinner fa-spin" /> Chargement...
+              <i className="fa-solid fa-spinner fa-spin" /> {t('inventory.history.loading')}
             </div>
           ) : (
             <div className="space-y-2">
               {history.length === 0 && (
                 <div className="rounded-xl border border-theme px-3 py-6 text-center text-sm text-muted-color">
-                  Aucun ajustement trouvé.
+                  {t('inventory.history.empty')}
                 </div>
               )}
               {history.map((movement) => (
                 <div key={movement.id} className="rounded-xl border border-theme px-3 py-3" style={{ background: 'var(--surface-2)' }}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm font-semibold text-base-color">{movement.product?.name ?? 'Produit supprimé'}</div>
+                      <div className="text-sm font-semibold text-base-color">{movement.product?.name ?? t('inventory.history.deletedProduct')}</div>
                       <div className="text-xs text-muted-color mt-0.5">
-                        {movement.product?.reference || '-'} | {movement.user?.name || '-'}
+                        {movement.product?.reference || notAvailable} | {movement.user?.name || notAvailable}
                       </div>
                       <div className="text-[11px] text-muted-color mt-1">
-                        Dépôt : {movement.depot?.name ?? '-'}
+                        {t('inventory.history.depotLabel', { name: movement.depot?.name ?? t('depot.notDefined') })}
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-bold font-mono" style={{ color: Number(movement.qty) >= 0 ? '#3b82f6' : '#dc2626' }}>
-                        {Number(movement.qty) >= 0 ? '+' : ''}{fmt(movement.qty)}
+                        {Number(movement.qty) >= 0 ? '+' : ''}{fmt(movement.qty, notAvailable)}
                       </div>
                       <div className="text-xs text-muted-color">
-                        {new Date(movement.created_at).toLocaleString('fr-FR')}
+                        {movement.created_at ? formatDateTime(movement.created_at) : notAvailable}
                       </div>
                     </div>
                   </div>
-                  <div className="text-xs text-secondary-color mt-2">{movement.note || 'Sans note'}</div>
+                  <div className="text-xs text-secondary-color mt-2">{movement.note || t('inventory.history.withoutNote')}</div>
                 </div>
               ))}
             </div>
@@ -464,7 +470,7 @@ export default function InventaireIndex() {
             <PaginationControls
               meta={historyMeta}
               onPageChange={setHistoryPage}
-              itemLabel="ajustements"
+              itemLabel={t('inventory.history.itemLabel')}
             />
           )}
         </div>
@@ -476,12 +482,12 @@ export default function InventaireIndex() {
           setShowModal(false)
           setResult(null)
         }}
-        title="Inventaire enregistré"
+        title={t('inventory.modal.title')}
         size="md"
       >
         <div className="mb-4 flex items-center gap-2 text-sm font-semibold" style={{ color: '#059669' }}>
           <i className="fa-solid fa-circle-check text-lg" />
-          Ajustements de stock créés avec succès
+          {t('inventory.modal.success')}
         </div>
 
         {result?.adjustments && result.adjustments.length > 0 ? (
@@ -489,20 +495,20 @@ export default function InventaireIndex() {
             <table className="w-full text-sm">
               <thead>
                 <tr>
-                  <th className="text-left pb-2 pr-3">Produit</th>
-                  <th className="text-right pb-2 pr-3">Avant</th>
-                  <th className="text-right pb-2 pr-3">Après</th>
-                  <th className="text-right pb-2">Écart</th>
+                  <th className="text-left pb-2 pr-3">{t('inventory.columns.product')}</th>
+                  <th className="text-right pb-2 pr-3">{t('inventory.columns.before')}</th>
+                  <th className="text-right pb-2 pr-3">{t('inventory.columns.after')}</th>
+                  <th className="text-right pb-2">{t('inventory.columns.delta')}</th>
                 </tr>
               </thead>
               <tbody>
                 {result.adjustments.map((adjustment, index) => (
                   <tr key={index} className="table-row">
                     <td className="py-2 pr-3 font-medium text-base-color">{adjustment.product_name}</td>
-                    <td className="py-2 pr-3 text-right font-mono text-muted-color">{fmt(adjustment.before)}</td>
-                    <td className="py-2 pr-3 text-right font-mono text-base-color">{fmt(adjustment.after)}</td>
+                    <td className="py-2 pr-3 text-right font-mono text-muted-color">{fmt(adjustment.before, notAvailable)}</td>
+                    <td className="py-2 pr-3 text-right font-mono text-base-color">{fmt(adjustment.after, notAvailable)}</td>
                     <td className="py-2 text-right font-mono font-bold" style={{ color: adjustment.delta >= 0 ? '#3b82f6' : '#dc2626' }}>
-                      {adjustment.delta >= 0 ? '+' : ''}{fmt(adjustment.delta)}
+                      {adjustment.delta >= 0 ? '+' : ''}{fmt(adjustment.delta, notAvailable)}
                     </td>
                   </tr>
                 ))}
@@ -510,12 +516,12 @@ export default function InventaireIndex() {
             </table>
           </div>
         ) : (
-          <p className="text-muted-color text-sm">Aucun écart détecté. Le stock était déjà conforme.</p>
+          <p className="text-muted-color text-sm">{t('inventory.modal.empty')}</p>
         )}
 
         <div className="mt-5 flex justify-end">
           <button onClick={() => { setShowModal(false); setResult(null) }} className="btn-primary">
-            <i className="fa-solid fa-check" /> Fermer
+            <i className="fa-solid fa-check" /> {t('common.close')}
           </button>
         </div>
       </Modal>

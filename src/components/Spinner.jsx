@@ -1,3 +1,5 @@
+import { useI18n } from '../contexts/I18nContext'
+
 export default function Spinner({ className = 'w-6 h-6' }) {
   return (
     <span className={`relative inline-flex items-center justify-center ${className}`}>
@@ -21,12 +23,14 @@ export default function Spinner({ className = 'w-6 h-6' }) {
 }
 
 export function PageLoader() {
+  const { t } = useI18n()
+
   return (
     <div className="h-48 flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
         <Spinner className="w-12 h-12" />
         <div className="text-xs font-medium tracking-[0.22em] uppercase text-muted-color">
-          Chargement
+          {t('common.loading')}
         </div>
       </div>
     </div>

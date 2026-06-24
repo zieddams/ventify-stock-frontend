@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom'
 import DepotScopeControls from '../../components/DepotScopeControls'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
+import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import api from '../../services/api'
-
-const fmt = (n) => parseFloat(n ?? 0).toFixed(3)
+import { formatCurrency, formatDateTime } from '../../utils/format'
 
 const BUCKET_COLORS = {
   '0-30': { text: '#059669', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)' },
@@ -24,17 +24,18 @@ function BucketCard({ label, value, colorKey }) {
       <div className="w-3 h-10 rounded-full flex-shrink-0" style={{ background: c.bg, border: `1px solid ${c.border}` }} />
       <div>
         <div className="text-xs text-muted-color">{label}</div>
-        <div className="text-base font-bold font-mono" style={{ color: c.text }}>{fmt(value)} TND</div>
+        <div className="text-base font-bold font-mono" style={{ color: c.text }}>{formatCurrency(value)}</div>
       </div>
     </div>
   )
 }
 
 function formatDateTimeCell(value) {
-  return value ? new Date(value).toLocaleString('fr-FR') : '-'
+  return value ? formatDateTime(value) : '-'
 }
 
 export default function CreditIndex() {
+  const { t } = useI18n()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -73,7 +74,7 @@ export default function CreditIndex() {
     })
       .then((response) => setData(response.data))
       .finally(() => setLoading(false))
-  }, [dateFrom, dateTo, deferredSearch, depotsReady, selectedDepotId, scopeParams])
+  }, [dateFrom, dateTo, deferredSearch, depotsReady, selectedDepotId])
 
   if ((loading && !data) || !data) {
     return <PageLoader />
@@ -82,12 +83,15 @@ export default function CreditIndex() {
   const totals = data.totals ?? {}
   const entries = data.entries ?? []
   const customers = data.customers ?? []
+  const depotSuffix = canSelectAll
+    ? (selectedDepot ? t('credit.selectedDepot', { name: selectedDepot.name }) : t('credit.allDepots'))
+    : ''
 
   return (
     <div>
       <PageHeader
-        title="Credit clients - Balance agee"
-        subtitle={`Factures impayees par anciennete (suivi comptable)${canSelectAll ? ` | ${selectedDepot ? `Depot ${selectedDepot.name}` : 'Tous les depots'}` : ''}`}
+        title={t('credit.title')}
+        subtitle={t('credit.subtitle', { depotSuffix })}
         action={canSelectAll ? (
           <DepotScopeControls
             depots={depots}
@@ -95,36 +99,36 @@ export default function CreditIndex() {
             onChange={setSelectedDepotValue}
             allowAll
             canSelectAll={canSelectAll}
-            allLabel="Tous les depots"
+            allLabel={t('credit.allDepots')}
           />
         ) : null}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-        <BucketCard label="0-30 jours" value={totals.b0_30} colorKey="0-30" />
-        <BucketCard label="31-60 jours" value={totals.b31_60} colorKey="31-60" />
-        <BucketCard label="61-90 jours" value={totals.b61_90} colorKey="61-90" />
-        <BucketCard label="+90 jours" value={totals.b90_plus} colorKey="+90" />
-        <BucketCard label="Total du" value={totals.total_due} colorKey="total" />
+        <BucketCard label={t('credit.buckets.b0_30')} value={totals.b0_30} colorKey="0-30" />
+        <BucketCard label={t('credit.buckets.b31_60')} value={totals.b31_60} colorKey="31-60" />
+        <BucketCard label={t('credit.buckets.b61_90')} value={totals.b61_90} colorKey="61-90" />
+        <BucketCard label={t('credit.buckets.b90_plus')} value={totals.b90_plus} colorKey="+90" />
+        <BucketCard label={t('credit.buckets.totalDue')} value={totals.total_due} colorKey="total" />
       </div>
 
       <div className="card mb-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="md:col-span-2">
-            <label className="block text-xs text-muted-color mb-1 font-medium">Recherche</label>
+            <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.search')}</label>
             <input
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Facture, client, commercial, session, camion"
+              placeholder={t('credit.searchPlaceholder')}
             />
           </div>
           <div>
-            <label className="block text-xs text-muted-color mb-1 font-medium">Du</label>
+            <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateFrom')}</label>
             <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
           </div>
           <div>
-            <label className="block text-xs text-muted-color mb-1 font-medium">Au</label>
+            <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateTo')}</label>
             <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
           </div>
           <div className="flex items-end md:col-span-4">
@@ -136,7 +140,7 @@ export default function CreditIndex() {
               }}
               className="btn-secondary w-full md:w-auto justify-center"
             >
-              <i className="fa-solid fa-rotate-left" /> Reinitialiser
+              <i className="fa-solid fa-rotate-left" /> {t('credit.reset')}
             </button>
           </div>
         </div>
@@ -145,10 +149,8 @@ export default function CreditIndex() {
       <div className="card">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div>
-            <h2 className="text-sm font-semibold text-base-color">Creances detaillees</h2>
-            <p className="text-xs text-muted-color mt-1">
-              Date, heure et lien facture visibles directement dans le tableau principal.
-            </p>
+            <h2 className="text-sm font-semibold text-base-color">{t('credit.detailsTitle')}</h2>
+            <p className="text-xs text-muted-color mt-1">{t('credit.detailsSubtitle')}</p>
           </div>
           {loading && <i className="fa-solid fa-spinner fa-spin text-muted-color" />}
         </div>
@@ -157,7 +159,18 @@ export default function CreditIndex() {
           <table className="w-full text-sm">
             <thead>
               <tr>
-                {['Date / heure', 'Facture', 'Client', 'Commercial', 'Session / camion', 'Depot', 'Total', 'Paye', 'Reste du', 'Historique'].map((heading, index) => (
+                {[
+                  t('credit.columns.createdAt'),
+                  t('credit.columns.invoice'),
+                  t('credit.columns.customer'),
+                  t('credit.columns.rep'),
+                  t('credit.columns.sessionCamion'),
+                  t('depot.label'),
+                  t('credit.columns.total'),
+                  t('credit.columns.paid'),
+                  t('credit.columns.due'),
+                  t('credit.columns.history'),
+                ].map((heading, index) => (
                   <th key={heading} className={`pb-3 pr-4 ${index >= 6 && index <= 8 ? 'text-right' : 'text-left'}`}>{heading}</th>
                 ))}
               </tr>
@@ -172,21 +185,21 @@ export default function CreditIndex() {
                         {entry.number}
                       </Link>
                     ) : (
-                      <span className="font-mono text-xs text-base-color">{entry.number || '-'}</span>
+                      <span className="font-mono text-xs text-base-color">{entry.number || t('common.notAvailable')}</span>
                     )}
                   </td>
                   <td className="py-3 pr-4 text-base-color">{entry.customer_name}</td>
-                  <td className="py-3 pr-4 text-secondary-color">{entry.rep_name || '-'}</td>
+                  <td className="py-3 pr-4 text-secondary-color">{entry.rep_name || t('common.notAvailable')}</td>
                   <td className="py-3 pr-4 text-xs text-secondary-color">
                     {entry.route_session_id ? (
                       <div className="space-y-1">
                         <div>
                           <Link to={entry.route_session_url} className="text-primary hover:underline">
-                            Session #{entry.route_session_id}
+                            {t('credit.sessionLink', { id: entry.route_session_id })}
                           </Link>
                         </div>
                         <div>
-                          {entry.camion?.name || 'Camion non renseigne'}
+                          {entry.camion?.name || t('credit.camionMissing')}
                           {entry.camion?.plate ? ` | ${entry.camion.plate}` : ''}
                         </div>
                       </div>
@@ -194,15 +207,15 @@ export default function CreditIndex() {
                       <span>-</span>
                     )}
                   </td>
-                  <td className="py-3 pr-4 text-secondary-color">{entry.depot?.name ?? 'Tous'}</td>
-                  <td className="py-3 pr-4 text-right font-mono text-secondary-color">{fmt(entry.total)} TND</td>
-                  <td className="py-3 pr-4 text-right font-mono text-secondary-color">{fmt(entry.paid_amount)} TND</td>
+                  <td className="py-3 pr-4 text-secondary-color">{entry.depot?.name ?? t('credit.allDepotsShort')}</td>
+                  <td className="py-3 pr-4 text-right font-mono text-secondary-color">{formatCurrency(entry.total)}</td>
+                  <td className="py-3 pr-4 text-right font-mono text-secondary-color">{formatCurrency(entry.paid_amount)}</td>
                   <td className="py-3 text-right font-mono font-semibold" style={{ color: '#7c3aed' }}>
-                    {fmt(entry.due_amount)} TND
+                    {formatCurrency(entry.due_amount)}
                   </td>
                   <td className="py-3 pr-4 text-xs text-secondary-color">
                     <div className="space-y-1">
-                      <div>{entry.payment_attempt_count || 0} tentative(s)</div>
+                      <div>{t('credit.attempts', { count: entry.payment_attempt_count || 0 })}</div>
                       <div>{formatDateTimeCell(entry.last_payment_at)}</div>
                     </div>
                   </td>
@@ -212,7 +225,7 @@ export default function CreditIndex() {
                 <tr>
                   <td colSpan={10} className="py-12 text-center">
                     <i className="fa-solid fa-circle-check text-3xl text-emerald-500 mb-2 block opacity-60" />
-                    <p className="text-muted-color text-sm">Aucune facture credit a afficher sur cette periode</p>
+                    <p className="text-muted-color text-sm">{t('credit.emptyEntries')}</p>
                   </td>
                 </tr>
               )}
@@ -224,8 +237,8 @@ export default function CreditIndex() {
       <div className="card mt-6">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div>
-            <h2 className="text-sm font-semibold text-base-color">Synthese par client</h2>
-            <p className="text-xs text-muted-color mt-1">Lecture aged balance par client pour les relances comptables.</p>
+            <h2 className="text-sm font-semibold text-base-color">{t('credit.customerSummaryTitle')}</h2>
+            <p className="text-xs text-muted-color mt-1">{t('credit.customerSummarySubtitle')}</p>
           </div>
           {loading && <i className="fa-solid fa-spinner fa-spin text-muted-color" />}
         </div>
@@ -234,7 +247,14 @@ export default function CreditIndex() {
           <table className="w-full text-sm">
             <thead>
               <tr>
-                {['Client', '0-30 j', '31-60 j', '61-90 j', '+90 j', 'Total du'].map((heading, index) => (
+                {[
+                  t('credit.columns.customer'),
+                  t('credit.buckets.short0_30'),
+                  t('credit.buckets.short31_60'),
+                  t('credit.buckets.short61_90'),
+                  t('credit.buckets.short90_plus'),
+                  t('credit.buckets.totalDue'),
+                ].map((heading, index) => (
                   <th key={heading} className={`pb-3 pr-4 ${index > 0 ? 'text-right' : 'text-left'}`}>{heading}</th>
                 ))}
               </tr>
@@ -243,17 +263,17 @@ export default function CreditIndex() {
               {customers.map((customer) => (
                 <tr key={customer.customer_id} className="table-row">
                   <td className="py-3 pr-4 font-semibold text-base-color">{customer.customer_name}</td>
-                  <td className="py-3 pr-4 text-right font-mono text-sm text-secondary-color">{fmt(customer.b0_30)}</td>
-                  <td className="py-3 pr-4 text-right font-mono text-sm" style={{ color: parseFloat(customer.b31_60) > 0 ? '#d97706' : 'var(--text-muted)' }}>{fmt(customer.b31_60)}</td>
-                  <td className="py-3 pr-4 text-right font-mono text-sm" style={{ color: parseFloat(customer.b61_90) > 0 ? '#ea580c' : 'var(--text-muted)' }}>{fmt(customer.b61_90)}</td>
-                  <td className="py-3 pr-4 text-right font-mono text-sm font-bold" style={{ color: parseFloat(customer.b90_plus) > 0 ? '#dc2626' : 'var(--text-muted)' }}>{fmt(customer.b90_plus)}</td>
-                  <td className="py-3 font-bold font-mono text-sm text-right" style={{ color: '#7c3aed' }}>{fmt(customer.total_due)}</td>
+                  <td className="py-3 pr-4 text-right font-mono text-sm text-secondary-color">{formatCurrency(customer.b0_30)}</td>
+                  <td className="py-3 pr-4 text-right font-mono text-sm" style={{ color: parseFloat(customer.b31_60) > 0 ? '#d97706' : 'var(--text-muted)' }}>{formatCurrency(customer.b31_60)}</td>
+                  <td className="py-3 pr-4 text-right font-mono text-sm" style={{ color: parseFloat(customer.b61_90) > 0 ? '#ea580c' : 'var(--text-muted)' }}>{formatCurrency(customer.b61_90)}</td>
+                  <td className="py-3 pr-4 text-right font-mono text-sm font-bold" style={{ color: parseFloat(customer.b90_plus) > 0 ? '#dc2626' : 'var(--text-muted)' }}>{formatCurrency(customer.b90_plus)}</td>
+                  <td className="py-3 font-bold font-mono text-sm text-right" style={{ color: '#7c3aed' }}>{formatCurrency(customer.total_due)}</td>
                 </tr>
               ))}
               {customers.length === 0 && (
                 <tr>
                   <td colSpan={6} className="py-10 text-center text-sm text-muted-color">
-                    Aucune synthese client disponible sur cette periode.
+                    {t('credit.emptyCustomers')}
                   </td>
                 </tr>
               )}

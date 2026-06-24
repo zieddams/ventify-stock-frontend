@@ -2,19 +2,22 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DepotScopeControls from '../../components/DepotScopeControls'
 import { PageLoader } from '../../components/Spinner'
+import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import { getConfigItemLabel, getDefaultConfigValue, useConfigItems } from '../../hooks/useConfigItems'
 import api from '../../services/api'
+import { formatCurrency, formatNumber } from '../../utils/format'
 import { filterPaymentMethodsByScope } from '../../utils/paymentMethodScopes'
 
 const EMPTY_LINE = { product_id: '', product_name: '', unit: '', qty: 1, price: 0, total: 0, buy_price: null }
 
-function fmt(value) {
+function serializeDecimal(value) {
   return Number(value ?? 0).toFixed(3)
 }
 
 export default function InvoiceCreate() {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const [products, setProducts] = useState([])
   const [customers, setCustomers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -22,7 +25,9 @@ export default function InvoiceCreate() {
   const [errors, setErrors] = useState({})
   const { items: configItems } = useConfigItems('payment_method')
   const paymentMethods = filterPaymentMethodsByScope(configItems.payment_method ?? [], 'customer')
-  const availablePaymentMethods = paymentMethods.length > 0 ? paymentMethods : [{ value: 'cash', display_label: 'Espèces' }]
+  const availablePaymentMethods = paymentMethods.length > 0
+    ? paymentMethods
+    : [{ value: 'cash', display_label: t('invoiceCreate.cashFallback') }]
   const defaultPaymentMethod = getDefaultConfigValue(availablePaymentMethods, 'cash')
   const {
     depots,
@@ -56,12 +61,16 @@ export default function InvoiceCreate() {
     Promise.all([
       api.get('/products', { params: scopeParams }),
       api.get('/customers'),
-    ]).then(([productsResponse, customersResponse]) => {
-      setProducts(Array.isArray(productsResponse.data) ? productsResponse.data : [])
-      setCustomers(Array.isArray(customersResponse.data) ? customersResponse.data : [])
-      setLoading(false)
-    })
-  }, [depotsReady, selectedDepotId, scopeParams])
+    ])
+      .then(([productsResponse, customersResponse]) => {
+        setProducts(Array.isArray(productsResponse.data) ? productsResponse.data : [])
+        setCustomers(Array.isArray(customersResponse.data) ? customersResponse.data : [])
+      })
+      .catch(() => null)
+      .finally(() => {
+        setLoading(false)
+      })
+  }, [depotsReady, scopeParams, selectedDepotId])
 
   useEffect(() => {
     setPaymentMethod((current) => current || defaultPaymentMethod)
@@ -103,17 +112,17 @@ export default function InvoiceCreate() {
 
   const submit = async () => {
     if (!customer) {
-      setErrors({ customer: ['Sélectionner un client'] })
+      setErrors({ customer: [t('invoiceCreate.errors.selectCustomer')] })
       return
     }
 
     if (!selectedDepotId) {
-      setErrors({ depot_id: ['Sélectionnez un dépôt pour cette facture.'] })
+      setErrors({ depot_id: [t('invoiceCreate.errors.selectDepot')] })
       return
     }
 
     if (lines.some((line) => !line.product_id || Number(line.qty) <= 0)) {
-      setErrors({ lines: ['Toutes les lignes doivent avoir un produit et une quantité'] })
+      setErrors({ lines: [t('invoiceCreate.errors.completeLines')] })
       return
     }
 
@@ -127,10 +136,10 @@ export default function InvoiceCreate() {
         customer_address: customer.address,
         customer_phone: customer.phone,
         customer_tax_id: customer.tax_id,
-        subtotal: fmt(subtotal),
+        subtotal: serializeDecimal(subtotal),
         tax_rate: taxRate,
-        tax_amount: fmt(taxAmount),
-        total: fmt(total),
+        tax_amount: serializeDecimal(taxAmount),
+        total: serializeDecimal(total),
         paid_amount: paidAmount === '' ? 0 : Number(paidAmount),
         payment_method: paymentMethod,
         notes,
@@ -140,8 +149,8 @@ export default function InvoiceCreate() {
           product_name: line.product_name,
           unit: line.unit,
           qty: line.qty,
-          price: fmt(line.price),
-          total: fmt(line.total),
+          price: serializeDecimal(line.price),
+          total: serializeDecimal(line.total),
         })),
       })
 
@@ -153,30 +162,32 @@ export default function InvoiceCreate() {
     }
   }
 
+  const filteredCustomers = customers.filter((item) => (
+    String(item.name ?? '').toLowerCase().includes(customerSearch.toLowerCase())
+    || String(item.phone ?? '').includes(customerSearch)
+  ))
+
   if (loading) {
     return <PageLoader />
   }
-
-  const filteredCustomers = customers.filter((item) => (
-    item.name?.toLowerCase().includes(customerSearch.toLowerCase())
-    || item.phone?.includes(customerSearch)
-  ))
 
   return (
     <div className="max-w-4xl">
       <div className="flex items-center gap-2 mb-6 text-sm">
         <button onClick={() => navigate(-1)} className="text-muted-color hover:text-base-color transition-colors">
-          <i className="fa-solid fa-arrow-left mr-1.5" /> Retour
+          <i className="fa-solid fa-arrow-left mr-1.5" /> {t('common.back')}
         </button>
         <span className="text-muted-color">/</span>
-        <span className="text-secondary-color">Nouvelle facture</span>
+        <span className="text-secondary-color">{t('invoiceCreate.breadcrumbCurrent')}</span>
       </div>
 
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-xl font-bold text-base-color">Nouvelle facture</h1>
+          <h1 className="text-xl font-bold text-base-color">{t('invoiceCreate.title')}</h1>
           <p className="text-sm text-muted-color mt-1">
-            {selectedDepot ? `Dépôt courant: ${selectedDepot.name}` : 'Sélection du dépôt requise'}
+            {selectedDepot
+              ? t('invoiceCreate.currentDepot', { name: selectedDepot.name })
+              : t('invoiceCreate.depotRequired')}
           </p>
         </div>
         {canBrowseAll && (
@@ -184,7 +195,7 @@ export default function InvoiceCreate() {
             depots={depots}
             selectedValue={selectedDepotValue}
             onChange={setSelectedDepotValue}
-            label="Dépôt de facturation"
+            label={t('invoiceCreate.depotScopeLabel')}
           />
         )}
       </div>
@@ -197,7 +208,7 @@ export default function InvoiceCreate() {
 
       <div className="card mb-4">
         <h2 className="text-sm font-semibold text-base-color mb-3">
-          <i className="fa-solid fa-user text-teal-500 mr-2" /> Client
+          <i className="fa-solid fa-user text-teal-500 mr-2" /> {t('invoiceCreate.customer.title')}
         </h2>
         {errors.customer && (
           <p className="text-xs mb-2 px-2 py-1.5 rounded-lg" style={{ color: '#dc2626', background: 'rgba(239,68,68,0.06)' }}>
@@ -213,12 +224,17 @@ export default function InvoiceCreate() {
               </div>
             </div>
             <button onClick={() => setCustomer(null)} className="text-xs text-muted-color hover:text-base-color transition-colors">
-              <i className="fa-solid fa-pen text-xs mr-1" /> Changer
+              <i className="fa-solid fa-pen text-xs mr-1" /> {t('invoiceCreate.customer.change')}
             </button>
           </div>
         ) : (
           <div>
-            <input placeholder="Rechercher un client..." value={customerSearch} onChange={(event) => setCustomerSearch(event.target.value)} className="mb-2" />
+            <input
+              placeholder={t('invoiceCreate.customer.searchPlaceholder')}
+              value={customerSearch}
+              onChange={(event) => setCustomerSearch(event.target.value)}
+              className="mb-2"
+            />
             <div className="max-h-48 overflow-y-auto rounded-xl border" style={{ borderColor: 'var(--border)' }}>
               {filteredCustomers.slice(0, 20).map((item) => (
                 <button
@@ -241,7 +257,7 @@ export default function InvoiceCreate() {
                 </button>
               ))}
               {filteredCustomers.length === 0 && (
-                <div className="px-3 py-6 text-center text-muted-color text-sm">Aucun client trouve</div>
+                <div className="px-3 py-6 text-center text-muted-color text-sm">{t('invoiceCreate.customer.empty')}</div>
               )}
             </div>
           </div>
@@ -251,10 +267,10 @@ export default function InvoiceCreate() {
       <div className="card mb-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-base-color">
-            <i className="fa-solid fa-list text-teal-500 mr-2" /> Lignes de facture
+            <i className="fa-solid fa-list text-teal-500 mr-2" /> {t('invoiceCreate.lines.title')}
           </h2>
           <button onClick={addLine} className="btn-secondary text-xs">
-            <i className="fa-solid fa-plus" /> Ajouter une ligne
+            <i className="fa-solid fa-plus" /> {t('invoiceCreate.lines.add')}
           </button>
         </div>
         {errors.lines && (
@@ -271,22 +287,22 @@ export default function InvoiceCreate() {
               <div key={index}>
                 <div className="grid grid-cols-12 gap-2 items-end">
                   <div className="col-span-4">
-                    {index === 0 && <div className="text-xs text-muted-color mb-1 font-medium">Produit</div>}
+                    {index === 0 && <div className="text-xs text-muted-color mb-1 font-medium">{t('invoiceCreate.lines.product')}</div>}
                     <select value={line.product_id} onChange={(event) => updateLine(index, 'product_id', event.target.value)}>
-                      <option value="">Sélectionner...</option>
+                      <option value="">{t('invoiceCreate.lines.selectProduct')}</option>
                       {products.map((product) => (
                         <option key={product.id} value={product.id}>
-                          {product.name} {product.depot_qty != null ? `- dépôt ${fmt(product.depot_qty)}` : ''}
+                          {product.name} {product.depot_qty != null ? `- ${t('invoiceCreate.lines.depotQty', { qty: formatNumber(product.depot_qty) })}` : ''}
                         </option>
                       ))}
                     </select>
                   </div>
                   <div className="col-span-2">
-                    {index === 0 && <div className="text-xs text-muted-color mb-1 font-medium">Quantité</div>}
-                    <input type="number" step="0.001" min="0.001" value={line.qty} onChange={(event) => updateLine(index, 'qty', event.target.value)} placeholder="Qte" />
+                    {index === 0 && <div className="text-xs text-muted-color mb-1 font-medium">{t('invoiceCreate.lines.qty')}</div>}
+                    <input type="number" step="0.001" min="0.001" value={line.qty} onChange={(event) => updateLine(index, 'qty', event.target.value)} placeholder="0.000" />
                   </div>
                   <div className="col-span-2">
-                    {index === 0 && <div className="text-xs text-muted-color mb-1 font-medium">P.U.</div>}
+                    {index === 0 && <div className="text-xs text-muted-color mb-1 font-medium">{t('invoiceCreate.lines.unitPrice')}</div>}
                     <input
                       type="number"
                       step="0.001"
@@ -298,9 +314,9 @@ export default function InvoiceCreate() {
                     />
                   </div>
                   <div className="col-span-3 text-right">
-                    {index === 0 && <div className="text-xs text-muted-color mb-1 font-medium">Total</div>}
+                    {index === 0 && <div className="text-xs text-muted-color mb-1 font-medium">{t('invoiceCreate.lines.total')}</div>}
                     <div className="h-9 flex items-center justify-end">
-                      <span className="font-mono font-semibold text-base-color">{Number(line.total).toFixed(3)} TND</span>
+                      <span className="font-mono font-semibold text-base-color">{formatCurrency(line.total)}</span>
                     </div>
                   </div>
                   <div className="col-span-1 flex items-end justify-center pb-0.5">
@@ -314,7 +330,10 @@ export default function InvoiceCreate() {
                 {belowCost && (
                   <div className="flex items-center gap-1.5 mt-1 ml-1 text-xs" style={{ color: '#dc2626' }}>
                     <i className="fa-solid fa-triangle-exclamation text-xs" />
-                    Prix ({fmt(line.price)}) inferieur au prix d'achat ({fmt(line.buy_price)})
+                    {t('invoiceCreate.lines.belowCost', {
+                      price: formatNumber(line.price),
+                      buyPrice: formatNumber(line.buy_price),
+                    })}
                   </div>
                 )}
               </div>
@@ -324,12 +343,12 @@ export default function InvoiceCreate() {
 
         <div className="mt-5 pt-4 space-y-2 text-sm" style={{ borderTop: '1px solid var(--border)' }}>
           <div className="flex justify-between text-secondary-color">
-            <span>Sous-total</span>
-            <span className="font-mono">{subtotal.toFixed(3)} TND</span>
+            <span>{t('invoiceCreate.summary.subtotal')}</span>
+            <span className="font-mono">{formatCurrency(subtotal)}</span>
           </div>
           <div className="flex items-center justify-between text-secondary-color">
             <span className="flex items-center gap-2">
-              TVA
+              {t('invoiceCreate.summary.tax')}
               <select value={taxRate} onChange={(event) => setTaxRate(event.target.value)} style={{ width: 72, padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>
                 <option value={0}>0%</option>
                 <option value={7}>7%</option>
@@ -337,15 +356,15 @@ export default function InvoiceCreate() {
                 <option value={19}>19%</option>
               </select>
             </span>
-            <span className="font-mono">{taxAmount.toFixed(3)} TND</span>
+            <span className="font-mono">{formatCurrency(taxAmount)}</span>
           </div>
           <div className="flex justify-between font-bold text-base text-base-color pt-1" style={{ borderTop: '1px solid var(--border)' }}>
-            <span>Total</span>
-            <span className="font-mono">{total.toFixed(3)} TND</span>
+            <span>{t('invoiceCreate.summary.total')}</span>
+            <span className="font-mono">{formatCurrency(total)}</span>
           </div>
           <div className="flex items-center justify-between text-secondary-color pt-1">
             <span className="flex items-center gap-2">
-              Payé maintenant
+              {t('invoiceCreate.summary.payNow')}
               <select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} style={{ width: 160, padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>
                 {availablePaymentMethods.map((method) => (
                   <option key={method.id ?? method.value} value={method.value}>
@@ -357,9 +376,9 @@ export default function InvoiceCreate() {
             <input type="number" step="0.001" min="0" placeholder="0.000" value={paidAmount} onChange={(event) => setPaidAmount(event.target.value)} style={{ width: 120, textAlign: 'right' }} />
           </div>
           <div className="flex justify-between text-sm font-medium">
-            <span className="text-secondary-color">Reste a credit</span>
+            <span className="text-secondary-color">{t('invoiceCreate.summary.remainingCredit')}</span>
             <span className="font-mono" style={{ color: remaining > 0 ? '#dc2626' : '#059669' }}>
-              {remaining.toFixed(3)} TND
+              {formatCurrency(remaining)}
             </span>
           </div>
         </div>
@@ -367,15 +386,17 @@ export default function InvoiceCreate() {
 
       <div className="card mb-6">
         <h2 className="text-sm font-semibold text-base-color mb-2">
-          <i className="fa-solid fa-note-sticky text-teal-500 mr-2" /> Notes
+          <i className="fa-solid fa-note-sticky text-teal-500 mr-2" /> {t('invoiceCreate.notesTitle')}
         </h2>
-        <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={2} placeholder="Notes optionnelles..." />
+        <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={2} placeholder={t('invoiceCreate.notesPlaceholder')} />
       </div>
 
       <div className="flex gap-3 justify-end">
-        <button onClick={() => navigate(-1)} className="btn-secondary">Annuler</button>
+        <button onClick={() => navigate(-1)} className="btn-secondary">{t('common.cancel')}</button>
         <button onClick={submit} disabled={saving} className="btn-primary">
-          {saving ? <><i className="fa-solid fa-spinner fa-spin" /> Creation...</> : <><i className="fa-solid fa-file-invoice" /> Creer la facture</>}
+          {saving
+            ? <><i className="fa-solid fa-spinner fa-spin" /> {t('invoiceCreate.actions.creating')}</>
+            : <><i className="fa-solid fa-file-invoice" /> {t('invoiceCreate.actions.create')}</>}
         </button>
       </div>
     </div>

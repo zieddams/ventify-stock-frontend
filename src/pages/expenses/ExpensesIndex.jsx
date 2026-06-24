@@ -4,10 +4,12 @@ import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
 import RowDocumentActions from '../../components/RowDocumentActions'
+import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import { getConfigItemLabel, getDefaultConfigValue, useConfigItems } from '../../hooks/useConfigItems'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
+import { formatCurrency, formatDate } from '../../utils/format'
 import { filterPaymentMethodsByScope } from '../../utils/paymentMethodScopes'
 import { paginateItems } from '../../utils/pagination'
 
@@ -25,6 +27,8 @@ function buildEmptyExpense(defaultCategory, depotId = null, defaultPaymentMethod
 }
 
 export default function ExpensesIndex() {
+  const { t } = useI18n()
+  const notAvailable = t('common.notAvailable')
   const { items: configItems } = useConfigItems(['expense_category', 'payment_method'], { includeInactive: true })
   const { layouts: documentLayouts } = useDocumentLayouts()
   const allCategories = configItems.expense_category ?? []
@@ -37,7 +41,7 @@ export default function ExpensesIndex() {
   )
   const availablePaymentMethods = paymentMethods.length > 0
     ? paymentMethods
-    : [{ value: 'cash', display_label: 'Espèces' }]
+    : [{ value: 'cash', display_label: t('expensesPage.cashFallback') }]
   const defaultPaymentMethod = getDefaultConfigValue(availablePaymentMethods, 'cash')
 
   const {
@@ -102,6 +106,8 @@ export default function ExpensesIndex() {
     try {
       const response = await api.get('/expenses', { params })
       setExpenses(Array.isArray(response.data) ? response.data : [])
+    } catch {
+      setExpenses([])
     } finally {
       setLoading(false)
     }
@@ -109,7 +115,7 @@ export default function ExpensesIndex() {
 
   useEffect(() => {
     load()
-  }, [month, categoryFilter, dateFrom, dateTo, depotsReady, scopedDepotId])
+  }, [categoryFilter, dateFrom, dateTo, depotsReady, month, scopedDepotId])
 
   const total = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0)
   const { items: paginatedExpenses, meta: expensesMeta } = useMemo(
@@ -124,7 +130,7 @@ export default function ExpensesIndex() {
 
   useEffect(() => {
     setPage(1)
-  }, [month, categoryFilter, dateFrom, dateTo, scopedDepotId])
+  }, [categoryFilter, dateFrom, dateTo, month, scopedDepotId])
 
   useEffect(() => {
     if (page !== expensesMeta.current_page) {
@@ -138,7 +144,7 @@ export default function ExpensesIndex() {
     setError('')
 
     if (!scopedDepotId) {
-      setError("Aucun dépôt actif n'est disponible pour cette dépense.")
+      setError(t('expensesPage.errors.noActiveDepot'))
       setSaving(false)
       return
     }
@@ -151,14 +157,14 @@ export default function ExpensesIndex() {
       setForm(buildEmptyExpense(defaultCategory, scopedDepotId, defaultPaymentMethod))
       await load()
     } catch (requestError) {
-      setError(requestError.response?.data?.message || "Erreur lors de l'enregistrement")
+      setError(requestError.response?.data?.message || t('expensesPage.errors.saveFailed'))
     } finally {
       setSaving(false)
     }
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('Supprimer cette dépense ?')) {
+    if (!confirm(t('expensesPage.deleteConfirm'))) {
       return
     }
 
@@ -182,12 +188,12 @@ export default function ExpensesIndex() {
   return (
     <div>
       <PageHeader
-        title="Dépenses"
-        subtitle={`Enregistrement et suivi des charges${currentDepot ? ` | Dépôt ${currentDepot.name}` : ''}`}
+        title={t('expensesPage.title')}
+        subtitle={currentDepot ? t('expensesPage.subtitleWithDepot', { name: currentDepot.name }) : t('expensesPage.subtitle')}
         action={(
           <div className="flex flex-wrap items-end justify-end gap-2">
             <PageExportActions
-              title="Dépenses"
+              title={t('expensesPage.title')}
               csvEntity="expenses"
               csvParams={exportParams}
               csvFilename="depenses"
@@ -202,7 +208,7 @@ export default function ExpensesIndex() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="card">
           <h2 className="text-sm font-semibold text-base-color mb-4 flex items-center gap-2">
-            <i className="fa-solid fa-plus text-teal-500" /> Nouvelle dépense
+            <i className="fa-solid fa-plus text-teal-500" /> {t('expensesPage.form.title')}
           </h2>
           {error && (
             <div
@@ -214,7 +220,7 @@ export default function ExpensesIndex() {
           )}
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Date</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.form.fields.date')}</label>
               <input
                 type="date"
                 value={form.expense_date}
@@ -223,7 +229,7 @@ export default function ExpensesIndex() {
               />
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Catégorie</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.form.fields.category')}</label>
               <select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}>
                 {activeCategories.map((item) => (
                   <option key={item.id} value={item.value}>
@@ -233,7 +239,7 @@ export default function ExpensesIndex() {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Dépôt</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.form.fields.depot')}</label>
               {currentDepot ? (
                 <DepotSelectionInfo depot={currentDepot} />
               ) : (
@@ -241,22 +247,22 @@ export default function ExpensesIndex() {
                   className="rounded-2xl px-3 py-2 text-xs text-muted-color"
                   style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}
                 >
-                  Aucun dépôt actif n&apos;est encore lié à ce compte.
+                  {t('expensesPage.form.noDepotLinked')}
                 </div>
               )}
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Libellé</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.form.fields.label')}</label>
               <input
                 type="text"
-                placeholder="Description..."
+                placeholder={t('expensesPage.form.placeholders.label')}
                 value={form.label}
                 onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))}
                 required
               />
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Montant (TND)</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.form.fields.amount')}</label>
               <input
                 type="number"
                 step="0.001"
@@ -268,7 +274,7 @@ export default function ExpensesIndex() {
               />
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Mode de paiement</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.form.fields.paymentMethod')}</label>
               <select
                 value={form.payment_method}
                 onChange={(event) => setForm((current) => ({ ...current, payment_method: event.target.value }))}
@@ -282,8 +288,8 @@ export default function ExpensesIndex() {
             </div>
             <button type="submit" disabled={saving || !scopedDepotId} className="btn-primary w-full justify-center">
               {saving
-                ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</>
-                : <><i className="fa-solid fa-check" /> Enregistrer</>}
+                ? <><i className="fa-solid fa-spinner fa-spin" /> {t('expensesPage.form.saving')}</>
+                : <><i className="fa-solid fa-check" /> {t('expensesPage.form.submit')}</>}
             </button>
           </form>
         </div>
@@ -291,16 +297,17 @@ export default function ExpensesIndex() {
         <div className="lg:col-span-2 card">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-semibold text-base-color">Dépenses</h2>
+              <h2 className="text-sm font-semibold text-base-color">{t('expensesPage.list.title')}</h2>
               <p className="text-xs text-muted-color mt-0.5">
-                Total: <span className="font-mono font-semibold" style={{ color: '#ea580c' }}>{total.toFixed(3)} TND</span>
+                {t('expensesPage.list.total')}:{' '}
+                <span className="font-mono font-semibold" style={{ color: '#ea580c' }}>{formatCurrency(total)}</span>
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Mois</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.filters.month')}</label>
               <input
                 type="month"
                 value={month}
@@ -315,9 +322,9 @@ export default function ExpensesIndex() {
               />
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Catégorie</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.filters.category')}</label>
               <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
-                <option value="">Toutes</option>
+                <option value="">{t('expensesPage.filters.allCategories')}</option>
                 {allCategories.map((item) => (
                   <option key={item.id} value={item.value}>
                     {getConfigItemLabel(item)}
@@ -326,7 +333,7 @@ export default function ExpensesIndex() {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Du</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateFrom')}</label>
               <input
                 type="date"
                 value={dateFrom}
@@ -337,7 +344,7 @@ export default function ExpensesIndex() {
               />
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">Au</label>
+              <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateTo')}</label>
               <input
                 type="date"
                 value={dateTo}
@@ -360,22 +367,30 @@ export default function ExpensesIndex() {
                 }}
                 className="btn-secondary text-xs"
               >
-                <i className="fa-solid fa-rotate-left" /> Réinitialiser les filtres
+                <i className="fa-solid fa-rotate-left" /> {t('common.resetFilters')}
               </button>
             </div>
           )}
 
           {loading ? (
             <div className="flex items-center justify-center py-12 text-muted-color">
-              <i className="fa-solid fa-spinner fa-spin mr-2" /> Chargement...
+              <i className="fa-solid fa-spinner fa-spin mr-2" /> {t('expensesPage.loading')}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr>
-                    {['Date', 'Catégorie', 'Dépôt', 'Libellé', 'Paiement', 'Montant', ''].map((heading) => (
-                      <th key={heading} className={`pb-3 pr-3 ${heading === 'Montant' ? 'text-right' : 'text-left'}`}>
+                    {[
+                      t('expensesPage.columns.date'),
+                      t('expensesPage.columns.category'),
+                      t('expensesPage.columns.depot'),
+                      t('expensesPage.columns.label'),
+                      t('expensesPage.columns.payment'),
+                      t('expensesPage.columns.amount'),
+                      '',
+                    ].map((heading) => (
+                      <th key={heading || 'actions'} className={`pb-3 pr-3 ${heading === t('expensesPage.columns.amount') ? 'text-right' : 'text-left'}`}>
                         {heading}
                       </th>
                     ))}
@@ -386,7 +401,7 @@ export default function ExpensesIndex() {
                     <tr>
                       <td colSpan={7} className="py-12 text-center">
                         <i className="fa-solid fa-receipt text-3xl text-muted-color opacity-30 mb-2 block" />
-                        <p className="text-muted-color text-sm">Aucune dépense sur cette période</p>
+                        <p className="text-muted-color text-sm">{t('expensesPage.empty')}</p>
                       </td>
                     </tr>
                   )}
@@ -400,7 +415,7 @@ export default function ExpensesIndex() {
                     return (
                       <tr key={expense.id} className="table-row">
                         <td className="py-3 pr-3 text-secondary-color text-xs font-mono">
-                          {new Date(expense.expense_date).toLocaleDateString('fr-FR')}
+                          {formatDate(expense.expense_date)}
                         </td>
                         <td className="py-3 pr-3">
                           <span
@@ -411,11 +426,11 @@ export default function ExpensesIndex() {
                             {categoryLabel}
                           </span>
                         </td>
-                        <td className="py-3 pr-3 text-muted-color text-xs">{expense.depot?.name ?? '-'}</td>
+                        <td className="py-3 pr-3 text-muted-color text-xs">{expense.depot?.name ?? notAvailable}</td>
                         <td className="py-3 pr-3 text-base-color">{expense.label}</td>
-                        <td className="py-3 pr-3 text-muted-color text-xs">{expense.payment_method_label ?? expense.payment_method ?? 'Espèces'}</td>
+                        <td className="py-3 pr-3 text-muted-color text-xs">{expense.payment_method_label ?? expense.payment_method ?? t('expensesPage.cashFallback')}</td>
                         <td className="py-3 pr-3 text-right font-mono font-bold text-sm" style={{ color: '#ea580c' }}>
-                          {Number(expense.amount).toFixed(3)}
+                          {formatCurrency(expense.amount)}
                         </td>
                         <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
@@ -423,7 +438,7 @@ export default function ExpensesIndex() {
                               documentKey="expense_item"
                               record={expense}
                               documentLayouts={documentLayouts}
-                              title={`Dépense ${expense.label || expense.id}`}
+                              title={t('expensesPage.documentTitle', { label: expense.label || expense.id, id: expense.id })}
                               filename={`depense_${expense.id}`}
                             />
                             <button onClick={() => handleDelete(expense.id)} className="text-muted-color hover:text-red-500 transition-colors p-1">
@@ -448,7 +463,7 @@ export default function ExpensesIndex() {
                 setPerPage(value)
                 setPage(1)
               }}
-              itemLabel="depenses"
+              itemLabel={t('expensesPage.itemLabel')}
             />
           )}
         </div>

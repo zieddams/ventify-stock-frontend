@@ -1,40 +1,35 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import DepotScopeControls from '../../components/DepotScopeControls'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
 import RowDocumentActions from '../../components/RowDocumentActions'
 import { PageLoader } from '../../components/Spinner'
+import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
+import { formatCurrency, formatDate } from '../../utils/format'
 import { extractPaginationMeta } from '../../utils/pagination'
 
-function fmt(value) {
+function formatMetric(value) {
   return value != null ? Number(value).toFixed(3) : '-'
 }
 
-function fmtDate(value) {
-  if (!value) {
-    return '-'
-  }
-
-  return new Date(value).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-function StatusBadge({ status }) {
+function StatusBadge({ status, t }) {
   return status === 'open' ? (
     <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(16,185,129,0.12)', color: '#059669', border: '1px solid rgba(16,185,129,0.25)' }}>
-      <i className="fa-solid fa-circle-dot text-[8px]" /> En cours
+      <i className="fa-solid fa-circle-dot text-[8px]" /> {t('routeSessions.statusOpen')}
     </span>
   ) : (
     <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: 'var(--surface-2)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-      Cloturee
+      {t('routeSessions.statusClosed')}
     </span>
   )
 }
 
 export default function RouteSessionsIndex() {
+  const { t } = useI18n()
   const { layouts: documentLayouts } = useDocumentLayouts()
   const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -81,9 +76,10 @@ export default function RouteSessionsIndex() {
       .finally(() => setLoading(false))
   }, [page, date, dateFrom, dateTo, selectedDepotId])
 
-  const totalVendu = sessions.reduce((sum, item) => sum + Number(item.total_sold ?? 0), 0)
-  const totalProfit = sessions.reduce((sum, item) => sum + Number(item.profit_total ?? 0), 0)
-  const hasFilters = date || dateFrom || dateTo
+  const totalVendu = useMemo(() => sessions.reduce((sum, item) => sum + Number(item.total_sold ?? 0), 0), [sessions])
+  const totalProfit = useMemo(() => sessions.reduce((sum, item) => sum + Number(item.profit_total ?? 0), 0), [sessions])
+  const openCount = useMemo(() => sessions.filter((session) => session.status === 'open').length, [sessions])
+  const hasFilters = Boolean(date || dateFrom || dateTo)
   const exportParams = {
     ...(date ? { date_from: date, date_to: date } : {
       ...(dateFrom ? { date_from: dateFrom } : {}),
@@ -95,8 +91,12 @@ export default function RouteSessionsIndex() {
   return (
     <div>
       <PageHeader
-        title="Sorties journée"
-        subtitle={`BON DE SORTIE - sessions journalières par commercial${canSelectAll ? ` | ${selectedDepot ? `Dépôt ${selectedDepot.name}` : 'Tous les dépôts'}` : ''}`}
+        title={t('routeSessions.title')}
+        subtitle={t('routeSessions.subtitle', {
+          depot: canSelectAll
+            ? (selectedDepot ? t('routeSessions.selectedDepot', { name: selectedDepot.name }) : t('routeSessions.allDepots'))
+            : '',
+        })}
         action={(
           <div className="flex flex-wrap items-end justify-end gap-2">
             {canSelectAll && (
@@ -106,11 +106,11 @@ export default function RouteSessionsIndex() {
                 onChange={setSelectedDepotValue}
                 allowAll
                 canSelectAll={canSelectAll}
-                allLabel="Tous les dépôts"
+                allLabel={t('routeSessions.allDepots')}
               />
             )}
             <PageExportActions
-              title="Sorties journée"
+              title={t('routeSessions.title')}
               csvEntity="route_sessions"
               csvParams={exportParams}
               csvFilename="sorties_journee"
@@ -124,10 +124,10 @@ export default function RouteSessionsIndex() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {[
-          { label: 'Sessions', value: sessions.length, icon: 'fa-solid fa-calendar-days', color: '#0d9488' },
-          { label: 'En cours', value: sessions.filter((session) => session.status === 'open').length, icon: 'fa-solid fa-circle-dot', color: '#10b981' },
-          { label: 'Total vendu', value: `${fmt(totalVendu)} TND`, icon: 'fa-solid fa-sack-dollar', color: '#3b82f6' },
-          { label: 'Bénéfice', value: `${fmt(totalProfit)} TND`, icon: 'fa-solid fa-coins', color: '#8b5cf6' },
+          { label: t('routeSessions.kpis.sessions'), value: sessions.length, icon: 'fa-solid fa-calendar-days', color: '#0d9488' },
+          { label: t('routeSessions.kpis.open'), value: openCount, icon: 'fa-solid fa-circle-dot', color: '#10b981' },
+          { label: t('routeSessions.kpis.sales'), value: formatCurrency(totalVendu), icon: 'fa-solid fa-sack-dollar', color: '#3b82f6' },
+          { label: t('routeSessions.kpis.profit'), value: formatCurrency(totalProfit), icon: 'fa-solid fa-coins', color: '#8b5cf6' },
         ].map((kpi) => (
           <div key={kpi.label} className="card py-3 px-4 flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${kpi.color}1a` }}>
@@ -144,7 +144,7 @@ export default function RouteSessionsIndex() {
       <div className="card mb-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs text-muted-color mb-1 font-medium">Jour précis</label>
+            <label className="block text-xs text-muted-color mb-1 font-medium">{t('routeSessions.filters.specificDay')}</label>
             <input
               type="date"
               value={date}
@@ -159,7 +159,7 @@ export default function RouteSessionsIndex() {
             />
           </div>
           <div>
-            <label className="block text-xs text-muted-color mb-1 font-medium">Du</label>
+            <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateFrom')}</label>
             <input
               type="date"
               value={dateFrom}
@@ -171,7 +171,7 @@ export default function RouteSessionsIndex() {
             />
           </div>
           <div>
-            <label className="block text-xs text-muted-color mb-1 font-medium">Au</label>
+            <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateTo')}</label>
             <input
               type="date"
               value={dateTo}
@@ -195,7 +195,7 @@ export default function RouteSessionsIndex() {
               }}
               className="btn-secondary text-xs"
             >
-              <i className="fa-solid fa-rotate-left" /> Réinitialiser les filtres
+              <i className="fa-solid fa-rotate-left" /> {t('common.resetFilters')}
             </button>
           </div>
         )}
@@ -209,8 +209,23 @@ export default function RouteSessionsIndex() {
             <table className="w-full text-sm">
               <thead>
                 <tr>
-                  {['Date', 'Commercial', 'Dépôt', 'Zone', 'Camion', 'Total vendu', 'Bénéfice', 'Crédit accordé', 'Statut', ''].map((heading) => (
-                    <th key={heading} className={`pb-3 pr-4 ${['Total vendu', 'Bénéfice', 'Crédit accordé'].includes(heading) ? 'text-right' : 'text-left'}`}>
+                  {[
+                    t('common.date'),
+                    t('routeSessions.columns.rep'),
+                    t('depot.label'),
+                    t('routeSessions.columns.zone'),
+                    t('routeSessions.columns.camion'),
+                    t('routeSessions.columns.totalSold'),
+                    t('routeSessions.columns.profit'),
+                    t('routeSessions.columns.creditGiven'),
+                    t('common.status'),
+                    '',
+                  ].map((heading) => (
+                    <th key={heading} className={`pb-3 pr-4 ${[
+                      t('routeSessions.columns.totalSold'),
+                      t('routeSessions.columns.profit'),
+                      t('routeSessions.columns.creditGiven'),
+                    ].includes(heading) ? 'text-right' : 'text-left'}`}>
                       {heading}
                     </th>
                   ))}
@@ -221,36 +236,36 @@ export default function RouteSessionsIndex() {
                   <tr>
                     <td colSpan={10} className="py-12 text-center">
                       <i className="fa-solid fa-truck-fast text-3xl text-muted-color opacity-30 mb-2 block" />
-                      <p className="text-muted-color text-sm">Aucune session trouvée</p>
+                      <p className="text-muted-color text-sm">{t('routeSessions.empty')}</p>
                     </td>
                   </tr>
                 )}
                 {sessions.map((session) => (
                   <tr key={session.id} className="table-row">
-                    <td className="py-3 pr-4 font-semibold text-base-color">{fmtDate(session.session_date)}</td>
-                    <td className="py-3 pr-4 text-secondary-color">{session.rep?.name ?? '-'}</td>
-                    <td className="py-3 pr-4 text-muted-color text-xs">{session.depot?.name ?? '-'}</td>
-                    <td className="py-3 pr-4 text-muted-color text-xs">{session.zone?.name ?? '-'}</td>
+                    <td className="py-3 pr-4 font-semibold text-base-color">{formatDate(session.session_date)}</td>
+                    <td className="py-3 pr-4 text-secondary-color">{session.rep?.name ?? t('common.notAvailable')}</td>
+                    <td className="py-3 pr-4 text-muted-color text-xs">{session.depot?.name ?? t('common.notAvailable')}</td>
+                    <td className="py-3 pr-4 text-muted-color text-xs">{session.zone?.name ?? t('common.notAvailable')}</td>
                     <td className="py-3 pr-4 text-muted-color text-xs">
                       {session.camion?.name ? (
                         <div>
                           <div className="font-medium text-base-color">{session.camion.name}</div>
-                          <div className="text-[11px] text-muted-color mt-0.5">{session.camion.plate ?? 'Sans plaque'}</div>
+                          <div className="text-[11px] text-muted-color mt-0.5">{session.camion.plate ?? t('routeSessions.noPlate')}</div>
                         </div>
                       ) : (
-                        'Non assigné'
+                        t('routeSessions.unassigned')
                       )}
                     </td>
-                    <td className="py-3 pr-4 text-right font-mono font-semibold text-base-color">{fmt(session.total_sold)}</td>
-                    <td className="py-3 pr-4 text-right font-mono font-bold" style={{ color: '#059669' }}>{fmt(session.profit_total)}</td>
-                    <td className="py-3 pr-4 text-right font-mono" style={{ color: '#d97706' }}>{fmt(session.credit_given)}</td>
-                    <td className="py-3"><StatusBadge status={session.status} /></td>
+                    <td className="py-3 pr-4 text-right font-mono font-semibold text-base-color">{formatMetric(session.total_sold)}</td>
+                    <td className="py-3 pr-4 text-right font-mono font-bold" style={{ color: '#059669' }}>{formatMetric(session.profit_total)}</td>
+                    <td className="py-3 pr-4 text-right font-mono" style={{ color: '#d97706' }}>{formatMetric(session.credit_given)}</td>
+                    <td className="py-3"><StatusBadge status={session.status} t={t} /></td>
                     <td className="py-3">
                       <RowDocumentActions
                         documentKey="route_session_item"
                         record={session}
                         documentLayouts={documentLayouts}
-                        title={`Session ${fmtDate(session.session_date)}`}
+                        title={t('routeSessions.documentTitle', { date: formatDate(session.session_date) })}
                         filename={`session_${session.id}`}
                       />
                     </td>
@@ -265,7 +280,7 @@ export default function RouteSessionsIndex() {
           <PaginationControls
             meta={meta}
             onPageChange={setPage}
-            itemLabel="sessions"
+            itemLabel={t('routeSessions.itemsLabel')}
           />
         )}
       </div>

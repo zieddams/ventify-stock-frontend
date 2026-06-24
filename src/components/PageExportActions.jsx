@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { APP_NAME } from '../config/appMeta'
+import { useI18n } from '../contexts/I18nContext'
 import { useDocumentLayouts } from '../hooks/useDocumentLayouts'
 import { downloadDocumentPdf, printGeneratedDocument } from '../utils/documents'
 import { downloadCsvExport, printCurrentDocument } from '../utils/exporting'
@@ -17,6 +18,7 @@ export default function PageExportActions({
   filename = '',
   meta = [],
 }) {
+  const { t } = useI18n()
   const shouldLoadLayouts = Boolean(documentKey) && documentLayouts == null
   const { layouts: fetchedDocumentLayouts } = useDocumentLayouts({ enabled: shouldLoadLayouts })
   const [csvExporting, setCsvExporting] = useState(false)
@@ -36,7 +38,7 @@ export default function PageExportActions({
     try {
       await downloadCsvExport(csvEntity, csvParams, csvFilename || csvEntity)
     } catch (error) {
-      alert(error.response?.data?.message || "L'exportation est impossible pour le moment.")
+      alert(error.response?.data?.message || t('documents.exportUnavailable'))
     } finally {
       setCsvExporting(false)
     }
@@ -62,8 +64,8 @@ export default function PageExportActions({
       })
     } catch (error) {
       alert(error?.message === 'print_window_blocked'
-        ? "La fenêtre d'impression a été bloquée par le navigateur."
-        : 'Impossible de générer le document PDF pour le moment.')
+        ? t('documents.printWindowBlocked')
+        : t('documents.pdfUnavailable'))
     } finally {
       setBusyAction('')
     }
@@ -83,13 +85,13 @@ export default function PageExportActions({
           filename,
           meta,
         })
-      } catch (error) {
-        alert(error?.message === 'print_window_blocked'
-          ? "La fenêtre d'impression a été bloquée par le navigateur."
-          : "Impossible d'ouvrir l'impression pour le moment.")
-      } finally {
-        window.setTimeout(() => setBusyAction(''), 400)
-      }
+    } catch (error) {
+      alert(error?.message === 'print_window_blocked'
+        ? t('documents.printWindowBlocked')
+        : t('documents.printUnavailable'))
+    } finally {
+      window.setTimeout(() => setBusyAction(''), 400)
+    }
       return
     }
 
@@ -101,21 +103,21 @@ export default function PageExportActions({
       {csvEntity && (
         <button onClick={handleExcel} disabled={csvExporting || busyAction !== ''} className="btn-secondary text-xs">
           {csvExporting
-            ? <><i className="fa-solid fa-spinner fa-spin" /> Exportation...</>
-            : <><i className="fa-solid fa-file-excel" /> Excel</>
+            ? <><i className="fa-solid fa-spinner fa-spin" /> {t('documents.exporting')}</>
+            : <><i className="fa-solid fa-file-excel" /> {t('documents.excel')}</>
           }
         </button>
       )}
       <button onClick={handlePdf} disabled={csvExporting || busyAction !== ''} className="btn-secondary text-xs">
         {busyAction === 'pdf'
-          ? <><i className="fa-solid fa-spinner fa-spin" /> Génération PDF...</>
-          : <><i className="fa-solid fa-file-pdf" /> PDF</>
+          ? <><i className="fa-solid fa-spinner fa-spin" /> {t('documents.generatingPdf')}</>
+          : <><i className="fa-solid fa-file-pdf" /> {t('documents.pdf')}</>
         }
       </button>
       <button onClick={handlePrint} disabled={csvExporting || busyAction !== ''} className="btn-secondary text-xs">
         {busyAction === 'print'
-          ? <><i className="fa-solid fa-spinner fa-spin" /> Préparation...</>
-          : <><i className="fa-solid fa-print" /> Imprimer</>
+          ? <><i className="fa-solid fa-spinner fa-spin" /> {t('documents.preparing')}</>
+          : <><i className="fa-solid fa-print" /> {t('documents.print')}</>
         }
       </button>
     </div>

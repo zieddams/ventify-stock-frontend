@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../contexts/AuthContext'
+import { useI18n } from '../../contexts/I18nContext'
 import api from '../../services/api'
 import { subscribeToOpsMonitor } from '../../services/realtime'
 import {
@@ -12,12 +13,13 @@ import {
 } from '../../utils/notificationActivity'
 
 function notificationMessage(notification, fallbackLabel) {
-  return notification?.data?.message || fallbackLabel || 'Notification'
+  return notification?.data?.message || fallbackLabel
 }
 
 export default function NotificationsCenterIndex() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { t } = useI18n()
   const [notifications, setNotifications] = useState([])
   const [preferences, setPreferences] = useState([])
   const [loading, setLoading] = useState(true)
@@ -128,16 +130,16 @@ export default function NotificationsCenterIndex() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Centre de notifications"
-        subtitle="Événements système, activité opérationnelle et préférences par utilisateur."
+        title={t('notificationsCenter.title')}
+        subtitle={t('notificationsCenter.subtitle')}
         action={(
           <div className="flex items-center gap-2">
             <button onClick={load} className="btn-secondary text-xs">
-              <i className="fa-solid fa-rotate-right" /> Actualiser
+              <i className="fa-solid fa-rotate-right" /> {t('notificationsCenter.refresh')}
             </button>
             {unreadCount > 0 && (
               <button onClick={markAll} className="btn-secondary text-xs">
-                <i className="fa-solid fa-check-double" /> Tout lire
+                <i className="fa-solid fa-check-double" /> {t('notificationsCenter.markAll')}
               </button>
             )}
           </div>
@@ -146,17 +148,17 @@ export default function NotificationsCenterIndex() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="card py-4 px-4">
-          <div className="text-xs text-muted-color">Notifications totales</div>
+          <div className="text-xs text-muted-color">{t('notificationsCenter.totals.notifications')}</div>
           <div className="text-2xl font-bold text-base-color mt-1">{notifications.length}</div>
         </div>
         <div className="card py-4 px-4">
-          <div className="text-xs text-muted-color">Non lues</div>
+          <div className="text-xs text-muted-color">{t('notificationsCenter.totals.unread')}</div>
           <div className="text-2xl font-bold mt-1" style={{ color: unreadCount > 0 ? '#ef4444' : 'var(--text-base)' }}>
             {unreadCount}
           </div>
         </div>
         <div className="card py-4 px-4">
-          <div className="text-xs text-muted-color">Preferences actives</div>
+          <div className="text-xs text-muted-color">{t('notificationsCenter.totals.activePreferences')}</div>
           <div className="text-2xl font-bold text-base-color mt-1">
             {preferences.filter((item) => item.enabled).length}/{preferences.length}
           </div>
@@ -167,7 +169,7 @@ export default function NotificationsCenterIndex() {
         <div className="card">
           <div className="flex items-center gap-2 mb-4">
             <i className="fa-solid fa-sliders text-teal-500" />
-            <h2 className="text-sm font-semibold text-base-color">Preferences utilisateur</h2>
+            <h2 className="text-sm font-semibold text-base-color">{t('notificationsCenter.preferencesTitle')}</h2>
           </div>
 
           <div className="space-y-3">
@@ -187,11 +189,11 @@ export default function NotificationsCenterIndex() {
                   className="btn-secondary text-xs flex-shrink-0"
                 >
                   {savingKey === preference.key ? (
-                    <><i className="fa-solid fa-spinner fa-spin" /> En cours...</>
+                    <><i className="fa-solid fa-spinner fa-spin" /> {t('notificationsCenter.toggle.saving')}</>
                   ) : preference.enabled ? (
-                    <><i className="fa-solid fa-toggle-on" /> Activee</>
+                    <><i className="fa-solid fa-toggle-on" /> {t('notificationsCenter.toggle.enabled')}</>
                   ) : (
-                    <><i className="fa-solid fa-toggle-off" /> Desactivee</>
+                    <><i className="fa-solid fa-toggle-off" /> {t('notificationsCenter.toggle.disabled')}</>
                   )}
                 </button>
               </div>
@@ -202,16 +204,16 @@ export default function NotificationsCenterIndex() {
         <div className="card">
           <div className="flex items-center gap-2 mb-4">
             <i className="fa-solid fa-stream text-sky-500" />
-            <h2 className="text-sm font-semibold text-base-color">Historique recent</h2>
+            <h2 className="text-sm font-semibold text-base-color">{t('notificationsCenter.historyTitle')}</h2>
           </div>
 
           {loading ? (
             <div className="py-10 text-center text-muted-color">
-              <i className="fa-solid fa-spinner fa-spin mr-2" /> Chargement...
+              <i className="fa-solid fa-spinner fa-spin mr-2" /> {t('notificationsCenter.loading')}
             </div>
           ) : notifications.length === 0 ? (
             <div className="rounded-2xl px-4 py-10 text-center text-sm text-muted-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-              Aucune notification disponible pour le moment.
+              {t('notificationsCenter.empty')}
             </div>
           ) : (
             <div className="space-y-3">
@@ -248,7 +250,7 @@ export default function NotificationsCenterIndex() {
                           <div className="text-sm font-semibold text-base-color">{config.label}</div>
                           {unread && (
                             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(13,148,136,0.12)', color: '#0d9488' }}>
-                              Non lue
+                              {t('notificationsCenter.unreadPill')}
                             </span>
                           )}
                         </div>
@@ -272,7 +274,7 @@ export default function NotificationsCenterIndex() {
                           <div className="text-xs text-muted-color">{formatNotificationAge(notification.created_at)}</div>
                           {config.route && (
                             <div className="text-xs font-medium" style={{ color: config.color }}>
-                              Ouvrir la page liee
+                              {t('notificationsCenter.openLinkedPage')}
                             </div>
                           )}
                         </div>
@@ -285,7 +287,7 @@ export default function NotificationsCenterIndex() {
                           }}
                           className="btn-secondary text-xs flex-shrink-0"
                         >
-                          <i className="fa-solid fa-check" /> Marquer lue
+                          <i className="fa-solid fa-check" /> {t('notificationsCenter.markRead')}
                         </button>
                       )}
                     </div>

@@ -4,9 +4,11 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import api from '../services/api'
 import { PageLoader } from '../components/Spinner'
 import { useAuth } from '../contexts/AuthContext'
+import { useI18n } from '../contexts/I18nContext'
 import { useDepots } from '../hooks/useDepots'
 import QuantityInput from '../components/QuantityInput'
 import { isTerrainTrackingEnabled } from '../utils/companyFeatures'
+import { formatCurrency, formatDateTime, formatElapsedSeconds, formatNumber } from '../utils/format'
 import {
   DEFAULT_APP_MARK,
   resolveUserBrandCaption,
@@ -17,14 +19,10 @@ import {
 
 const HEARTBEAT_REFRESH_MS = 20 * 1000
 
-function fmt(n) {
-  return new Intl.NumberFormat('fr-TN', { minimumFractionDigits: 3 }).format(n ?? 0)
-}
-
-function getSessionPresenceMeta(session, terrainTrackingEnabled) {
+function getSessionPresenceMeta(session, terrainTrackingEnabled, t) {
   if (!terrainTrackingEnabled) {
     return {
-      label: 'Suivi session',
+      label: t('dashboard.presence.monitoring'),
       textClassName: 'text-muted-color',
       dotClassName: 'bg-slate-300',
     }
@@ -34,7 +32,7 @@ function getSessionPresenceMeta(session, terrainTrackingEnabled) {
 
   if (state === 'online' || session?.is_online) {
     return {
-      label: 'En ligne',
+      label: t('dashboard.presence.online'),
       textClassName: 'text-emerald-600',
       dotClassName: 'bg-emerald-500 animate-pulse',
     }
@@ -42,7 +40,7 @@ function getSessionPresenceMeta(session, terrainTrackingEnabled) {
 
   if (state === 'stale' || (session?.alive && session?.last_seen)) {
     return {
-      label: 'Heartbeat en retard',
+      label: t('dashboard.presence.delayed'),
       textClassName: 'text-amber-600',
       dotClassName: 'bg-amber-500',
     }
@@ -50,57 +48,17 @@ function getSessionPresenceMeta(session, terrainTrackingEnabled) {
 
   if (state === 'never_seen') {
     return {
-      label: 'Aucune remontée',
+      label: t('dashboard.presence.noSignal'),
       textClassName: 'text-muted-color',
       dotClassName: 'bg-slate-300',
     }
   }
 
   return {
-    label: 'Hors ligne',
+    label: t('dashboard.presence.offline'),
     textClassName: 'text-muted-color',
     dotClassName: 'bg-slate-300',
   }
-}
-
-function formatLastSeenAge(seconds) {
-  if (seconds == null || Number.isNaN(Number(seconds))) {
-    return null
-  }
-
-  const elapsed = Math.max(0, Math.floor(Number(seconds)))
-
-  if (elapsed < 60) {
-    return `${elapsed}s`
-  }
-
-  const minutes = Math.floor(elapsed / 60)
-  if (minutes < 60) {
-    return `${minutes} min`
-  }
-
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) {
-    return `${hours} h`
-  }
-
-  const days = Math.floor(hours / 24)
-  if (days < 7) {
-    return `${days} j`
-  }
-
-  const weeks = Math.floor(days / 7)
-  if (weeks < 5) {
-    return `${weeks} sem`
-  }
-
-  const months = Math.floor(days / 30)
-  if (months < 12) {
-    return `${months} mois`
-  }
-
-  const years = Math.floor(days / 365)
-  return `${years} an${years > 1 ? 's' : ''}`
 }
 
 function DashboardBrandCard({ user }) {
@@ -135,6 +93,8 @@ function DashboardBrandCard({ user }) {
 
 /* ─── KPI Card ─────────────────────────────────────────────────────────────── */
 function KpiCard({ label, value, sub, icon, accent = '#0d9488', iconBg = '#f0fdfa', delta }) {
+  const { t } = useI18n()
+
   return (
     <div className="card flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -151,7 +111,7 @@ function KpiCard({ label, value, sub, icon, accent = '#0d9488', iconBg = '#f0fdf
       {delta != null && (
         <div className={`text-xs font-medium flex items-center gap-1 ${delta >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
           <i className={`fa-solid fa-arrow-${delta >= 0 ? 'up' : 'down'}`} style={{ fontSize: 9 }} />
-          {Math.abs(delta).toFixed(1)}% vs. hier
+          {t('dashboard.vsYesterday', { value: Math.abs(delta).toFixed(1) })}
         </div>
       )}
     </div>
@@ -160,6 +120,7 @@ function KpiCard({ label, value, sub, icon, accent = '#0d9488', iconBg = '#f0fdf
 
 /* ─── Restock modal (inline in low-stock widget) ───────────────────────────── */
 function RestockRow({ item, onDone }) {
+  const { t } = useI18n()
   const [qty, setQty]     = useState(1)
   const [open, setOpen]   = useState(false)
   const [saving, setSaving] = useState(false)
@@ -182,9 +143,9 @@ function RestockRow({ item, onDone }) {
   return (
     <div className="flex items-center gap-3">
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-base-color truncate">{item.product?.name ?? '—'}</div>
+        <div className="text-sm font-medium text-base-color truncate">{item.product?.name ?? t('common.notAvailable')}</div>
         <div className="text-xs text-muted-color">
-          {[item.product?.unit, item.depot?.name].filter(Boolean).join(' | ') || 'Dépôt non défini'}
+          {[item.product?.unit, item.depot?.name].filter(Boolean).join(' | ') || t('depot.notDefined')}
         </div>
       </div>
 
@@ -194,7 +155,7 @@ function RestockRow({ item, onDone }) {
 
       {!open ? (
         <button onClick={() => setOpen(true)} className="btn-secondary text-xs py-1 px-2.5 flex-shrink-0">
-          <i className="fa-solid fa-plus text-xs" /> Réappro.
+          <i className="fa-solid fa-plus text-xs" /> {t('dashboard.restockAction')}
         </button>
       ) : (
         <div className="flex items-center gap-1.5 animate-fade-in">
@@ -214,6 +175,8 @@ function RestockRow({ item, onDone }) {
 
 /* ─── Demo banner ──────────────────────────────────────────────────────────── */
 function DemoBanner({ hasDemoData, demoCount, onSeed, onClear, seeding, clearing }) {
+  const { t } = useI18n()
+
   return (
     <div className={`rounded-xl border px-4 py-3 flex flex-wrap items-center gap-3 mb-6 ${
       hasDemoData
@@ -224,12 +187,14 @@ function DemoBanner({ hasDemoData, demoCount, onSeed, onClear, seeding, clearing
         <i className={`fa-solid ${hasDemoData ? 'fa-flask text-amber-500' : 'fa-database text-muted-color'}`} />
         <div>
           <div className="text-sm font-semibold text-base-color">
-            {hasDemoData ? `Données de démo actives (${demoCount} factures)` : 'Mode démo désactivé'}
+            {hasDemoData
+              ? t('dashboard.demo.activeTitle', { count: demoCount })
+              : t('dashboard.demo.inactiveTitle')}
           </div>
           <div className="text-xs text-muted-color">
             {hasDemoData
-              ? 'Données fictives visibles — ne touchent pas à vos vrais produits ni stocks'
-              : 'Activez pour remplir le dashboard avec des données réalistes'}
+              ? t('dashboard.demo.activeText')
+              : t('dashboard.demo.inactiveText')}
           </div>
         </div>
       </div>
@@ -237,13 +202,13 @@ function DemoBanner({ hasDemoData, demoCount, onSeed, onClear, seeding, clearing
         <button onClick={onClear} disabled={clearing}
           className="btn-danger text-xs py-1.5 flex-shrink-0">
           {clearing ? <i className="fa-solid fa-spinner fa-spin" /> : <i className="fa-solid fa-trash-can" />}
-          Vider la démo
+          {t('dashboard.demo.clear')}
         </button>
       ) : (
         <button onClick={onSeed} disabled={seeding}
           className="btn-secondary text-xs py-1.5 flex-shrink-0">
           {seeding ? <i className="fa-solid fa-spinner fa-spin" /> : <i className="fa-solid fa-play" />}
-          Activer démo
+          {t('dashboard.demo.seed')}
         </button>
       )}
     </div>
@@ -252,6 +217,7 @@ function DemoBanner({ hasDemoData, demoCount, onSeed, onClear, seeding, clearing
 
 /* ─── AR Aging widget ───────────────────────────────────────────────────────── */
 function AgingWidget({ depotId = null, depotName = '' }) {
+  const { t } = useI18n()
   const [aging, setAging] = useState(null)
   useEffect(() => {
     api.get('/reports/aging', {
@@ -261,10 +227,10 @@ function AgingWidget({ depotId = null, depotName = '' }) {
   if (!aging) return null
 
   const buckets = [
-    { key: 'b0_30',  label: '0–30 j',  color: '#0d9488' },
-    { key: 'b31_60', label: '31–60 j', color: '#f59e0b' },
-    { key: 'b61_90', label: '61–90 j', color: '#f97316' },
-    { key: 'b90_plus', label: '+90 j', color: '#ef4444' },
+    { key: 'b0_30',  label: t('dashboard.aging.buckets.b0_30'),  color: '#0d9488' },
+    { key: 'b31_60', label: t('dashboard.aging.buckets.b31_60'), color: '#f59e0b' },
+    { key: 'b61_90', label: t('dashboard.aging.buckets.b61_90'), color: '#f97316' },
+    { key: 'b90_plus', label: t('dashboard.aging.buckets.b90_plus'), color: '#ef4444' },
   ]
   const total = (aging.totals?.total_due ?? 0)
   if (total === 0) return null
@@ -274,29 +240,29 @@ function AgingWidget({ depotId = null, depotName = '' }) {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
           <i className="fa-solid fa-clock-rotate-left text-amber-500" />
-          Balance âgée — Crédit clients
+          {t('dashboard.aging.title')}
         </h2>
         <Link to="/credit" className="text-xs font-medium" style={{ color: '#0d9488' }}>
-          Voir tout <i className="fa-solid fa-arrow-right" style={{ fontSize: 9 }} />
+          {t('dashboard.aging.seeAll')} <i className="fa-solid fa-arrow-right" style={{ fontSize: 9 }} />
         </Link>
       </div>
 
       {depotName && (
         <div className="text-xs text-muted-color mb-4">
-          Périmètre : {depotName}
+          {t('dashboard.aging.scope', { depotName })}
         </div>
       )}
 
       {/* Bucket KPIs */}
       <div className="grid grid-cols-4 gap-2 mb-4">
         {buckets.map(b => (
-          <div key={b.key} className="rounded-xl px-3 py-2.5 text-center border border-theme bg-surface-2">
-            <div className="text-xs text-muted-color mb-1">{b.label}</div>
-            <div className="text-sm font-bold" style={{ color: b.color }}>
-              {fmt(aging.totals?.[b.key] ?? 0)}
+            <div key={b.key} className="rounded-xl px-3 py-2.5 text-center border border-theme bg-surface-2">
+              <div className="text-xs text-muted-color mb-1">{b.label}</div>
+              <div className="text-sm font-bold" style={{ color: b.color }}>
+                {formatNumber(aging.totals?.[b.key] ?? 0)}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
 
       {/* Top customers */}
@@ -305,11 +271,11 @@ function AgingWidget({ depotId = null, depotName = '' }) {
           <table className="w-full text-xs">
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                <th className="pb-2 pr-3 text-left font-semibold text-muted-color">Client</th>
+                <th className="pb-2 pr-3 text-left font-semibold text-muted-color">{t('dashboard.aging.customer')}</th>
                 {buckets.map(b => (
                   <th key={b.key} className="pb-2 pr-3 text-right font-semibold" style={{ color: b.color }}>{b.label}</th>
                 ))}
-                <th className="pb-2 text-right font-semibold text-base-color">Total dû</th>
+                <th className="pb-2 text-right font-semibold text-base-color">{t('dashboard.aging.totalDue')}</th>
               </tr>
             </thead>
             <tbody>
@@ -318,10 +284,10 @@ function AgingWidget({ depotId = null, depotName = '' }) {
                   <td className="py-2 pr-3 font-medium text-base-color">{r.customer_name}</td>
                   {buckets.map(b => (
                     <td key={b.key} className="py-2 pr-3 text-right font-mono" style={{ color: parseFloat(r[b.key] ?? 0) > 0 ? b.color : 'var(--text-muted)' }}>
-                      {fmt(r[b.key] ?? 0)}
+                      {formatNumber(r[b.key] ?? 0)}
                     </td>
                   ))}
-                  <td className="py-2 text-right font-bold text-base-color">{fmt(r.total_due)}</td>
+                  <td className="py-2 text-right font-bold text-base-color">{formatNumber(r.total_due)}</td>
                 </tr>
               ))}
             </tbody>
@@ -329,8 +295,8 @@ function AgingWidget({ depotId = null, depotName = '' }) {
         </div>
       )}
       <div className="mt-3 pt-3 flex items-center justify-between" style={{ borderTop: '1px solid var(--border)' }}>
-        <span className="text-xs text-muted-color">Total impayé</span>
-        <span className="text-sm font-bold" style={{ color: '#ef4444' }}>{fmt(total)} TND</span>
+        <span className="text-xs text-muted-color">{t('dashboard.aging.totalOutstanding')}</span>
+        <span className="text-sm font-bold" style={{ color: '#ef4444' }}>{formatCurrency(total)}</span>
       </div>
     </div>
   )
@@ -338,6 +304,7 @@ function AgingWidget({ depotId = null, depotName = '' }) {
 
 /* ─── Dashboard ─────────────────────────────────────────────────────────────── */
 export default function Dashboard() {
+  const { t } = useI18n()
   const [stats, setStats]       = useState(null)
   const [sessions, setSessions] = useState([])
   const [loading, setLoading]   = useState(true)
@@ -393,7 +360,7 @@ export default function Dashboard() {
     : '0.0'
   const dashboardScopeLabel = selectedDepot
     ? `${selectedDepot.name}${selectedDepot.code ? ` (${selectedDepot.code})` : ''}`
-    : 'Tous les dépôts'
+    : t('depot.all')
   const showSessionDepotColumn = canSelectAll && depots.length > 1
 
   return (
@@ -401,8 +368,8 @@ export default function Dashboard() {
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-base-color tracking-tight">Tableau de bord</h1>
-        <p className="text-sm text-muted-color mt-0.5">Suivi operationnel en temps reel <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-1 mb-0.5" /></p>
+          <h1 className="text-xl font-bold text-base-color tracking-tight">{t('dashboard.title')}</h1>
+        <p className="text-sm text-muted-color mt-0.5">{t('dashboard.subtitle')} <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-1 mb-0.5" /></p>
       </div>
 
       {/* ── Admin view ──────────────────────────────────────────────────── */}
@@ -415,29 +382,29 @@ export default function Dashboard() {
 
           {/* KPI row 1 */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <KpiCard label="CA aujourd'hui"   value={fmt(stats.today_revenue)  + ' TND'} icon="fa-solid fa-arrow-trend-up"      accent="#0d9488" iconBg="#f0fdfa" />
-            <KpiCard label="CA ce mois"       value={fmt(stats.month_revenue)  + ' TND'} icon="fa-solid fa-sack-dollar"          accent="#3b82f6" iconBg="#eff6ff" />
-            <KpiCard label="Bénéfice du mois" value={fmt(stats.month_profit)   + ' TND'} icon="fa-solid fa-coins"                accent="#10b981" iconBg="#ecfdf5"
-              sub={`Marge ${marginPct}%`} />
-            <KpiCard label="Impayés total"    value={fmt(stats.unpaid_total)   + ' TND'} icon="fa-solid fa-triangle-exclamation" accent="#ef4444" iconBg="#fef2f2" />
+            <KpiCard label={t('dashboard.kpis.todayRevenue')} value={formatCurrency(stats.today_revenue)} icon="fa-solid fa-arrow-trend-up" accent="#0d9488" iconBg="#f0fdfa" />
+            <KpiCard label={t('dashboard.kpis.monthRevenue')} value={formatCurrency(stats.month_revenue)} icon="fa-solid fa-sack-dollar" accent="#3b82f6" iconBg="#eff6ff" />
+            <KpiCard label={t('dashboard.kpis.monthProfit')} value={formatCurrency(stats.month_profit)} icon="fa-solid fa-coins" accent="#10b981" iconBg="#ecfdf5"
+              sub={t('dashboard.kpis.margin', { value: marginPct })} />
+            <KpiCard label={t('dashboard.kpis.unpaidTotal')} value={formatCurrency(stats.unpaid_total)} icon="fa-solid fa-triangle-exclamation" accent="#ef4444" iconBg="#fef2f2" />
           </div>
 
           {/* KPI row 2 */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <KpiCard label="Dépenses ce mois" value={fmt(stats.month_expenses) + ' TND'} icon="fa-solid fa-receipt"           accent="#f97316" iconBg="#fff7ed" />
-            <KpiCard label="Factures ce mois" value={stats.month_invoices ?? 0}          icon="fa-solid fa-file-invoice"      accent="#8b5cf6" iconBg="#f5f3ff" />
-            <KpiCard label="Routes ouvertes"  value={stats.open_routes ?? 0}             icon="fa-solid fa-truck-fast"        accent="#f59e0b" iconBg="#fffbeb" />
-            <KpiCard label="Sessions actives" value={stats.active_sessions ?? 0}         icon="fa-solid fa-mobile-screen"     accent="#6366f1" iconBg="#eef2ff" />
+            <KpiCard label={t('dashboard.kpis.monthExpenses')} value={formatCurrency(stats.month_expenses)} icon="fa-solid fa-receipt" accent="#f97316" iconBg="#fff7ed" />
+            <KpiCard label={t('dashboard.kpis.monthInvoices')} value={stats.month_invoices ?? 0} icon="fa-solid fa-file-invoice" accent="#8b5cf6" iconBg="#f5f3ff" />
+            <KpiCard label={t('dashboard.kpis.openRoutes')} value={stats.open_routes ?? 0} icon="fa-solid fa-truck-fast" accent="#f59e0b" iconBg="#fffbeb" />
+            <KpiCard label={t('dashboard.kpis.activeSessions')} value={stats.active_sessions ?? 0} icon="fa-solid fa-mobile-screen" accent="#6366f1" iconBg="#eef2ff" />
           </div>
 
           {/* Revenue + Profit chart */}
           {chartData.length > 0 && (
             <div className="card mb-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold text-base-color">CA & Bénéfice — 30 derniers jours</h2>
+                <h2 className="text-sm font-semibold text-base-color">{t('dashboard.chartTitle')}</h2>
                 <div className="flex items-center gap-3 text-xs text-muted-color">
-                  <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded-full bg-teal-500 inline-block" /> CA</span>
-                  <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded-full bg-emerald-400 inline-block" /> Bénéfice</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded-full bg-teal-500 inline-block" /> {t('dashboard.chartRevenue')}</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded-full bg-emerald-400 inline-block" /> {t('dashboard.chartProfit')}</span>
                 </div>
               </div>
               <ResponsiveContainer width="100%" height={200}>
@@ -447,7 +414,7 @@ export default function Dashboard() {
                   <YAxis stroke="var(--text-muted)" tick={{ fontSize: 10, fontFamily: 'Inter' }} />
                   <Tooltip
                     contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, fontFamily: 'Inter', fontSize: 12 }}
-                    formatter={(v, n) => [fmt(v) + ' TND', n === 'revenue' ? 'CA' : 'Bénéfice']}
+                    formatter={(v, n) => [formatCurrency(v), n === 'revenue' ? t('dashboard.chartRevenue') : t('dashboard.chartProfit')]}
                   />
                   <Line type="monotone" dataKey="revenue" stroke="#0d9488" strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="profit"  stroke="#10b981" strokeWidth={2} dot={false} strokeDasharray="4 2" />
@@ -463,9 +430,9 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                    Stock bas au dépôt
+                    {t('dashboard.lowStockTitle')}
                   </h2>
-                  <span className="badge badge-amber">{stats.low_depot_stock.length} produit{stats.low_depot_stock.length > 1 ? 's' : ''}</span>
+                  <span className="badge badge-amber">{t('dashboard.productsCount', { count: stats.low_depot_stock.length })}</span>
                 </div>
                 <div className="space-y-3 divide-y" style={{ '--tw-divide-opacity': 1 }}>
                   {stats.low_depot_stock.map(item => (
@@ -480,7 +447,7 @@ export default function Dashboard() {
             {/* Top products */}
             {(stats.top_products ?? []).length > 0 && (
               <div className="card">
-                <h2 className="text-sm font-semibold text-base-color mb-4">Top produits ce mois</h2>
+                <h2 className="text-sm font-semibold text-base-color mb-4">{t('dashboard.topProductsTitle')}</h2>
                 <div className="space-y-2.5">
                   {stats.top_products.map((p, i) => {
                     const maxRev = stats.top_products[0]?.total_revenue ?? 1
@@ -493,7 +460,7 @@ export default function Dashboard() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-sm text-base-color truncate">{p.product_name}</span>
-                            <span className="text-xs font-semibold text-teal-600 dark:text-teal-400 ml-2 flex-shrink-0">{fmt(p.total_revenue)} TND</span>
+                            <span className="text-xs font-semibold text-teal-600 dark:text-teal-400 ml-2 flex-shrink-0">{formatCurrency(p.total_revenue)}</span>
                           </div>
                           <div className="h-1.5 rounded-full bg-surface-2">
                             <div className="h-full rounded-full bg-teal-500 transition-all" style={{ width: pct + '%' }} />
@@ -515,54 +482,61 @@ export default function Dashboard() {
             <div className="flex items-center justify-between gap-3 mb-4">
               <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
                 <i className="fa-solid fa-mobile-screen text-muted-color text-sm" />
-                Sessions commerciaux
+                {t('dashboard.sessionsTitle')}
               </h2>
               <div className="text-xs text-muted-color">
                 {showSessionDepotColumn
-                  ? `Périmètre ${dashboardScopeLabel} - suivi session actif.`
-                  : 'Suivi session actif.'}
+                  ? t('dashboard.sessionsScopeFiltered', { scope: dashboardScopeLabel })
+                  : t('dashboard.sessionsScopeAll')}
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left" style={{ borderBottom: '1px solid var(--border)' }}>
-                    {['Commercial', 'Appareil', 'Version', 'Statut', 'Dernière activité'].map(h => (
+                    {[
+                      t('dashboard.columns.rep'),
+                      t('dashboard.columns.device'),
+                      t('dashboard.columns.version'),
+                      t('dashboard.columns.status'),
+                      t('dashboard.columns.lastActivity'),
+                    ].map(h => (
                       <th key={h} className="pb-3 pr-4 text-xs font-semibold text-muted-color uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {sessions.map(s => {
-                    const presenceMeta = getSessionPresenceMeta(s, terrainTrackingEnabled)
-                    const lastSeenAge = formatLastSeenAge(s.presence?.last_seen_age_seconds)
+                    const presenceMeta = getSessionPresenceMeta(s, terrainTrackingEnabled, t)
+                    const lastSeenAge = formatElapsedSeconds(s.presence?.last_seen_age_seconds)
                     const activityAt = s.updated_at || s.started_at || s.created_at || s.last_seen
+                    const deviceLabel = [s.brand, s.model].filter(Boolean).join(' ') || t('common.notAvailable')
+                    const versionLabel = s.app_version || s.native_app_version || t('common.notAvailable')
+                    const lastActivityLabel = terrainTrackingEnabled
+                      ? (s.last_seen
+                        ? `${formatDateTime(s.last_seen)}${lastSeenAge ? ` · ${lastSeenAge}` : ''}`
+                        : t('common.notAvailable'))
+                      : (activityAt ? formatDateTime(activityAt) : t('dashboard.sessionTracked'))
 
                     return (
                       <tr key={s.id} className="table-row">
                         <td className="py-3 pr-4 font-semibold text-base-color">
-                          <span>{s.user?.name ?? '—'}</span>
+                          <span>{s.user?.name ?? t('common.notAvailable')}</span>
                         </td>
-                        <td className="py-3 pr-4 text-secondary-color">{s.brand} {s.model}</td>
-                        <td className="py-3 pr-4 text-muted-color">{s.app_version || s.native_app_version || '—'}</td>
+                        <td className="py-3 pr-4 text-secondary-color">{deviceLabel}</td>
+                        <td className="py-3 pr-4 text-muted-color">{versionLabel}</td>
                         <td className="py-3 pr-4">
                           <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${presenceMeta.textClassName}`}>
                             <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${presenceMeta.dotClassName}`} />
                             {presenceMeta.label}
                           </span>
                         </td>
-                        <td className="py-3 text-muted-color text-xs">
-                          {terrainTrackingEnabled
-                            ? (s.last_seen
-                              ? `${new Date(s.last_seen).toLocaleString('fr-FR')}${lastSeenAge ? ` · ${lastSeenAge}` : ''}`
-                              : '—')
-                            : (activityAt ? new Date(activityAt).toLocaleString('fr-FR') : 'Session suivie')}
-                        </td>
+                        <td className="py-3 text-muted-color text-xs">{lastActivityLabel}</td>
                       </tr>
                     )
                   })}
                   {sessions.length === 0 && (
-                    <tr><td colSpan={5} className="py-8 text-center text-muted-color text-sm">Aucune session active</td></tr>
+                    <tr><td colSpan={5} className="py-8 text-center text-muted-color text-sm">{t('dashboard.noActiveSessions')}</td></tr>
                   )}
                 </tbody>
               </table>
@@ -581,16 +555,16 @@ export default function Dashboard() {
               <div className="w-12 h-12 rounded-xl bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                 <i className="fa-solid fa-file-invoice text-teal-600 dark:text-teal-400 text-xl" />
               </div>
-              <div className="font-semibold text-base-color">Mes factures</div>
-              <div className="text-sm text-muted-color mt-0.5">Voir et créer des factures</div>
+              <div className="font-semibold text-base-color">{t('dashboard.myInvoices')}</div>
+              <div className="text-sm text-muted-color mt-0.5">{t('dashboard.myInvoicesHint')}</div>
             </Link>
             <Link to="/customers"
               className="card card-hover cursor-pointer group transition-all">
               <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                 <i className="fa-solid fa-users text-blue-500 text-xl" />
               </div>
-              <div className="font-semibold text-base-color">Mes clients</div>
-              <div className="text-sm text-muted-color mt-0.5">Gérer votre portefeuille client</div>
+              <div className="font-semibold text-base-color">{t('dashboard.myCustomers')}</div>
+              <div className="text-sm text-muted-color mt-0.5">{t('dashboard.myCustomersHint')}</div>
             </Link>
             <Link to="/invoices/create"
               className="card card-hover cursor-pointer group transition-all sm:col-span-2">
@@ -600,8 +574,8 @@ export default function Dashboard() {
                   <i className="fa-solid fa-plus text-teal-600 text-xl" />
                 </div>
                 <div>
-                  <div className="font-semibold text-base-color">Nouvelle facture</div>
-                  <div className="text-sm text-muted-color mt-0.5">Créer une facture client rapidement</div>
+                  <div className="font-semibold text-base-color">{t('dashboard.newInvoice')}</div>
+                  <div className="text-sm text-muted-color mt-0.5">{t('dashboard.newInvoiceHint')}</div>
                 </div>
               </div>
             </Link>

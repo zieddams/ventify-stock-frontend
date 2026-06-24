@@ -7,8 +7,10 @@ import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
+import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import api from '../../services/api'
+import { formatDate } from '../../utils/format'
 import { paginateItems } from '../../utils/pagination'
 
 const EMPTY = {
@@ -21,6 +23,7 @@ const EMPTY = {
 }
 
 export default function UsersIndex() {
+  const { t } = useI18n()
   const [users, setUsers] = useState([])
   const [zones, setZones] = useState([])
   const [loading, setLoading] = useState(true)
@@ -145,8 +148,8 @@ export default function UsersIndex() {
     setModal(true)
   }
 
-  const zoneName = (id) => zones.find((zone) => Number(zone.id) === Number(id))?.name ?? '--'
-  const depotName = (id) => depots.find((depot) => Number(depot.id) === Number(id))?.name ?? '--'
+  const zoneName = (id) => zones.find((zone) => Number(zone.id) === Number(id))?.name ?? t('common.notAvailable')
+  const depotName = (id) => depots.find((depot) => Number(depot.id) === Number(id))?.name ?? t('common.notAvailable')
   const canManageList = (entry) => ['rep', 'comptable'].includes(entry.role)
 
   const save = async () => {
@@ -177,7 +180,7 @@ export default function UsersIndex() {
 
   const toggle = async (entry) => {
     if (entry.id === me?.id) {
-      alert('Vous ne pouvez pas désactiver votre propre compte.')
+      alert(t('usersPage.alerts.cannotDisableSelf'))
       return
     }
 
@@ -187,11 +190,11 @@ export default function UsersIndex() {
 
   const removeUser = async (entry) => {
     if (entry.id === me?.id) {
-      alert('Vous ne pouvez pas supprimer votre propre compte.')
+      alert(t('usersPage.alerts.cannotDeleteSelf'))
       return
     }
 
-    if (!confirm(`Supprimer le compte ${entry.name} ? Cette action reste bloquée si le compte possède déjà un historique de sessions, factures ou mouvements.`)) {
+    if (!confirm(t('usersPage.alerts.deleteConfirm', { name: entry.name }))) {
       return
     }
 
@@ -201,7 +204,7 @@ export default function UsersIndex() {
       await api.delete(`/users/${entry.id}`)
       await load()
     } catch (error) {
-      const message = error.response?.data?.message ?? 'Suppression impossible.'
+      const message = error.response?.data?.message ?? t('usersPage.alerts.deleteFailed')
       const blockers = error.response?.data?.blockers ?? []
       alert([message, ...blockers].join('\n'))
     } finally {
@@ -275,8 +278,11 @@ export default function UsersIndex() {
   return (
     <div>
       <PageHeader
-        title="Utilisateurs"
-        subtitle={`${users.length} utilisateur(s) enregistrés · ${totalAssignedCustomers} client(s) affectés`}
+        title={t('usersPage.title')}
+        subtitle={t('usersPage.subtitle', {
+          users: users.length,
+          customers: totalAssignedCustomers,
+        })}
         action={(
           <div className="flex flex-wrap items-end justify-end gap-2">
             {canSelectAll && (
@@ -286,12 +292,12 @@ export default function UsersIndex() {
                 onChange={setSelectedDepotValue}
                 allowAll
                 canSelectAll={canSelectAll}
-                allLabel="Tous les dépôts"
+                allLabel={t('usersPage.allDepots')}
               />
             )}
             {canManageUsers && (
               <button onClick={openCreate} className="btn-primary">
-                <i className="fa-solid fa-plus" /> Nouvel utilisateur
+                <i className="fa-solid fa-plus" /> {t('usersPage.newUser')}
               </button>
             )}
           </div>
@@ -304,15 +310,15 @@ export default function UsersIndex() {
             <thead>
               <tr>
                 {[
-                  'Utilisateur',
-                  'Email',
-                  'Rôle',
-                  'Zone',
-                  ...(showDepotColumn ? ['Dépôt'] : []),
-                  'Liste clients',
-                  'Statut',
-                  'Créé le',
-                  'Actions',
+                  t('usersPage.columns.user'),
+                  t('usersPage.columns.email'),
+                  t('usersPage.columns.role'),
+                  t('usersPage.columns.zone'),
+                  ...(showDepotColumn ? [t('usersPage.columns.depot')] : []),
+                  t('usersPage.columns.customerList'),
+                  t('usersPage.columns.status'),
+                  t('usersPage.columns.createdAt'),
+                  t('usersPage.columns.actions'),
                 ].map((heading) => (
                   <th key={heading} className="pb-3 pr-4 text-left">{heading}</th>
                 ))}
@@ -338,15 +344,17 @@ export default function UsersIndex() {
                   {showDepotColumn && (
                     <td className="py-3 pr-4 text-muted-color text-xs">{entry.depot?.name ?? depotName(entry.depot_id)}</td>
                   )}
-                  <td className="py-3 pr-4 text-secondary-color text-xs font-semibold">{Number(entry.customers_count ?? 0)} client(s)</td>
+                  <td className="py-3 pr-4 text-secondary-color text-xs font-semibold">
+                    {t('usersPage.customerCount', { count: Number(entry.customers_count ?? 0) })}
+                  </td>
                   <td className="py-3 pr-4">
                     <span className={`text-xs font-semibold ${entry.active ? 'text-emerald-600' : 'text-muted-color'}`}>
                       <i className={`fa-solid ${entry.active ? 'fa-circle-check' : 'fa-circle-xmark'} mr-1 text-[10px]`} />
-                      {entry.active ? 'Actif' : 'Inactif'}
+                      {entry.active ? t('usersPage.status.active') : t('usersPage.status.inactive')}
                     </span>
                   </td>
                   <td className="py-3 pr-4 text-muted-color text-xs">
-                    {new Date(entry.created_at).toLocaleDateString('fr-FR')}
+                    {formatDate(entry.created_at)}
                   </td>
                   <td className="py-3">
                     <div className="flex items-center gap-3">
@@ -356,7 +364,7 @@ export default function UsersIndex() {
                           className="text-xs font-medium"
                           style={{ color: '#2563eb' }}
                         >
-                          <i className="fa-solid fa-list-check mr-1" /> Clients
+                          <i className="fa-solid fa-list-check mr-1" /> {t('usersPage.actions.customers')}
                         </button>
                       )}
                       {canManageUsers && (
@@ -366,13 +374,13 @@ export default function UsersIndex() {
                             className="text-xs font-medium"
                             style={{ color: '#0d9488' }}
                           >
-                            <i className="fa-solid fa-pen mr-1" /> Modifier
+                            <i className="fa-solid fa-pen mr-1" /> {t('usersPage.actions.edit')}
                           </button>
                           <button
                             onClick={() => toggle(entry)}
                             className={`text-xs font-medium ${entry.active ? 'text-amber-600' : 'text-emerald-600'}`}
                           >
-                            {entry.active ? 'Désactiver' : 'Activer'}
+                            {entry.active ? t('usersPage.actions.deactivate') : t('usersPage.actions.activate')}
                           </button>
                           {entry.id !== me?.id && (
                             <button
@@ -380,7 +388,9 @@ export default function UsersIndex() {
                               disabled={deletingUserId === entry.id}
                               className="text-xs font-medium text-red-500 disabled:opacity-50"
                             >
-                              {deletingUserId === entry.id ? <><i className="fa-solid fa-spinner fa-spin mr-1" />Suppression...</> : <><i className="fa-solid fa-trash-can mr-1" /> Supprimer</>}
+                              {deletingUserId === entry.id
+                                ? <><i className="fa-solid fa-spinner fa-spin mr-1" />{t('usersPage.actions.deleting')}</>
+                                : <><i className="fa-solid fa-trash-can mr-1" /> {t('usersPage.actions.delete')}</>}
                             </button>
                           )}
                         </>
@@ -391,7 +401,7 @@ export default function UsersIndex() {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={showDepotColumn ? 9 : 8} className="py-12 text-center text-muted-color">Aucun utilisateur</td>
+                  <td colSpan={showDepotColumn ? 9 : 8} className="py-12 text-center text-muted-color">{t('usersPage.empty')}</td>
                 </tr>
               )}
             </tbody>
@@ -406,41 +416,41 @@ export default function UsersIndex() {
             setPerPage(value)
             setPage(1)
           }}
-          itemLabel="utilisateurs"
+          itemLabel={t('layout.nav.users').toLowerCase()}
         />
       </div>
 
-      <Modal open={modal} onClose={() => setModal(false)} title={editing ? "Modifier l'utilisateur" : 'Nouvel utilisateur'}>
+      <Modal open={modal} onClose={() => setModal(false)} title={editing ? t('usersPage.modal.editTitle') : t('usersPage.modal.createTitle')}>
         <div className="space-y-4">
-          <FormField label="Nom" error={errors.name?.[0]} required>
-            <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Prenom Nom" />
+          <FormField label={t('usersPage.modal.fields.name')} error={errors.name?.[0]} required>
+            <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder={t('usersPage.modal.placeholders.name')} />
           </FormField>
 
-          <FormField label="Email" error={errors.email?.[0]} required>
-            <input type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} placeholder="user@ventify.tn" />
+          <FormField label={t('usersPage.modal.fields.email')} error={errors.email?.[0]} required>
+            <input type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} placeholder={t('usersPage.modal.placeholders.email')} />
           </FormField>
 
           <FormField
-            label={editing ? 'Nouveau mot de passe (laisser vide pour ne pas changer)' : 'Mot de passe'}
+            label={editing ? t('usersPage.modal.fields.passwordEdit') : t('usersPage.modal.fields.password')}
             error={errors.password?.[0]}
             required={!editing}
           >
-            <input type="password" value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} placeholder="********" />
+            <input type="password" value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} placeholder={t('usersPage.modal.placeholders.password')} />
           </FormField>
 
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="Rôle" error={errors.role?.[0]} required>
+            <FormField label={t('usersPage.modal.fields.role')} error={errors.role?.[0]} required>
               <select value={form.role} onChange={(event) => setForm((current) => ({ ...current, role: event.target.value }))}>
-                <option value="rep">Commercial</option>
-                <option value="comptable">Comptable</option>
-                <option value="admin">Administrateur</option>
-                <option value="developer">Développeur</option>
+                <option value="rep">{t('badges.roles.rep')}</option>
+                <option value="comptable">{t('badges.roles.comptable')}</option>
+                <option value="admin">{t('badges.roles.admin')}</option>
+                <option value="developer">{t('badges.roles.developer')}</option>
               </select>
             </FormField>
 
-            <FormField label="Zone (commercial)" error={errors.zone_id?.[0]}>
+            <FormField label={t('usersPage.modal.fields.zone')} error={errors.zone_id?.[0]}>
               <select value={form.zone_id} onChange={(event) => setForm((current) => ({ ...current, zone_id: event.target.value }))}>
-                <option value="">Aucune</option>
+                <option value="">{t('usersPage.modal.noZone')}</option>
                 {zones.map((zone) => (
                   <option key={zone.id} value={zone.id}>{zone.name}</option>
                 ))}
@@ -448,17 +458,17 @@ export default function UsersIndex() {
             </FormField>
           </div>
 
-          <FormField label="Dépôt principal" error={errors.depot_id?.[0]}>
+          <FormField label={t('usersPage.modal.fields.depot')} error={errors.depot_id?.[0]}>
             {!isDeveloperUser ? (
               <DepotSelectionInfo
                 depot={selectedFormDepot}
-                hint="Affectation automatique selon la société et le dépôt principal du compte."
+                hint={t('usersPage.modal.depotHint')}
               />
             ) : singleDepot ? (
               <DepotSelectionInfo depot={singleDepot} />
             ) : (
               <select value={form.depot_id} onChange={(event) => setForm((current) => ({ ...current, depot_id: event.target.value }))}>
-                <option value="">Aucun</option>
+                <option value="">{t('usersPage.modal.noDepot')}</option>
                 {depots.filter((depot) => depot.active !== false).map((depot) => (
                   <option key={depot.id} value={depot.id}>
                     {depot.code ? `${depot.name} (${depot.code})` : depot.name}
@@ -469,9 +479,9 @@ export default function UsersIndex() {
           </FormField>
 
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setModal(false)} className="btn-secondary">Annuler</button>
+            <button onClick={() => setModal(false)} className="btn-secondary">{t('common.cancel')}</button>
             <button onClick={save} disabled={saving} className="btn-primary">
-              {saving ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</> : 'Enregistrer'}
+              {saving ? <><i className="fa-solid fa-spinner fa-spin" /> {t('usersPage.modal.saving')}</> : t('usersPage.modal.save')}
             </button>
           </div>
         </div>
@@ -480,28 +490,28 @@ export default function UsersIndex() {
       <Modal
         open={assignmentModal}
         onClose={closeAssignments}
-        title={assignmentUser ? `Liste clients - ${assignmentUser.name}` : 'Liste clients'}
+        title={assignmentUser ? t('usersPage.assignment.title', { name: assignmentUser.name }) : t('usersPage.assignment.titleFallback')}
         size="lg"
       >
         <div className="space-y-4">
           <div className="rounded-2xl px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
-            Cette liste pilote les clients visibles sur le web et le mobile pour ce compte. Un client sélectionné ici sera rattaché à ce compte.
+            {t('usersPage.assignment.intro')}
           </div>
 
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
             <input
               value={assignmentSearch}
               onChange={(event) => setAssignmentSearch(event.target.value)}
-              placeholder="Rechercher un client..."
+              placeholder={t('usersPage.assignment.searchPlaceholder')}
             />
             <div className="rounded-2xl px-4 py-3 text-xs font-semibold text-base-color" style={{ background: 'var(--surface-2)' }}>
-              {selectedCustomerIds.length} selection(s)
+              {t('usersPage.assignment.selections', { count: selectedCustomerIds.length })}
             </div>
           </div>
 
           {assignmentLoading ? (
             <div className="py-12 text-center text-muted-color">
-              <i className="fa-solid fa-spinner fa-spin mr-2" /> Chargement de la liste...
+              <i className="fa-solid fa-spinner fa-spin mr-2" /> {t('usersPage.assignment.loading')}
             </div>
           ) : (
             <div className="max-h-[420px] overflow-y-auto rounded-2xl" style={{ boxShadow: 'inset 0 0 0 1px var(--border)' }}>
@@ -526,17 +536,17 @@ export default function UsersIndex() {
                           <div className="text-sm font-semibold text-base-color">{customer.name}</div>
                           {checked && (
                             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(13,148,136,0.12)', color: '#0d9488' }}>
-                              Affecte
+                              {t('usersPage.assignment.assigned')}
                             </span>
                           )}
                         </div>
                         <div className="text-xs text-secondary-color mt-1">
-                          {customer.phone || 'Sans téléphone'}
+                          {customer.phone || t('usersPage.assignment.phoneMissing')}
                           {customer.wilaya ? ` · ${customer.wilaya}` : ''}
                           {customer.zone?.name ? ` · ${customer.zone.name}` : ''}
                         </div>
                         <div className="text-[11px] text-muted-color mt-1">
-                          Propriétaire actuel: {customer.owner?.name || 'Aucun'}
+                          {t('usersPage.assignment.currentOwner', { name: customer.owner?.name || t('usersPage.assignment.noOwner') })}
                         </div>
                       </div>
                     </label>
@@ -545,7 +555,7 @@ export default function UsersIndex() {
 
                 {filteredAssignmentCustomers.length === 0 && (
                   <div className="px-4 py-12 text-center text-sm text-muted-color">
-                    Aucun client ne correspond à la recherche.
+                    {t('usersPage.assignment.empty')}
                   </div>
                 )}
               </div>
@@ -553,9 +563,9 @@ export default function UsersIndex() {
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={closeAssignments} className="btn-secondary">Annuler</button>
+            <button onClick={closeAssignments} className="btn-secondary">{t('common.cancel')}</button>
             <button onClick={saveAssignments} disabled={assignmentLoading || assignmentSaving} className="btn-primary">
-              {assignmentSaving ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</> : 'Sauvegarder la liste'}
+              {assignmentSaving ? <><i className="fa-solid fa-spinner fa-spin" /> {t('usersPage.assignment.saving')}</> : t('usersPage.assignment.save')}
             </button>
           </div>
         </div>

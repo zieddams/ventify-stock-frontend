@@ -1,4 +1,5 @@
 /* Theme-aware badges using CSS variables — works in both light and dark mode */
+import { useI18n } from '../contexts/I18nContext'
 
 const STYLES = {
   green:  { bg: 'rgba(16,185,129,0.12)',  text: '#059669', border: 'rgba(16,185,129,0.25)' },
@@ -23,32 +24,35 @@ export default function Badge({ color = 'slate', children, icon }) {
 }
 
 export function StatusBadge({ status }) {
+  const { t } = useI18n()
   const map = {
-    draft:     { color: 'slate',  label: 'Brouillon', icon: 'fa-solid fa-pencil'        },
-    sent:      { color: 'blue',   label: 'Envoyée',   icon: 'fa-solid fa-paper-plane'   },
-    paid:      { color: 'green',  label: 'Payée',     icon: 'fa-solid fa-circle-check'  },
-    cancelled: { color: 'red',    label: 'Annulée',   icon: 'fa-solid fa-ban'            },
+    draft:     { color: 'slate',  label: t('badges.invoiceStatus.draft'), icon: 'fa-solid fa-pencil' },
+    sent:      { color: 'blue',   label: t('badges.invoiceStatus.sent'), icon: 'fa-solid fa-paper-plane' },
+    paid:      { color: 'green',  label: t('badges.invoiceStatus.paid'), icon: 'fa-solid fa-circle-check' },
+    cancelled: { color: 'red',    label: t('badges.invoiceStatus.cancelled'), icon: 'fa-solid fa-ban' },
   }
   const { color, label, icon } = map[status] ?? { color: 'slate', label: status }
   return <Badge color={color} icon={icon}>{label}</Badge>
 }
 
 export function PaymentStatusBadge({ status }) {
+  const { t } = useI18n()
   const map = {
-    unpaid:  { color: 'red',    label: 'Impayée',  icon: 'fa-solid fa-clock'         },
-    partial: { color: 'yellow', label: 'Partielle', icon: 'fa-solid fa-circle-half-stroke' },
-    paid:    { color: 'green',  label: 'Payée',     icon: 'fa-solid fa-circle-check'  },
+    unpaid:  { color: 'red', label: t('badges.paymentStatus.unpaid'), icon: 'fa-solid fa-clock' },
+    partial: { color: 'yellow', label: t('badges.paymentStatus.partial'), icon: 'fa-solid fa-circle-half-stroke' },
+    paid:    { color: 'green', label: t('badges.paymentStatus.paid'), icon: 'fa-solid fa-circle-check' },
   }
   const { color, label, icon } = map[status] ?? { color: 'slate', label: status }
   return <Badge color={color} icon={icon}>{label}</Badge>
 }
 
 export function RôleBadge({ role }) {
+  const { t } = useI18n()
   const map = {
-    admin:     { color: 'teal',   label: 'Admin'       },
-    developer: { color: 'violet', label: 'Développeur' },
-    rep:       { color: 'blue',   label: 'Commercial'  },
-    comptable: { color: 'yellow', label: 'Comptable'   },
+    admin:     { color: 'teal', label: t('badges.roles.admin') },
+    developer: { color: 'violet', label: t('badges.roles.developer') },
+    rep:       { color: 'blue', label: t('badges.roles.rep') },
+    comptable: { color: 'yellow', label: t('badges.roles.comptable') },
   }
   const { color, label } = map[role] ?? { color: 'slate', label: role }
   return <Badge color={color}>{label}</Badge>

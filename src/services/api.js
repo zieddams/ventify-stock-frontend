@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getStoredLocale } from '../i18n/locales'
 import { APP_BASE_PATH, appPath } from '../utils/appPaths'
 
 const api = axios.create({
@@ -26,6 +27,7 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem('ventify_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
   config.headers['X-Front-Path'] = resolveFrontPath()
+  config.headers['X-App-Locale'] = getStoredLocale()
   return config
 })
 

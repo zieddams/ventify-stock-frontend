@@ -7,10 +7,12 @@ import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
+import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import { findConfigItem, getConfigItemLabel, useConfigItems } from '../../hooks/useConfigItems'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
+import { formatCount, formatNumber } from '../../utils/format'
 import { paginateItems } from '../../utils/pagination'
 
 const EMPTY = {
@@ -26,10 +28,6 @@ const EMPTY = {
   zonePrices: {},
 }
 
-function fmt(value, digits = 3) {
-  return value != null ? Number(value).toFixed(digits) : '-'
-}
-
 function clampMinStock(value) {
   if (value === '' || value == null) {
     return 1
@@ -40,6 +38,8 @@ function clampMinStock(value) {
 }
 
 export default function ProductsIndex() {
+  const { t } = useI18n()
+  const notAvailable = t('common.notAvailable')
   const { layouts: documentLayouts } = useDocumentLayouts()
   const [products, setProducts] = useState([])
   const [zones, setZones] = useState([])
@@ -190,7 +190,7 @@ export default function ProductsIndex() {
   }
 
   const removeProduct = async (product) => {
-    if (!confirm(`Supprimer "${product.name}" ?`)) {
+    if (!confirm(t('products.deleteConfirm', { name: product.name }))) {
       return
     }
 
@@ -218,13 +218,13 @@ export default function ProductsIndex() {
         product_id: restockProduct.id,
         qty: Number(restockQty),
         depot_id: selectedDepotId,
-        note: restockNote || `Réapprovisionnement rapide depuis la fiche produit: ${restockProduct.name}`,
+        note: restockNote || t('products.restock.defaultNote', { name: restockProduct.name }),
       })
 
       setRestockProduct(null)
       await loadProducts()
     } catch (error) {
-      setRestockError(error.response?.data?.message || 'Impossible d’enregistrer le réapprovisionnement.')
+      setRestockError(error.response?.data?.message || t('products.restock.errorFallback'))
     } finally {
       setRestockSaving(false)
     }
@@ -275,8 +275,11 @@ export default function ProductsIndex() {
   return (
     <div>
       <PageHeader
-        title="Produits"
-        subtitle={`${products.length} produit(s)${selectedDepot ? ` | Dépôt ${selectedDepot.name}` : ''}`}
+        title={t('products.title')}
+        subtitle={t('products.subtitle', {
+          count: products.length,
+          depotSuffix: selectedDepot ? ` | ${t('products.depotScope', { depot: selectedDepot.name })}` : '',
+        })}
         action={(
           <div className="flex flex-wrap items-end justify-end gap-2">
             {canBrowseAll && (
@@ -284,11 +287,11 @@ export default function ProductsIndex() {
                 depots={depots}
                 selectedValue={selectedDepotValue}
                 onChange={setSelectedDepotValue}
-                label="Dépôt consulté"
+                label={t('products.viewedDepotLabel')}
               />
             )}
             <PageExportActions
-              title="Produits"
+              title={t('products.title')}
               csvEntity="products"
               csvParams={scopeParams}
               csvFilename="produits"
@@ -298,7 +301,7 @@ export default function ProductsIndex() {
             />
             {isAdmin() && (
               <button onClick={openCreate} className="btn-primary">
-                <i className="fa-solid fa-plus" /> Nouveau produit
+                <i className="fa-solid fa-plus" /> {t('products.newProduct')}
               </button>
             )}
           </div>
@@ -318,7 +321,7 @@ export default function ProductsIndex() {
               <i className="fa-solid fa-triangle-exclamation text-xs" style={{ color: '#dc2626' }} />
             </div>
             <span className="text-sm font-bold" style={{ color: '#dc2626' }}>
-              {lowStockProducts.length} produit(s) sous le seuil minimum
+              {t('products.lowStockBanner', { count: lowStockProducts.length })}
             </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
@@ -335,17 +338,17 @@ export default function ProductsIndex() {
                 >
                   <div className="text-sm font-semibold text-base-color">{product.name}</div>
                   <div className="text-xs text-muted-color mt-1">
-                    Dépôt: <span className="font-mono">{fmt(depotQty)}</span>
+                    {t('products.depotQty')}: <span className="font-mono">{formatNumber(depotQty)}</span>
                     <span className="mx-2">|</span>
-                    Camion: <span className="font-mono">{fmt(camionQty)}</span>
+                    {t('products.camionQty')}: <span className="font-mono">{formatNumber(camionQty)}</span>
                   </div>
                   <div className="text-xs text-red-600 mt-1">
-                    Min obligatoire: <span className="font-mono">{fmt(min)}</span>
+                    {t('products.minRequired')}: <span className="font-mono">{formatNumber(min)}</span>
                     {product.unit ? ` ${product.unit}` : ''}
                   </div>
                   {isAdmin() && (
                     <button onClick={() => openRestock(product)} className="btn-secondary text-xs mt-3">
-                      <i className="fa-solid fa-plus" /> Réappro.
+                      <i className="fa-solid fa-plus" /> {t('products.restock.action')}
                     </button>
                   )}
                 </div>
@@ -360,7 +363,7 @@ export default function ProductsIndex() {
           <div className="relative">
             <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-color text-sm" />
             <input
-              placeholder="Rechercher un produit..."
+              placeholder={t('products.searchPlaceholder')}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               style={{ paddingLeft: '2.25rem' }}
@@ -373,16 +376,16 @@ export default function ProductsIndex() {
             <thead>
               <tr className="text-left" style={{ borderBottom: '1px solid var(--border)' }}>
                 {[
-                  'Nom',
-                  'Référence',
-                  'Catégorie',
-                  'Achat',
-                  'Dépôt',
-                  'Stock dépôt',
-                  'Stock camion',
-                  'Min stock',
-                  'Unité',
-                  ...(isAdmin() ? ['Actions'] : []),
+                  t('products.columns.name'),
+                  t('products.columns.reference'),
+                  t('products.columns.category'),
+                  t('products.columns.buyPrice'),
+                  t('products.columns.depotPrice'),
+                  t('products.columns.depotStock'),
+                  t('products.columns.camionStock'),
+                  t('products.columns.minStock'),
+                  t('products.columns.unit'),
+                  ...(isAdmin() ? [t('common.actions')] : []),
                 ].map((heading) => (
                   <th key={heading} className="pb-3 pr-4 text-xs font-semibold text-muted-color uppercase tracking-wider">
                     {heading}
@@ -396,8 +399,8 @@ export default function ProductsIndex() {
                 const depotQty = Number(product.depot_qty ?? 0)
                 const camionQty = Number(product.camion_qty ?? 0)
                 const isLow = depotQty <= min
-                const categoryLabel = getConfigItemLabel(findConfigItem(categories, product.category), product.category || '-')
-                const unitLabel = getConfigItemLabel(findConfigItem(units, product.unit), product.unit || '-')
+                const categoryLabel = getConfigItemLabel(findConfigItem(categories, product.category), product.category || notAvailable)
+                const unitLabel = getConfigItemLabel(findConfigItem(units, product.unit), product.unit || notAvailable)
 
                 return (
                   <tr key={product.id} className="table-row">
@@ -407,33 +410,33 @@ export default function ProductsIndex() {
                         <i className="fa-solid fa-circle-exclamation ml-1.5 text-xs" style={{ color: '#dc2626' }} />
                       )}
                     </td>
-                    <td className="py-3 pr-4 font-mono text-xs text-muted-color">{product.reference ?? '-'}</td>
+                    <td className="py-3 pr-4 font-mono text-xs text-muted-color">{product.reference || notAvailable}</td>
                     <td className="py-3 pr-4 text-secondary-color text-xs">{categoryLabel}</td>
                     <td className="py-3 pr-4 text-right font-mono text-xs text-secondary-color">
-                      {product.buy_price != null ? fmt(product.buy_price) : '-'}
+                      {product.buy_price != null ? formatNumber(product.buy_price) : notAvailable}
                     </td>
                     <td className="py-3 pr-4 text-right font-mono text-xs font-semibold text-base-color">
-                      {fmt(product.depot_price ?? product.price)}
+                      {formatNumber(product.depot_price ?? product.price)}
                     </td>
                     <td className="py-3 pr-4 text-right font-mono text-xs" style={{ color: isLow ? '#dc2626' : 'var(--text-base)' }}>
-                      {fmt(depotQty)}
+                      {formatNumber(depotQty)}
                     </td>
-                    <td className="py-3 pr-4 text-right font-mono text-xs text-secondary-color">{fmt(camionQty)}</td>
+                    <td className="py-3 pr-4 text-right font-mono text-xs text-secondary-color">{formatNumber(camionQty)}</td>
                     <td className="py-3 pr-4 font-mono text-xs" style={{ color: isLow ? '#dc2626' : '#059669' }}>
-                      {fmt(min)}
+                      {formatNumber(min)}
                     </td>
                     <td className="py-3 pr-4 text-muted-color text-xs">{unitLabel}</td>
                     {isAdmin() && (
                       <td className="py-3">
                         <div className="flex items-center gap-3 flex-wrap">
                           <button onClick={() => openRestock(product)} className="text-xs font-medium hover:underline" style={{ color: '#2563eb' }}>
-                            <i className="fa-solid fa-boxes-stacked mr-1" /> Réappro.
+                            <i className="fa-solid fa-boxes-stacked mr-1" /> {t('products.restock.action')}
                           </button>
                           <button onClick={() => openEdit(product)} className="text-xs font-medium hover:underline" style={{ color: '#0d9488' }}>
-                            <i className="fa-solid fa-pen mr-1" /> Modifier
+                            <i className="fa-solid fa-pen mr-1" /> {t('common.edit')}
                           </button>
                           <button onClick={() => removeProduct(product)} className="text-xs font-medium text-red-500 hover:text-red-700">
-                            <i className="fa-solid fa-trash-can mr-1" /> Suppr.
+                            <i className="fa-solid fa-trash-can mr-1" /> {t('common.delete')}
                           </button>
                         </div>
                       </td>
@@ -445,7 +448,7 @@ export default function ProductsIndex() {
                 <tr>
                   <td colSpan={isAdmin() ? 10 : 9} className="py-12 text-center">
                     <i className="fa-solid fa-box text-3xl text-muted-color opacity-30 mb-2 block" />
-                    <p className="text-muted-color text-sm">Aucun produit trouve</p>
+                    <p className="text-muted-color text-sm">{t('products.noResults')}</p>
                   </td>
                 </tr>
               )}
@@ -461,31 +464,31 @@ export default function ProductsIndex() {
             setProductPerPage(value)
             setProductPage(1)
           }}
-          itemLabel="produits"
+          itemLabel={t('products.itemLabel')}
         />
       </div>
 
-      <Modal open={modal} onClose={() => setModal(false)} title={editing ? 'Modifier le produit' : 'Nouveau produit'}>
+      <Modal open={modal} onClose={() => setModal(false)} title={editing ? t('products.modal.editTitle') : t('products.modal.createTitle')}>
         <div className="space-y-4">
-          <FormField label="Nom" error={errors.name?.[0]} required>
+          <FormField label={t('products.fields.name')} error={errors.name?.[0]} required>
             <input
               value={form.name}
               onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-              placeholder="Nom du produit"
+              placeholder={t('products.placeholders.name')}
             />
           </FormField>
 
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="Référence" error={errors.reference?.[0]}>
+            <FormField label={t('products.fields.reference')} error={errors.reference?.[0]}>
               <input
                 value={form.reference}
                 onChange={(event) => setForm((current) => ({ ...current, reference: event.target.value }))}
-                placeholder="REF-001"
+                placeholder={t('products.placeholders.reference')}
               />
             </FormField>
-            <FormField label="Unité" error={errors.unit?.[0]}>
+            <FormField label={t('products.fields.unit')} error={errors.unit?.[0]}>
               <select value={form.unit} onChange={(event) => setForm((current) => ({ ...current, unit: event.target.value }))}>
-                <option value="">Sélectionner...</option>
+                <option value="">{t('products.selectPlaceholder')}</option>
                 {units.map((item) => (
                   <option key={item.id} value={item.value}>
                     {getConfigItemLabel(item)}
@@ -496,31 +499,31 @@ export default function ProductsIndex() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="Prix achat / usine (TND)" error={errors.buy_price?.[0]}>
+            <FormField label={t('products.fields.buyPrice')} error={errors.buy_price?.[0]}>
               <input
                 type="number"
                 step="0.001"
                 min="0"
                 value={form.buy_price}
                 onChange={(event) => setForm((current) => ({ ...current, buy_price: event.target.value }))}
-                placeholder="0.000"
+                placeholder={t('products.placeholders.price')}
               />
             </FormField>
-            <FormField label="Prix de vente dépôt (TND)" error={errors.depot_price?.[0]} required>
+            <FormField label={t('products.fields.depotPrice')} error={errors.depot_price?.[0]} required>
               <input
                 type="number"
                 step="0.001"
                 min="0"
                 value={form.depot_price}
                 onChange={(event) => setForm((current) => ({ ...current, depot_price: event.target.value }))}
-                placeholder="0.000"
+                placeholder={t('products.placeholders.price')}
               />
             </FormField>
           </div>
 
-          <FormField label="Catégorie" error={errors.category?.[0]}>
+          <FormField label={t('products.fields.category')} error={errors.category?.[0]}>
             <select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}>
-              <option value="">Sélectionner...</option>
+              <option value="">{t('products.selectPlaceholder')}</option>
               {categories.map((item) => (
                 <option key={item.id} value={item.value}>
                   {getConfigItemLabel(item)}
@@ -530,24 +533,24 @@ export default function ProductsIndex() {
           </FormField>
 
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="Stock minimum (obligatoire)" error={errors.min_stock?.[0]}>
+            <FormField label={t('products.fields.minStock')} error={errors.min_stock?.[0]}>
               <input
                 type="number"
                 step="0.001"
                 min="1"
                 value={form.min_stock}
                 onChange={(event) => setForm((current) => ({ ...current, min_stock: event.target.value }))}
-                placeholder="1.000"
+                placeholder={t('products.placeholders.minStock')}
               />
             </FormField>
-            <FormField label="Stock maximum (optionnel)" error={errors.max_stock?.[0]}>
+            <FormField label={t('products.fields.maxStock')} error={errors.max_stock?.[0]}>
               <input
                 type="number"
                 step="0.001"
                 min="0"
                 value={form.max_stock}
                 onChange={(event) => setForm((current) => ({ ...current, max_stock: event.target.value }))}
-                placeholder="0.000"
+                placeholder={t('products.placeholders.price')}
               />
             </FormField>
           </div>
@@ -555,10 +558,10 @@ export default function ProductsIndex() {
           {zones.length > 0 && (
             <div className="rounded-xl p-3 border border-theme" style={{ background: 'var(--surface-2)' }}>
               <div className="text-xs font-semibold text-muted-color uppercase tracking-wider mb-1">
-                Tarifs par zone (optionnel)
+                {t('products.zonePricing.title')}
               </div>
               <div className="text-xs text-muted-color mb-3">
-                Laisser vide pour réutiliser le prix de vente dépôt.
+                {t('products.zonePricing.hint')}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {zones.map((zone) => (
@@ -574,7 +577,7 @@ export default function ProductsIndex() {
                           zonePrices: { ...current.zonePrices, [zone.id]: event.target.value },
                         }))
                       }
-                      placeholder={form.depot_price || '0.000'}
+                      placeholder={form.depot_price || t('products.placeholders.price')}
                     />
                   </FormField>
                 ))}
@@ -583,9 +586,9 @@ export default function ProductsIndex() {
           )}
 
           <div className="flex justify-end gap-3 pt-1">
-            <button onClick={() => setModal(false)} className="btn-secondary">Annuler</button>
+            <button onClick={() => setModal(false)} className="btn-secondary">{t('common.cancel')}</button>
             <button onClick={save} disabled={saving} className="btn-primary">
-              {saving ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</> : 'Enregistrer'}
+              {saving ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : t('common.save')}
             </button>
           </div>
         </div>
@@ -594,11 +597,11 @@ export default function ProductsIndex() {
       <Modal
         open={Boolean(restockProduct)}
         onClose={() => setRestockProduct(null)}
-        title={restockProduct ? `Réapprovisionnement - ${restockProduct.name}` : 'Réapprovisionnement'}
+        title={restockProduct ? t('products.restock.titleWithName', { name: restockProduct.name }) : t('products.restock.title')}
       >
         <div className="space-y-4">
           <div className="rounded-xl border border-theme px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
-            Cette action ajoute du stock au dépôt et crée automatiquement un mouvement <strong className="text-base-color">depot_in</strong>.
+            {t('products.restock.infoPrefix')} <strong className="text-base-color">depot_in</strong>.
           </div>
 
           {restockError && (
@@ -607,30 +610,30 @@ export default function ProductsIndex() {
             </div>
           )}
 
-          <FormField label="Quantité à ajouter" required>
+          <FormField label={t('products.restock.qtyLabel')} required>
             <input
               type="number"
               step="0.001"
               min="0.001"
               value={restockQty}
               onChange={(event) => setRestockQty(event.target.value)}
-              placeholder="1.000"
+              placeholder={t('products.placeholders.minStock')}
             />
           </FormField>
 
-          <FormField label="Note mouvement">
+          <FormField label={t('products.restock.noteLabel')}>
             <textarea
               rows="3"
               value={restockNote}
               onChange={(event) => setRestockNote(event.target.value)}
-              placeholder="Optionnel : origine du réapprovisionnement ou précision interne"
+              placeholder={t('products.restock.notePlaceholder')}
             />
           </FormField>
 
           <div className="flex justify-end gap-3 pt-1">
-            <button onClick={() => setRestockProduct(null)} className="btn-secondary">Annuler</button>
+            <button onClick={() => setRestockProduct(null)} className="btn-secondary">{t('common.cancel')}</button>
             <button onClick={submitRestock} disabled={restockSaving} className="btn-primary">
-              {restockSaving ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</> : <><i className="fa-solid fa-check" /> Confirmer</>}
+              {restockSaving ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : <><i className="fa-solid fa-check" /> {t('products.restock.confirm')}</>}
             </button>
           </div>
         </div>

@@ -1,13 +1,15 @@
-function buildSummary(meta, itemLabel) {
+import { useI18n } from '../contexts/I18nContext'
+
+function buildSummary(meta, itemLabel, t) {
   const total = Number(meta?.total ?? 0)
   const from = Number(meta?.from ?? 0)
   const to = Number(meta?.to ?? 0)
 
   if (total <= 0) {
-    return `0 ${itemLabel}`
+    return t('pagination.summaryZero', { itemLabel })
   }
 
-  return `${from}-${to} sur ${total} ${itemLabel}`
+  return t('pagination.summaryRange', { from, to, total, itemLabel })
 }
 
 export default function PaginationControls({
@@ -16,16 +18,19 @@ export default function PaginationControls({
   perPage,
   onPerPageChange = null,
   pageSizeOptions = [10, 20, 50],
-  itemLabel = 'elements',
+  itemLabel = '',
   className = '',
 }) {
+  const { t } = useI18n()
+
   if (!meta) {
     return null
   }
 
   const currentPage = Number(meta.current_page ?? 1)
   const lastPage = Math.max(Number(meta.last_page ?? 1), 1)
-  const summary = buildSummary(meta, itemLabel)
+  const resolvedItemLabel = itemLabel || t('pagination.items')
+  const summary = buildSummary(meta, resolvedItemLabel, t)
   const safePerPage = Number(perPage ?? meta.per_page ?? pageSizeOptions[0] ?? 20)
   const canGoBack = currentPage > 1
   const canGoForward = currentPage < lastPage
@@ -34,7 +39,7 @@ export default function PaginationControls({
     return (
       <div className={`flex items-center justify-between pt-4 mt-4 ${className}`.trim()} style={{ borderTop: '1px solid var(--border)' }}>
         <span className="text-xs text-muted-color">{summary}</span>
-        <span className="text-xs text-muted-color">Page 1 / 1</span>
+        <span className="text-xs text-muted-color">{t('pagination.pageOf', { current: 1, last: 1 })}</span>
       </div>
     )
   }
@@ -48,7 +53,7 @@ export default function PaginationControls({
         <span className="text-xs text-muted-color">{summary}</span>
         {onPerPageChange && (
           <label className="inline-flex items-center gap-2 text-xs text-muted-color">
-            <span>Par page</span>
+            <span>{t('pagination.perPage')}</span>
             <select
               value={safePerPage}
               onChange={(event) => onPerPageChange(Number(event.target.value))}
@@ -66,7 +71,7 @@ export default function PaginationControls({
 
       <div className="flex items-center justify-between gap-3 sm:justify-end">
         <span className="text-xs text-muted-color">
-          Page {currentPage} / {lastPage}
+          {t('pagination.pageOf', { current: currentPage, last: lastPage })}
         </span>
         <div className="flex items-center gap-2">
           <button

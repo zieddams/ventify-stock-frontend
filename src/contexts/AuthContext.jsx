@@ -10,12 +10,16 @@ export function AuthProvider({ children }) {
   })
   const [loading, setLoading] = useState(false)
 
-  const refreshUser = async () => {
-    const res = await api.get('/auth/me')
-    const nextUser = res.data
+  const setCurrentUser = (nextUser) => {
     localStorage.setItem('ventify_user', JSON.stringify(nextUser))
     setUser(nextUser)
     return nextUser
+  }
+
+  const refreshUser = async () => {
+    const res = await api.get('/auth/me')
+    const nextUser = res.data
+    return setCurrentUser(nextUser)
   }
 
   const login = async (email, password) => {
@@ -23,9 +27,7 @@ export function AuthProvider({ children }) {
     const res = await api.post('/auth/login', { email, password })
     const { token, user } = res.data
     localStorage.setItem('ventify_token', token)
-    localStorage.setItem('ventify_user', JSON.stringify(user))
-    setUser(user)
-    return user
+    return setCurrentUser(user)
   }
 
   const logout = async () => {
@@ -43,7 +45,7 @@ export function AuthProvider({ children }) {
   const canManageMultiDepot = () => user?.role === 'developer'
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, refreshUser, isDeveloper, isAdmin, isFinance, canManageAllCustomers, canManageMultiDepot, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, refreshUser, setCurrentUser, isDeveloper, isAdmin, isFinance, canManageAllCustomers, canManageMultiDepot, loading }}>
       {children}
     </AuthContext.Provider>
   )

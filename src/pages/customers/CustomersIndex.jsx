@@ -8,9 +8,11 @@ import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
+import { useI18n } from '../../contexts/I18nContext'
 import { getConfigItemLabel, getDefaultConfigValue, useConfigItems } from '../../hooks/useConfigItems'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
+import { formatCurrency, formatDateTime } from '../../utils/format'
 import { filterPaymentMethodsByScope } from '../../utils/paymentMethodScopes'
 import { paginateItems } from '../../utils/pagination'
 
@@ -26,24 +28,24 @@ const EMPTY = {
   user_id: '',
 }
 
-function fmt(value) {
-  return Number(value ?? 0).toFixed(3)
-}
-
-function formatDateTime(value) {
-  return value ? new Date(value).toLocaleString('fr-FR') : '-'
-}
-
-function formatTransactionLabel(transaction) {
+function formatTransactionLabel(transaction, t) {
   if (transaction.type === 'charge') {
-    return 'Facture'
+    return t('customers.ledger.transactionTypes.charge')
   }
 
   if (transaction.type === 'payment') {
-    return 'Paiement'
+    return t('customers.ledger.transactionTypes.payment')
   }
 
-  return 'Ajustement'
+  return t('customers.ledger.transactionTypes.adjustment')
+}
+
+function formatRoleLabel(role, t) {
+  if (['admin', 'developer', 'rep', 'comptable'].includes(role)) {
+    return t(`badges.roles.${role}`)
+  }
+
+  return role
 }
 
 function matchesLedgerQuery(values, query) {
@@ -56,6 +58,8 @@ function matchesLedgerQuery(values, query) {
 }
 
 export default function CustomersIndex() {
+  const { t } = useI18n()
+  const notAvailable = t('common.notAvailable')
   const { user, canManageAllCustomers } = useAuth()
   const { layouts: documentLayouts } = useDocumentLayouts()
   const [customers, setCustomers] = useState([])
@@ -78,7 +82,7 @@ export default function CustomersIndex() {
   const { items: configItems } = useConfigItems(['governorate', 'payment_method'])
   const governorates = configItems.governorate ?? []
   const paymentMethods = filterPaymentMethodsByScope(configItems.payment_method ?? [], 'customer')
-  const availablePaymentMethods = paymentMethods.length > 0 ? paymentMethods : [{ value: 'cash', display_label: 'Espèces' }]
+  const availablePaymentMethods = paymentMethods.length > 0 ? paymentMethods : [{ value: 'cash', display_label: t('customers.cashFallback') }]
   const defaultPaymentMethod = getDefaultConfigValue(availablePaymentMethods, 'cash')
   const [pay, setPay] = useState({ amount: '', method: defaultPaymentMethod, invoice_id: '', note: '' })
   const [paying, setPaying] = useState(false)
@@ -183,7 +187,7 @@ export default function CustomersIndex() {
   }
 
   const removeCustomer = async (customer) => {
-    if (!confirm(`Supprimer "${customer.name}" ?`)) {
+    if (!confirm(t('customers.deleteConfirm', { name: customer.name }))) {
       return
     }
 
@@ -312,15 +316,15 @@ export default function CustomersIndex() {
 
   const subtitle = useMemo(() => {
     if (!canAssignOwner) {
-      return `${filteredCustomers.length} client(s) sur votre portefeuille`
+      return t('customers.subtitlePortfolio', { count: filteredCustomers.length })
     }
 
     if (selectedOwner) {
-      return `${filteredCustomers.length} client(s) affecté(s) a ${selectedOwner.name}`
+      return t('customers.subtitleOwner', { count: filteredCustomers.length, name: selectedOwner.name })
     }
 
-    return `${filteredCustomers.length} client(s) sur tous les portefeuilles`
-  }, [canAssignOwner, filteredCustomers.length, selectedOwner])
+    return t('customers.subtitleAll', { count: filteredCustomers.length })
+  }, [canAssignOwner, filteredCustomers.length, selectedOwner, t])
 
   if (loading) {
     return <PageLoader />
@@ -329,12 +333,12 @@ export default function CustomersIndex() {
   return (
     <div>
       <PageHeader
-        title="Clients"
+        title={t('customers.title')}
         subtitle={subtitle}
         action={(
           <div className="flex flex-wrap items-center justify-end gap-2">
             <PageExportActions
-              title="Clients"
+              title={t('customers.title')}
               csvEntity="customers"
               csvFilename="clients"
               documentKey="customers_list"
@@ -342,7 +346,7 @@ export default function CustomersIndex() {
               documentLayouts={documentLayouts}
             />
             <button onClick={openCreate} className="btn-primary">
-              <i className="fa-solid fa-plus" /> Nouveau client
+              <i className="fa-solid fa-plus" /> {t('customers.newCustomer')}
             </button>
           </div>
         )}
@@ -354,7 +358,7 @@ export default function CustomersIndex() {
             <div className="relative">
               <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-color text-sm" />
               <input
-                placeholder="Rechercher un client..."
+                placeholder={t('customers.searchPlaceholder')}
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 style={{ paddingLeft: '2.25rem' }}
@@ -363,10 +367,10 @@ export default function CustomersIndex() {
 
             {canAssignOwner && (
               <select value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)}>
-                <option value="">Tous les comptes</option>
+                <option value="">{t('customers.ownerAllAccounts')}</option>
                 {assignableUsers.map((entry) => (
                   <option key={entry.id} value={entry.id}>
-                    {entry.name} - {entry.role}
+                    {entry.name} - {formatRoleLabel(entry.role, t)}
                   </option>
                 ))}
               </select>
@@ -374,7 +378,7 @@ export default function CustomersIndex() {
           </div>
           {canAssignOwner && (
             <p className="text-xs text-muted-color mt-2">
-              Chaque client reste rattaché à un seul compte. Les rôles globaux voient toute la base, les autres comptes voient seulement leur liste.
+              {t('customers.ownerHelp')}
             </p>
           )}
         </div>
@@ -383,7 +387,15 @@ export default function CustomersIndex() {
           <table className="w-full text-sm">
             <thead>
               <tr>
-                {['Nom', 'Telephone', 'Affecte a', 'Gouvernorat', 'Zone', 'Solde credit', 'Actions'].map((heading) => (
+                {[
+                  t('customers.columns.name'),
+                  t('customers.columns.phone'),
+                  t('customers.columns.assignedTo'),
+                  t('customers.columns.governorate'),
+                  t('customers.columns.zone'),
+                  t('customers.columns.creditBalance'),
+                  t('common.actions'),
+                ].map((heading) => (
                   <th key={heading} className="pb-3 pr-4 text-left">
                     {heading}
                   </th>
@@ -395,33 +407,33 @@ export default function CustomersIndex() {
                 return (
                   <tr key={customer.id} className="table-row">
                     <td className="py-3 pr-4 font-semibold text-base-color">{customer.name}</td>
-                    <td className="py-3 pr-4 text-secondary-color font-mono text-xs">{customer.phone ?? '-'}</td>
+                    <td className="py-3 pr-4 text-secondary-color font-mono text-xs">{customer.phone || notAvailable}</td>
                     <td className="py-3 pr-4 text-secondary-color text-xs">
                       {customer.owner ? (
                         <div>
                           <div className="font-medium text-base-color">{customer.owner.name}</div>
-                          <div className="text-[11px] uppercase tracking-wide text-muted-color">{customer.owner.role}</div>
+                          <div className="text-[11px] uppercase tracking-wide text-muted-color">{formatRoleLabel(customer.owner.role, t)}</div>
                         </div>
-                      ) : '-'}
+                      ) : t('customers.none')}
                     </td>
-                    <td className="py-3 pr-4 text-secondary-color text-xs">{customer.wilaya ?? '-'}</td>
-                    <td className="py-3 pr-4 text-secondary-color text-xs">{customer.zone?.name ?? '-'}</td>
+                    <td className="py-3 pr-4 text-secondary-color text-xs">{customer.wilaya ?? t('customers.none')}</td>
+                    <td className="py-3 pr-4 text-secondary-color text-xs">{customer.zone?.name ?? t('customers.none')}</td>
                     <td
                       className="py-3 pr-4 font-bold font-mono text-sm"
                       style={{ color: Number(customer.credit_balance) > 0 ? '#dc2626' : '#059669' }}
                     >
-                      {fmt(customer.credit_balance)} TND
+                      {formatCurrency(customer.credit_balance)}
                     </td>
                     <td className="py-3">
                       <div className="flex items-center gap-3">
                         <button onClick={() => openLedger(customer)} className="text-xs font-medium" style={{ color: '#8b5cf6' }}>
-                          <i className="fa-solid fa-credit-card mr-1" /> Credit
+                          <i className="fa-solid fa-credit-card mr-1" /> {t('customers.creditAction')}
                         </button>
                         <button onClick={() => openEdit(customer)} className="text-xs font-medium" style={{ color: '#0d9488' }}>
-                          <i className="fa-solid fa-pen mr-1" /> Modifier
+                          <i className="fa-solid fa-pen mr-1" /> {t('common.edit')}
                         </button>
                         <button onClick={() => removeCustomer(customer)} className="text-xs font-medium text-red-500 hover:text-red-700">
-                          <i className="fa-solid fa-trash-can mr-1" /> Suppr.
+                          <i className="fa-solid fa-trash-can mr-1" /> {t('common.delete')}
                         </button>
                       </div>
                     </td>
@@ -432,7 +444,7 @@ export default function CustomersIndex() {
                 <tr>
                   <td colSpan={7} className="py-12 text-center">
                     <i className="fa-solid fa-users text-3xl text-muted-color opacity-30 mb-2 block" />
-                    <p className="text-muted-color text-sm">Aucun client</p>
+                    <p className="text-muted-color text-sm">{t('customers.noResults')}</p>
                   </td>
                 </tr>
               )}
@@ -448,46 +460,46 @@ export default function CustomersIndex() {
             setCustomersPerPage(value)
             setCustomersPage(1)
           }}
-          itemLabel="clients"
+          itemLabel={t('customers.itemLabel')}
         />
       </div>
 
-      <Modal open={modal} onClose={() => setModal(false)} title={editing ? 'Modifier le client' : 'Nouveau client'}>
+      <Modal open={modal} onClose={() => setModal(false)} title={editing ? t('customers.modal.editTitle') : t('customers.modal.createTitle')}>
         <div className="space-y-4">
-          <FormField label="Nom" error={errors.name?.[0]} required>
-            <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Nom du client" />
+          <FormField label={t('customers.fields.name')} error={errors.name?.[0]} required>
+            <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder={t('customers.placeholders.name')} />
           </FormField>
 
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="Telephone" error={errors.phone?.[0]}>
-              <input value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} placeholder="+216 XX XXX XXX" />
+            <FormField label={t('customers.fields.phone')} error={errors.phone?.[0]}>
+              <input value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} placeholder={t('customers.placeholders.phone')} />
             </FormField>
-            <FormField label="Email" error={errors.email?.[0]}>
-              <input type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} placeholder="client@example.com" />
+            <FormField label={t('customers.fields.email')} error={errors.email?.[0]}>
+              <input type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} placeholder={t('customers.placeholders.email')} />
             </FormField>
           </div>
 
           {canAssignOwner && (
-            <FormField label="Compte propriétaire" error={errors.user_id?.[0]}>
+            <FormField label={t('customers.fields.ownerAccount')} error={errors.user_id?.[0]}>
               <select value={form.user_id} onChange={(event) => setForm((current) => ({ ...current, user_id: event.target.value }))}>
-                <option value="">Mon compte ({user?.name || 'courant'})</option>
+                <option value="">{t('customers.ownerCurrentAccount', { name: user?.name || t('customers.currentFallback') })}</option>
                 {assignableUsers.map((entry) => (
                   <option key={entry.id} value={entry.id}>
-                    {entry.name} - {entry.role}
+                    {entry.name} - {formatRoleLabel(entry.role, t)}
                   </option>
                 ))}
               </select>
             </FormField>
           )}
 
-          <FormField label="Adresse" error={errors.address?.[0]}>
-            <input value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} placeholder="Adresse complete" />
+          <FormField label={t('customers.fields.address')} error={errors.address?.[0]}>
+            <input value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} placeholder={t('customers.placeholders.address')} />
           </FormField>
 
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="Gouvernorat" error={errors.wilaya?.[0]}>
+            <FormField label={t('customers.fields.governorate')} error={errors.wilaya?.[0]}>
               <select value={form.wilaya} onChange={(event) => setForm((current) => ({ ...current, wilaya: event.target.value }))}>
-                <option value="">Sélectionner...</option>
+                <option value="">{t('customers.selectPlaceholder')}</option>
                 {governorates.map((item) => (
                   <option key={item.id} value={item.value}>
                     {getConfigItemLabel(item)}
@@ -495,9 +507,9 @@ export default function CustomersIndex() {
                 ))}
               </select>
             </FormField>
-            <FormField label="Zone de vente" error={errors.zone_id?.[0]}>
+            <FormField label={t('customers.fields.salesZone')} error={errors.zone_id?.[0]}>
               <select value={form.zone_id} onChange={(event) => setForm((current) => ({ ...current, zone_id: event.target.value }))}>
-                <option value="">Aucune</option>
+                <option value="">{t('customers.noneOption')}</option>
                 {zones.map((zone) => (
                   <option key={zone.id} value={zone.id}>
                     {zone.name}
@@ -508,25 +520,25 @@ export default function CustomersIndex() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="Matricule fiscal" error={errors.tax_id?.[0]}>
-              <input value={form.tax_id} onChange={(event) => setForm((current) => ({ ...current, tax_id: event.target.value }))} placeholder="0000000/A/X/000" />
+            <FormField label={t('customers.fields.taxId')} error={errors.tax_id?.[0]}>
+              <input value={form.tax_id} onChange={(event) => setForm((current) => ({ ...current, tax_id: event.target.value }))} placeholder={t('customers.placeholders.taxId')} />
             </FormField>
-            <FormField label="Plafond credit (TND)" error={errors.credit_limit?.[0]}>
+            <FormField label={t('customers.fields.creditLimit')} error={errors.credit_limit?.[0]}>
               <input
                 type="number"
                 step="0.001"
                 min="0"
                 value={form.credit_limit}
                 onChange={(event) => setForm((current) => ({ ...current, credit_limit: event.target.value }))}
-                placeholder="Optionnel"
+                placeholder={t('customers.placeholders.creditLimit')}
               />
             </FormField>
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setModal(false)} className="btn-secondary">Annuler</button>
+            <button onClick={() => setModal(false)} className="btn-secondary">{t('common.cancel')}</button>
             <button onClick={save} disabled={saving} className="btn-primary">
-              {saving ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</> : 'Enregistrer'}
+              {saving ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : t('common.save')}
             </button>
           </div>
         </div>
@@ -540,7 +552,7 @@ export default function CustomersIndex() {
           setLedgerQuery('')
           setLedgerTypeFilter('all')
         }}
-        title={`Credit - ${ledgerCustomer?.name ?? ''}`}
+        title={t('customers.ledger.title', { name: ledgerCustomer?.name ?? '' })}
         size="lg"
       >
         {!ledger ? (
@@ -555,33 +567,35 @@ export default function CustomersIndex() {
                   borderColor: Number(ledger.customer.credit_balance) > 0 ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)',
                 }}
               >
-                <div className="text-xs text-muted-color mb-1">Solde client</div>
+                <div className="text-xs text-muted-color mb-1">{t('customers.ledger.customerBalance')}</div>
                 <div className="text-2xl font-bold" style={{ color: Number(ledger.customer.credit_balance) > 0 ? '#dc2626' : '#059669' }}>
-                  {fmt(ledger.customer.credit_balance)} <span className="text-sm font-normal text-muted-color">TND</span>
+                  {formatCurrency(ledger.customer.credit_balance)}
                 </div>
-                <div className="text-xs text-secondary-color mt-2">{ledger.summary?.open_invoice_count ?? 0} facture(s) ouverte(s)</div>
+                <div className="text-xs text-secondary-color mt-2">{t('customers.ledger.openInvoicesCount', { count: ledger.summary?.open_invoice_count ?? 0 })}</div>
               </div>
 
               <div className="rounded-xl border border-theme p-4" style={{ background: 'var(--surface-2)' }}>
-                <div className="text-xs text-muted-color mb-1">Reste ouvert</div>
-                <div className="text-xl font-bold font-mono text-base-color">{fmt(ledger.summary?.open_due_total)} TND</div>
+                <div className="text-xs text-muted-color mb-1">{t('customers.ledger.openRemaining')}</div>
+                <div className="text-xl font-bold font-mono text-base-color">{formatCurrency(ledger.summary?.open_due_total)}</div>
                 <div className="text-xs text-secondary-color mt-2">
-                  Plafond {ledger.customer.credit_limit ? `${fmt(ledger.customer.credit_limit)} TND` : 'non defini'}
+                  {ledger.customer.credit_limit
+                    ? t('customers.ledger.limitWithValue', { value: formatCurrency(ledger.customer.credit_limit) })
+                    : t('customers.ledger.limitUndefined')}
                 </div>
               </div>
 
               <div className="rounded-xl border border-theme p-4" style={{ background: 'var(--surface-2)' }}>
-                <div className="text-xs text-muted-color mb-1">Paiements traces</div>
+                <div className="text-xs text-muted-color mb-1">{t('customers.ledger.paymentEvents')}</div>
                 <div className="text-xl font-bold text-base-color">{ledger.summary?.payment_event_count ?? 0}</div>
                 <div className="text-xs text-secondary-color mt-2">
-                  Derniere activite {formatDateTime(ledger.summary?.last_activity_at)}
+                  {t('customers.ledger.lastActivity', { value: formatDateTime(ledger.summary?.last_activity_at) })}
                 </div>
               </div>
 
               <div className="rounded-xl border border-theme p-4" style={{ background: 'var(--surface-2)' }}>
-                <div className="text-xs text-muted-color mb-1">Compte affecte</div>
-                <div className="text-base font-semibold text-base-color">{ledger.customer.owner?.name || 'Non affecte'}</div>
-                <div className="text-xs text-secondary-color mt-2">{ledger.customer.owner?.role || 'Aucun role'}</div>
+                <div className="text-xs text-muted-color mb-1">{t('customers.ledger.assignedAccount')}</div>
+                <div className="text-base font-semibold text-base-color">{ledger.customer.owner?.name || t('customers.unassigned')}</div>
+                <div className="text-xs text-secondary-color mt-2">{ledger.customer.owner?.role ? formatRoleLabel(ledger.customer.owner.role, t) : t('customers.noRole')}</div>
               </div>
             </div>
 
@@ -589,14 +603,14 @@ export default function CustomersIndex() {
               <div className="rounded-xl p-4 border border-theme" style={{ background: 'var(--surface-2)' }}>
                 <div className="text-xs font-bold text-muted-color uppercase tracking-wider mb-3">
                   <i className="fa-solid fa-circle-plus mr-1.5" style={{ color: '#0d9488' }} />
-                  Encaisser un paiement
+                  {t('customers.ledger.collectPayment')}
                 </div>
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <input
                     type="number"
                     step="0.001"
                     min="0"
-                    placeholder="Montant (TND)"
+                    placeholder={t('customers.ledger.amountPlaceholder')}
                     value={pay.amount}
                     onChange={(event) => setPay((current) => ({ ...current, amount: event.target.value }))}
                   />
@@ -609,10 +623,10 @@ export default function CustomersIndex() {
                   </select>
                 </div>
                 <select className="mb-2" value={pay.invoice_id} onChange={(event) => setPay((current) => ({ ...current, invoice_id: event.target.value }))}>
-                  <option value="">Affecter automatiquement (plus ancienne d'abord)</option>
+                  <option value="">{t('customers.ledger.autoAllocate')}</option>
                   {ledger.open_invoices?.map((invoice) => (
                     <option key={invoice.id} value={invoice.id}>
-                      {invoice.number} - reste {fmt(invoice.due_amount)}
+                      {invoice.number} - {t('customers.ledger.remainingLabel', { value: formatCurrency(invoice.due_amount) })}
                     </option>
                   ))}
                 </select>
@@ -620,24 +634,24 @@ export default function CustomersIndex() {
                   className="mb-2"
                   value={pay.note}
                   onChange={(event) => setPay((current) => ({ ...current, note: event.target.value }))}
-                  placeholder="Note interne (optionnel)"
+                  placeholder={t('customers.ledger.internalNotePlaceholder')}
                 />
                 <p className="text-[11px] text-muted-color mb-3">
-                  Le surplus regle d'abord la facture cible, puis les credits plus anciens du client.
+                  {t('customers.ledger.surplusHint')}
                 </p>
                 <button onClick={submitPayment} disabled={paying || !pay.amount} className="btn-primary w-full">
-                  {paying ? <><i className="fa-solid fa-spinner fa-spin" /> Encaissement...</> : <><i className="fa-solid fa-circle-check" /> Encaisser</>}
+                  {paying ? <><i className="fa-solid fa-spinner fa-spin" /> {t('customers.ledger.collecting')}</> : <><i className="fa-solid fa-circle-check" /> {t('customers.ledger.collectNow')}</>}
                 </button>
               </div>
 
               <div className="rounded-xl p-4 border border-theme" style={{ background: 'var(--surface-2)' }}>
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
-                    <div className="text-xs font-bold text-muted-color uppercase tracking-wider">Filtres credit</div>
-                    <div className="text-xs text-secondary-color mt-1">Facture, commercial, session, camion, methode, note.</div>
+                    <div className="text-xs font-bold text-muted-color uppercase tracking-wider">{t('customers.ledger.filtersTitle')}</div>
+                    <div className="text-xs text-secondary-color mt-1">{t('customers.ledger.filtersHint')}</div>
                   </div>
                   <div className="text-xs text-muted-color">
-                    {filteredTransactions.length} mouvement(s) | {filteredOpenInvoices.length} facture(s)
+                    {t('customers.ledger.countSummary', { movements: filteredTransactions.length, invoices: filteredOpenInvoices.length })}
                   </div>
                 </div>
 
@@ -645,13 +659,13 @@ export default function CustomersIndex() {
                   <input
                     value={ledgerQuery}
                     onChange={(event) => setLedgerQuery(event.target.value)}
-                    placeholder="Rechercher dans le credit client"
+                    placeholder={t('customers.ledger.searchPlaceholder')}
                   />
                   <select value={ledgerTypeFilter} onChange={(event) => setLedgerTypeFilter(event.target.value)}>
-                    <option value="all">Tous les mouvements</option>
-                    <option value="charge">Factures</option>
-                    <option value="payment">Paiements</option>
-                    <option value="adjustment">Ajustements</option>
+                    <option value="all">{t('customers.ledger.allMovements')}</option>
+                    <option value="charge">{t('customers.ledger.transactionTypes.charge')}</option>
+                    <option value="payment">{t('customers.ledger.transactionTypes.payment')}</option>
+                    <option value="adjustment">{t('customers.ledger.transactionTypes.adjustment')}</option>
                   </select>
                 </div>
               </div>
@@ -660,10 +674,10 @@ export default function CustomersIndex() {
             <div className="rounded-xl border border-theme p-4" style={{ background: 'var(--surface-2)' }}>
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div>
-                  <div className="text-xs font-bold text-muted-color uppercase tracking-wider">Factures ouvertes</div>
-                  <div className="text-xs text-secondary-color mt-1">Suivi des restes, tentatives d'encaissement et rattachement session/camion.</div>
+                  <div className="text-xs font-bold text-muted-color uppercase tracking-wider">{t('customers.ledger.openInvoicesTitle')}</div>
+                  <div className="text-xs text-secondary-color mt-1">{t('customers.ledger.openInvoicesHint')}</div>
                 </div>
-                <div className="text-xs text-muted-color">{filteredOpenInvoices.length} resultat(s)</div>
+                <div className="text-xs text-muted-color">{t('customers.ledger.results', { count: filteredOpenInvoices.length })}</div>
               </div>
 
               <div className="space-y-2">
@@ -678,40 +692,40 @@ export default function CustomersIndex() {
                           <PaymentStatusBadge status={invoice.payment_status} />
                         </div>
                         <div className="text-xs text-secondary-color mt-1">
-                          {invoice.rep_name || 'Commercial non renseigne'} | {formatDateTime(invoice.created_at)}
+                          {invoice.rep_name || t('customers.ledger.repUnknown')} | {formatDateTime(invoice.created_at)}
                         </div>
                         <div className="text-xs text-secondary-color mt-1">
                           {invoice.route_session_id ? (
                             <>
                               <Link to={invoice.route_session_url} className="text-primary hover:underline">
-                                Session #{invoice.route_session_id}
+                                {t('customers.ledger.sessionLabel', { id: invoice.route_session_id })}
                               </Link>
                               {' | '}
-                              {invoice.camion_name || 'Camion non renseigne'}
+                              {invoice.camion_name || t('customers.ledger.camionUnknown')}
                               {invoice.camion_plate ? ` | ${invoice.camion_plate}` : ''}
                             </>
                           ) : (
-                            'Aucune session rattachee'
+                            t('customers.ledger.noSessionAttached')
                           )}
                         </div>
                       </div>
 
                       <div className="text-right space-y-1">
                         <div className="font-bold font-mono text-sm" style={{ color: '#dc2626' }}>
-                          {fmt(invoice.due_amount)} TND
+                          {formatCurrency(invoice.due_amount)}
                         </div>
                         <div className="text-[11px] text-muted-color">
-                          {invoice.payment_attempt_count || 0} tentative(s)
+                          {t('customers.ledger.attemptCount', { count: invoice.payment_attempt_count || 0 })}
                         </div>
                         <div className="text-[11px] text-muted-color">
-                          Dernier paiement {formatDateTime(invoice.last_payment_at)}
+                          {t('customers.ledger.lastPayment', { value: formatDateTime(invoice.last_payment_at) })}
                         </div>
                       </div>
                     </div>
                   </div>
                 ))}
                 {!filteredOpenInvoices.length && (
-                  <div className="text-center text-muted-color text-sm py-8">Aucune facture ouverte pour ce filtre.</div>
+                  <div className="text-center text-muted-color text-sm py-8">{t('customers.ledger.noOpenInvoices')}</div>
                 )}
               </div>
             </div>
@@ -719,10 +733,10 @@ export default function CustomersIndex() {
             <div className="rounded-xl border border-theme p-4" style={{ background: 'var(--surface-2)' }}>
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div>
-                  <div className="text-xs font-bold text-muted-color uppercase tracking-wider">Historique des mouvements</div>
-                  <div className="text-xs text-secondary-color mt-1">Chaque paiement montre les allocations facture par facture.</div>
+                  <div className="text-xs font-bold text-muted-color uppercase tracking-wider">{t('customers.ledger.historyTitle')}</div>
+                  <div className="text-xs text-secondary-color mt-1">{t('customers.ledger.historyHint')}</div>
                 </div>
-                <div className="text-xs text-muted-color">{filteredTransactions.length} resultat(s)</div>
+                <div className="text-xs text-muted-color">{t('customers.ledger.results', { count: filteredTransactions.length })}</div>
               </div>
 
               <div className="max-h-[28rem] overflow-y-auto space-y-2 rounded-xl">
@@ -730,7 +744,7 @@ export default function CustomersIndex() {
                   <div key={transaction.id} className="rounded-xl border border-theme p-3" style={{ background: 'var(--surface)' }}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="font-semibold text-base-color">{formatTransactionLabel(transaction)}</div>
+                        <div className="font-semibold text-base-color">{formatTransactionLabel(transaction, t)}</div>
                         <div className="text-xs text-secondary-color mt-1">{formatDateTime(transaction.created_at)}</div>
                         <div className="text-xs text-secondary-color mt-1">
                           {transaction.invoice_id ? (
@@ -738,7 +752,7 @@ export default function CustomersIndex() {
                               {transaction.invoice_number}
                             </Link>
                           ) : (
-                            'Sans facture rattachee'
+                            t('customers.ledger.withoutInvoice')
                           )}
                           {transaction.rep_name ? ` | ${transaction.rep_name}` : ''}
                         </div>
@@ -746,19 +760,21 @@ export default function CustomersIndex() {
                           {transaction.route_session_id ? (
                             <>
                               <Link to={transaction.route_session_url} className="text-primary hover:underline">
-                                Session #{transaction.route_session_id}
+                                {t('customers.ledger.sessionLabel', { id: transaction.route_session_id })}
                               </Link>
                               {' | '}
-                              {transaction.camion_name || 'Camion non renseigne'}
+                              {transaction.camion_name || t('customers.ledger.camionUnknown')}
                               {transaction.camion_plate ? ` | ${transaction.camion_plate}` : ''}
                             </>
                           ) : (
-                            'Aucune session rattachee'
+                            t('customers.ledger.noSessionAttached')
                           )}
                         </div>
                         {(transaction.payment_method || transaction.payment_note) && (
                           <div className="text-xs text-secondary-color mt-1">
-                            {transaction.payment_method ? `Mode ${transaction.payment_method}` : 'Mode non precise'}
+                            {transaction.payment_method
+                              ? t('customers.ledger.paymentMethodLabel', { value: transaction.payment_method })
+                              : t('customers.ledger.paymentMethodUnknown')}
                             {transaction.payment_note ? ` | ${transaction.payment_note}` : ''}
                           </div>
                         )}
@@ -766,10 +782,10 @@ export default function CustomersIndex() {
 
                       <div className="text-right space-y-1">
                         <div className="font-bold font-mono" style={{ color: Number(transaction.amount) >= 0 ? '#dc2626' : '#059669' }}>
-                          {Number(transaction.amount) >= 0 ? '+' : ''}{fmt(transaction.amount)} TND
+                          {Number(transaction.amount) >= 0 ? '+' : ''}{formatCurrency(transaction.amount)}
                         </div>
-                        <div className="text-[11px] text-muted-color">Solde {fmt(transaction.balance_after)} TND</div>
-                        <div className="text-[11px] text-muted-color">{transaction.allocation_count || 0} allocation(s)</div>
+                        <div className="text-[11px] text-muted-color">{t('customers.ledger.balanceLabel', { value: formatCurrency(transaction.balance_after) })}</div>
+                        <div className="text-[11px] text-muted-color">{t('customers.ledger.allocationCount', { count: transaction.allocation_count || 0 })}</div>
                       </div>
                     </div>
 
@@ -783,14 +799,14 @@ export default function CustomersIndex() {
                                   {allocation.invoice_number}
                                 </Link>
                               ) : (
-                                'Facture non renseignee'
+                                t('customers.ledger.invoiceUnknown')
                               )}
                             </div>
                             <div className="text-secondary-color mt-1">
-                              Montant {fmt(allocation.amount)} TND
+                              {t('customers.ledger.amountLabel', { value: formatCurrency(allocation.amount) })}
                             </div>
                             <div className="text-secondary-color mt-1">
-                              {allocation.route_session_id ? `Session #${allocation.route_session_id}` : 'Sans session'}
+                              {allocation.route_session_id ? t('customers.ledger.sessionLabel', { id: allocation.route_session_id }) : t('customers.ledger.withoutSession')}
                               {allocation.camion_name ? ` | ${allocation.camion_name}` : ''}
                               {allocation.camion_plate ? ` | ${allocation.camion_plate}` : ''}
                             </div>
@@ -801,7 +817,7 @@ export default function CustomersIndex() {
                   </div>
                 ))}
                 {!filteredTransactions.length && (
-                  <div className="text-center text-muted-color text-sm py-8">Aucun mouvement pour ce filtre.</div>
+                  <div className="text-center text-muted-color text-sm py-8">{t('customers.ledger.noTransactions')}</div>
                 )}
               </div>
             </div>

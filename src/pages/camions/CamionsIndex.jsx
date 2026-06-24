@@ -3,22 +3,19 @@ import DepotScopeControls from '../../components/DepotScopeControls'
 import Modal from '../../components/Modal'
 import FormField from '../../components/FormField'
 import { PageLoader } from '../../components/Spinner'
+import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import api from '../../services/api'
+import { formatCurrency, formatDateTime, formatNumber } from '../../utils/format'
 
-function fmt(value) {
-  return Number(value ?? 0).toFixed(3)
+function formatCamionDateTime(value, fallback = '--') {
+  return value ? formatDateTime(value) : fallback
 }
 
-function formatDateTime(value) {
-  if (!value) return 'Non renseigne'
-  return new Date(value).toLocaleString('fr-FR')
-}
-
-function statusMeta(routeSession) {
+function statusMeta(routeSession, t) {
   if (!routeSession) {
     return {
-      label: 'Sans session',
+      label: t('camionsPage.routeStatuses.none'),
       color: '#64748b',
       bg: 'rgba(100,116,139,0.10)',
       icon: 'fa-solid fa-route',
@@ -27,7 +24,7 @@ function statusMeta(routeSession) {
 
   if (routeSession.status === 'open') {
     return {
-      label: 'Session ouverte',
+      label: t('camionsPage.routeStatuses.open'),
       color: '#059669',
       bg: 'rgba(5,150,105,0.10)',
       icon: 'fa-solid fa-circle-dot',
@@ -35,7 +32,7 @@ function statusMeta(routeSession) {
   }
 
   return {
-    label: 'Session clôturée',
+    label: t('camionsPage.routeStatuses.closed'),
     color: '#d97706',
     bg: 'rgba(217,119,6,0.10)',
     icon: 'fa-solid fa-flag-checkered',
@@ -98,6 +95,7 @@ function routeSessionCloseDefaults(routeSession) {
 }
 
 export default function CamionsIndex() {
+  const { t } = useI18n()
   const [camions, setCamions] = useState([])
   const [reps, setReps] = useState([])
   const [products, setProducts] = useState([])
@@ -241,7 +239,7 @@ export default function CamionsIndex() {
       await api.patch(`/camions/${camion.id}/toggle`)
       await load({ keepLoading: true })
     } catch (error) {
-      window.alert(error.response?.data?.message || 'Impossible de modifier le statut du camion.')
+      window.alert(error.response?.data?.message || t('camionsPage.alerts.toggleStatusError'))
     }
   }
 
@@ -301,9 +299,9 @@ export default function CamionsIndex() {
 
     if (!sessionForm.rep_id || !sessionForm.camion_id || validLines.length === 0) {
       setSessionErrors({
-        rep_id: !sessionForm.rep_id ? ['Le commercial est obligatoire.'] : undefined,
-        camion_id: !sessionForm.camion_id ? ['Le camion est obligatoire.'] : undefined,
-        lines: validLines.length === 0 ? ['Ajoutez au moins une ligne de chargement initial.'] : undefined,
+        rep_id: !sessionForm.rep_id ? [t('camionsPage.alerts.requiredRep')] : undefined,
+        camion_id: !sessionForm.camion_id ? [t('camionsPage.alerts.requiredCamion')] : undefined,
+        lines: validLines.length === 0 ? [t('camionsPage.alerts.requiredLoadLine')] : undefined,
       })
       return
     }
@@ -324,7 +322,7 @@ export default function CamionsIndex() {
       await load({ keepLoading: true })
     } catch (error) {
       setSessionErrors(error.response?.data?.errors ?? {
-        general: [error.response?.data?.message || 'Impossible d’ouvrir la session.'],
+        general: [error.response?.data?.message || t('camionsPage.alerts.openSessionError')],
       })
     } finally {
       setSavingSession(false)
@@ -336,12 +334,12 @@ export default function CamionsIndex() {
 
     setCloseForm({
       route_session_id: String(rep?.route_session?.id ?? ''),
-      cash_collected: fmt(defaults.cashCollected),
-      credit_collected: fmt(defaults.creditTotal),
+      cash_collected: formatNumber(defaults.cashCollected),
+      credit_collected: formatNumber(defaults.creditTotal),
     })
     setCloseContext({
-      repName: rep?.user?.name ?? 'Commercial',
-      camionName: rep?.route_session?.camion?.name ?? 'Camion non affecte',
+      repName: rep?.user?.name ?? t('camionsPage.closeModal.repFallback'),
+      camionName: rep?.route_session?.camion?.name ?? t('camionsPage.closeModal.camionFallback'),
       invoiceCount: defaults.invoiceCount,
       totalSold: defaults.totalSold,
       cashCollected: defaults.cashCollected,
@@ -371,7 +369,7 @@ export default function CamionsIndex() {
       await load({ keepLoading: true })
     } catch (error) {
       setCloseErrors(error.response?.data?.errors ?? {
-        general: [error.response?.data?.message || 'Impossible de clôturer la session.'],
+        general: [error.response?.data?.message || t('camionsPage.alerts.closeSessionError')],
       })
     } finally {
       setClosingSession(false)
@@ -400,16 +398,54 @@ export default function CamionsIndex() {
     }
   }
 
-  if (loading) return <PageLoader />
+  if (loading) {
+    return <PageLoader />
+  }
+
+  const fleetCards = [
+    {
+      label: t('camionsPage.kpis.physical'),
+      value: totals.physicalTotal,
+      sub: t('camionsPage.kpis.activeCount', { count: totals.activeTotal }),
+      icon: 'fa-solid fa-truck',
+      color: '#0d9488',
+    },
+    {
+      label: t('camionsPage.kpis.available'),
+      value: totals.availableTotal,
+      sub: t('camionsPage.kpis.noOpenSession'),
+      icon: 'fa-solid fa-circle-check',
+      color: '#2563eb',
+    },
+    {
+      label: t('camionsPage.kpis.openSessions'),
+      value: totals.openSessions,
+      sub: t('camionsPage.kpis.repsTracked', { count: reps.length }),
+      icon: 'fa-solid fa-route',
+      color: '#8b5cf6',
+    },
+    {
+      label: t('camionsPage.kpis.loadedStock'),
+      value: formatNumber(totals.stockQty),
+      sub: t('camionsPage.kpis.fieldUnits'),
+      icon: 'fa-solid fa-boxes-stacked',
+      color: '#f59e0b',
+    },
+    {
+      label: t('camionsPage.kpis.lowStockAlerts'),
+      value: reps.reduce((sum, rep) => sum + Number(rep.low_stock_count ?? 0), 0),
+      sub: t('camionsPage.kpis.lowStockReached'),
+      icon: 'fa-solid fa-triangle-exclamation',
+      color: '#ef4444',
+    },
+  ]
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-base-color tracking-tight">Camions & sessions terrain</h1>
-          <p className="text-sm text-muted-color mt-0.5">
-            Camions physiques, affectation par session et stock embarqué des commerciaux{selectedDepot ? ` | Dépôt ${selectedDepot.name}` : ''}.
-          </p>
+          <h1 className="text-xl font-bold text-base-color tracking-tight">{t('camionsPage.title')}</h1>
+          <p className="text-sm text-muted-color mt-0.5">{t('camionsPage.subtitle', { depot: selectedDepot?.name || '' })}</p>
         </div>
 
         <div className="flex flex-wrap items-end gap-2">
@@ -418,66 +454,30 @@ export default function CamionsIndex() {
             className="btn-secondary"
           >
             <i className={`fa-solid ${showInactiveCamions ? 'fa-eye-slash' : 'fa-eye'}`} />
-            {showInactiveCamions ? 'Masquer les inactifs' : 'Afficher les inactifs'}
+            {showInactiveCamions ? t('camionsPage.toggleHideInactive') : t('camionsPage.toggleShowInactive')}
           </button>
           {canBrowseAll && (
             <DepotScopeControls
               depots={depots}
               selectedValue={selectedDepotValue}
               onChange={setSelectedDepotValue}
-              label="Dépôt terrain"
+              label={t('camionsPage.terrainDepot')}
             />
           )}
           <button onClick={() => openSession()} className="btn-secondary">
-            <i className="fa-solid fa-play" /> Démarrer une session
+            <i className="fa-solid fa-play" /> {t('camionsPage.startSession')}
           </button>
           <button onClick={() => openTransfer()} className="btn-secondary">
-            <i className="fa-solid fa-truck-ramp-box" /> Charger un commercial
+            <i className="fa-solid fa-truck-ramp-box" /> {t('camionsPage.loadRep')}
           </button>
           <button onClick={openCreateFleetModal} className="btn-primary">
-            <i className="fa-solid fa-truck" /> Nouveau camion
+            <i className="fa-solid fa-truck" /> {t('camionsPage.newCamion')}
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
-        {[
-          {
-            label: 'Camions physiques',
-            value: totals.physicalTotal,
-            sub: `${totals.activeTotal} actif(s)`,
-            icon: 'fa-solid fa-truck',
-            color: '#0d9488',
-          },
-          {
-            label: 'Camions disponibles',
-            value: totals.availableTotal,
-            sub: 'Sans session ouverte',
-            icon: 'fa-solid fa-circle-check',
-            color: '#2563eb',
-          },
-          {
-            label: 'Sessions ouvertes',
-            value: totals.openSessions,
-            sub: `${reps.length} commercial(aux) suivis`,
-            icon: 'fa-solid fa-route',
-            color: '#8b5cf6',
-          },
-          {
-            label: 'Stock embarqué',
-            value: fmt(totals.stockQty),
-            sub: 'Unites sur le terrain',
-            icon: 'fa-solid fa-boxes-stacked',
-            color: '#f59e0b',
-          },
-          {
-            label: 'Alertes stock bas',
-            value: reps.reduce((sum, rep) => sum + Number(rep.low_stock_count ?? 0), 0),
-            sub: 'Seuils minimums atteints',
-            icon: 'fa-solid fa-triangle-exclamation',
-            color: '#ef4444',
-          },
-        ].map((card) => (
+        {fleetCards.map((card) => (
           <div key={card.label} className="card py-3 px-4 flex items-center gap-3">
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -497,15 +497,15 @@ export default function CamionsIndex() {
       <div>
         <div className="flex items-center justify-between gap-3 mb-3">
           <h2 className="text-xs font-semibold text-muted-color uppercase tracking-wider">
-            <i className="fa-solid fa-truck mr-1.5" /> Camions physiques
+            <i className="fa-solid fa-truck mr-1.5" /> {t('camionsPage.fleetSection.title')}
           </h2>
-          <span className="text-xs text-muted-color">{camions.length} fiche(s)</span>
+          <span className="text-xs text-muted-color">{t('camionsPage.fleetSection.count', { count: camions.length })}</span>
         </div>
 
         {camions.length === 0 ? (
           <div className="card text-center py-12">
             <i className="fa-solid fa-truck text-3xl text-muted-color opacity-30 mb-2 block" />
-            <p className="text-sm text-muted-color">Aucun camion physique n’est configuré pour le moment.</p>
+            <p className="text-sm text-muted-color">{t('camionsPage.fleetSection.empty')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -535,7 +535,7 @@ export default function CamionsIndex() {
                               color: camion.active ? '#059669' : '#64748b',
                             }}
                           >
-                            {camion.active ? 'Actif' : 'Inactif'}
+                            {camion.active ? t('camionsPage.fleetSection.statusActive') : t('camionsPage.fleetSection.statusInactive')}
                           </span>
                           <span
                             className="px-2 py-0.5 rounded-full text-[11px] font-semibold"
@@ -560,17 +560,17 @@ export default function CamionsIndex() {
                           </span>
                         </div>
                         <div className="text-xs text-muted-color mt-1">
-                          {camion.plate || 'Immatriculation non renseignée'}
+                          {camion.plate || t('camionsPage.fleetSection.plateMissing')}
                         </div>
                         {canBrowseAll && camion.company?.name && (
                           <div className="text-xs text-secondary-color mt-2">
-                            Société: <span className="font-medium text-base-color">{camion.company.name}</span>
+                            {t('camionsPage.fleetSection.company')}: <span className="font-medium text-base-color">{camion.company.name}</span>
                           </div>
                         )}
                         <div className="text-xs mt-2" style={{ color: assignment ? '#2563eb' : '#64748b' }}>
                           {assignment
-                            ? `Affecte a ${assignment.rep?.name || 'un commercial'}`
-                            : 'Disponible pour une nouvelle session'}
+                            ? t('camionsPage.fleetSection.assignedTo', { name: assignment.rep?.name || t('camionsPage.fleetSection.assignedFallback') })
+                            : t('camionsPage.fleetSection.available')}
                         </div>
                       </div>
                     </div>
@@ -592,26 +592,26 @@ export default function CamionsIndex() {
 
                   <div className="mt-4 pt-4 space-y-2 text-xs" style={{ borderTop: '1px solid var(--border)' }}>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted-color">Etat flotte</span>
+                      <span className="text-muted-color">{t('camionsPage.fleetSection.statusLabel')}</span>
                       <span className="font-medium text-base-color">{camion.operational_status_label}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted-color">Session en cours</span>
+                      <span className="text-muted-color">{t('camionsPage.fleetSection.currentSession')}</span>
                       <span className="font-medium text-base-color">
-                        {assignment ? `#${assignment.id}` : 'Aucune'}
+                        {assignment ? `#${assignment.id}` : t('camionsPage.fleetSection.none')}
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted-color">Commercial</span>
-                      <span className="font-medium text-base-color">{assignment?.rep?.name || 'Libre'}</span>
+                      <span className="text-muted-color">{t('camionsPage.fleetSection.rep')}</span>
+                      <span className="font-medium text-base-color">{assignment?.rep?.name || t('camionsPage.fleetSection.free')}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted-color">Zone</span>
-                      <span className="font-medium text-base-color">{assignment?.zone?.name || 'Non definie'}</span>
+                      <span className="text-muted-color">{t('camionsPage.fleetSection.zone')}</span>
+                      <span className="font-medium text-base-color">{assignment?.zone?.name || t('camionsPage.fleetSection.zoneMissing')}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted-color">Ouverture</span>
-                      <span className="font-medium text-base-color">{formatDateTime(assignment?.opened_at)}</span>
+                      <span className="text-muted-color">{t('camionsPage.fleetSection.opening')}</span>
+                      <span className="font-medium text-base-color">{formatCamionDateTime(assignment?.opened_at, t('common.notAvailable'))}</span>
                     </div>
                     {camion.note && (
                       <div className="rounded-2xl px-3 py-3 text-xs text-secondary-color" style={{ background: 'var(--surface-2)' }}>
@@ -629,9 +629,9 @@ export default function CamionsIndex() {
       <div>
         <div className="flex items-center justify-between gap-3 mb-3">
           <h2 className="text-xs font-semibold text-muted-color uppercase tracking-wider">
-            <i className="fa-solid fa-box-open mr-1.5" /> Stock terrain par commercial
+            <i className="fa-solid fa-box-open mr-1.5" /> {t('camionsPage.repsSection.title')}
           </h2>
-          <span className="text-xs text-muted-color">{reps.length} commercial(aux)</span>
+          <span className="text-xs text-muted-color">{t('camionsPage.repsSection.count', { count: reps.length })}</span>
         </div>
 
         <div className="space-y-3">
@@ -640,7 +640,7 @@ export default function CamionsIndex() {
             const camion = rep.configured_camion
             const stockItems = rep.stock ?? []
             const isExpanded = expanded[rep.user?.id]
-            const meta = statusMeta(session)
+            const meta = statusMeta(session, t)
 
             return (
               <div key={rep.user?.id} className="card">
@@ -671,34 +671,34 @@ export default function CamionsIndex() {
                               color: rep.user?.active ? '#059669' : '#64748b',
                             }}
                           >
-                            {rep.user?.active ? 'Compte actif' : 'Compte inactif'}
+                            {rep.user?.active ? t('camionsPage.repsSection.accountActive') : t('camionsPage.repsSection.accountInactive')}
                           </span>
                         </div>
                         <div className="text-xs text-muted-color mt-1">
-                          Zone: {rep.user?.zone?.name || session?.zone?.name || 'Non definie'}
+                          {t('camionsPage.repsSection.zone')}: {rep.user?.zone?.name || session?.zone?.name || t('camionsPage.repsSection.zoneMissing')}
                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div className="rounded-2xl px-3 py-2" style={{ background: 'var(--surface-2)' }}>
-                          <div className="text-[11px] text-muted-color">Camion physique</div>
+                          <div className="text-[11px] text-muted-color">{t('camionsPage.repsSection.physicalCamion')}</div>
                           <div className="text-sm font-semibold text-base-color mt-1">
-                            {camion?.name || 'Aucun camion assigné'}
+                            {camion?.name || t('camionsPage.repsSection.noCamion')}
                           </div>
-                          <div className="text-[11px] text-muted-color mt-1">{camion?.plate || 'Sans immatriculation'}</div>
+                          <div className="text-[11px] text-muted-color mt-1">{camion?.plate || t('camionsPage.repsSection.noPlate')}</div>
                         </div>
                         <div className="rounded-2xl px-3 py-2" style={{ background: 'var(--surface-2)' }}>
-                          <div className="text-[11px] text-muted-color">Stock embarqué</div>
-                          <div className="text-sm font-semibold text-base-color mt-1">{fmt(rep.total_qty)}</div>
-                          <div className="text-[11px] text-muted-color mt-1">{stockItems.length} reference(s)</div>
+                          <div className="text-[11px] text-muted-color">{t('camionsPage.repsSection.loadedStock')}</div>
+                          <div className="text-sm font-semibold text-base-color mt-1">{formatNumber(rep.total_qty)}</div>
+                          <div className="text-[11px] text-muted-color mt-1">{t('camionsPage.repsSection.references', { count: stockItems.length })}</div>
                         </div>
                         <div className="rounded-2xl px-3 py-2" style={{ background: 'var(--surface-2)' }}>
-                          <div className="text-[11px] text-muted-color">Alertes stock bas</div>
+                          <div className="text-[11px] text-muted-color">{t('camionsPage.repsSection.lowStockAlerts')}</div>
                           <div className="text-sm font-semibold mt-1" style={{ color: rep.low_stock_count > 0 ? '#d97706' : '#059669' }}>
                             {rep.low_stock_count ?? 0}
                           </div>
                           <div className="text-[11px] text-muted-color mt-1">
-                            Session: {session ? `#${session.id}` : 'Aucune'}
+                            {session ? t('camionsPage.repsSection.session', { id: session.id }) : t('camionsPage.repsSection.noSession')}
                           </div>
                         </div>
                       </div>
@@ -708,44 +708,49 @@ export default function CamionsIndex() {
                   <div className="flex flex-wrap gap-2">
                     {session?.status === 'open' ? (
                       <button onClick={() => openCloseSession(rep)} className="btn-secondary text-xs">
-                        <i className="fa-solid fa-flag-checkered" /> Clôturer
+                        <i className="fa-solid fa-flag-checkered" /> {t('camionsPage.repsSection.close')}
                       </button>
                     ) : (
                       <button onClick={() => openSession({ rep })} className="btn-secondary text-xs">
-                        <i className="fa-solid fa-play" /> Ouvrir session
+                        <i className="fa-solid fa-play" /> {t('camionsPage.repsSection.open')}
                       </button>
                     )}
                     <button onClick={() => openTransfer(rep)} className="btn-secondary text-xs">
-                      <i className="fa-solid fa-truck-ramp-box" /> Charger
+                      <i className="fa-solid fa-truck-ramp-box" /> {t('camionsPage.repsSection.load')}
                     </button>
                     <button
                       onClick={() => setExpanded((current) => ({ ...current, [rep.user?.id]: !current[rep.user?.id] }))}
                       className="btn-secondary text-xs"
                     >
                       <i className={`fa-solid ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'}`} />
-                      {isExpanded ? 'Masquer le stock' : 'Voir le stock'}
+                      {isExpanded ? t('camionsPage.repsSection.collapseStock') : t('camionsPage.repsSection.expandStock')}
                     </button>
                   </div>
                 </div>
 
                 <div className="mt-4 pt-4 text-xs text-muted-color grid grid-cols-1 sm:grid-cols-3 gap-3" style={{ borderTop: '1px solid var(--border)' }}>
-                  <div>Ouverture: <span className="font-medium text-base-color">{formatDateTime(session?.opened_at)}</span></div>
-                  <div>Cloture: <span className="font-medium text-base-color">{formatDateTime(session?.closed_at)}</span></div>
-                  <div>Session date: <span className="font-medium text-base-color">{session?.session_date || 'Aucune'}</span></div>
+                  <div>{t('camionsPage.repsSection.opening')}: <span className="font-medium text-base-color">{formatCamionDateTime(session?.opened_at, t('common.notAvailable'))}</span></div>
+                  <div>{t('camionsPage.repsSection.closing')}: <span className="font-medium text-base-color">{formatCamionDateTime(session?.closed_at, t('common.notAvailable'))}</span></div>
+                  <div>{t('camionsPage.repsSection.sessionDate')}: <span className="font-medium text-base-color">{session?.session_date || t('camionsPage.fleetSection.none')}</span></div>
                 </div>
 
                 {isExpanded && (
                   <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
                     {stockItems.length === 0 ? (
                       <div className="rounded-2xl px-4 py-6 text-sm text-muted-color text-center" style={{ background: 'var(--surface-2)' }}>
-                        Aucun stock camion pour ce commercial.
+                        {t('camionsPage.repsSection.emptyStock')}
                       </div>
                     ) : (
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
                             <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['Produit', 'Référence', 'Quantité', 'Min'].map((heading) => (
+                              {[
+                                t('camionsPage.repsSection.stockTable.product'),
+                                t('camionsPage.repsSection.stockTable.reference'),
+                                t('camionsPage.repsSection.stockTable.qty'),
+                                t('camionsPage.repsSection.stockTable.min'),
+                              ].map((heading) => (
                                 <th key={heading} className="pb-2 pr-4 text-left text-xs font-semibold text-muted-color uppercase tracking-wider">
                                   {heading}
                                 </th>
@@ -759,13 +764,13 @@ export default function CamionsIndex() {
 
                               return (
                                 <tr key={`${rep.user?.id}-${item.product?.id ?? item.product?.reference}`} className="table-row">
-                                  <td className="py-2 pr-4 font-medium text-base-color">{item.product?.name || 'Produit'}</td>
-                                  <td className="py-2 pr-4 text-xs text-muted-color">{item.product?.reference || '-'}</td>
+                                  <td className="py-2 pr-4 font-medium text-base-color">{item.product?.name || t('camionsPage.repsSection.stockTable.fallbackProduct')}</td>
+                                  <td className="py-2 pr-4 text-xs text-muted-color">{item.product?.reference || t('common.notAvailable')}</td>
                                   <td className="py-2 pr-4 font-mono font-semibold" style={{ color: isLow ? '#d97706' : 'var(--text)' }}>
-                                    {fmt(item.qty)}
+                                    {formatNumber(item.qty)}
                                     {isLow && <i className="fa-solid fa-triangle-exclamation ml-1.5 text-[10px]" style={{ color: '#d97706' }} />}
                                   </td>
-                                  <td className="py-2 text-xs text-muted-color">{fmt(minStock)}</td>
+                                  <td className="py-2 text-xs text-muted-color">{formatNumber(minStock)}</td>
                                 </tr>
                               )
                             })}
@@ -784,37 +789,37 @@ export default function CamionsIndex() {
       <Modal
         open={fleetModal}
         onClose={() => setFleetModal(false)}
-        title={fleetForm.id ? 'Modifier un camion physique' : 'Ajouter un camion physique'}
+        title={fleetForm.id ? t('camionsPage.fleetModal.editTitle') : t('camionsPage.fleetModal.createTitle')}
         size="md"
       >
         <div className="space-y-4">
           {canBrowseAll && selectedDepot?.company?.name && (
             <div className="rounded-2xl px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
-              Société appliquée: <strong className="text-base-color">{selectedDepot.company.name}</strong>
-              {selectedDepot.company?.max_camions ? ` · Limite flotte: ${selectedDepot.company.max_camions} camion(s)` : ''}
+              {t('camionsPage.fleetModal.companyApplied', { company: selectedDepot.company.name })}
+              {selectedDepot.company?.max_camions ? ` · ${t('camionsPage.fleetModal.companyLimit', { count: selectedDepot.company.max_camions })}` : ''}
             </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label="Nom du camion" error={fleetErrors.name?.[0]} required>
+            <FormField label={t('camionsPage.fleetModal.name')} error={fleetErrors.name?.[0]} required>
               <input
                 value={fleetForm.name}
                 onChange={(event) => setFleetForm((current) => ({ ...current, name: event.target.value }))}
-                placeholder="Camion Nord 01"
+                placeholder={t('camionsPage.fleetModal.placeholders.name')}
               />
             </FormField>
 
-            <FormField label="Immatriculation" error={fleetErrors.plate?.[0]}>
+            <FormField label={t('camionsPage.fleetModal.plate')} error={fleetErrors.plate?.[0]}>
               <input
                 value={fleetForm.plate}
                 onChange={(event) => setFleetForm((current) => ({ ...current, plate: event.target.value }))}
-                placeholder="123 TU 4567"
+                placeholder={t('camionsPage.fleetModal.placeholders.plate')}
               />
             </FormField>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label="Ordre d affichage" error={fleetErrors.sort_order?.[0]}>
+            <FormField label={t('camionsPage.fleetModal.sortOrder')} error={fleetErrors.sort_order?.[0]}>
               <input
                 type="number"
                 min="0"
@@ -823,13 +828,13 @@ export default function CamionsIndex() {
               />
             </FormField>
 
-            <FormField label="Etat flotte" error={fleetErrors.operational_status?.[0]}>
+            <FormField label={t('camionsPage.fleetModal.status')} error={fleetErrors.operational_status?.[0]}>
               <select
                 value={fleetForm.operational_status}
                 onChange={(event) => setFleetForm((current) => ({ ...current, operational_status: event.target.value }))}
               >
-                <option value="ready">Pret</option>
-                <option value="maintenance">En panne / maintenance</option>
+                <option value="ready">{t('camionsPage.fleetModal.statuses.ready')}</option>
+                <option value="maintenance">{t('camionsPage.fleetModal.statuses.maintenance')}</option>
               </select>
             </FormField>
           </div>
@@ -841,26 +846,26 @@ export default function CamionsIndex() {
                 checked={fleetForm.active}
                 onChange={(event) => setFleetForm((current) => ({ ...current, active: event.target.checked }))}
               />
-              Camion actif pour les prochaines sessions
+              {t('camionsPage.fleetModal.activeToggle')}
             </label>
           </div>
 
-          <FormField label="Note" error={fleetErrors.note?.[0]}>
+          <FormField label={t('camionsPage.fleetModal.note')} error={fleetErrors.note?.[0]}>
             <textarea
               rows="3"
               value={fleetForm.note}
               onChange={(event) => setFleetForm((current) => ({ ...current, note: event.target.value }))}
-              placeholder="Informations logistiques ou remarques internes"
+              placeholder={t('camionsPage.fleetModal.placeholders.note')}
             />
           </FormField>
 
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setFleetModal(false)} className="btn-secondary">Annuler</button>
+            <button onClick={() => setFleetModal(false)} className="btn-secondary">{t('common.cancel')}</button>
             <button onClick={saveFleet} disabled={savingFleet} className="btn-primary">
               {savingFleet ? (
-                <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</>
+                <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</>
               ) : (
-                <><i className="fa-solid fa-floppy-disk" /> Enregistrer</>
+                <><i className="fa-solid fa-floppy-disk" /> {t('common.save')}</>
               )}
             </button>
           </div>
@@ -870,36 +875,36 @@ export default function CamionsIndex() {
       <Modal
         open={transferModal}
         onClose={() => setTransferModal(false)}
-        title="Charger un commercial"
+        title={t('camionsPage.transferModal.title')}
         size="sm"
       >
         <div className="space-y-4">
           <div className="rounded-2xl px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
-            Depot de chargement: <strong className="text-base-color">{selectedDepot?.name || 'Dépôt non défini'}</strong>.
+            {t('camionsPage.transferModal.depotApplied', { depot: selectedDepot?.name || t('camionsPage.transferModal.depotMissing') })}
           </div>
 
-          <FormField label="Commercial" error={transferErrors.user_id?.[0]} required>
+          <FormField label={t('camionsPage.transferModal.rep')} error={transferErrors.user_id?.[0]} required>
             <select
               value={transferForm.user_id}
               onChange={(event) => setTransferForm((current) => ({ ...current, user_id: event.target.value }))}
             >
-              <option value="">Selectionner un commercial...</option>
+              <option value="">{t('camionsPage.transferModal.selectRep')}</option>
               {reps.map((rep) => (
                 <option key={rep.user?.id} value={rep.user?.id}>
                   {rep.user?.name}
                   {rep.configured_camion?.name ? ` - ${rep.configured_camion.name}` : ''}
-                  {rep.route_session?.status === 'open' ? ' - session ouverte' : ''}
+                  {rep.route_session?.status === 'open' ? ` - ${t('camionsPage.transferModal.sessionOpenSuffix')}` : ''}
                 </option>
               ))}
             </select>
           </FormField>
 
-          <FormField label="Produit" error={transferErrors.product_id?.[0]} required>
+          <FormField label={t('camionsPage.transferModal.product')} error={transferErrors.product_id?.[0]} required>
             <select
               value={transferForm.product_id}
               onChange={(event) => setTransferForm((current) => ({ ...current, product_id: event.target.value }))}
             >
-              <option value="">Selectionner un produit...</option>
+              <option value="">{t('camionsPage.transferModal.selectProduct')}</option>
               {products.map((product) => (
                 <option key={product.id} value={product.id}>
                   {product.name} - {product.reference}
@@ -908,7 +913,7 @@ export default function CamionsIndex() {
             </select>
           </FormField>
 
-            <FormField label="Quantité" error={transferErrors.qty?.[0]} required>
+          <FormField label={t('camionsPage.transferModal.qty')} error={transferErrors.qty?.[0]} required>
             <input
               type="number"
               step="0.001"
@@ -919,25 +924,25 @@ export default function CamionsIndex() {
             />
           </FormField>
 
-          <FormField label="Note" error={transferErrors.note?.[0]}>
+          <FormField label={t('camionsPage.transferModal.note')} error={transferErrors.note?.[0]}>
             <input
               value={transferForm.note}
               onChange={(event) => setTransferForm((current) => ({ ...current, note: event.target.value }))}
-              placeholder="Recharge matinale, correction, urgence..."
+              placeholder={t('camionsPage.transferModal.notePlaceholder')}
             />
           </FormField>
 
           <p className="text-xs text-muted-color">
-            Le mouvement sera tracé dans l’audit stock avec la session terrain et le camion physique s’ils sont déjà affectés.
+            {t('camionsPage.transferModal.hint')}
           </p>
 
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setTransferModal(false)} className="btn-secondary">Annuler</button>
+            <button onClick={() => setTransferModal(false)} className="btn-secondary">{t('common.cancel')}</button>
             <button onClick={saveTransfer} disabled={savingTransfer} className="btn-primary">
               {savingTransfer ? (
-                <><i className="fa-solid fa-spinner fa-spin" /> Transfert...</>
+                <><i className="fa-solid fa-spinner fa-spin" /> {t('camionsPage.transferModal.submitting')}</>
               ) : (
-                <><i className="fa-solid fa-truck-arrow-right" /> Transferer</>
+                <><i className="fa-solid fa-truck-arrow-right" /> {t('camionsPage.transferModal.submit')}</>
               )}
             </button>
           </div>
@@ -947,32 +952,32 @@ export default function CamionsIndex() {
       <Modal
         open={sessionModal}
         onClose={() => setSessionModal(false)}
-        title="Démarrer une session terrain"
+        title={t('camionsPage.sessionModal.title')}
         size="lg"
       >
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label="Commercial" error={sessionErrors.rep_id?.[0]} required>
+            <FormField label={t('camionsPage.sessionModal.rep')} error={sessionErrors.rep_id?.[0]} required>
               <select
                 value={sessionForm.rep_id}
                 onChange={(event) => setSessionForm((current) => ({ ...current, rep_id: event.target.value }))}
               >
-                <option value="">Selectionner un commercial...</option>
+                <option value="">{t('camionsPage.sessionModal.selectRep')}</option>
                 {reps.map((rep) => (
                   <option key={rep.user?.id} value={rep.user?.id} disabled={rep.route_session?.status === 'open'}>
                     {rep.user?.name}
-                    {rep.route_session?.status === 'open' ? ' - session déjà ouverte' : ''}
+                    {rep.route_session?.status === 'open' ? ` - ${t('camionsPage.sessionModal.repOpenSuffix')}` : ''}
                   </option>
                 ))}
               </select>
             </FormField>
 
-            <FormField label="Camion" error={sessionErrors.camion_id?.[0]} required>
+            <FormField label={t('camionsPage.sessionModal.camion')} error={sessionErrors.camion_id?.[0]} required>
               <select
                 value={sessionForm.camion_id}
                 onChange={(event) => setSessionForm((current) => ({ ...current, camion_id: event.target.value }))}
               >
-                <option value="">Selectionner un camion...</option>
+                <option value="">{t('camionsPage.sessionModal.selectCamion')}</option>
                 {availableCamions.map((camion) => (
                   <option key={camion.id} value={camion.id}>
                     {camion.name} {camion.plate ? `- ${camion.plate}` : ''}
@@ -983,20 +988,22 @@ export default function CamionsIndex() {
           </div>
 
           <div className="rounded-2xl px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
-            Depot applique: {selectedDepot?.name || 'Dépôt non défini'}.
-            {' '}Zone appliquee: {selectedRep?.user?.zone?.name || 'Zone non definie pour ce commercial'}.
+            {t('camionsPage.sessionModal.summary', {
+              depot: selectedDepot?.name || t('camionsPage.sessionModal.depotMissing'),
+              zone: selectedRep?.user?.zone?.name || t('camionsPage.sessionModal.zoneMissing'),
+            })}
           </div>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-sm font-semibold text-base-color">Chargement initial</div>
+                <div className="text-sm font-semibold text-base-color">{t('camionsPage.sessionModal.loadTitle')}</div>
                 <div className="text-xs text-muted-color mt-1">
-                  Seuls les produits avec stock dépôt disponible sont proposés ici pour éviter une ouverture incohérente.
+                  {t('camionsPage.sessionModal.loadHint')}
                 </div>
               </div>
               <button onClick={addSessionLine} className="btn-secondary text-xs">
-                <i className="fa-solid fa-plus" /> Ligne
+                <i className="fa-solid fa-plus" /> {t('camionsPage.sessionModal.addLine')}
               </button>
             </div>
 
@@ -1015,21 +1022,25 @@ export default function CamionsIndex() {
             <div className="space-y-3">
               {sessionForm.lines.map((line, index) => (
                 <div key={`line-${index}`} className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_160px_auto] gap-3">
-                  <FormField label={index === 0 ? 'Produit' : `Produit ${index + 1}`}>
+                  <FormField label={t('camionsPage.sessionModal.lineProduct', { index })}>
                     <select
                       value={line.product_id}
                       onChange={(event) => updateSessionLine(index, 'product_id', event.target.value)}
                     >
-                      <option value="">Selectionner un produit...</option>
+                      <option value="">{t('camionsPage.sessionModal.selectProduct')}</option>
                       {sessionLoadProducts.map((product) => (
                         <option key={product.id} value={product.id}>
-                          {product.name} - {product.reference} - depot {Number(product.depot_qty ?? 0).toFixed(3)}
+                          {t('camionsPage.sessionModal.productOption', {
+                            name: product.name,
+                            reference: product.reference,
+                            qty: formatNumber(product.depot_qty ?? 0),
+                          })}
                         </option>
                       ))}
                     </select>
                   </FormField>
 
-              <FormField label={index === 0 ? 'Quantité' : `Quantité ${index + 1}`}>
+                  <FormField label={t('camionsPage.sessionModal.lineQty', { index })}>
                     <input
                       type="number"
                       step="0.001"
@@ -1051,18 +1062,18 @@ export default function CamionsIndex() {
 
             {sessionLoadProducts.length === 0 && (
               <div className="rounded-2xl px-4 py-3 text-sm text-amber-700" style={{ background: 'rgba(245,158,11,0.10)' }}>
-                Aucun produit n’a de stock dépôt disponible pour un chargement initial.
+                {t('camionsPage.sessionModal.noProducts')}
               </div>
             )}
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setSessionModal(false)} className="btn-secondary">Annuler</button>
+            <button onClick={() => setSessionModal(false)} className="btn-secondary">{t('common.cancel')}</button>
             <button onClick={saveSession} disabled={savingSession} className="btn-primary">
               {savingSession ? (
-                <><i className="fa-solid fa-spinner fa-spin" /> Ouverture...</>
+                <><i className="fa-solid fa-spinner fa-spin" /> {t('camionsPage.sessionModal.submitting')}</>
               ) : (
-                <><i className="fa-solid fa-play" /> Ouvrir la session</>
+                <><i className="fa-solid fa-play" /> {t('camionsPage.sessionModal.submit')}</>
               )}
             </button>
           </div>
@@ -1076,12 +1087,12 @@ export default function CamionsIndex() {
           setCloseForm(emptyCloseForm())
           setCloseContext(null)
         }}
-        title="Clôturer une session terrain"
+        title={t('camionsPage.closeModal.title')}
         size="sm"
       >
         <div className="space-y-4">
           <div className="rounded-2xl px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
-            Renseignez les montants déjà récupérés si vous souhaitez les consolider au moment de la clôture.
+            {t('camionsPage.closeModal.intro')}
           </div>
 
           {closeContext && (
@@ -1095,10 +1106,17 @@ export default function CamionsIndex() {
             >
               <div className="font-semibold text-base-color">{closeContext.repName}</div>
               <div className="text-xs text-secondary-color mt-1">
-                {closeContext.camionName} | {closeContext.invoiceCount} facture(s) | Ventes {fmt(closeContext.totalSold)} TND
+                {t('camionsPage.closeModal.summaryLineOne', {
+                  camion: closeContext.camionName,
+                  count: closeContext.invoiceCount,
+                  total: formatCurrency(closeContext.totalSold),
+                })}
               </div>
               <div className="text-xs text-secondary-color mt-1">
-                Cash propose {fmt(closeContext.cashCollected)} TND | Credit session {fmt(closeContext.creditTotal)} TND
+                {t('camionsPage.closeModal.summaryLineTwo', {
+                  cash: formatCurrency(closeContext.cashCollected),
+                  credit: formatCurrency(closeContext.creditTotal),
+                })}
               </div>
             </div>
           )}
@@ -1109,7 +1127,7 @@ export default function CamionsIndex() {
             </div>
           )}
 
-          <FormField label="Cash collecte a valider" error={closeErrors.cash_collected?.[0]}>
+          <FormField label={t('camionsPage.closeModal.cash')} error={closeErrors.cash_collected?.[0]}>
             <input
               type="number"
               step="0.001"
@@ -1120,7 +1138,7 @@ export default function CamionsIndex() {
             />
           </FormField>
 
-          <FormField label="Crédit collecté" error={closeErrors.credit_collected?.[0]}>
+          <FormField label={t('camionsPage.closeModal.credit')} error={closeErrors.credit_collected?.[0]}>
             <input
               type="number"
               step="0.001"
@@ -1140,13 +1158,13 @@ export default function CamionsIndex() {
               }}
               className="btn-secondary"
             >
-              Annuler
+              {t('common.cancel')}
             </button>
             <button onClick={saveCloseSession} disabled={closingSession} className="btn-primary">
               {closingSession ? (
-                <><i className="fa-solid fa-spinner fa-spin" /> Cloture...</>
+                <><i className="fa-solid fa-spinner fa-spin" /> {t('camionsPage.closeModal.submitting')}</>
               ) : (
-                <><i className="fa-solid fa-flag-checkered" /> Clôturer la session</>
+                <><i className="fa-solid fa-flag-checkered" /> {t('camionsPage.closeModal.submit')}</>
               )}
             </button>
           </div>

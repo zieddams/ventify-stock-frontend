@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useI18n } from '../contexts/I18nContext'
 import { DEFAULT_LOGIN_MARK } from '../utils/branding'
 
 const PARTICLES = Array.from({ length: 22 }, (_, index) => ({
@@ -12,8 +13,6 @@ const PARTICLES = Array.from({ length: 22 }, (_, index) => ({
   opacity: 0.12 + (index % 5) * 0.035,
 }))
 
-const HIGHLIGHTS = ['Stock', 'Sessions terrain', 'Facturation']
-
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -21,7 +20,9 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
+  const { locale, setLocale, supportedLocales, t, raw } = useI18n()
   const navigate = useNavigate()
+  const highlights = raw('login.highlights') ?? []
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -32,7 +33,7 @@ export default function Login() {
       await login(email, password)
       navigate('/')
     } catch (err) {
-      setError(err.response?.data?.message || 'Identifiants incorrects')
+      setError(err.response?.data?.message || t('login.invalidCredentials'))
     } finally {
       setLoading(false)
     }
@@ -80,13 +81,35 @@ export default function Login() {
               <div className="absolute inset-0 rounded-[20px] bg-[linear-gradient(135deg,rgba(255,255,255,0.38)_0%,rgba(255,255,255,0)_62%)]" />
             </div>
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-teal-200/80">Gestion de vente</div>
-              <div className="text-xl font-bold text-white">Connexion a la plateforme</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-teal-200/80">{t('login.eyebrow')}</div>
+              <div className="text-xl font-bold text-white">{t('login.title')}</div>
             </div>
           </div>
 
+          <div className="mt-4 flex flex-wrap gap-2">
+            {supportedLocales.map((item) => {
+              const active = locale === item.code
+
+              return (
+                <button
+                  key={item.code}
+                  type="button"
+                  onClick={() => { void setLocale(item.code, { persist: false }) }}
+                  className="rounded-full border px-3 py-1 text-[11px] font-semibold transition"
+                  style={{
+                    borderColor: active ? 'rgba(45,212,191,0.45)' : 'rgba(255,255,255,0.1)',
+                    background: active ? 'rgba(45,212,191,0.16)' : 'rgba(255,255,255,0.04)',
+                    color: '#e2e8f0',
+                  }}
+                >
+                  {item.short} · {item.label}
+                </button>
+              )
+            })}
+          </div>
+
           <p className="mt-5 text-sm leading-7 text-slate-300">
-            Acces direct au stock, aux sessions terrain, a la facturation et au suivi mobile.
+            {t('login.subtitle')}
           </p>
 
           {error && (
@@ -106,7 +129,7 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                Email
+                {t('login.email')}
               </label>
               <div className="relative">
                 <i className="fa-regular fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400" />
@@ -114,7 +137,7 @@ export default function Login() {
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="admin@gestion.local"
+                  placeholder={t('login.emailPlaceholder')}
                   autoComplete="email"
                   required
                   autoFocus
@@ -125,7 +148,7 @@ export default function Login() {
 
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                Mot de passe
+                {t('login.password')}
               </label>
               <div className="relative">
                 <i className="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400" />
@@ -133,7 +156,7 @@ export default function Login() {
                   type={showPwd ? 'text' : 'password'}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="********"
+                  placeholder={t('login.passwordPlaceholder')}
                   autoComplete="current-password"
                   required
                   className="login-input pr-12"
@@ -153,19 +176,19 @@ export default function Login() {
               {loading ? (
                 <>
                   <i className="fa-solid fa-spinner fa-spin" />
-                  Connexion en cours...
+                  {t('login.submitting')}
                 </>
               ) : (
                 <>
                   <i className="fa-solid fa-right-to-bracket" />
-                  Acceder a la plateforme
+                  {t('login.submit')}
                 </>
               )}
             </button>
           </form>
 
           <div className="mt-6 flex flex-wrap gap-2">
-            {HIGHLIGHTS.map((item) => (
+            {highlights.map((item) => (
               <span
                 key={item}
                 className="rounded-full border px-3 py-1 text-[11px] font-semibold text-slate-200/90"

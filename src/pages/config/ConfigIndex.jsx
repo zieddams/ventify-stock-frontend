@@ -7,6 +7,7 @@ import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
 import { SUPPORT_BUG_RECIPIENTS } from '../../config/supportRecipients'
 import { useAuth } from '../../contexts/AuthContext'
+import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import SystemTasksPanel from './SystemTasksPanel'
 import { DOCUMENT_LAYOUT_SETTING_KEY, normalizeDocumentLayouts } from '../../hooks/useDocumentLayouts'
@@ -17,241 +18,8 @@ import {
   getDocumentDefinition,
 } from '../../utils/documentDefinitions'
 import { resolveDocumentLayout } from '../../utils/documents'
+import { formatDateTime as formatLocaleDateTime } from '../../utils/format'
 import { normalizePaymentMethodScopes } from '../../utils/paymentMethodScopes'
-
-const MANAGED_TYPES = [
-  {
-    key: 'category',
-    module: 'catalog',
-    title: 'Catégories produits',
-    description: 'Références utilisées dans les fiches produit et les imports.',
-    emptyLabel: 'Aucune catégorie configurée.',
-  },
-  {
-    key: 'unit',
-    module: 'catalog',
-    title: 'Unités',
-    description: 'Unités disponibles à la création produit.',
-    emptyLabel: 'Aucune unité configurée.',
-  },
-  {
-    key: 'payment_method',
-    module: 'payments',
-    title: 'Méthodes de paiement',
-    description: 'Le cash reste système et actif. Les virements et autres méthodes restent configurables.',
-    emptyLabel: 'Aucune méthode de paiement configurée.',
-  },
-  {
-    key: 'expense_category',
-    module: 'expenses',
-    title: 'Catégories de dépenses',
-    description: 'Catalogue dynamique pour les motifs, libellés, icônes et couleurs de dépense.',
-    emptyLabel: 'Aucune catégorie de dépense configurée.',
-  },
-]
-
-const MODULES = [
-  {
-    key: 'catalog',
-    label: 'Catalogues',
-    icon: 'fa-solid fa-layer-group',
-    description: 'Produits, catégories, unités et structure métier du dépôt.',
-  },
-  {
-    key: 'payments',
-    label: 'Paiements',
-    icon: 'fa-solid fa-wallet',
-    description: 'Cash système, virements et moyens de règlement utiles à Irtiwaa.',
-  },
-  {
-    key: 'expenses',
-    label: 'Dépenses',
-    icon: 'fa-solid fa-receipt',
-    description: 'Motifs dynamiques, libellés finance et pilotage des dépenses.',
-  },
-  {
-    key: 'documents',
-    label: 'Documents',
-    icon: 'fa-solid fa-print',
-    description: 'PDF, impression, champs visibles et modele de sortie.',
-  },
-  {
-    key: 'system',
-    label: 'Système',
-    icon: 'fa-solid fa-server',
-    description: 'Support, notifications, tâches de fond et état applicatif.',
-  },
-]
-
-const SETUP_SECTIONS = [
-  {
-    key: 'categories',
-    module: 'catalog',
-    title: 'Catégories produits',
-    description: 'Liste dynamique des catégories visibles à la création et à l’import produit.',
-    icon: 'fa-solid fa-tags',
-  },
-  {
-    key: 'units',
-    module: 'catalog',
-    title: 'Unités',
-    description: 'Unités disponibles pour les produits, impressions et exports.',
-    icon: 'fa-solid fa-ruler-combined',
-  },
-  {
-    key: 'zones',
-    module: 'catalog',
-    title: 'Zones et tarifs',
-    description: 'Gouvernorats, secteurs et règles tarifaires utilisés par le dépôt.',
-    icon: 'fa-solid fa-map-location-dot',
-  },
-  {
-    key: 'payment-methods',
-    module: 'payments',
-    title: 'Méthodes de paiement',
-    description: 'Cash système, virements, banques et autres moyens utilisés sur les factures.',
-    icon: 'fa-solid fa-wallet',
-  },
-  {
-    key: 'expense-categories',
-    module: 'expenses',
-    title: 'Catégories de dépenses',
-    description: 'Motifs dynamiques avec libellé, couleur, icône et activation.',
-    icon: 'fa-solid fa-receipt',
-  },
-  {
-    key: 'documents',
-    module: 'documents',
-    title: 'Documents PDF & impression',
-    description: 'Choix des champs et orientations par entité documentaire.',
-    icon: 'fa-solid fa-print',
-  },
-  {
-    key: 'terrain-visibility',
-    module: 'system',
-    title: 'Cartes et geolocalisation',
-    description: 'Active ou masque les cartes clients, le suivi terrain et les surfaces GPS pour la societe.',
-    icon: 'fa-solid fa-map-location-dot',
-  },
-  {
-    key: 'system-support',
-    module: 'system',
-    title: 'Support et signalements',
-    description: "Destinataires support figés et libellé d’aide interne.",
-    icon: 'fa-solid fa-life-ring',
-  },
-  {
-    key: 'users-access',
-    module: 'system',
-    title: 'Utilisateurs et accès',
-    description: 'Rôles, activation des comptes et affectation clients par utilisateur.',
-    icon: 'fa-solid fa-user-gear',
-  },
-  {
-    key: 'background-tasks',
-    module: 'system',
-    title: 'Tâches de fond',
-    description: 'Planification, historique et déclenchement manuel des routines backend.',
-    icon: 'fa-solid fa-clock-rotate-left',
-  },
-  {
-    key: 'system-status',
-    module: 'system',
-    title: 'État système',
-    description: "Informations d'environnement, PHP, Laravel, file d'attente et messagerie.",
-    icon: 'fa-solid fa-server',
-  },
-]
-
-const DOCUMENT_ENTITY_GROUPS = [
-  {
-    key: 'customers',
-    label: 'Clients',
-    description: 'Listes clients et affectation portefeuille.',
-    icon: 'fa-solid fa-users',
-    definitionKeys: ['customers_list'],
-  },
-  {
-    key: 'products',
-    label: 'Produits',
-    description: 'Catalogue, prix et stocks minimums.',
-    icon: 'fa-solid fa-box-open',
-    definitionKeys: ['products_list'],
-  },
-  {
-    key: 'invoices',
-    label: 'Factures',
-    description: 'Liste facture, pièce simple et détail complet.',
-    icon: 'fa-solid fa-file-invoice',
-    definitionKeys: ['invoices_list', 'invoice_item', 'invoice_detail'],
-  },
-  {
-    key: 'expenses',
-    label: 'Dépenses',
-    description: 'Listes et fiches unitaires de dépenses.',
-    icon: 'fa-solid fa-receipt',
-    definitionKeys: ['expenses_list', 'expense_item'],
-  },
-  {
-    key: 'route-sessions',
-    label: 'Sessions terrain',
-    description: 'Sorties journée et fiches unitaires de session.',
-    icon: 'fa-solid fa-route',
-    definitionKeys: ['route_sessions_list', 'route_session_item'],
-  },
-  {
-    key: 'depot',
-    label: 'Dépôt et mouvements',
-    description: 'Stocks dépôt et journal des mouvements.',
-    icon: 'fa-solid fa-warehouse',
-    definitionKeys: ['depot_stock_list', 'stock_movements_list', 'stock_movement_item'],
-  },
-  {
-    key: 'inventory',
-    label: 'Inventaire',
-    description: 'Historique des ajustements et audits inventaire.',
-    icon: 'fa-solid fa-boxes-stacked',
-    definitionKeys: ['inventory_history_list'],
-  },
-]
-
-const MAP_PROVIDERS = [
-  {
-    key: 'openstreetmap',
-    label: 'OpenStreetMap',
-    description: 'Base gratuite et stable pour le suivi clients et terrain.',
-  },
-  {
-    key: 'carto_light',
-    label: 'Carto Positron',
-    description: 'Lecture plus nette des etiquettes et du relief urbain.',
-  },
-  {
-    key: 'open_topo_map',
-    label: 'OpenTopoMap',
-    description: 'Fond gratuit avec relief utile pour la lecture terrain et les zones hors ville.',
-  },
-  {
-    key: 'esri_world_imagery',
-    label: 'Esri Imagerie',
-    description: 'Imagerie satellite utile pour le contexte terrain.',
-  },
-  {
-    key: 'google_roadmap',
-    label: 'Google Roadmap',
-    description: 'Necessite une cle Google Maps JavaScript API.',
-  },
-  {
-    key: 'google_satellite',
-    label: 'Google Satellite',
-    description: 'Necessite une cle Google Maps JavaScript API et le mode satellite.',
-  },
-  {
-    key: 'custom',
-    label: 'Tuiles personnalisees',
-    description: 'Mode expert pour un provider Leaflet externe.',
-  },
-]
 
 const MAP_SETTING_KEYS = [
   'map.provider',
@@ -273,12 +41,6 @@ const SYSTEM_SETTING_KEYS = [
 const DOCUMENT_SETTING_KEYS = [DOCUMENT_LAYOUT_SETTING_KEY]
 const HIDDEN_CONFIG_SECTIONS = new Set(['map-provider', 'map-status'])
 
-const PAYMENT_SCOPE_OPTIONS = [
-  { value: 'customer', label: 'Clients / factures' },
-  { value: 'expense', label: 'Dépenses' },
-  { value: 'all', label: 'Tous les contextes' },
-]
-
 const EMPTY_FORM = {
   value: '',
   label: '',
@@ -289,6 +51,258 @@ const EMPTY_FORM = {
   active: true,
 }
 
+function getManagedTypes(t) {
+  return [
+    {
+      key: 'category',
+      module: 'catalog',
+      title: t('configPage.managedTypes.category.title'),
+      description: t('configPage.managedTypes.category.description'),
+      emptyLabel: t('configPage.managedTypes.category.empty'),
+    },
+    {
+      key: 'unit',
+      module: 'catalog',
+      title: t('configPage.managedTypes.unit.title'),
+      description: t('configPage.managedTypes.unit.description'),
+      emptyLabel: t('configPage.managedTypes.unit.empty'),
+    },
+    {
+      key: 'payment_method',
+      module: 'payments',
+      title: t('configPage.managedTypes.paymentMethod.title'),
+      description: t('configPage.managedTypes.paymentMethod.description'),
+      emptyLabel: t('configPage.managedTypes.paymentMethod.empty'),
+    },
+    {
+      key: 'expense_category',
+      module: 'expenses',
+      title: t('configPage.managedTypes.expenseCategory.title'),
+      description: t('configPage.managedTypes.expenseCategory.description'),
+      emptyLabel: t('configPage.managedTypes.expenseCategory.empty'),
+    },
+  ]
+}
+
+function getModules(t) {
+  return [
+    {
+      key: 'catalog',
+      label: t('configPage.modules.catalog.label'),
+      icon: 'fa-solid fa-layer-group',
+      description: t('configPage.modules.catalog.description'),
+    },
+    {
+      key: 'payments',
+      label: t('configPage.modules.payments.label'),
+      icon: 'fa-solid fa-wallet',
+      description: t('configPage.modules.payments.description'),
+    },
+    {
+      key: 'expenses',
+      label: t('configPage.modules.expenses.label'),
+      icon: 'fa-solid fa-receipt',
+      description: t('configPage.modules.expenses.description'),
+    },
+    {
+      key: 'documents',
+      label: t('configPage.modules.documents.label'),
+      icon: 'fa-solid fa-print',
+      description: t('configPage.modules.documents.description'),
+    },
+    {
+      key: 'system',
+      label: t('configPage.modules.system.label'),
+      icon: 'fa-solid fa-server',
+      description: t('configPage.modules.system.description'),
+    },
+  ]
+}
+
+function getSetupSections(t) {
+  return [
+    {
+      key: 'categories',
+      module: 'catalog',
+      title: t('configPage.sections.categories.title'),
+      description: t('configPage.sections.categories.description'),
+      icon: 'fa-solid fa-tags',
+    },
+    {
+      key: 'units',
+      module: 'catalog',
+      title: t('configPage.sections.units.title'),
+      description: t('configPage.sections.units.description'),
+      icon: 'fa-solid fa-ruler-combined',
+    },
+    {
+      key: 'zones',
+      module: 'catalog',
+      title: t('configPage.sections.zones.title'),
+      description: t('configPage.sections.zones.description'),
+      icon: 'fa-solid fa-map-location-dot',
+    },
+    {
+      key: 'payment-methods',
+      module: 'payments',
+      title: t('configPage.sections.paymentMethods.title'),
+      description: t('configPage.sections.paymentMethods.description'),
+      icon: 'fa-solid fa-wallet',
+    },
+    {
+      key: 'expense-categories',
+      module: 'expenses',
+      title: t('configPage.sections.expenseCategories.title'),
+      description: t('configPage.sections.expenseCategories.description'),
+      icon: 'fa-solid fa-receipt',
+    },
+    {
+      key: 'documents',
+      module: 'documents',
+      title: t('configPage.sections.documents.title'),
+      description: t('configPage.sections.documents.description'),
+      icon: 'fa-solid fa-print',
+    },
+    {
+      key: 'terrain-visibility',
+      module: 'system',
+      title: t('configPage.sections.terrainVisibility.title'),
+      description: t('configPage.sections.terrainVisibility.description'),
+      icon: 'fa-solid fa-map-location-dot',
+    },
+    {
+      key: 'system-support',
+      module: 'system',
+      title: t('configPage.sections.systemSupport.title'),
+      description: t('configPage.sections.systemSupport.description'),
+      icon: 'fa-solid fa-life-ring',
+    },
+    {
+      key: 'users-access',
+      module: 'system',
+      title: t('configPage.sections.usersAccess.title'),
+      description: t('configPage.sections.usersAccess.description'),
+      icon: 'fa-solid fa-user-gear',
+    },
+    {
+      key: 'background-tasks',
+      module: 'system',
+      title: t('configPage.sections.backgroundTasks.title'),
+      description: t('configPage.sections.backgroundTasks.description'),
+      icon: 'fa-solid fa-clock-rotate-left',
+    },
+    {
+      key: 'system-status',
+      module: 'system',
+      title: t('configPage.sections.systemStatus.title'),
+      description: t('configPage.sections.systemStatus.description'),
+      icon: 'fa-solid fa-server',
+    },
+  ]
+}
+
+function getDocumentEntityGroups(t) {
+  return [
+    {
+      key: 'customers',
+      label: t('configPage.documentEntities.customers.label'),
+      description: t('configPage.documentEntities.customers.description'),
+      icon: 'fa-solid fa-users',
+      definitionKeys: ['customers_list'],
+    },
+    {
+      key: 'products',
+      label: t('configPage.documentEntities.products.label'),
+      description: t('configPage.documentEntities.products.description'),
+      icon: 'fa-solid fa-box-open',
+      definitionKeys: ['products_list'],
+    },
+    {
+      key: 'invoices',
+      label: t('configPage.documentEntities.invoices.label'),
+      description: t('configPage.documentEntities.invoices.description'),
+      icon: 'fa-solid fa-file-invoice',
+      definitionKeys: ['invoices_list', 'invoice_item', 'invoice_detail'],
+    },
+    {
+      key: 'expenses',
+      label: t('configPage.documentEntities.expenses.label'),
+      description: t('configPage.documentEntities.expenses.description'),
+      icon: 'fa-solid fa-receipt',
+      definitionKeys: ['expenses_list', 'expense_item'],
+    },
+    {
+      key: 'route-sessions',
+      label: t('configPage.documentEntities.routeSessions.label'),
+      description: t('configPage.documentEntities.routeSessions.description'),
+      icon: 'fa-solid fa-route',
+      definitionKeys: ['route_sessions_list', 'route_session_item'],
+    },
+    {
+      key: 'depot',
+      label: t('configPage.documentEntities.depot.label'),
+      description: t('configPage.documentEntities.depot.description'),
+      icon: 'fa-solid fa-warehouse',
+      definitionKeys: ['depot_stock_list', 'stock_movements_list', 'stock_movement_item'],
+    },
+    {
+      key: 'inventory',
+      label: t('configPage.documentEntities.inventory.label'),
+      description: t('configPage.documentEntities.inventory.description'),
+      icon: 'fa-solid fa-boxes-stacked',
+      definitionKeys: ['inventory_history_list'],
+    },
+  ]
+}
+
+function getMapProviders(t) {
+  return [
+    {
+      key: 'openstreetmap',
+      label: t('configPage.mapProviders.openstreetmap.label'),
+      description: t('configPage.mapProviders.openstreetmap.description'),
+    },
+    {
+      key: 'carto_light',
+      label: t('configPage.mapProviders.cartoLight.label'),
+      description: t('configPage.mapProviders.cartoLight.description'),
+    },
+    {
+      key: 'open_topo_map',
+      label: t('configPage.mapProviders.openTopoMap.label'),
+      description: t('configPage.mapProviders.openTopoMap.description'),
+    },
+    {
+      key: 'esri_world_imagery',
+      label: t('configPage.mapProviders.esriWorldImagery.label'),
+      description: t('configPage.mapProviders.esriWorldImagery.description'),
+    },
+    {
+      key: 'google_roadmap',
+      label: t('configPage.mapProviders.googleRoadmap.label'),
+      description: t('configPage.mapProviders.googleRoadmap.description'),
+    },
+    {
+      key: 'google_satellite',
+      label: t('configPage.mapProviders.googleSatellite.label'),
+      description: t('configPage.mapProviders.googleSatellite.description'),
+    },
+    {
+      key: 'custom',
+      label: t('configPage.mapProviders.custom.label'),
+      description: t('configPage.mapProviders.custom.description'),
+    },
+  ]
+}
+
+function getPaymentScopeOptions(t) {
+  return [
+    { value: 'customer', label: t('configPage.paymentScopes.customer') },
+    { value: 'expense', label: t('configPage.paymentScopes.expense') },
+    { value: 'all', label: t('configPage.paymentScopes.all') },
+  ]
+}
+
 function slugifyValue(input) {
   return String(input ?? '')
     .trim()
@@ -297,27 +311,27 @@ function slugifyValue(input) {
     .replace(/^_+|_+$/g, '')
 }
 
-function ItemBadge({ item }) {
+function ItemBadge({ item, t, paymentScopeOptions }) {
   const paymentScopes = item.type === 'payment_method' ? normalizePaymentMethodScopes(item) : []
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
       {item.is_system && (
         <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(59,130,246,0.12)', color: '#2563eb' }}>
-          Système
+          {t('configPage.badges.system')}
         </span>
       )}
       {item.is_default && (
         <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(13,148,136,0.12)', color: '#0d9488' }}>
-          Défaut
+          {t('configPage.badges.default')}
         </span>
       )}
       <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: item.active ? 'rgba(16,185,129,0.12)' : 'rgba(148,163,184,0.16)', color: item.active ? '#059669' : '#64748b' }}>
-        {item.active ? 'Actif' : 'Inactif'}
+        {item.active ? t('configPage.badges.active') : t('configPage.badges.inactive')}
       </span>
       {paymentScopes.map((scope) => (
         <span key={`${item.id}-${scope}`} className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(139,92,246,0.12)', color: '#7c3aed' }}>
-          {PAYMENT_SCOPE_OPTIONS.find((option) => option.value === scope)?.label ?? scope}
+          {paymentScopeOptions.find((option) => option.value === scope)?.label ?? scope}
         </span>
       ))}
     </div>
@@ -325,10 +339,12 @@ function ItemBadge({ item }) {
 }
 
 function InfoRow({ label, value, mono = false }) {
+  const { t } = useI18n()
+
   return (
     <div className="flex items-start gap-3 py-2.5" style={{ borderBottom: '1px solid var(--border)' }}>
       <span className="text-xs text-muted-color w-36 flex-shrink-0 pt-0.5">{label}</span>
-      <span className={`text-sm text-base-color ${mono ? 'font-mono text-xs' : 'font-medium'}`}>{value ?? '-'}</span>
+      <span className={`text-sm text-base-color ${mono ? 'font-mono text-xs' : 'font-medium'}`}>{value ?? t('common.notAvailable')}</span>
     </div>
   )
 }
@@ -382,7 +398,7 @@ function ModuleHubCard({ module, onOpen }) {
   )
 }
 
-function ConfigSection({ config, items, onAdd, onEdit, onToggle, onDelete }) {
+function ConfigSection({ config, items, onAdd, onEdit, onToggle, onDelete, t, paymentScopeOptions }) {
   return (
     <div className="card">
       <div className="flex items-start justify-between gap-3 mb-4">
@@ -391,7 +407,7 @@ function ConfigSection({ config, items, onAdd, onEdit, onToggle, onDelete }) {
           <p className="text-xs text-muted-color mt-1">{config.description}</p>
         </div>
         <button onClick={() => onAdd(config.key)} className="btn-primary text-xs">
-          <i className="fa-solid fa-plus" /> Ajouter
+          <i className="fa-solid fa-plus" /> {t('configPage.actions.add')}
         </button>
       </div>
 
@@ -417,7 +433,7 @@ function ConfigSection({ config, items, onAdd, onEdit, onToggle, onDelete }) {
                 </div>
                 {item.description && <div className="text-xs text-secondary-color mt-2">{item.description}</div>}
                 <div className="mt-2">
-                  <ItemBadge item={item} />
+                  <ItemBadge item={item} t={t} paymentScopeOptions={paymentScopeOptions} />
                 </div>
               </div>
 
@@ -425,15 +441,15 @@ function ConfigSection({ config, items, onAdd, onEdit, onToggle, onDelete }) {
                 {!item.is_system && (
                   <button onClick={() => onToggle(config.key, item)} className="btn-secondary text-xs">
                     <i className={`fa-solid ${item.active ? 'fa-toggle-on' : 'fa-toggle-off'}`} />
-                    {item.active ? 'Désactiver' : 'Activer'}
+                    {item.active ? t('configPage.actions.deactivate') : t('configPage.actions.activate')}
                   </button>
                 )}
                 <button onClick={() => onEdit(config.key, item)} className="btn-secondary text-xs">
-                  <i className="fa-solid fa-pen" /> Modifier
+                  <i className="fa-solid fa-pen" /> {t('common.edit')}
                 </button>
                 {item.can_delete && (
                   <button onClick={() => onDelete(config.key, item)} className="btn-danger text-xs">
-                    <i className="fa-solid fa-trash-can" /> Supprimer
+                    <i className="fa-solid fa-trash-can" /> {t('common.delete')}
                   </button>
                 )}
               </div>
@@ -452,6 +468,7 @@ function DocumentTemplateCard({
   onToggleField,
   onOrientationChange,
   onReset,
+  t,
 }) {
   const selectedCount = selectedFieldKeys.length
 
@@ -462,10 +479,10 @@ function DocumentTemplateCard({
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-sm font-semibold text-base-color">{definition.label}</h2>
             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(59,130,246,0.10)', color: '#2563eb' }}>
-              {definition.scope === 'item' ? 'Fiche unitaire' : 'Liste'}
+              {definition.scope === 'item' ? t('configPage.documents.scopeItem') : t('configPage.documents.scopeList')}
             </span>
             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(13,148,136,0.12)', color: '#0d9488' }}>
-              {selectedCount}/{definition.fields.length} champs actifs
+              {t('configPage.documents.activeFields', { count: selectedCount, total: definition.fields.length })}
             </span>
           </div>
           <p className="text-xs text-muted-color mt-1">{definition.description}</p>
@@ -473,11 +490,11 @@ function DocumentTemplateCard({
 
         <div className="flex flex-wrap items-center gap-2">
           <select value={orientation} onChange={(event) => onOrientationChange(definition, event.target.value)} className="text-xs">
-            <option value="portrait">Portrait</option>
-            <option value="landscape">Paysage</option>
+            <option value="portrait">{t('configPage.documents.orientations.portrait')}</option>
+            <option value="landscape">{t('configPage.documents.orientations.landscape')}</option>
           </select>
           <button onClick={() => onReset(definition)} className="btn-secondary text-xs">
-            <i className="fa-solid fa-rotate-left" /> Défaut
+            <i className="fa-solid fa-rotate-left" /> {t('configPage.documents.reset')}
           </button>
         </div>
       </div>
@@ -502,7 +519,7 @@ function DocumentTemplateCard({
               />
               <div className="min-w-0">
                 <div className="text-sm font-medium text-base-color">{item.label}</div>
-                <div className="text-xs text-muted-color mt-0.5">{item.description || 'Champ disponible dans le document.'}</div>
+                <div className="text-xs text-muted-color mt-0.5">{item.description || t('configPage.documents.fieldFallback')}</div>
               </div>
             </label>
           )
@@ -520,13 +537,20 @@ function DocumentTemplateCard({
 
 export default function ConfigIndex() {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const { sectionKey: routeSectionKey } = useParams()
   const { user, isDeveloper, refreshUser } = useAuth()
   const { selectedDepot } = useDepots({
     allowAll: false,
     storageKey: 'app-depot-scope',
   })
-  const [documentEntityKey, setDocumentEntityKey] = useState(DOCUMENT_ENTITY_GROUPS[0].key)
+  const managedTypes = getManagedTypes(t)
+  const modules = getModules(t)
+  const setupSections = getSetupSections(t)
+  const documentEntityGroups = getDocumentEntityGroups(t)
+  const mapProviders = getMapProviders(t)
+  const paymentScopeOptions = getPaymentScopeOptions(t)
+  const [documentEntityKey, setDocumentEntityKey] = useState(documentEntityGroups[0].key)
   const [itemsByType, setItemsByType] = useState({})
   const [settingsByKey, setSettingsByKey] = useState({})
   const [loading, setLoading] = useState(true)
@@ -552,7 +576,7 @@ export default function ConfigIndex() {
     setLoading(true)
 
     try {
-      const types = MANAGED_TYPES.map((item) => item.key).join(',')
+      const types = managedTypes.map((item) => item.key).join(',')
       const [configResponse, settingsResponse] = await Promise.all([
         api.get('/config', {
           params: {
@@ -603,7 +627,7 @@ export default function ConfigIndex() {
       })
       setTaskSnapshot(response.data ?? { generated_at: null, stats: {}, tasks: [], recent_runs: [] })
     } catch (error) {
-      setTaskLoadError(error.response?.data?.message || 'Impossible de charger les tâches de fond.')
+      setTaskLoadError(error.response?.data?.message || t('configPage.backgroundTasks.loadError'))
     } finally {
       setTaskLoading(false)
     }
@@ -622,18 +646,18 @@ export default function ConfigIndex() {
     expense_category: itemsByType.expense_category?.length ?? 0,
   }), [itemsByType])
   const visibleSetupSections = useMemo(
-    () => SETUP_SECTIONS.filter((item) => !HIDDEN_CONFIG_SECTIONS.has(item.key)),
-    []
+    () => setupSections.filter((item) => !HIDDEN_CONFIG_SECTIONS.has(item.key)),
+    [setupSections]
   )
   const setupSection = routeSectionKey ? visibleSetupSections.find((item) => item.key === routeSectionKey) ?? null : null
   const setupSectionsByModule = useMemo(() => (
-    MODULES.map((module) => ({
+    modules.map((module) => ({
       ...module,
       sections: visibleSetupSections.filter((section) => section.module === module.key),
     }))
-  ), [visibleSetupSections])
+  ), [modules, visibleSetupSections])
   const documentLayouts = normalizeDocumentLayouts(settingsByKey[DOCUMENT_LAYOUT_SETTING_KEY]?.value)
-  const activeDocumentEntity = DOCUMENT_ENTITY_GROUPS.find((item) => item.key === documentEntityKey) ?? DOCUMENT_ENTITY_GROUPS[0]
+  const activeDocumentEntity = documentEntityGroups.find((item) => item.key === documentEntityKey) ?? documentEntityGroups[0]
   const documentDefinitions = useMemo(() => (
     activeDocumentEntity.definitionKeys
       .map((key) => getDocumentDefinition(key))
@@ -702,9 +726,9 @@ export default function ConfigIndex() {
     try {
       const response = await api.post(`/system/tasks/${taskKey}/run`)
       setTaskSnapshot(response.data?.snapshot ?? { generated_at: null, stats: {}, tasks: [], recent_runs: [] })
-      setTaskNotice(response.data?.message || 'Tâche exécutée avec succès.')
+      setTaskNotice(response.data?.message || t('configPage.backgroundTasks.runSuccess'))
     } catch (error) {
-      setTaskActionError(error.response?.data?.message || 'La tâche a échoué.')
+      setTaskActionError(error.response?.data?.message || t('configPage.backgroundTasks.runError'))
 
       if (error.response?.data?.snapshot) {
         setTaskSnapshot(error.response.data.snapshot)
@@ -837,7 +861,7 @@ export default function ConfigIndex() {
   }
 
   const deleteItem = async (_type, item) => {
-    if (!confirm(`Désactiver "${item.display_label || item.label || item.value}" ?`)) {
+    if (!confirm(t('configPage.actions.deactivateConfirm', { name: item.display_label || item.label || item.value }))) {
       return
     }
 
@@ -853,15 +877,15 @@ export default function ConfigIndex() {
     return <Navigate to="/config" replace />
   }
 
-  const currentTypeConfig = MANAGED_TYPES.find((item) => item.key === modalType)
+  const currentTypeConfig = managedTypes.find((item) => item.key === modalType)
   const isSystemItem = editing?.is_system === true
   const currentProvider = settingValue('map.provider', 'openstreetmap')
   const mapExperienceEnabled = settingBooleanValue('map.terrain_tracking_enabled')
     || settingBooleanValue('map.customer_geolocation_enabled')
-  const categoryConfig = MANAGED_TYPES.find((item) => item.key === 'category')
-  const unitConfig = MANAGED_TYPES.find((item) => item.key === 'unit')
-  const paymentMethodConfig = MANAGED_TYPES.find((item) => item.key === 'payment_method')
-  const expenseCategoryConfig = MANAGED_TYPES.find((item) => item.key === 'expense_category')
+  const categoryConfig = managedTypes.find((item) => item.key === 'category')
+  const unitConfig = managedTypes.find((item) => item.key === 'unit')
+  const paymentMethodConfig = managedTypes.find((item) => item.key === 'payment_method')
+  const expenseCategoryConfig = managedTypes.find((item) => item.key === 'expense_category')
   const detailSections = setupSection
     ? setupSectionsByModule.find((module) => module.key === setupSection.module)?.sections ?? []
     : []
@@ -870,12 +894,12 @@ export default function ConfigIndex() {
     return (
       <div className="space-y-6">
         <PageHeader
-          title="Documents PDF & impression"
-          subtitle="Configuration par entité pour les listes, fiches unitaires et impressions réutilisables partout dans l'application."
+          title={t('configPage.documents.title')}
+          subtitle={t('configPage.documents.subtitle')}
           action={(
             <div className="flex flex-wrap items-center gap-2">
               <button onClick={() => navigate('/config')} className="btn-secondary text-xs">
-                <i className="fa-solid fa-arrow-left" /> Retour au hub
+                <i className="fa-solid fa-arrow-left" /> {t('configPage.hub.backToHub')}
               </button>
               <button
                 onClick={() => saveSettings(DOCUMENT_SETTING_KEYS, 'documents')}
@@ -883,8 +907,8 @@ export default function ConfigIndex() {
                 className="btn-primary text-xs"
               >
                 {savingSettings === 'documents'
-                  ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</>
-                  : <><i className="fa-solid fa-floppy-disk" /> Sauver</>
+                  ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</>
+                  : <><i className="fa-solid fa-floppy-disk" /> {t('common.save')}</>
                 }
               </button>
             </div>
@@ -892,25 +916,25 @@ export default function ConfigIndex() {
         />
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <SummaryCard label="Catégories produits" value={summary.category} color="#0d9488" icon="fa-solid fa-boxes-stacked" />
-          <SummaryCard label="Unités" value={summary.unit} color="#3b82f6" icon="fa-solid fa-ruler-combined" />
-          <SummaryCard label="Paiements" value={summary.payment_method} color="#8b5cf6" icon="fa-solid fa-wallet" />
-          <SummaryCard label="Documents" value={DOCUMENT_DEFINITIONS.length} color="#f59e0b" icon="fa-solid fa-print" />
+          <SummaryCard label={t('configPage.documents.summary.categories')} value={summary.category} color="#0d9488" icon="fa-solid fa-boxes-stacked" />
+          <SummaryCard label={t('configPage.documents.summary.units')} value={summary.unit} color="#3b82f6" icon="fa-solid fa-ruler-combined" />
+          <SummaryCard label={t('configPage.documents.summary.paymentMethods')} value={summary.payment_method} color="#8b5cf6" icon="fa-solid fa-wallet" />
+          <SummaryCard label={t('configPage.documents.summary.documents')} value={DOCUMENT_DEFINITIONS.length} color="#f59e0b" icon="fa-solid fa-print" />
         </div>
 
         <div className="card">
           <div className="flex items-start gap-3 mb-4">
             <i className="fa-solid fa-diagram-project mt-0.5" style={{ color: '#0d9488' }} />
             <div>
-              <div className="text-sm font-semibold text-base-color">Choix de l'entité</div>
+              <div className="text-sm font-semibold text-base-color">{t('configPage.documents.entityChoiceTitle')}</div>
               <div className="text-xs text-muted-color mt-1">
-                Sélectionnez l'entité métier, puis ajustez les champs visibles pour les listes et fiches qui lui appartiennent.
+                {t('configPage.documents.entityChoiceDescription')}
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {DOCUMENT_ENTITY_GROUPS.map((item) => (
+            {documentEntityGroups.map((item) => (
               <button
                 key={item.key}
                 onClick={() => setDocumentEntityKey(item.key)}
@@ -924,7 +948,7 @@ export default function ConfigIndex() {
                   <div className="text-sm font-semibold text-base-color">{item.label}</div>
                 </div>
                 <div className="text-xs text-secondary-color">{item.description}</div>
-                <div className="text-xs text-muted-color mt-2">{item.definitionKeys.length} modèle(s)</div>
+                <div className="text-xs text-muted-color mt-2">{t('configPage.documents.modelsCount', { count: item.definitionKeys.length })}</div>
               </button>
             ))}
           </div>
@@ -954,6 +978,7 @@ export default function ConfigIndex() {
               onToggleField={toggleDocumentField}
               onOrientationChange={changeDocumentOrientation}
               onReset={resetDocumentLayout}
+              t={t}
             />
           )
         })}
@@ -970,7 +995,7 @@ export default function ConfigIndex() {
           action={(
             <div className="flex flex-wrap items-center gap-2">
               <button onClick={() => navigate('/config')} className="btn-secondary text-xs">
-                <i className="fa-solid fa-arrow-left" /> Retour au hub
+                <i className="fa-solid fa-arrow-left" /> {t('configPage.hub.backToHub')}
               </button>
               <PageExportActions title={setupSection.title} />
             </div>
@@ -979,17 +1004,17 @@ export default function ConfigIndex() {
       ) : (
         <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
           <div className="max-w-3xl">
-            <h1 className="text-xl font-semibold text-base-color">Configuration</h1>
+            <h1 className="text-xl font-semibold text-base-color">{t('configPage.hub.title')}</h1>
             <p className="text-sm text-secondary-color mt-1">
-              Accès rapide aux réglages du dépôt, de la facturation, des impressions et du support.
+              {t('configPage.hub.subtitle')}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link to="/notifications-center" className="btn-secondary text-xs">
-              <i className="fa-solid fa-bell" /> Centre de notifications
+              <i className="fa-solid fa-bell" /> {t('configPage.hub.notificationsCenter')}
             </Link>
             <Link to="/bug-reports" className="btn-secondary text-xs">
-              <i className="fa-solid fa-bug" /> Support
+              <i className="fa-solid fa-bug" /> {t('configPage.hub.support')}
             </Link>
           </div>
         </div>
@@ -1035,6 +1060,8 @@ export default function ConfigIndex() {
               onEdit={openEdit}
               onToggle={toggleItem}
               onDelete={deleteItem}
+              t={t}
+              paymentScopeOptions={paymentScopeOptions}
             />
           )}
 
@@ -1046,6 +1073,8 @@ export default function ConfigIndex() {
               onEdit={openEdit}
               onToggle={toggleItem}
               onDelete={deleteItem}
+              t={t}
+              paymentScopeOptions={paymentScopeOptions}
             />
           )}
 
@@ -1055,10 +1084,9 @@ export default function ConfigIndex() {
                 <div className="flex items-start gap-3">
                   <i className="fa-solid fa-map-location-dot mt-0.5" style={{ color: '#0d9488' }} />
                   <div>
-                    <div className="text-sm font-semibold text-base-color">Zones et tarification du dépôt</div>
+                    <div className="text-sm font-semibold text-base-color">{t('configPage.zones.overviewTitle')}</div>
                     <div className="text-sm text-secondary-color mt-1">
-                      Cette configuration regroupe les zones commerciales, les gouvernorats reliés et les grilles
-                      tarifaires utilisées par les produits, les clients et les sorties terrain.
+                      {t('configPage.zones.overviewDescription')}
                     </div>
                   </div>
                 </div>
@@ -1067,13 +1095,13 @@ export default function ConfigIndex() {
               <div className="card">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   <div>
-                    <h2 className="text-sm font-semibold text-base-color">Ouvrir la gestion complète des zones</h2>
+                    <h2 className="text-sm font-semibold text-base-color">{t('configPage.zones.openTitle')}</h2>
                     <p className="text-xs text-muted-color mt-1">
-                      La page dédiée permet de gérer les zones, les tarifs et les associations utilisées dans le reste de la plateforme.
+                      {t('configPage.zones.openDescription')}
                     </p>
                   </div>
                   <Link to="/zones" className="btn-secondary text-xs flex-shrink-0">
-                    <i className="fa-solid fa-arrow-up-right-from-square" /> Gérer les zones
+                    <i className="fa-solid fa-arrow-up-right-from-square" /> {t('configPage.zones.openAction')}
                   </Link>
                 </div>
               </div>
@@ -1086,10 +1114,9 @@ export default function ConfigIndex() {
                 <div className="flex items-start gap-3">
                   <i className="fa-solid fa-circle-info mt-0.5" style={{ color: '#2563eb' }} />
                   <div>
-                    <div className="text-sm font-semibold text-base-color">Cash verrouillé par le système</div>
+                    <div className="text-sm font-semibold text-base-color">{t('configPage.paymentMethods.infoTitle')}</div>
                     <div className="text-sm text-secondary-color mt-1">
-                      Le mode cash reste actif, non supprimable et par défaut. Les autres moyens peuvent maintenant être activés
-                      pour les factures clients, les dépenses, ou les deux selon le workflow métier.
+                      {t('configPage.paymentMethods.infoDescription')}
                     </div>
                   </div>
                 </div>
@@ -1102,6 +1129,8 @@ export default function ConfigIndex() {
                 onEdit={openEdit}
                 onToggle={toggleItem}
                 onDelete={deleteItem}
+                t={t}
+                paymentScopeOptions={paymentScopeOptions}
               />
             </div>
           )}
@@ -1112,10 +1141,9 @@ export default function ConfigIndex() {
                 <div className="flex items-start gap-3">
                   <i className="fa-solid fa-sparkles mt-0.5" style={{ color: '#8b5cf6' }} />
                   <div>
-                    <div className="text-sm font-semibold text-base-color">Motifs dynamiques</div>
+                    <div className="text-sm font-semibold text-base-color">{t('configPage.expenseCategories.infoTitle')}</div>
                     <div className="text-sm text-secondary-color mt-1">
-                      Les motifs de dépense ne sont plus figés dans le code. Le backend génère une couleur et une icône
-                      par défaut si elles ne sont pas précisées, pour garder un affichage propre sur le web et le mobile.
+                      {t('configPage.expenseCategories.infoDescription')}
                     </div>
                   </div>
                 </div>
@@ -1128,65 +1156,9 @@ export default function ConfigIndex() {
                 onEdit={openEdit}
                 onToggle={toggleItem}
                 onDelete={deleteItem}
+                t={t}
+                paymentScopeOptions={paymentScopeOptions}
               />
-            </div>
-          )}
-
-          {/* Legacy documents branch kept unreachable; the dedicated early-return above owns the entity-first document setup UI. */}
-          {false && (
-            <div className="space-y-6">
-              <div className="card">
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div>
-                    <h2 className="text-sm font-semibold text-base-color">Documents PDF & impression</h2>
-                    <p className="text-xs text-muted-color mt-1">
-                      Choisissez les champs visibles par type de document. Les boutons PDF / imprimer des pages concernées
-                      reutiliseront cette configuration sans recoder chaque mise en page.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => saveSettings(DOCUMENT_SETTING_KEYS, 'documents')}
-                    disabled={savingSettings === 'documents'}
-                    className="btn-primary text-xs"
-                  >
-                    {savingSettings === 'documents'
-                      ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</>
-                      : <><i className="fa-solid fa-floppy-disk" /> Sauver</>
-                    }
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {DOCUMENT_TEMPLATE_SECTIONS.map((item) => (
-                    <div key={item.key} className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <i className={item.icon} style={{ color: '#0d9488' }} />
-                        <div className="text-sm font-semibold text-base-color">{item.label}</div>
-                      </div>
-                      <div className="text-xs text-secondary-color mb-2">{item.description}</div>
-                      <div className="text-xs text-muted-color">
-                        {getDocumentDefinitionsBySection(item.key).length} modele(s)
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {documentDefinitions.map((definition) => {
-                const resolvedLayout = resolveDocumentLayout(definition, documentLayouts)
-
-                return (
-                  <DocumentTemplateCard
-                    key={definition.key}
-                    definition={definition}
-                    selectedFieldKeys={resolvedLayout.fieldKeys}
-                    orientation={resolvedLayout.orientation}
-                    onToggleField={toggleDocumentField}
-                    onOrientationChange={changeDocumentOrientation}
-                    onReset={resetDocumentLayout}
-                  />
-                )
-              })}
             </div>
           )}
 
@@ -1195,8 +1167,8 @@ export default function ConfigIndex() {
               <div className="card">
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div>
-                    <h2 className="text-sm font-semibold text-base-color">Provider carte</h2>
-                    <p className="text-xs text-muted-color mt-1">Choisissez le moteur principal pour la page carte & terrain.</p>
+                    <h2 className="text-sm font-semibold text-base-color">{t('configPage.mapProvider.title')}</h2>
+                    <p className="text-xs text-muted-color mt-1">{t('configPage.mapProvider.description')}</p>
                   </div>
                   <button
                     onClick={() => saveSettings(MAP_SETTING_KEYS, 'map')}
@@ -1204,14 +1176,14 @@ export default function ConfigIndex() {
                     className="btn-primary text-xs"
                   >
                     {savingSettings === 'map'
-                      ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</>
-                      : <><i className="fa-solid fa-floppy-disk" /> Sauver</>
+                      ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</>
+                      : <><i className="fa-solid fa-floppy-disk" /> {t('common.save')}</>
                     }
                   </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {MAP_PROVIDERS.map((provider) => (
+                  {mapProviders.map((provider) => (
                     <button
                       key={provider.key}
                       onClick={() => updateSetting('map.provider', provider.key)}
@@ -1227,7 +1199,7 @@ export default function ConfigIndex() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
-                  <FormField label="Clé Google Maps JS">
+                  <FormField label={t('configPage.mapProvider.fields.googleApiKey')}>
                     <input
                       value={settingValue('map.google_maps_api_key')}
                       onChange={(event) => updateSetting('map.google_maps_api_key', event.target.value)}
@@ -1235,17 +1207,17 @@ export default function ConfigIndex() {
                     />
                   </FormField>
 
-                  <FormField label="Google Map ID">
+                  <FormField label={t('configPage.mapProvider.fields.googleMapId')}>
                     <input
                       value={settingValue('map.google_map_id')}
                       onChange={(event) => updateSetting('map.google_map_id', event.target.value)}
-                      placeholder="Map ID optionnel"
+                      placeholder={t('configPage.mapProvider.placeholders.googleMapId')}
                     />
                   </FormField>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                  <FormField label="Type Google Maps">
+                  <FormField label={t('configPage.mapProvider.fields.googleMapType')}>
                     <select
                       value={settingValue('map.google_map_type', 'roadmap')}
                       onChange={(event) => updateSetting('map.google_map_type', event.target.value)}
@@ -1257,7 +1229,7 @@ export default function ConfigIndex() {
                     </select>
                   </FormField>
 
-                  <FormField label="URL des tuiles personnalisées">
+                  <FormField label={t('configPage.mapProvider.fields.customTileUrl')}>
                     <input
                       value={settingValue('map.custom_tile_url')}
                       onChange={(event) => updateSetting('map.custom_tile_url', event.target.value)}
@@ -1266,19 +1238,17 @@ export default function ConfigIndex() {
                   </FormField>
                 </div>
 
-                <FormField label="Attribution des tuiles personnalisées">
+                <FormField label={t('configPage.mapProvider.fields.customTileAttribution')}>
                   <textarea
                     rows="3"
                     value={settingValue('map.custom_tile_attribution')}
                     onChange={(event) => updateSetting('map.custom_tile_attribution', event.target.value)}
-                    placeholder="Crédits ou mentions légales du fournisseur personnalisé"
+                    placeholder={t('configPage.mapProvider.placeholders.customTileAttribution')}
                   />
                 </FormField>
 
                 <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color mt-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                  Le fond de carte change le rendu visuel, pas la précision GPS: la position dépend surtout des pings mobiles,
-                  du signal et de l'appareil. Google Maps demande une clé JavaScript correctement restreinte et un projet
-                  de facturation actif, tandis que les fournisseurs libres restent disponibles pour limiter les coûts.
+                  {t('configPage.mapProvider.note')}
                 </div>
               </div>
             </div>
@@ -1289,10 +1259,9 @@ export default function ConfigIndex() {
               <div className="card">
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div>
-                    <h2 className="text-sm font-semibold text-base-color">Activation par societe</h2>
+                    <h2 className="text-sm font-semibold text-base-color">{t('configPage.terrainVisibility.title')}</h2>
                     <p className="text-xs text-muted-color mt-1">
-                      Quand ce module est actif, la societe peut utiliser les cartes clients, le suivi terrain
-                      et les experiences GPS sur le web et le mobile. Sinon, ces surfaces restent masquees.
+                      {t('configPage.terrainVisibility.description')}
                     </p>
                   </div>
                   <button
@@ -1301,8 +1270,8 @@ export default function ConfigIndex() {
                     className="btn-primary text-xs"
                   >
                     {savingSettings === 'map-visibility'
-                      ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</>
-                      : <><i className="fa-solid fa-floppy-disk" /> Sauver</>
+                      ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</>
+                      : <><i className="fa-solid fa-floppy-disk" /> {t('common.save')}</>
                     }
                   </button>
                 </div>
@@ -1319,9 +1288,9 @@ export default function ConfigIndex() {
                       ? { background: 'rgba(13,148,136,0.10)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)' }
                       : { background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
                   >
-                    <div className="text-sm font-semibold text-base-color">Activer les cartes</div>
+                    <div className="text-sm font-semibold text-base-color">{t('configPage.terrainVisibility.enableTitle')}</div>
                     <div className="text-xs text-secondary-color mt-1">
-                      Active les cartes clients, le suivi terrain et les zones GPS pour cette societe.
+                      {t('configPage.terrainVisibility.enableDescription')}
                     </div>
                   </button>
 
@@ -1336,17 +1305,17 @@ export default function ConfigIndex() {
                       ? { background: 'rgba(100,116,139,0.12)', boxShadow: 'inset 0 0 0 1px rgba(100,116,139,0.18)' }
                       : { background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
                   >
-                    <div className="text-sm font-semibold text-base-color">Masquer les cartes</div>
+                    <div className="text-sm font-semibold text-base-color">{t('configPage.terrainVisibility.disableTitle')}</div>
                     <div className="text-xs text-secondary-color mt-1">
-                      Retire les cartes de l interface web et mobile pour la societe courante.
+                      {t('configPage.terrainVisibility.disableDescription')}
                     </div>
                   </button>
                 </div>
 
                 <div className="rounded-2xl px-4 py-3 mt-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-color mb-1">Etat courant</div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-color mb-1">{t('configPage.terrainVisibility.currentStateLabel')}</div>
                   <div className="text-sm font-medium text-base-color">
-                    {mapExperienceEnabled ? 'Cartes actives pour cette societe.' : 'Cartes masquees pour cette societe.'}
+                    {mapExperienceEnabled ? t('configPage.terrainVisibility.currentStateActive') : t('configPage.terrainVisibility.currentStateHidden')}
                   </div>
                 </div>
               </div>
@@ -1358,36 +1327,36 @@ export default function ConfigIndex() {
               <div className="card">
                 <div className="flex items-center gap-2 mb-3">
                   <i className="fa-solid fa-bolt text-amber-500" />
-                  <h2 className="text-sm font-semibold text-base-color">Raccourcis</h2>
+                  <h2 className="text-sm font-semibold text-base-color">{t('configPage.mapStatus.shortcuts')}</h2>
                 </div>
                 <div className="space-y-2">
                   {mapExperienceEnabled ? (
                     <Link to="/map" className="btn-secondary text-xs w-full justify-center">
-                      <i className="fa-solid fa-map-location-dot" /> Ouvrir la carte
+                      <i className="fa-solid fa-map-location-dot" /> {t('configPage.mapStatus.openMap')}
                     </Link>
                   ) : (
                     <div
                       className="rounded-xl px-3 py-2 text-xs text-secondary-color"
                       style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
                     >
-                      Activez d abord les cartes pour ouvrir le module terrain.
+                      {t('configPage.mapStatus.enableFirst')}
                     </div>
                   )}
                   <Link to="/notifications-center" className="btn-secondary text-xs w-full justify-center">
-                    <i className="fa-solid fa-bell" /> Voir les notifications
+                    <i className="fa-solid fa-bell" /> {t('configPage.mapStatus.notifications')}
                   </Link>
                   <Link to="/help" className="btn-secondary text-xs w-full justify-center">
-                    <i className="fa-solid fa-circle-question" /> Documentation
+                    <i className="fa-solid fa-circle-question" /> {t('configPage.mapStatus.documentation')}
                   </Link>
                 </div>
               </div>
 
               <div className="card">
-                <h2 className="text-sm font-semibold text-base-color mb-3">État actuel</h2>
-                <InfoRow label="Provider actif" value={MAP_PROVIDERS.find((item) => item.key === currentProvider)?.label || currentProvider} />
-                <InfoRow label="Clé Google" value={settingValue('map.google_maps_api_key') ? 'Configurée' : 'Absente'} />
-                <InfoRow label="Google map type" value={settingValue('map.google_map_type', 'roadmap')} />
-                <InfoRow label="Mode personnalisé" value={settingValue('map.custom_tile_url') ? 'Configuré' : 'Inactif'} />
+                <h2 className="text-sm font-semibold text-base-color mb-3">{t('configPage.mapStatus.currentTitle')}</h2>
+                <InfoRow label={t('configPage.mapStatus.providerActive')} value={mapProviders.find((item) => item.key === currentProvider)?.label || currentProvider} />
+                <InfoRow label={t('configPage.mapStatus.googleKey')} value={settingValue('map.google_maps_api_key') ? t('configPage.mapStatus.configured') : t('configPage.mapStatus.missing')} />
+                <InfoRow label={t('configPage.mapStatus.googleMapType')} value={settingValue('map.google_map_type', 'roadmap')} />
+                <InfoRow label={t('configPage.mapStatus.customMode')} value={settingValue('map.custom_tile_url') ? t('configPage.mapStatus.configured') : t('configPage.mapStatus.inactive')} />
               </div>
             </div>
           )}
@@ -1396,8 +1365,8 @@ export default function ConfigIndex() {
             <div className="card">
               <div className="flex items-center justify-between gap-3 mb-4">
                 <div>
-                  <h2 className="text-sm font-semibold text-base-color">Support et signalements</h2>
-                  <p className="text-xs text-muted-color mt-1">Destinataires support fixes et libellé interne visible dans l'application.</p>
+                  <h2 className="text-sm font-semibold text-base-color">{t('configPage.systemSupport.title')}</h2>
+                  <p className="text-xs text-muted-color mt-1">{t('configPage.systemSupport.description')}</p>
                 </div>
                 <button
                   onClick={() => saveSettings(SYSTEM_SETTING_KEYS, 'system')}
@@ -1405,15 +1374,15 @@ export default function ConfigIndex() {
                   className="btn-primary text-xs"
                 >
                   {savingSettings === 'system'
-                    ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</>
-                    : <><i className="fa-solid fa-floppy-disk" /> Sauver</>
+                    ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</>
+                    : <><i className="fa-solid fa-floppy-disk" /> {t('common.save')}</>
                   }
                 </button>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <div className="text-sm font-medium text-base-color mb-2">Destinataires e-mail verrouillés</div>
+                  <div className="text-sm font-medium text-base-color mb-2">{t('configPage.systemSupport.lockedRecipients')}</div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {SUPPORT_BUG_RECIPIENTS.map((email) => (
                       <div
@@ -1427,25 +1396,24 @@ export default function ConfigIndex() {
                   </div>
                 </div>
 
-                <FormField label="Libellé du contact d'aide">
+                <FormField label={t('configPage.systemSupport.helpContactLabel')}>
                   <input
-                    value={settingValue('support.help_contact_label', 'Équipe El Irtiwaa')}
+                    value={settingValue('support.help_contact_label', t('configPage.systemSupport.helpContactPlaceholder'))}
                     onChange={(event) => updateSetting('support.help_contact_label', event.target.value)}
-                    placeholder="Équipe El Irtiwaa"
+                    placeholder={t('configPage.systemSupport.helpContactPlaceholder')}
                   />
                 </FormField>
 
                 <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                  Les emails de réception des signalements sont maintenant figés côté application pour éviter toute
-                  dérive de configuration. Cette page ne laisse éditable que le libellé du contact d'aide.
+                  {t('configPage.systemSupport.infoNotice')}
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                   <Link to="/bug-reports" className="btn-secondary text-xs">
-                    <i className="fa-solid fa-bug" /> Ouvrir le centre de support
+                    <i className="fa-solid fa-bug" /> {t('configPage.systemSupport.openSupport')}
                   </Link>
                   <Link to="/notifications-center" className="btn-secondary text-xs">
-                    <i className="fa-solid fa-bell" /> Notifications
+                    <i className="fa-solid fa-bell" /> {t('configPage.systemSupport.notifications')}
                   </Link>
                 </div>
               </div>
@@ -1458,10 +1426,9 @@ export default function ConfigIndex() {
                 <div className="flex items-start gap-3">
                   <i className="fa-solid fa-user-gear mt-0.5" style={{ color: '#8b5cf6' }} />
                   <div>
-                    <div className="text-sm font-semibold text-base-color">Comptes, rôles et portefeuille client</div>
+                    <div className="text-sm font-semibold text-base-color">{t('configPage.usersAccess.title')}</div>
                     <div className="text-sm text-secondary-color mt-1">
-                      Cette partie centralise les utilisateurs internes, leurs droits et les affectations de clients
-                      visibles par chaque compte commercial.
+                      {t('configPage.usersAccess.description')}
                     </div>
                   </div>
                 </div>
@@ -1470,14 +1437,13 @@ export default function ConfigIndex() {
               <div className="card">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   <div>
-                    <h2 className="text-sm font-semibold text-base-color">Ouvrir la gestion des utilisateurs</h2>
+                    <h2 className="text-sm font-semibold text-base-color">{t('configPage.usersAccess.openTitle')}</h2>
                     <p className="text-xs text-muted-color mt-1">
-                      La page dédiée permet de créer les comptes, ajuster les rôles, activer ou suspendre un utilisateur
-                      et synchroniser sa liste de clients.
+                      {t('configPage.usersAccess.openDescription')}
                     </p>
                   </div>
                   <Link to="/users" className="btn-secondary text-xs flex-shrink-0">
-                    <i className="fa-solid fa-arrow-up-right-from-square" /> Gérer les utilisateurs
+                    <i className="fa-solid fa-arrow-up-right-from-square" /> {t('configPage.usersAccess.openAction')}
                   </Link>
                 </div>
               </div>
@@ -1502,36 +1468,36 @@ export default function ConfigIndex() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
                   <i className="fa-solid fa-server text-teal-500" />
-                  État du système
+                  {t('configPage.systemStatus.title')}
                 </h2>
                 <button onClick={loadSystemInfo} className="btn-secondary text-xs">
-                  <i className="fa-solid fa-rotate-right" /> Actualiser
+                  <i className="fa-solid fa-rotate-right" /> {t('common.reload')}
                 </button>
               </div>
 
               {systemLoading ? (
                 <div className="flex items-center justify-center py-10 text-muted-color">
-                  <i className="fa-solid fa-spinner fa-spin mr-2" /> Chargement...
+                  <i className="fa-solid fa-spinner fa-spin mr-2" /> {t('common.loadingFull')}
                 </div>
               ) : systemInfo ? (
                 <>
-                  <InfoRow label="Frontend" value={`${window.location.origin}/web-platform`} mono />
-                  <InfoRow label="API" value={`${window.location.origin}/api/v1`} mono />
-                  <InfoRow label="Laravel" value={`v${systemInfo.laravel}`} />
-                  <InfoRow label="PHP" value={`v${systemInfo.php}`} />
-                  <InfoRow label="Environnement" value={systemInfo.env} />
-                  <InfoRow label="Timezone" value={systemInfo.timezone} />
-                  <InfoRow label="DB driver" value={systemInfo.db_driver} />
-                  <InfoRow label="Queue" value={systemInfo.queue} />
-                  <InfoRow label="Mail host" value={systemInfo.mail_host} mono />
-                  <InfoRow label="Mail from" value={systemInfo.mail_from} mono />
+                  <InfoRow label={t('configPage.systemStatus.labels.frontend')} value={`${window.location.origin}/web-platform`} mono />
+                  <InfoRow label={t('configPage.systemStatus.labels.api')} value={`${window.location.origin}/api/v1`} mono />
+                  <InfoRow label={t('configPage.systemStatus.labels.laravel')} value={`v${systemInfo.laravel}`} />
+                  <InfoRow label={t('configPage.systemStatus.labels.php')} value={`v${systemInfo.php}`} />
+                  <InfoRow label={t('configPage.systemStatus.labels.environment')} value={systemInfo.env} />
+                  <InfoRow label={t('configPage.systemStatus.labels.timezone')} value={systemInfo.timezone} />
+                  <InfoRow label={t('configPage.systemStatus.labels.dbDriver')} value={systemInfo.db_driver} />
+                  <InfoRow label={t('configPage.systemStatus.labels.queue')} value={systemInfo.queue} />
+                  <InfoRow label={t('configPage.systemStatus.labels.mailHost')} value={systemInfo.mail_host} mono />
+                  <InfoRow label={t('configPage.systemStatus.labels.mailFrom')} value={systemInfo.mail_from} mono />
                   <div className="pt-2 text-xs text-muted-color">
-                    Interrogé à : {new Date(systemInfo.timestamp).toLocaleString('fr-FR')}
+                    {t('configPage.systemStatus.checkedAt', { value: formatLocaleDateTime(systemInfo.timestamp) })}
                   </div>
                 </>
               ) : (
                 <div className="rounded-xl border border-theme px-4 py-8 text-center text-sm text-muted-color">
-                  Impossible de charger les informations système.
+                  {t('configPage.systemStatus.loadError')}
                 </div>
               )}
             </div>
@@ -1542,40 +1508,42 @@ export default function ConfigIndex() {
       <Modal
         open={!!modalType}
         onClose={closeModal}
-        title={editing ? `Modifier - ${currentTypeConfig?.title ?? ''}` : `Ajouter - ${currentTypeConfig?.title ?? ''}`}
+        title={editing
+          ? t('configPage.modal.editTitle', { title: currentTypeConfig?.title ?? '' })
+          : t('configPage.modal.createTitle', { title: currentTypeConfig?.title ?? '' })}
         size="md"
       >
         <div className="space-y-4">
-          <FormField label="Nom affiché" error={errors.label?.[0]} required>
-            <input value={form.label} onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))} placeholder="Libellé visible dans l'application" />
+          <FormField label={t('configPage.modal.fields.displayName')} error={errors.label?.[0]} required>
+            <input value={form.label} onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))} placeholder={t('configPage.modal.placeholders.displayName')} />
           </FormField>
 
-          <FormField label="Code technique" error={errors.value?.[0]}>
+          <FormField label={t('configPage.modal.fields.code')} error={errors.value?.[0]}>
             <input
               value={form.value}
               onChange={(event) => setForm((current) => ({ ...current, value: event.target.value }))}
-              placeholder={form.label ? slugifyValue(form.label) : 'code_unique'}
+              placeholder={form.label ? slugifyValue(form.label) : t('configPage.modal.placeholders.code')}
               disabled={isSystemItem}
             />
           </FormField>
 
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="Couleur" error={errors.color?.[0]}>
-              <input value={form.color} onChange={(event) => setForm((current) => ({ ...current, color: event.target.value }))} placeholder="#0d9488" />
+            <FormField label={t('configPage.modal.fields.color')} error={errors.color?.[0]}>
+              <input value={form.color} onChange={(event) => setForm((current) => ({ ...current, color: event.target.value }))} placeholder={t('configPage.modal.placeholders.color')} />
             </FormField>
-            <FormField label="Icône FontAwesome" error={errors.icon?.[0]}>
-              <input value={form.icon} onChange={(event) => setForm((current) => ({ ...current, icon: event.target.value }))} placeholder="fa-solid fa-wallet" />
+            <FormField label={t('configPage.modal.fields.icon')} error={errors.icon?.[0]}>
+              <input value={form.icon} onChange={(event) => setForm((current) => ({ ...current, icon: event.target.value }))} placeholder={t('configPage.modal.placeholders.icon')} />
             </FormField>
           </div>
 
-          <FormField label="Description" error={errors.description?.[0]}>
-            <textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} rows={3} placeholder="Contexte ou aide interne..." />
+          <FormField label={t('configPage.modal.fields.description')} error={errors.description?.[0]}>
+            <textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} rows={3} placeholder={t('configPage.modal.placeholders.description')} />
           </FormField>
 
           {modalType === 'payment_method' && (
-            <FormField label="Scopes d'utilisation" error={errors.scopes?.[0]}>
+            <FormField label={t('configPage.modal.fields.paymentScopes')} error={errors.scopes?.[0]}>
               <div className="grid grid-cols-1 gap-2">
-                {PAYMENT_SCOPE_OPTIONS.map((option) => (
+                {paymentScopeOptions.map((option) => (
                   <label
                     key={option.value}
                     className="rounded-xl px-3 py-3 border flex items-center gap-3 cursor-pointer"
@@ -1608,18 +1576,18 @@ export default function ConfigIndex() {
                 onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))}
                 style={{ width: 16, height: 16 }}
               />
-              Actif
+              {t('configPage.badges.active')}
             </label>
           )}
 
           <div className="rounded-xl border border-theme px-3 py-3 text-xs text-secondary-color" style={{ background: 'var(--surface-2)' }}>
-            Si la couleur ou l'icône restent vides, le backend attribuera automatiquement un style par défaut pour garder une interface propre.
+            {t('configPage.modal.autoStyleHint')}
           </div>
 
           <div className="flex justify-end gap-3 pt-1">
-            <button onClick={closeModal} className="btn-secondary">Annuler</button>
+            <button onClick={closeModal} className="btn-secondary">{t('common.cancel')}</button>
             <button onClick={saveItem} disabled={saving} className="btn-primary">
-              {saving ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</> : 'Enregistrer'}
+              {saving ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : t('common.save')}
             </button>
           </div>
         </div>

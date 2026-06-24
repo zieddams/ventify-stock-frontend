@@ -7,23 +7,14 @@ import PaginationControls from '../../components/PaginationControls'
 import RowDocumentActions from '../../components/RowDocumentActions'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
+import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
+import { formatCurrency, formatDate } from '../../utils/format'
 import { paginateItems } from '../../utils/pagination'
 
 const DEFAULT_PERIOD = 'month'
-const PERIODS = [
-  { key: 'today', label: "Aujourd'hui" },
-  { key: 'week', label: 'Cette semaine' },
-  { key: 'month', label: 'Ce mois' },
-  { key: 'custom', label: 'Personnalisé' },
-  { key: '', label: 'Tout' },
-]
-
-function fmt(value) {
-  return new Intl.NumberFormat('fr-TN', { minimumFractionDigits: 3 }).format(value ?? 0)
-}
 
 function toIsoDate(date) {
   return date.toISOString().slice(0, 10)
@@ -61,6 +52,8 @@ function getPeriodDateRange(period, dateFrom, dateTo) {
 }
 
 export default function InvoicesIndex() {
+  const { t } = useI18n()
+  const notAvailable = t('common.notAvailable')
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState(DEFAULT_PERIOD)
@@ -74,6 +67,13 @@ export default function InvoicesIndex() {
   const { layouts: documentLayouts } = useDocumentLayouts()
   const deferredSearch = useDeferredValue(search)
   const today = new Date().toISOString().slice(0, 10)
+  const periodOptions = [
+    { key: 'today', label: t('invoices.periods.today') },
+    { key: 'week', label: t('invoices.periods.week') },
+    { key: 'month', label: t('invoices.periods.month') },
+    { key: 'custom', label: t('invoices.periods.custom') },
+    { key: '', label: t('invoices.periods.all') },
+  ]
   const {
     depots,
     selectedValue: selectedDepotValue,
@@ -147,7 +147,7 @@ export default function InvoicesIndex() {
   }
 
   const removeInvoice = async (invoice) => {
-    if (!confirm(`Supprimer la facture ${invoice.number} ?`)) {
+    if (!confirm(t('invoices.deleteConfirm', { number: invoice.number }))) {
       return
     }
 
@@ -169,7 +169,7 @@ export default function InvoicesIndex() {
     ...scopeParams,
   }
   const depotSuffix = canSelectAll
-    ? ` | ${selectedDepot ? `Dépôt ${selectedDepot.name}` : 'Tous les dépôts'}`
+    ? ` | ${selectedDepot ? t('invoices.depotScope', { depot: selectedDepot.name }) : t('depot.all')}`
     : ''
   const showDepotColumn = canSelectAll
 
@@ -177,8 +177,10 @@ export default function InvoicesIndex() {
     <div>
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-xl font-bold text-base-color tracking-tight">Factures</h1>
-          <p className="text-sm text-muted-color mt-0.5">{invoices.length} facture(s) | Total: {fmt(total)} TND{depotSuffix}</p>
+          <h1 className="text-xl font-bold text-base-color tracking-tight">{t('invoices.title')}</h1>
+          <p className="text-sm text-muted-color mt-0.5">
+            {t('invoices.subtitle', { count: invoices.length, total: formatCurrency(total), depotSuffix })}
+          </p>
         </div>
         <div className="flex flex-wrap items-end justify-end gap-2">
           {canSelectAll && (
@@ -188,11 +190,11 @@ export default function InvoicesIndex() {
               onChange={setSelectedDepotValue}
               allowAll
               canSelectAll={canSelectAll}
-              allLabel="Tous les dépôts"
+              allLabel={t('depot.all')}
             />
           )}
           <PageExportActions
-            title="Factures"
+            title={t('invoices.title')}
             csvEntity="invoices"
             csvParams={exportParams}
             csvFilename="factures"
@@ -201,17 +203,17 @@ export default function InvoicesIndex() {
             documentLayouts={documentLayouts}
           />
           <Link to="/invoices/create" className="btn-primary">
-            <i className="fa-solid fa-plus" /> Nouvelle facture
+            <i className="fa-solid fa-plus" /> {t('invoices.newInvoice')}
           </Link>
         </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {[
-          { label: 'Total période', value: `${fmt(total)} TND`, icon: 'fa-solid fa-sack-dollar', color: '#0d9488' },
-          { label: 'Impayées', value: `${fmt(unpaid)} TND`, icon: 'fa-solid fa-clock', color: '#dc2626' },
-          { label: 'Factures', value: invoices.length, icon: 'fa-solid fa-file-invoice', color: '#3b82f6' },
-          { label: 'Payées', value: invoices.filter((invoice) => invoice.payment_status === 'paid').length, icon: 'fa-solid fa-circle-check', color: '#10b981' },
+          { label: t('invoices.kpis.totalPeriod'), value: formatCurrency(total), icon: 'fa-solid fa-sack-dollar', color: '#0d9488' },
+          { label: t('invoices.kpis.unpaid'), value: formatCurrency(unpaid), icon: 'fa-solid fa-clock', color: '#dc2626' },
+          { label: t('invoices.kpis.count'), value: invoices.length, icon: 'fa-solid fa-file-invoice', color: '#3b82f6' },
+          { label: t('invoices.kpis.paid'), value: invoices.filter((invoice) => invoice.payment_status === 'paid').length, icon: 'fa-solid fa-circle-check', color: '#10b981' },
         ].map((kpi) => (
           <div key={kpi.label} className="card py-3 px-4 flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${kpi.color}1a` }}>
@@ -226,7 +228,7 @@ export default function InvoicesIndex() {
       </div>
 
       <div className="flex gap-2 mb-4 flex-wrap">
-        {PERIODS.map((item) => (
+        {periodOptions.map((item) => (
           <button
             key={item.key}
             onClick={() => handlePeriodChange(item.key)}
@@ -242,20 +244,20 @@ export default function InvoicesIndex() {
       <div className="card mb-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div>
-            <label className="block text-xs text-muted-color mb-1 font-medium">Recherche</label>
-            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Numéro, client ou commercial..." />
+            <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.search')}</label>
+            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('invoices.searchPlaceholder')} />
           </div>
           <div>
-            <label className="block text-xs text-muted-color mb-1 font-medium">Paiement</label>
+            <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.payment')}</label>
             <select value={paymentStatus} onChange={(event) => setPaymentStatus(event.target.value)}>
-              <option value="">Tous</option>
-              <option value="unpaid">Impaye</option>
-              <option value="partial">Partiel</option>
-              <option value="paid">Payé</option>
+              <option value="">{t('invoices.paymentOptions.all')}</option>
+              <option value="unpaid">{t('invoices.paymentOptions.unpaid')}</option>
+              <option value="partial">{t('invoices.paymentOptions.partial')}</option>
+              <option value="paid">{t('invoices.paymentOptions.paid')}</option>
             </select>
           </div>
           <div>
-            <label className="block text-xs text-muted-color mb-1 font-medium">Du</label>
+            <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateFrom')}</label>
             <input
               type="date"
               value={dateFrom}
@@ -266,7 +268,7 @@ export default function InvoicesIndex() {
             />
           </div>
           <div>
-            <label className="block text-xs text-muted-color mb-1 font-medium">Au</label>
+            <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateTo')}</label>
             <input
               type="date"
               value={dateTo}
@@ -281,7 +283,7 @@ export default function InvoicesIndex() {
         {hasFilters && (
           <div className="mt-3 flex justify-end">
             <button onClick={resetFilters} className="btn-secondary text-xs">
-              <i className="fa-solid fa-rotate-left" /> Réinitialiser les filtres
+              <i className="fa-solid fa-rotate-left" /> {t('common.resetFilters')}
             </button>
           </div>
         )}
@@ -296,14 +298,14 @@ export default function InvoicesIndex() {
               <thead>
                 <tr className="text-left" style={{ borderBottom: '1px solid var(--border)' }}>
                   {[
-                    'N°',
-                    'Client',
-                    ...(isAdmin() ? ['Commercial'] : []),
-                    ...(showDepotColumn ? ['Dépôt'] : []),
-                    'Total',
-                    'Paiement',
-                    'Statut',
-                    'Date',
+                    t('invoices.columns.number'),
+                    t('invoices.columns.customer'),
+                    ...(isAdmin() ? [t('invoices.columns.rep')] : []),
+                    ...(showDepotColumn ? [t('invoices.columns.depot')] : []),
+                    t('invoices.columns.total'),
+                    t('invoices.columns.payment'),
+                    t('invoices.columns.status'),
+                    t('invoices.columns.date'),
                     '',
                   ].map((heading) => (
                     <th key={heading} className="pb-3 pr-4 text-xs font-semibold text-muted-color uppercase tracking-wider">
@@ -322,26 +324,26 @@ export default function InvoicesIndex() {
                     </td>
                     <td className="py-3 pr-4 font-medium text-base-color">{invoice.customer_name}</td>
                     {isAdmin() && <td className="py-3 pr-4 text-secondary-color">{invoice.rep_name}</td>}
-                    {showDepotColumn && <td className="py-3 pr-4 text-muted-color text-xs">{invoice.depot?.name ?? '-'}</td>}
-                    <td className="py-3 pr-4 font-bold text-base-color">{fmt(invoice.total)} TND</td>
+                    {showDepotColumn && <td className="py-3 pr-4 text-muted-color text-xs">{invoice.depot?.name || notAvailable}</td>}
+                    <td className="py-3 pr-4 font-bold text-base-color">{formatCurrency(invoice.total)}</td>
                     <td className="py-3 pr-4">{invoice.payment_status && <PaymentStatusBadge status={invoice.payment_status} />}</td>
                     <td className="py-3 pr-4"><StatusBadge status={invoice.status} /></td>
-                    <td className="py-3 pr-4 text-muted-color text-xs">{new Date(invoice.created_at).toLocaleDateString('fr-FR')}</td>
+                    <td className="py-3 pr-4 text-muted-color text-xs">{formatDate(invoice.created_at)}</td>
                     <td className="py-3">
                       <div className="flex items-center gap-2">
                         <RowDocumentActions
                           documentKey="invoice_item"
                           record={invoice}
                           documentLayouts={documentLayouts}
-                          title={`Facture ${invoice.number}`}
+                          title={t('invoices.documentTitle', { number: invoice.number })}
                           filename={`facture_${invoice.number}`}
                         />
                         <Link to={`/invoices/${invoice.id}`} className="text-xs font-medium hover:underline" style={{ color: '#0d9488' }}>
-                          <i className="fa-solid fa-eye mr-1" /> Voir
+                          <i className="fa-solid fa-eye mr-1" /> {t('common.view')}
                         </Link>
                         {isAdmin() && (
                           <button onClick={() => removeInvoice(invoice)} className="text-xs font-medium text-red-500 hover:text-red-700">
-                            <i className="fa-solid fa-trash-can mr-1" /> Suppr.
+                            <i className="fa-solid fa-trash-can mr-1" /> {t('invoices.deleteShort')}
                           </button>
                         )}
                       </div>
@@ -352,7 +354,7 @@ export default function InvoicesIndex() {
                   <tr>
                     <td colSpan={isAdmin() ? (showDepotColumn ? 9 : 8) : (showDepotColumn ? 8 : 7)} className="py-12 text-center">
                       <i className="fa-solid fa-file-invoice text-3xl text-muted-color opacity-30 mb-2 block" />
-                      <p className="text-muted-color text-sm">Aucune facture sur cette période</p>
+                      <p className="text-muted-color text-sm">{t('invoices.noResults')}</p>
                     </td>
                   </tr>
                 )}
@@ -370,7 +372,7 @@ export default function InvoicesIndex() {
               setPerPage(value)
               setPage(1)
             }}
-            itemLabel="factures"
+            itemLabel={t('invoices.itemLabel')}
           />
         )}
       </div>

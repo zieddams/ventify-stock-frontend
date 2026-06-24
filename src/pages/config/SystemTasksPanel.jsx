@@ -1,74 +1,87 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PageLoader } from '../../components/Spinner'
+import { useI18n } from '../../contexts/I18nContext'
+import { formatDateTime as formatLocaleDateTime } from '../../utils/format'
 
 const STATUS_META = {
   running: {
-    label: 'En cours',
+    labelKey: 'systemTasks.status.running',
     color: '#2563eb',
     background: 'rgba(37,99,235,0.12)',
     icon: 'fa-solid fa-spinner fa-spin',
   },
   success: {
-    label: 'Succès',
+    labelKey: 'systemTasks.status.success',
     color: '#059669',
     background: 'rgba(5,150,105,0.12)',
     icon: 'fa-solid fa-circle-check',
   },
   failed: {
-    label: 'Échec',
+    labelKey: 'systemTasks.status.failed',
     color: '#dc2626',
     background: 'rgba(220,38,38,0.12)',
     icon: 'fa-solid fa-circle-xmark',
   },
   idle: {
-    label: 'En attente',
+    labelKey: 'systemTasks.status.idle',
     color: '#64748b',
     background: 'rgba(100,116,139,0.12)',
     icon: 'fa-solid fa-clock',
   },
 }
 
-const CATEGORY_LABELS = {
-  maintenance: 'Maintenance',
-  monitoring: 'Surveillance',
-  finance: 'Finances',
-  notifications: 'Notifications',
+const CATEGORY_KEYS = {
+  maintenance: 'systemTasks.categories.maintenance',
+  monitoring: 'systemTasks.categories.monitoring',
+  finance: 'systemTasks.categories.finance',
+  notifications: 'systemTasks.categories.notifications',
 }
 
-function formatDateTime(value) {
-  if (!value) return 'Jamais'
-  return new Date(value).toLocaleString('fr-FR')
+function formatDateTimeValue(value, t) {
+  return value ? formatLocaleDateTime(value) : t('systemTasks.never')
 }
 
-function formatDuration(durationMs) {
-  if (durationMs == null) return '--'
-  if (durationMs < 1000) return `${durationMs} ms`
-  if (durationMs < 60000) return `${(durationMs / 1000).toFixed(1)} s`
-  return `${(durationMs / 60000).toFixed(1)} min`
+function formatDuration(durationMs, t) {
+  if (durationMs == null) return t('common.notAvailable')
+  if (durationMs < 1000) return t('systemTasks.duration.ms', { value: durationMs })
+  if (durationMs < 60000) return t('systemTasks.duration.seconds', { value: (durationMs / 1000).toFixed(1) })
+  return t('systemTasks.duration.minutes', { value: (durationMs / 60000).toFixed(1) })
 }
 
-function formatNextDue(value) {
-  if (!value) return 'Non disponible'
+function formatNextDue(value, t) {
+  if (!value) return t('systemTasks.nextDue.unavailable')
 
+  const formattedDate = formatLocaleDateTime(value)
   const diffMs = new Date(value).getTime() - Date.now()
-  if (diffMs <= 0) return `${formatDateTime(value)} · imminent`
+
+  if (diffMs <= 0) {
+    return t('systemTasks.nextDue.imminent', { date: formattedDate })
+  }
 
   const diffMinutes = Math.round(diffMs / 60000)
-  if (diffMinutes < 60) return `${formatDateTime(value)} · dans ${diffMinutes} min`
+  if (diffMinutes < 60) {
+    return t('systemTasks.nextDue.inMinutes', { date: formattedDate, value: diffMinutes })
+  }
 
   const diffHours = Math.round(diffMinutes / 60)
-  if (diffHours < 24) return `${formatDateTime(value)} · dans ${diffHours} h`
+  if (diffHours < 24) {
+    return t('systemTasks.nextDue.inHours', { date: formattedDate, value: diffHours })
+  }
 
   const diffDays = Math.round(diffHours / 24)
-  return `${formatDateTime(value)} · dans ${diffDays} j`
+  return t('systemTasks.nextDue.inDays', { date: formattedDate, value: diffDays })
 }
 
-function formatTrigger(run) {
-  if (!run) return 'Aucun déclenchement'
+function formatTrigger(run, t) {
+  if (!run) return t('systemTasks.trigger.none')
+
   if (run.trigger_type === 'manual') {
-    return run.triggered_by?.name ? `Manuel par ${run.triggered_by.name}` : 'Manuel'
+    return run.triggered_by?.name
+      ? t('systemTasks.trigger.manualBy', { name: run.triggered_by.name })
+      : t('systemTasks.trigger.manual')
   }
-  return 'Planifié'
+
+  return t('systemTasks.trigger.scheduled')
 }
 
 function statusMeta(run) {
@@ -109,7 +122,7 @@ function MetricCard({ label, value, icon, color, sub }) {
   )
 }
 
-function TaskRunBadge({ run }) {
+function TaskRunBadge({ run, t }) {
   const meta = statusMeta(run)
 
   return (
@@ -118,7 +131,7 @@ function TaskRunBadge({ run }) {
       style={{ background: meta.background, color: meta.color }}
     >
       <i className={meta.icon} />
-      {meta.label}
+      {t(meta.labelKey)}
     </span>
   )
 }
@@ -142,6 +155,8 @@ export default function SystemTasksPanel({
   onRefresh,
   onRunTask,
 }) {
+  const { t } = useI18n()
+  const notAvailable = t('common.notAvailable')
   const stats = snapshot?.stats ?? {}
   const tasks = snapshot?.tasks ?? []
   const recentRuns = snapshot?.recent_runs ?? []
@@ -149,6 +164,23 @@ export default function SystemTasksPanel({
   const [selectedTaskKey, setSelectedTaskKey] = useState('')
   const [sortKey, setSortKey] = useState('latest_run')
   const [sortDirection, setSortDirection] = useState('desc')
+
+  const sortableHeaders = useMemo(() => ([
+    ['label', t('systemTasks.table.task')],
+    ['category', t('systemTasks.table.category')],
+    ['status', t('systemTasks.table.status')],
+    ['schedule_label', t('systemTasks.table.schedule')],
+    ['latest_run', t('systemTasks.table.lastStart')],
+  ]), [t])
+
+  const recentHeaders = useMemo(() => ([
+    t('systemTasks.table.task'),
+    t('systemTasks.table.status'),
+    t('systemTasks.table.trigger'),
+    t('systemTasks.table.start'),
+    t('systemTasks.table.duration'),
+    t('systemTasks.table.exitCode'),
+  ]), [t])
 
   const sortedTasks = useMemo(() => (
     [...tasks].sort((left, right) => compareTasks(left, right, sortKey, sortDirection))
@@ -177,40 +209,38 @@ export default function SystemTasksPanel({
     setSortDirection(nextKey === 'latest_run' ? 'desc' : 'asc')
   }
 
+  const getCategoryLabel = (category) => t(CATEGORY_KEYS[category] ?? 'systemTasks.categories.system')
+
   return (
     <div className="space-y-6">
       <div className="card">
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
           <div>
-            <h2 className="text-sm font-semibold text-base-color">Tâches de fond et planificateur</h2>
-            <p className="text-xs text-muted-color mt-1">
-              Liste des tâches planifiées côté serveur, dernier état d’exécution et relance manuelle pour les administrateurs
-              et développeurs. Les relances s’exécutent directement sur le VPS et attendent la fin avant de répondre.
-            </p>
+            <h2 className="text-sm font-semibold text-base-color">{t('systemTasks.title')}</h2>
+            <p className="text-xs text-muted-color mt-1">{t('systemTasks.subtitle')}</p>
             {historyStartedAt && (
               <p className="text-[11px] text-secondary-color mt-2">
-                Historique de suivi disponible depuis {formatDateTime(historyStartedAt)}. Si une tâche est marquée
-                "En attente", cela veut surtout dire qu’elle n’a pas encore eu de passage enregistré depuis cette date.
+                {t('systemTasks.historySince', { date: formatDateTimeValue(historyStartedAt, t) })}
               </p>
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={onRefresh} className="btn-secondary text-xs">
-              <i className="fa-solid fa-rotate-right" /> Actualiser
+              <i className="fa-solid fa-rotate-right" /> {t('systemTasks.refresh')}
             </button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          <MetricCard label="Tâches suivies" value={stats.tasks_total ?? tasks.length} icon="fa-solid fa-list-check" color="#0d9488" />
-          <MetricCard label="Relance manuelle" value={stats.manual_enabled ?? 0} icon="fa-solid fa-hand-pointer" color="#2563eb" />
-          <MetricCard label="Dernier échec" value={stats.failed ?? 0} icon="fa-solid fa-triangle-exclamation" color="#dc2626" />
+          <MetricCard label={t('systemTasks.metrics.trackedTasks')} value={stats.tasks_total ?? tasks.length} icon="fa-solid fa-list-check" color="#0d9488" />
+          <MetricCard label={t('systemTasks.metrics.manualLaunch')} value={stats.manual_enabled ?? 0} icon="fa-solid fa-hand-pointer" color="#2563eb" />
+          <MetricCard label={t('systemTasks.metrics.lastFailure')} value={stats.failed ?? 0} icon="fa-solid fa-triangle-exclamation" color="#dc2626" />
           <MetricCard
-            label="Sans historique"
+            label={t('systemTasks.metrics.noHistory')}
             value={stats.never_run ?? 0}
             icon="fa-solid fa-clock-rotate-left"
             color="#64748b"
-            sub={snapshot?.generated_at ? `Mis à jour ${formatDateTime(snapshot.generated_at)}` : null}
+            sub={snapshot?.generated_at ? t('systemTasks.metrics.updatedAt', { date: formatDateTimeValue(snapshot.generated_at, t) }) : null}
           />
         </div>
 
@@ -242,20 +272,14 @@ export default function SystemTasksPanel({
             <div className="card">
               {sortedTasks.length === 0 ? (
                 <div className="rounded-2xl px-4 py-8 text-center text-sm text-muted-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                  Aucune tâche suivie pour le moment.
+                  {t('systemTasks.empty.noTasks')}
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        {[
-                          ['label', 'Tâche'],
-                          ['category', 'Catégorie'],
-                          ['status', 'Statut'],
-                          ['schedule_label', 'Planification'],
-                          ['latest_run', 'Dernier début'],
-                        ].map(([key, label]) => (
+                        {sortableHeaders.map(([key, label]) => (
                           <th key={key} className="pb-3 pr-4 text-left text-xs font-semibold text-muted-color uppercase tracking-wider">
                             <button type="button" onClick={() => toggleSort(key)} className="inline-flex items-center gap-1 hover:text-base-color">
                               <span>{label}</span>
@@ -281,15 +305,15 @@ export default function SystemTasksPanel({
                               <div className="font-semibold text-base-color">{task.label}</div>
                               <div className="text-[11px] text-muted-color font-mono mt-1">{task.key}</div>
                             </td>
-                            <td className="py-3 pr-4 text-secondary-color text-xs">{CATEGORY_LABELS[task.category] || task.category || 'Système'}</td>
+                            <td className="py-3 pr-4 text-secondary-color text-xs">{getCategoryLabel(task.category)}</td>
                             <td className="py-3 pr-4">
                               <span className="inline-flex items-center gap-2 text-xs font-semibold" style={{ color: meta.color }}>
                                 <i className={meta.icon} />
-                                <span>{meta.label}</span>
+                                <span>{t(meta.labelKey)}</span>
                               </span>
                             </td>
-                            <td className="py-3 pr-4 text-secondary-color text-xs">{task.schedule_label || 'Non planifie'}</td>
-                            <td className="py-3 text-secondary-color text-xs">{formatDateTime(latestRun?.started_at)}</td>
+                            <td className="py-3 pr-4 text-secondary-color text-xs">{task.schedule_label || t('systemTasks.unscheduled')}</td>
+                            <td className="py-3 text-secondary-color text-xs">{formatDateTimeValue(latestRun?.started_at, t)}</td>
                           </tr>
                         )
                       })}
@@ -312,7 +336,7 @@ export default function SystemTasksPanel({
                           <div className="text-sm font-semibold text-base-color">{selectedTask.label}</div>
                           <div className="text-xs text-secondary-color mt-1">{selectedTask.description}</div>
                         </div>
-                        <TaskRunBadge run={latestRun} />
+                        <TaskRunBadge run={latestRun} t={t} />
                       </div>
                       <button
                         onClick={() => onRunTask(selectedTask.key)}
@@ -320,43 +344,43 @@ export default function SystemTasksPanel({
                         className="btn-primary text-xs self-start"
                       >
                         {runningTaskKey === selectedTask.key
-                          ? <><i className="fa-solid fa-spinner fa-spin" /> Exécution...</>
-                          : <><i className="fa-solid fa-play" /> Lancer maintenant</>
+                          ? <><i className="fa-solid fa-spinner fa-spin" /> {t('systemTasks.actions.runningNow')}</>
+                          : <><i className="fa-solid fa-play" /> {t('systemTasks.actions.runNow')}</>
                         }
                       </button>
                     </div>
 
                     <div className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                      <TaskRow label="Planification" value={selectedTask.schedule_label || 'Non planifie'} />
-                      <TaskRow label="Prochaine exécution" value={formatNextDue(selectedTask.next_due_at)} />
-                      <TaskRow label="Dernier déclenchement" value={formatTrigger(latestRun)} />
-                      <TaskRow label="Dernier début" value={formatDateTime(latestRun?.started_at)} />
-                      <TaskRow label="Dernière fin" value={formatDateTime(latestRun?.finished_at)} />
-                      <TaskRow label="Durée" value={formatDuration(latestRun?.duration_ms)} />
-                      <TaskRow label="Code retour" value={latestRun?.exit_code ?? '--'} />
+                      <TaskRow label={t('systemTasks.detail.schedule')} value={selectedTask.schedule_label || t('systemTasks.unscheduled')} />
+                      <TaskRow label={t('systemTasks.detail.nextRun')} value={formatNextDue(selectedTask.next_due_at, t)} />
+                      <TaskRow label={t('systemTasks.detail.lastTrigger')} value={formatTrigger(latestRun, t)} />
+                      <TaskRow label={t('systemTasks.detail.lastStart')} value={formatDateTimeValue(latestRun?.started_at, t)} />
+                      <TaskRow label={t('systemTasks.detail.lastFinish')} value={formatDateTimeValue(latestRun?.finished_at, t)} />
+                      <TaskRow label={t('systemTasks.detail.duration')} value={formatDuration(latestRun?.duration_ms, t)} />
+                      <TaskRow label={t('systemTasks.detail.exitCode')} value={latestRun?.exit_code ?? notAvailable} />
                     </div>
 
                     <div className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                      <TaskRow label="Commande" value={selectedTask.command_signature || 'Routine interne'} mono />
-                      <TaskRow label="Clé technique" value={selectedTask.key} mono />
-                      <TaskRow label="Statut courant" value={runMeta.label} />
-                      <TaskRow label="Autorisé en manuel" value={selectedTask.manual_allowed ? 'Oui' : 'Non'} />
-                      <TaskRow label="Historique dispo" value={latestRun ? 'Oui' : 'En attente du premier passage'} />
-                      <TaskRow label="Rafraîchi à" value={formatDateTime(snapshot?.generated_at)} />
+                      <TaskRow label={t('systemTasks.detail.command')} value={selectedTask.command_signature || t('systemTasks.detail.internalRoutine')} mono />
+                      <TaskRow label={t('systemTasks.detail.technicalKey')} value={selectedTask.key} mono />
+                      <TaskRow label={t('systemTasks.detail.currentStatus')} value={t(runMeta.labelKey)} />
+                      <TaskRow label={t('systemTasks.detail.manualAllowed')} value={selectedTask.manual_allowed ? t('systemTasks.yes') : t('systemTasks.no')} />
+                      <TaskRow label={t('systemTasks.detail.historyAvailable')} value={latestRun ? t('systemTasks.yes') : t('systemTasks.detail.historyPending')} />
+                      <TaskRow label={t('systemTasks.detail.refreshedAt')} value={formatDateTimeValue(snapshot?.generated_at, t)} />
                     </div>
 
                     {(latestRun?.output_excerpt || latestRun?.error_message) && (
                       <div className="space-y-3">
                         {latestRun?.output_excerpt && (
                           <div className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                            <div className="text-xs font-semibold text-base-color mb-2">Sortie récente</div>
+                            <div className="text-xs font-semibold text-base-color mb-2">{t('systemTasks.output.recent')}</div>
                             <pre className="text-xs text-secondary-color whitespace-pre-wrap font-mono">{latestRun.output_excerpt}</pre>
                           </div>
                         )}
 
                         {latestRun?.error_message && (
                           <div className="rounded-2xl px-4 py-4" style={{ background: 'rgba(220,38,38,0.08)', boxShadow: 'inset 0 0 0 1px rgba(220,38,38,0.18)' }}>
-                            <div className="text-xs font-semibold mb-2" style={{ color: '#991b1b' }}>Erreur récente</div>
+                            <div className="text-xs font-semibold mb-2" style={{ color: '#991b1b' }}>{t('systemTasks.output.error')}</div>
                             <pre className="text-xs whitespace-pre-wrap font-mono" style={{ color: '#991b1b' }}>{latestRun.error_message}</pre>
                           </div>
                         )}
@@ -366,7 +390,7 @@ export default function SystemTasksPanel({
                 )
               })() : (
                 <div className="rounded-2xl px-4 py-8 text-center text-sm text-muted-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                  Sélectionnez une tâche pour voir son détail.
+                  {t('systemTasks.empty.noSelection')}
                 </div>
               )}
             </div>
@@ -375,21 +399,21 @@ export default function SystemTasksPanel({
           <div className="card">
             <div className="flex items-center justify-between gap-3 mb-4">
               <div>
-                <h3 className="text-sm font-semibold text-base-color">Historique récent</h3>
-                <p className="text-xs text-muted-color mt-1">Dernières exécutions planifiées ou manuelles.</p>
+                <h3 className="text-sm font-semibold text-base-color">{t('systemTasks.recentHistory.title')}</h3>
+                <p className="text-xs text-muted-color mt-1">{t('systemTasks.recentHistory.subtitle')}</p>
               </div>
             </div>
 
             {recentRuns.length === 0 ? (
               <div className="rounded-2xl px-4 py-8 text-center text-sm text-muted-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                Aucune exécution enregistrée pour le moment.
+                {t('systemTasks.empty.noRecentRuns')}
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                      {['Tâche', 'Statut', 'Déclenchement', 'Début', 'Durée', 'Code retour'].map((header) => (
+                      {recentHeaders.map((header) => (
                         <th key={header} className="pb-3 pr-4 text-left text-xs font-semibold text-muted-color uppercase tracking-wider">{header}</th>
                       ))}
                     </tr>
@@ -407,13 +431,13 @@ export default function SystemTasksPanel({
                           <td className="py-3 pr-4">
                             <span className="inline-flex items-center gap-2 text-xs font-semibold">
                               <i className={runMeta.icon} style={{ color: runMeta.color }} />
-                              <span style={{ color: runMeta.color }}>{runMeta.label}</span>
+                              <span style={{ color: runMeta.color }}>{t(runMeta.labelKey)}</span>
                             </span>
                           </td>
-                          <td className="py-3 pr-4 text-secondary-color text-xs">{formatTrigger(run)}</td>
-                          <td className="py-3 pr-4 text-secondary-color text-xs">{formatDateTime(run.started_at)}</td>
-                          <td className="py-3 pr-4 text-secondary-color text-xs">{formatDuration(run.duration_ms)}</td>
-                          <td className="py-3 text-secondary-color text-xs">{run.exit_code ?? '--'}</td>
+                          <td className="py-3 pr-4 text-secondary-color text-xs">{formatTrigger(run, t)}</td>
+                          <td className="py-3 pr-4 text-secondary-color text-xs">{formatDateTimeValue(run.started_at, t)}</td>
+                          <td className="py-3 pr-4 text-secondary-color text-xs">{formatDuration(run.duration_ms, t)}</td>
+                          <td className="py-3 text-secondary-color text-xs">{run.exit_code ?? notAvailable}</td>
                         </tr>
                       )
                     })}

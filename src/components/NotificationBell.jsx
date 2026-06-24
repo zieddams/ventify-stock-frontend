@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { APP_NAME } from '../config/appMeta'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
+import { useI18n } from '../contexts/I18nContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { subscribeToOpsMonitor } from '../services/realtime'
 import {
@@ -23,7 +23,7 @@ function requestDesktopPermission() {
 }
 
 function notificationMessage(notification, fallbackLabel) {
-  return notification?.data?.message || fallbackLabel || 'Nouvelle notification'
+  return notification?.data?.message || fallbackLabel || ''
 }
 
 export default function NotificationBell() {
@@ -38,6 +38,7 @@ export default function NotificationBell() {
   const audioContextRef = useRef(null)
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { t } = useI18n()
   const { isDark } = useTheme()
 
   useEffect(() => {
@@ -101,7 +102,7 @@ export default function NotificationBell() {
 
     const newest = freshUnread[0]
     const cfg = resolveNotificationConfig(newest)
-    const message = notificationMessage(newest, cfg.label)
+    const message = notificationMessage(newest, cfg.label) || t('notifications.newFallback')
 
     playNotificationTone()
 
@@ -114,7 +115,7 @@ export default function NotificationBell() {
     }
 
     try {
-      const desktopNotification = new window.Notification(APP_NAME, {
+      const desktopNotification = new window.Notification(t('app.name'), {
         body: message,
         tag: newest.id,
       })
@@ -131,7 +132,7 @@ export default function NotificationBell() {
     } catch {
       // ignore desktop notification errors
     }
-  }, [navigate, playNotificationTone])
+  }, [navigate, playNotificationTone, t])
 
   const load = useCallback(async ({ announce = false } = {}) => {
     if (loadPromiseRef.current) {
@@ -272,7 +273,7 @@ export default function NotificationBell() {
           setOpen((value) => !value)
         }}
         className="btn-ghost p-2 relative"
-        title="Notifications"
+        title={t('common.notifications')}
       >
         <i className="fa-solid fa-bell text-base text-muted-color" />
         {unread > 0 && (
@@ -287,13 +288,13 @@ export default function NotificationBell() {
           <div className="flex items-center justify-between px-4 py-3.5" style={{ borderBottom: `1px solid ${dividerColor}` }}>
             <div className="flex items-center gap-2">
               <i className="fa-solid fa-bell text-xs" style={{ color: '#0d9488' }} />
-              <span className="text-sm font-semibold" style={{ color: titleColor }}>Notifications</span>
+              <span className="text-sm font-semibold" style={{ color: titleColor }}>{t('notifications.title')}</span>
               {unread > 0 && (
                 <span
                   className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
                   style={{ background: 'rgba(13,148,136,0.16)', color: '#0d9488' }}
                 >
-                  {unread} non lue{unread > 1 ? 's' : ''}
+                  {t('notifications.unreadBadge', { count: unread })}
                 </span>
               )}
             </div>
@@ -303,7 +304,7 @@ export default function NotificationBell() {
                 className="text-xs font-medium"
                 style={{ color: '#0d9488', background: 'none', border: 'none', cursor: 'pointer' }}
               >
-                Tout lire
+                {t('notifications.markAll')}
               </button>
             )}
           </div>
@@ -311,7 +312,7 @@ export default function NotificationBell() {
           <div className="max-h-80 overflow-y-auto">
             {loading && notifs.length === 0 ? (
               <div className="py-12 text-center">
-                <p className="text-sm" style={{ color: mutedColor }}>Chargement des notifications...</p>
+                <p className="text-sm" style={{ color: mutedColor }}>{t('notifications.loading')}</p>
               </div>
             ) : notifs.length === 0 ? (
               <div className="py-12 text-center">
@@ -321,7 +322,7 @@ export default function NotificationBell() {
                 >
                   <i className="fa-regular fa-bell-slash text-xl" style={{ color: mutedColor }} />
                 </div>
-                <p className="text-sm" style={{ color: mutedColor }}>Aucune notification pour le moment.</p>
+                <p className="text-sm" style={{ color: mutedColor }}>{t('notifications.empty')}</p>
               </div>
             ) : (
               notifs.map((notification) => {
@@ -356,7 +357,7 @@ export default function NotificationBell() {
 
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium line-clamp-2" style={{ color: textColor }}>
-                        {notificationMessage(notification, cfg.label)}
+                        {notificationMessage(notification, cfg.label) || t('notifications.newFallback')}
                       </p>
                       {changes.length > 0 && (
                         <div className="mt-1.5 space-y-1">
@@ -373,7 +374,7 @@ export default function NotificationBell() {
                         </span>
                         {cfg.route && (
                           <span className="text-[10px] font-medium" style={{ color: cfg.color }}>
-                            Ouvrir <i className="fa-solid fa-arrow-right" style={{ fontSize: 8 }} />
+                            {t('notifications.openAction')} <i className="fa-solid fa-arrow-right" style={{ fontSize: 8 }} />
                           </span>
                         )}
                       </div>
@@ -400,14 +401,14 @@ export default function NotificationBell() {
               className="text-xs font-medium"
               style={{ color: '#0d9488', background: 'none', border: 'none', cursor: 'pointer' }}
             >
-              Ouvrir le centre
+              {t('notifications.openCenter')}
             </button>
             <button
               onClick={() => setOpen(false)}
               className="text-xs"
               style={{ color: mutedColor, background: 'none', border: 'none', cursor: 'pointer' }}
             >
-              Fermer
+              {t('common.close')}
             </button>
           </div>
         </div>

@@ -8,10 +8,17 @@ import DepotScopeControls from '../../components/DepotScopeControls'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
+import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import api from '../../services/api'
 import { subscribeToOpsMonitor } from '../../services/realtime'
 import { isAnyMapExperienceEnabled } from '../../utils/companyFeatures'
+import {
+  formatCount as formatLocaleCount,
+  formatCurrency as formatLocaleCurrency,
+  formatDateTime as formatLocaleDateTime,
+  formatNumber as formatLocaleNumber,
+} from '../../utils/format'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -268,11 +275,11 @@ function getSelectedTerrainLocation(rep, routeTrace = []) {
   return getLatestTraceLocation(routeTrace)
 }
 
-function formatMapSourceLabel(source) {
-  if (source === 'trace') return 'Trace GPS'
-  if (source === 'invoice') return 'Facture'
-  if (source === 'mobile') return 'Mobile'
-  return 'GPS'
+function formatMapSourceLabel(source, t) {
+  if (source === 'trace') return t('liveMapPage.sources.trace')
+  if (source === 'invoice') return t('liveMapPage.sources.invoice')
+  if (source === 'mobile') return t('liveMapPage.sources.mobile')
+  return t('liveMapPage.sources.gps')
 }
 
 function fitMapToTunisia(map) {
@@ -283,40 +290,41 @@ function fitMapToTunisia(map) {
 }
 
 function formatNumber(value) {
-  return new Intl.NumberFormat('fr-TN', {
-    minimumFractionDigits: 3,
-    maximumFractionDigits: 3,
-  }).format(Number(value ?? 0))
+  return formatLocaleNumber(value)
+}
+
+function formatCount(value) {
+  return formatLocaleCount(value)
 }
 
 function formatMoney(value) {
-  return `${formatNumber(value)} TND`
+  return formatLocaleCurrency(value)
 }
 
-function formatDateTime(value) {
-  if (!value) return '—'
-  return new Date(value).toLocaleString('fr-FR')
+function formatDateTime(value, fallback = '--') {
+  if (!value) return fallback
+  return formatLocaleDateTime(value)
 }
 
-function formatRelativeTime(value) {
-  if (!value) return 'Aucune activite'
+function formatRelativeTime(value, t) {
+  if (!value) return t('liveMapPage.relative.noActivity')
 
   const minutes = Math.floor((Date.now() - new Date(value).getTime()) / 60000)
-  if (minutes < 1) return 'A l\'instant'
-  if (minutes < 60) return `Il y a ${minutes} min`
+  if (minutes < 1) return t('liveMapPage.relative.now')
+  if (minutes < 60) return t('liveMapPage.relative.minutesAgo', { count: minutes })
 
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `Il y a ${hours}h`
+  if (hours < 24) return t('liveMapPage.relative.hoursAgo', { count: hours })
 
-  return `Il y a ${Math.floor(hours / 24)}j`
+  return t('liveMapPage.relative.daysAgo', { count: Math.floor(hours / 24) })
 }
 
-function formatRôleLabel(role) {
-  if (role === 'rep') return 'Commercial'
-  if (role === 'admin') return 'Admin'
-  if (role === 'developer') return 'Développeur'
-  if (role === 'comptable') return 'Comptable'
-  return role || 'Utilisateur'
+function formatRoleLabel(role, t) {
+  if (role === 'rep') return t('badges.roles.rep')
+  if (role === 'admin') return t('badges.roles.admin')
+  if (role === 'developer') return t('badges.roles.developer')
+  if (role === 'comptable') return t('badges.roles.comptable')
+  return role || t('liveMapPage.fallbacks.user')
 }
 
 function makeDotIcon(color, size = 10) {
@@ -355,10 +363,10 @@ function makeRepIcon(color, selected = false) {
   })
 }
 
-function getPresenceMeta(rep) {
+function getPresenceMeta(rep, t) {
   if (!GEO_TRACKING_ENABLED) {
     return {
-      label: 'Presence en pause',
+      label: t('liveMapPage.presence.paused'),
       color: '#64748b',
       bg: 'rgba(100,116,139,0.12)',
       dot: 'bg-slate-400',
@@ -369,7 +377,7 @@ function getPresenceMeta(rep) {
 
   if (state === 'online' || rep?.presence?.is_online) {
     return {
-      label: 'En ligne',
+      label: t('liveMapPage.presence.online'),
       color: '#059669',
       bg: 'rgba(5,150,105,0.12)',
       dot: 'bg-emerald-500',
@@ -378,7 +386,7 @@ function getPresenceMeta(rep) {
 
   if (state === 'stale' || (rep?.presence?.alive && rep?.presence?.last_seen)) {
     return {
-      label: 'Heartbeat en retard',
+      label: t('liveMapPage.presence.stale'),
       color: '#d97706',
       bg: 'rgba(217,119,6,0.12)',
       dot: 'bg-amber-500',
@@ -387,7 +395,7 @@ function getPresenceMeta(rep) {
 
   if (state === 'never_seen') {
     return {
-      label: 'Aucune remontée',
+      label: t('liveMapPage.presence.neverSeen'),
       color: '#94a3b8',
       bg: 'rgba(148,163,184,0.14)',
       dot: 'bg-slate-300',
@@ -395,17 +403,17 @@ function getPresenceMeta(rep) {
   }
 
   return {
-    label: 'Hors ligne',
+    label: t('liveMapPage.presence.offline'),
     color: '#64748b',
     bg: 'rgba(100,116,139,0.12)',
     dot: 'bg-slate-400',
   }
 }
 
-function getRouteMeta(session) {
+function getRouteMeta(session, t) {
   if (!session) {
     return {
-      label: 'Sans session',
+      label: t('liveMapPage.route.none'),
       color: '#64748b',
       bg: 'rgba(100,116,139,0.12)',
       icon: 'fa-solid fa-route',
@@ -414,7 +422,7 @@ function getRouteMeta(session) {
 
   if (session.status === 'open') {
     return {
-      label: 'Session ouverte',
+      label: t('liveMapPage.route.open'),
       color: '#0d9488',
       bg: 'rgba(13,148,136,0.12)',
       icon: 'fa-solid fa-route',
@@ -422,7 +430,7 @@ function getRouteMeta(session) {
   }
 
   return {
-    label: 'Session clôturée',
+    label: t('liveMapPage.route.closed'),
     color: '#f97316',
     bg: 'rgba(249,115,22,0.12)',
     icon: 'fa-solid fa-flag-checkered',
@@ -518,10 +526,12 @@ function MetricCard({ label, value, icon, color, sub }) {
 }
 
 function DetailRow({ label, value }) {
+  const { t } = useI18n()
+
   return (
     <div className="flex items-start justify-between gap-3 py-2">
       <span className="text-xs text-muted-color">{label}</span>
-      <span className="text-xs font-medium text-base-color text-right">{value ?? '—'}</span>
+      <span className="text-xs font-medium text-base-color text-right">{value ?? t('liveMapPage.fallbacks.notAvailable')}</span>
     </div>
   )
 }
@@ -562,6 +572,7 @@ function ClientsTab({
   onFilterZone,
   search,
   onSearch,
+  t,
 }) {
   const zoneColor = (zoneId) => {
     if (!zoneId) return '#94a3b8'
@@ -588,16 +599,16 @@ function ClientsTab({
         <div className="card">
           <h2 className="text-sm font-semibold text-base-color mb-3">
             <i className="fa-solid fa-filter text-teal-500 mr-2" />
-            Filtres
+            {t('liveMapPage.clients.filtersTitle')}
           </h2>
           <div className="space-y-2">
             <input
-              placeholder="Rechercher un client..."
+              placeholder={t('liveMapPage.clients.searchPlaceholder')}
               value={search}
               onChange={event => onSearch(event.target.value)}
             />
             <select value={filterZone} onChange={event => onFilterZone(event.target.value)}>
-              <option value="">Toutes les zones</option>
+              <option value="">{t('liveMapPage.clients.allZones')}</option>
               {zones.map(zone => (
                 <option key={zone.id} value={zone.id}>{zone.name}</option>
               ))}
@@ -607,7 +618,7 @@ function ClientsTab({
 
         {zones.length > 0 && (
           <div className="card">
-            <h2 className="text-sm font-semibold text-base-color mb-3">Zones</h2>
+            <h2 className="text-sm font-semibold text-base-color mb-3">{t('liveMapPage.clients.zonesTitle')}</h2>
             <div className="space-y-1.5">
               {zones.map((zone, index) => (
                 <button
@@ -624,7 +635,7 @@ function ClientsTab({
                   />
                   {zone.name}
                   <span className="ml-auto text-muted-color font-normal">
-                    {customers.filter(customer => customer.zone_id === zone.id).length}
+                    {formatCount(customers.filter(customer => customer.zone_id === zone.id).length)}
                   </span>
                 </button>
               ))}
@@ -636,7 +647,7 @@ function ClientsTab({
           <div className="card">
             <h2 className="text-sm font-semibold text-base-color mb-2 flex items-center gap-2">
               <i className="fa-solid fa-location-dot-slash text-amber-500" />
-              Non geolocalises ({unmapped.length})
+              {t('liveMapPage.clients.unmappedTitle', { count: formatCount(unmapped.length) })}
             </h2>
             <div className="space-y-1 max-h-48 overflow-y-auto">
               {unmapped.map(customer => (
@@ -661,9 +672,9 @@ function ClientsTab({
             <div className="flex items-center justify-center h-full text-center px-6">
               <div className="max-w-md">
                 <i className="fa-solid fa-location-slash text-2xl text-amber-500 mb-3 block" />
-                <p className="text-sm font-semibold text-base-color">Carte clients temporairement desactivee</p>
+                <p className="text-sm font-semibold text-base-color">{t('liveMapPage.clients.mapDisabledTitle')}</p>
                 <p className="text-xs text-muted-color mt-1">
-                  La geolocalisation clients est en pause. Les listes, zones et donnees commerciales restent disponibles.
+                  {t('liveMapPage.clients.mapDisabledDescription')}
                 </p>
               </div>
             </div>
@@ -705,7 +716,7 @@ function ClientsTab({
                               color: customer.credit_balance > 0 ? '#dc2626' : '#059669',
                             }}
                           >
-                            Credit: {Number(customer.credit_balance).toFixed(3)} TND
+                            {t('liveMapPage.clients.creditLabel')}: {formatMoney(customer.credit_balance)}
                           </div>
                         )}
                       </div>
@@ -718,16 +729,16 @@ function ClientsTab({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
-          <MetricCard label="Total clients" value={customers.length} color="#0d9488" icon="fa-solid fa-users" />
+          <MetricCard label={t('liveMapPage.clients.totalCustomers')} value={formatCount(customers.length)} color="#0d9488" icon="fa-solid fa-users" />
           <MetricCard
-            label={GEO_TRACKING_ENABLED ? 'Sur la carte' : 'Carte client'}
-            value={GEO_TRACKING_ENABLED ? mapped.length : 'Pause'}
+            label={GEO_TRACKING_ENABLED ? t('liveMapPage.clients.onMap') : t('liveMapPage.clients.clientMap')}
+            value={GEO_TRACKING_ENABLED ? formatCount(mapped.length) : t('liveMapPage.fallbacks.paused')}
             color="#3b82f6"
             icon={GEO_TRACKING_ENABLED ? 'fa-solid fa-location-dot' : 'fa-solid fa-location-slash'}
           />
           <MetricCard
-            label={GEO_TRACKING_ENABLED ? 'Sans position' : 'Clients filtres'}
-            value={GEO_TRACKING_ENABLED ? unmapped.length : filtered.length}
+            label={GEO_TRACKING_ENABLED ? t('liveMapPage.clients.withoutPosition') : t('liveMapPage.clients.filteredCustomers')}
+            value={GEO_TRACKING_ENABLED ? formatCount(unmapped.length) : formatCount(filtered.length)}
             color="#f59e0b"
             icon={GEO_TRACKING_ENABLED ? 'fa-solid fa-location-dot-slash' : 'fa-solid fa-list'}
           />
@@ -750,6 +761,7 @@ function TerrainTab({
   onSelectRep,
   routeTrace,
   traceLoading,
+  t,
 }) {
   const filteredReps = (terrain.reps ?? []).filter(rep => {
     if (onlineOnly && !(GEO_TRACKING_ENABLED ? rep.presence?.is_online : rep.route_session?.status === 'open')) return false
@@ -768,8 +780,8 @@ function TerrainTab({
   })
 
   const selectedRep = (terrain.reps ?? []).find(rep => String(rep.id) === String(selectedRepId))
-  const presenceMeta = getPresenceMeta(selectedRep)
-  const routeMeta = getRouteMeta(selectedRep?.route_session)
+  const presenceMeta = getPresenceMeta(selectedRep, t)
+  const routeMeta = getRouteMeta(selectedRep?.route_session, t)
   const routeTracePoints = GEO_TRACKING_ENABLED
     ? routeTrace.map(item => getTunisiaPoint(item.latitude, item.longitude)).filter(Boolean)
     : []
@@ -781,12 +793,12 @@ function TerrainTab({
   const selectedRepUsesTraceFallback = GEO_TRACKING_ENABLED && selectedTerrainLocation?.source === 'trace'
   let mapDisabledReason = selectedRep && !selectedRepHasMapPosition
     ? (selectedRep.presence?.last_seen
-      ? 'Aucun point GPS exploitable en Tunisie n’a encore été remonté pour ce compte.'
-      : 'Ce compte n’a pas encore partagé de position exploitable pour la carte terrain.')
+      ? t('liveMapPage.terrain.noGpsPoint')
+      : t('liveMapPage.terrain.noSharedPosition'))
     : ''
 
   if (!GEO_TRACKING_ENABLED) {
-    mapDisabledReason = 'La geolocalisation terrain est temporairement desactivee. Le suivi temps reel reste base sur les sessions, les factures et les recharges.'
+    mapDisabledReason = t('liveMapPage.terrain.trackingDisabledReason')
   }
 
   if (terrainLoading && !terrain.reps?.length) {
@@ -797,37 +809,39 @@ function TerrainTab({
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
         <MetricCard
-          label={GEO_TRACKING_ENABLED ? 'Mobiles en ligne' : 'Presence mobile'}
-          value={GEO_TRACKING_ENABLED ? (terrain.stats?.online_users ?? terrain.stats?.online_reps ?? 0) : 'Pause'}
-          sub={GEO_TRACKING_ENABLED ? `${terrain.stats?.active_users ?? terrain.stats?.active_reps ?? 0} comptes actifs` : 'Suivi session uniquement'}
+          label={GEO_TRACKING_ENABLED ? t('liveMapPage.terrain.mobileOnline') : t('liveMapPage.terrain.mobilePresence')}
+          value={GEO_TRACKING_ENABLED ? formatCount(terrain.stats?.online_users ?? terrain.stats?.online_reps ?? 0) : t('liveMapPage.fallbacks.paused')}
+          sub={GEO_TRACKING_ENABLED
+            ? t('liveMapPage.terrain.activeAccounts', { count: formatCount(terrain.stats?.active_users ?? terrain.stats?.active_reps ?? 0) })
+            : t('liveMapPage.terrain.sessionOnlyMonitoring')}
           icon="fa-solid fa-signal"
           color="#0d9488"
         />
         <MetricCard
-          label="Sessions ouvertes"
-          value={terrain.stats?.open_sessions ?? 0}
-          sub={`${terrain.stats?.users_total ?? terrain.stats?.reps_total ?? 0} comptes suivis`}
+          label={t('liveMapPage.terrain.openSessions')}
+          value={formatCount(terrain.stats?.open_sessions ?? 0)}
+          sub={t('liveMapPage.terrain.trackedAccounts', { count: formatCount(terrain.stats?.users_total ?? terrain.stats?.reps_total ?? 0) })}
           icon="fa-solid fa-route"
           color="#3b82f6"
         />
         <MetricCard
-          label="Factures du jour"
-          value={terrain.stats?.today_invoices ?? 0}
+          label={t('liveMapPage.terrain.invoicesToday')}
+          value={formatCount(terrain.stats?.today_invoices ?? 0)}
           sub={formatMoney(terrain.stats?.today_revenue ?? 0)}
           icon="fa-solid fa-file-invoice"
           color="#8b5cf6"
         />
         <MetricCard
-          label="Alertes camion"
-          value={terrain.stats?.camion_low_stock ?? 0}
-          sub="Références à surveiller"
+          label={t('liveMapPage.terrain.camionAlerts')}
+          value={formatCount(terrain.stats?.camion_low_stock ?? 0)}
+          sub={t('liveMapPage.terrain.referencesToWatch')}
           icon="fa-solid fa-triangle-exclamation"
           color="#f59e0b"
         />
         <MetricCard
-          label="Dernière mise à jour"
-          value={formatRelativeTime(terrain.generated_at)}
-          sub={formatDateTime(terrain.generated_at)}
+          label={t('liveMapPage.terrain.lastUpdate')}
+          value={formatRelativeTime(terrain.generated_at, t)}
+          sub={formatDateTime(terrain.generated_at, t('liveMapPage.fallbacks.notAvailable'))}
           icon="fa-solid fa-tower-broadcast"
           color="#10b981"
         />
@@ -839,22 +853,22 @@ function TerrainTab({
             <div className="flex items-center justify-between gap-3 mb-3">
               <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
                 <i className="fa-solid fa-mobile-screen-button text-teal-500" />
-                Équipe terrain
+                {t('liveMapPage.terrain.teamTitle')}
               </h2>
               <label className="flex items-center gap-2 text-xs text-muted-color cursor-pointer">
                 <input type="checkbox" checked={onlineOnly} onChange={event => onOnlineOnly(event.target.checked)} />
-                {GEO_TRACKING_ENABLED ? 'En ligne seulement' : 'Session ouverte seulement'}
+                {GEO_TRACKING_ENABLED ? t('liveMapPage.terrain.onlineOnly') : t('liveMapPage.terrain.openSessionOnly')}
               </label>
             </div>
             <input
-              placeholder="Rechercher un utilisateur, un rôle ou une version app..."
+              placeholder={t('liveMapPage.terrain.searchPlaceholder')}
               value={repSearch}
               onChange={event => onRepSearch(event.target.value)}
             />
             <div className="mt-3 space-y-2 max-h-[26rem] overflow-y-auto">
               {filteredReps.map(rep => {
-                const repPresence = getPresenceMeta(rep)
-                const repRoute = getRouteMeta(rep.route_session)
+                const repPresence = getPresenceMeta(rep, t)
+                const repRoute = getRouteMeta(rep.route_session, t)
                 const selected = String(rep.id) === String(selectedRepId)
 
                 return (
@@ -869,11 +883,11 @@ function TerrainTab({
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-base-color truncate">{rep.name}</div>
-                        <div className="text-[11px] uppercase tracking-wide text-muted-color mt-0.5">{formatRôleLabel(rep.role)}</div>
+                        <div className="text-[11px] uppercase tracking-wide text-muted-color mt-0.5">{formatRoleLabel(rep.role, t)}</div>
                         <div className="text-xs text-muted-color truncate">
-                          {rep.zone?.name ?? 'Zone non définie'} · {rep.device?.brand || rep.device?.model
+                          {rep.zone?.name ?? t('liveMapPage.fallbacks.noZone')} · {rep.device?.brand || rep.device?.model
                             ? `${rep.device?.brand ?? ''} ${rep.device?.model ?? ''}`.trim()
-                            : 'Aucun appareil remonte'}
+                            : t('liveMapPage.fallbacks.noDeviceReported')}
                         </div>
                       </div>
                       <div
@@ -885,7 +899,7 @@ function TerrainTab({
                     </div>
                     <div className="flex items-center gap-2 mt-2 text-[11px] text-muted-color">
                       <span className={`w-2 h-2 rounded-full ${repPresence.dot}`} />
-                      <span>{formatRelativeTime(rep.presence?.last_seen)}</span>
+                      <span>{formatRelativeTime(rep.presence?.last_seen, t)}</span>
                       <span>·</span>
                       <span style={{ color: repRoute.color }}>{repRoute.label}</span>
                     </div>
@@ -896,7 +910,7 @@ function TerrainTab({
               {filteredReps.length === 0 && (
                 <div className="rounded-2xl px-4 py-8 text-center" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                   <i className="fa-solid fa-magnifying-glass text-muted-color opacity-50 mb-2 block" />
-                  <p className="text-sm text-muted-color">Aucun compte mobile ne correspond aux filtres.</p>
+                  <p className="text-sm text-muted-color">{t('liveMapPage.terrain.noMobileMatch')}</p>
                 </div>
               )}
             </div>
@@ -909,7 +923,7 @@ function TerrainTab({
                   <div>
                     <div className="text-lg font-bold text-base-color">{selectedRep.name}</div>
                     <div className="text-sm text-muted-color">
-                      {selectedRep.zone?.name ?? 'Zone non définie'} · {selectedRep.email}
+                      {selectedRep.zone?.name ?? t('liveMapPage.fallbacks.noZone')} · {selectedRep.email}
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
@@ -930,18 +944,18 @@ function TerrainTab({
                 </div>
 
                 <div className="divide-y" style={{ '--tw-divide-opacity': 1 }}>
-                  <DetailRow label="Rôle" value={formatRôleLabel(selectedRep.role)} />
+                  <DetailRow label={t('liveMapPage.terrain.role')} value={formatRoleLabel(selectedRep.role, t)} />
                   <DetailRow
-                    label="Dernier ping"
+                    label={t('liveMapPage.terrain.lastPing')}
                     value={GEO_TRACKING_ENABLED
-                      ? `${formatRelativeTime(selectedRep.presence?.last_seen)} · ${formatDateTime(selectedRep.presence?.last_seen)}`
-                      : 'Presence mobile en pause'}
+                      ? `${formatRelativeTime(selectedRep.presence?.last_seen, t)} · ${formatDateTime(selectedRep.presence?.last_seen, t('liveMapPage.fallbacks.notAvailable'))}`
+                      : t('liveMapPage.presence.paused')}
                   />
-                  <DetailRow label="Appareil" value={selectedRep.device?.device_name || `${selectedRep.device?.brand ?? ''} ${selectedRep.device?.model ?? ''}`.trim() || 'Non remonte'} />
-                  <DetailRow label="Version mobile" value={selectedRep.device?.app_version || 'Non remontée'} />
-                  <DetailRow label="OS / API" value={selectedRep.device?.os_version ? `Android ${selectedRep.device.os_version}${selectedRep.device.api_level ? ` (API ${selectedRep.device.api_level})` : ''}` : 'Non remonte'} />
-                  <DetailRow label="Ecran / locale" value={[selectedRep.device?.screen_res, selectedRep.device?.locale, selectedRep.device?.timezone].filter(Boolean).join(' · ') || 'Non remonte'} />
-                  <DetailRow label="Adresse IP" value={selectedRep.device?.ip || 'Non remontée'} />
+                  <DetailRow label={t('liveMapPage.terrain.device')} value={selectedRep.device?.device_name || `${selectedRep.device?.brand ?? ''} ${selectedRep.device?.model ?? ''}`.trim() || t('liveMapPage.fallbacks.notReported')} />
+                  <DetailRow label={t('liveMapPage.terrain.mobileVersion')} value={selectedRep.device?.app_version || t('liveMapPage.fallbacks.notReported')} />
+                  <DetailRow label={t('liveMapPage.terrain.osApi')} value={selectedRep.device?.os_version ? `Android ${selectedRep.device.os_version}${selectedRep.device.api_level ? ` (API ${selectedRep.device.api_level})` : ''}` : t('liveMapPage.fallbacks.notReported')} />
+                  <DetailRow label={t('liveMapPage.terrain.screenLocale')} value={[selectedRep.device?.screen_res, selectedRep.device?.locale, selectedRep.device?.timezone].filter(Boolean).join(' · ') || t('liveMapPage.fallbacks.notReported')} />
+                  <DetailRow label={t('liveMapPage.terrain.ipAddress')} value={selectedRep.device?.ip || t('liveMapPage.fallbacks.notReported')} />
                 </div>
               </div>
 
@@ -949,26 +963,28 @@ function TerrainTab({
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
                     <i className="fa-solid fa-box-open text-amber-500" />
-                    Stock embarqué
+                    {t('liveMapPage.terrain.onboardStock')}
                   </h2>
                   <span className="text-xs text-muted-color">
-                    {selectedRep.camion_stock?.items?.length ?? 0} référence(s)
+                    {t('liveMapPage.terrain.referencesCount', { count: formatCount(selectedRep.camion_stock?.items?.length ?? 0) })}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="rounded-2xl px-3 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                    <div className="text-[11px] text-muted-color">Quantité restante</div>
+                    <div className="text-[11px] text-muted-color">{t('liveMapPage.terrain.remainingQuantity')}</div>
                     <div className="text-sm font-bold text-base-color mt-1">{formatNumber(selectedRep.camion_stock?.total_qty ?? 0)}</div>
                   </div>
                   <div className="rounded-2xl px-3 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                    <div className="text-[11px] text-muted-color">Valeur camion</div>
+                    <div className="text-[11px] text-muted-color">{t('liveMapPage.terrain.camionValue')}</div>
                     <div className="text-sm font-bold text-base-color mt-1">{formatMoney(selectedRep.camion_stock?.total_value ?? 0)}</div>
                   </div>
                 </div>
 
                   <div className="text-[11px] text-muted-color mb-2">
-                    Camion physique: {selectedRep.camion_stock?.configured_camion?.name ?? 'aucun camion assigné'}
+                    {t('liveMapPage.terrain.physicalCamion', {
+                      name: selectedRep.camion_stock?.configured_camion?.name ?? t('liveMapPage.fallbacks.noAssignedCamion'),
+                    })}
                     {selectedRep.camion_stock?.configured_camion?.plate
                       ? ` - ${selectedRep.camion_stock.configured_camion.plate}`
                       : ''}
@@ -980,8 +996,8 @@ function TerrainTab({
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-base-color truncate">{item.product?.name}</div>
                         <div className="text-[11px] text-muted-color truncate">
-                          {item.product?.reference || 'Sans reference'} · {item.product?.unit || 'u'}
-                          {item.product?.min_stock != null && ` · min ${formatNumber(item.product.min_stock)}`}
+                          {item.product?.reference || t('liveMapPage.fallbacks.noReference')} · {item.product?.unit || t('liveMapPage.fallbacks.unit')}
+                          {item.product?.min_stock != null && ` · ${t('liveMapPage.terrain.minStock', { value: formatNumber(item.product.min_stock) })}`}
                         </div>
                       </div>
                       <div className="text-right">
@@ -995,7 +1011,7 @@ function TerrainTab({
 
                   {(selectedRep.camion_stock?.items ?? []).length === 0 && (
                     <div className="rounded-2xl px-4 py-6 text-center" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                      <p className="text-sm text-muted-color">Aucun stock embarqué pour ce commercial.</p>
+                      <p className="text-sm text-muted-color">{t('liveMapPage.terrain.noOnboardStock')}</p>
                     </div>
                   )}
                 </div>
@@ -1004,7 +1020,7 @@ function TerrainTab({
           ) : (
             <div className="card text-center py-10">
               <i className="fa-solid fa-location-dot text-3xl text-muted-color opacity-30 mb-3 block" />
-              <p className="text-sm text-muted-color">Sélectionnez un compte mobile pour afficher ses détails terrain.</p>
+              <p className="text-sm text-muted-color">{t('liveMapPage.terrain.selectMobilePrompt')}</p>
             </div>
           )}
         </div>
@@ -1015,7 +1031,7 @@ function TerrainTab({
               <div className="flex items-center justify-center h-full text-center px-6">
                 <div>
                   <i className="fa-solid fa-tower-broadcast text-2xl text-red-400 mb-3 block" />
-                  <p className="text-sm text-base-color font-semibold">Impossible de charger le suivi terrain</p>
+                  <p className="text-sm text-base-color font-semibold">{t('liveMapPage.terrain.loadErrorTitle')}</p>
                   <p className="text-xs text-muted-color mt-1">{terrainError}</p>
                 </div>
               </div>
@@ -1023,10 +1039,10 @@ function TerrainTab({
               <div className="flex items-center justify-center h-full text-center px-6">
                 <div className="max-w-md">
                   <i className="fa-solid fa-location-slash text-2xl text-amber-500 mb-3 block" />
-                  <p className="text-sm text-base-color font-semibold">Carte désactivée pour ce commercial</p>
+                  <p className="text-sm text-base-color font-semibold">{t('liveMapPage.terrain.mapDisabledTitle')}</p>
                   <p className="text-xs text-muted-color mt-1">{mapDisabledReason}</p>
                   <p className="text-xs text-secondary-color mt-3">
-                    Le suivi restera sur OpenStreetMap et se réactivera automatiquement dès qu’un point GPS valide sera reçu.
+                    {t('liveMapPage.terrain.mapReactivates')}
                   </p>
                 </div>
               </div>
@@ -1044,7 +1060,7 @@ function TerrainTab({
                 <FitTerrainBounds reps={terrainPositions} routeTrace={routeTrace} selectedPoint={selectedTerrainLocation} />
 
                 {terrainPositions.map(rep => {
-                  const presence = getPresenceMeta(rep)
+                  const presence = getPresenceMeta(rep, t)
                   const selected = String(rep.id) === String(selectedRepId)
                   const point = getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude)
 
@@ -1063,14 +1079,14 @@ function TerrainTab({
                         <div style={{ minWidth: 180 }}>
                           <div style={{ fontWeight: 700 }}>{rep.name}</div>
                           <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
-                            {presence.label} · {formatRelativeTime(rep.presence?.last_seen)}
+                            {presence.label} · {formatRelativeTime(rep.presence?.last_seen, t)}
                           </div>
                           <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
-                            {rep.route_session?.status === 'open' ? 'Session ouverte' : 'Pas de session active'}
+                            {rep.route_session?.status === 'open' ? t('liveMapPage.route.open') : t('liveMapPage.route.noActiveSession')}
                           </div>
                           {rep.device?.app_version && (
                             <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
-                              App v{rep.device.app_version}
+                              {t('liveMapPage.terrain.popupAppVersion', { version: rep.device.app_version })}
                             </div>
                           )}
                         </div>
@@ -1089,10 +1105,14 @@ function TerrainTab({
                       <div style={{ minWidth: 180 }}>
                         <div style={{ fontWeight: 700 }}>{selectedRep.name}</div>
                         <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
-                          Trace GPS recente · {selectedTerrainLocation.recorded_at ? formatDateTime(selectedTerrainLocation.recorded_at) : 'heure inconnue'}
+                          {t('liveMapPage.terrain.popupTraceRecent', {
+                            date: selectedTerrainLocation.recorded_at
+                              ? formatDateTime(selectedTerrainLocation.recorded_at, t('liveMapPage.fallbacks.notAvailable'))
+                              : t('liveMapPage.fallbacks.unknownTime'),
+                          })}
                         </div>
                         <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
-                          Le point courant n’est pas exploitable, la carte utilise le dernier point valide de la trace.
+                          {t('liveMapPage.terrain.popupTraceFallback')}
                         </div>
                       </div>
                     </Popup>
@@ -1119,9 +1139,9 @@ function TerrainTab({
               <div className="flex items-start gap-3">
                 <i className="fa-solid fa-circle-info text-amber-500 mt-0.5" />
                 <div>
-                  <div className="text-sm font-semibold text-base-color">Position introuvable pour ce compte</div>
+                  <div className="text-sm font-semibold text-base-color">{t('liveMapPage.terrain.positionUnavailableTitle')}</div>
                   <div className="text-xs text-muted-color mt-1">
-                    La carte reste limitée à la Tunisie. Cette position est absente ou hors Tunisie, donc elle n’est pas affichée.
+                    {t('liveMapPage.terrain.positionUnavailableDescription')}
                   </div>
                 </div>
               </div>
@@ -1132,34 +1152,38 @@ function TerrainTab({
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                 <MetricCard
-                  label="CA du jour"
+                  label={t('liveMapPage.terrain.revenueToday')}
                   value={formatMoney(selectedRep.today?.invoices_total ?? 0)}
-                  sub={`${selectedRep.today?.invoices_count ?? 0} facture(s)`}
+                  sub={t('liveMapPage.terrain.invoicesCount', { count: formatCount(selectedRep.today?.invoices_count ?? 0) })}
                   icon="fa-solid fa-sack-dollar"
                   color="#0d9488"
                 />
                 <MetricCard
-                  label="Chargé du jour"
+                  label={t('liveMapPage.terrain.loadedToday')}
                   value={formatNumber(selectedRep.route_session?.loaded_qty_total ?? 0)}
                   sub={formatMoney(selectedRep.route_session?.loaded_value_total ?? 0)}
                   icon="fa-solid fa-truck-ramp-box"
                   color="#3b82f6"
                 />
                 <MetricCard
-                  label="Derniere recharge"
+                  label={t('liveMapPage.terrain.lastRecharge')}
                   value={selectedRep.route_session?.last_load?.qty_total != null
                     ? formatNumber(selectedRep.route_session.last_load.qty_total)
-                    : 'Aucune'}
+                    : t('liveMapPage.fallbacks.none')}
                   sub={selectedRep.route_session?.last_load?.at
-                    ? `${formatDateTime(selectedRep.route_session.last_load.at)} · ${formatMoney(selectedRep.route_session.last_load.value_total ?? 0)}`
-                    : 'Pas de mouvement dépôt > camion'}
+                    ? `${formatDateTime(selectedRep.route_session.last_load.at, t('liveMapPage.fallbacks.notAvailable'))} · ${formatMoney(selectedRep.route_session.last_load.value_total ?? 0)}`
+                    : t('liveMapPage.terrain.noDepotToCamionMovement')}
                   icon="fa-solid fa-boxes-stacked"
                   color="#8b5cf6"
                 />
                 <MetricCard
-                  label={GEO_TRACKING_ENABLED ? 'Points GPS' : 'Carte terrain'}
-                  value={GEO_TRACKING_ENABLED ? (selectedRep.route_session?.locations_count ?? 0) : 'Pause'}
-                  sub={GEO_TRACKING_ENABLED ? (traceLoading ? 'Trace en cours...' : `${routeTrace.length} point(s) charges`) : 'Sessions et stock en temps reel'}
+                  label={GEO_TRACKING_ENABLED ? t('liveMapPage.terrain.gpsPoints') : t('liveMapPage.terrain.terrainMap')}
+                  value={GEO_TRACKING_ENABLED ? formatCount(selectedRep.route_session?.locations_count ?? 0) : t('liveMapPage.fallbacks.paused')}
+                  sub={GEO_TRACKING_ENABLED
+                    ? (traceLoading
+                      ? t('liveMapPage.terrain.traceLoading')
+                      : t('liveMapPage.terrain.tracePointsCount', { count: formatCount(routeTrace.length) }))
+                    : t('liveMapPage.terrain.sessionsRealtime')}
                   icon={GEO_TRACKING_ENABLED ? 'fa-solid fa-location-crosshairs' : 'fa-solid fa-location-slash'}
                   color="#f59e0b"
                 />
@@ -1170,26 +1194,28 @@ function TerrainTab({
                   <div className="flex items-center justify-between gap-3 mb-3">
                     <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
                       <i className="fa-solid fa-route text-teal-500" />
-                      Session du jour
+                      {t('liveMapPage.terrain.daySession')}
                     </h2>
                     <span className="text-xs text-muted-color">
-                      {selectedRep.route_session?.session_date || 'Aucune session'}
+                      {selectedRep.route_session?.session_date || t('liveMapPage.fallbacks.noSession')}
                     </span>
                   </div>
                   <div className="divide-y" style={{ '--tw-divide-opacity': 1 }}>
-                    <DetailRow label="Session #" value={selectedRep.route_session?.id ? `#${selectedRep.route_session.id}` : 'Aucune'} />
-                    <DetailRow label="Ouverture" value={formatDateTime(selectedRep.route_session?.opened_at)} />
-                    <DetailRow label="Cloture" value={formatDateTime(selectedRep.route_session?.closed_at)} />
-                    <DetailRow label="Zone session" value={selectedRep.route_session?.zone?.name || selectedRep.zone?.name || '—'} />
-                    <DetailRow label="Camion assigné" value={selectedRep.route_session?.camion?.name || selectedRep.camion_stock?.configured_camion?.name || 'Aucun'} />
-                    <DetailRow label="Chargée / vendue / retour" value={`${formatNumber(selectedRep.route_session?.loaded_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.sold_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.returned_qty_total ?? 0)}`} />
-                    <DetailRow label="Reste camion" value={formatNumber(selectedRep.route_session?.remaining_qty_total ?? 0)} />
-                    <DetailRow label="Cash / credit" value={`${formatMoney(selectedRep.route_session?.cash_collected ?? 0)} / ${formatMoney(selectedRep.route_session?.credit_given ?? 0)}`} />
+                    <DetailRow label={t('liveMapPage.terrain.sessionNumber')} value={selectedRep.route_session?.id ? `#${selectedRep.route_session.id}` : t('liveMapPage.fallbacks.none')} />
+                    <DetailRow label={t('liveMapPage.terrain.opening')} value={formatDateTime(selectedRep.route_session?.opened_at, t('liveMapPage.fallbacks.notAvailable'))} />
+                    <DetailRow label={t('liveMapPage.terrain.closing')} value={formatDateTime(selectedRep.route_session?.closed_at, t('liveMapPage.fallbacks.notAvailable'))} />
+                    <DetailRow label={t('liveMapPage.terrain.sessionZone')} value={selectedRep.route_session?.zone?.name || selectedRep.zone?.name || t('liveMapPage.fallbacks.notAvailable')} />
+                    <DetailRow label={t('liveMapPage.terrain.assignedCamion')} value={selectedRep.route_session?.camion?.name || selectedRep.camion_stock?.configured_camion?.name || t('liveMapPage.fallbacks.none')} />
+                    <DetailRow label={t('liveMapPage.terrain.loadSellReturn')} value={`${formatNumber(selectedRep.route_session?.loaded_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.sold_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.returned_qty_total ?? 0)}`} />
+                    <DetailRow label={t('liveMapPage.terrain.remainingCamion')} value={formatNumber(selectedRep.route_session?.remaining_qty_total ?? 0)} />
+                    <DetailRow label={t('liveMapPage.terrain.cashCredit')} value={`${formatMoney(selectedRep.route_session?.cash_collected ?? 0)} / ${formatMoney(selectedRep.route_session?.credit_given ?? 0)}`} />
                     <DetailRow
-                      label="Carte terrain"
+                      label={t('liveMapPage.terrain.terrainMap')}
                       value={GEO_TRACKING_ENABLED
-                        ? (selectedTerrainLocation ? `${formatMapSourceLabel(selectedTerrainLocation.source)} · ${formatDateTime(selectedTerrainLocation.recorded_at)}` : 'Aucun point')
-                        : 'Geolocalisation desactivee'}
+                        ? (selectedTerrainLocation
+                          ? `${formatMapSourceLabel(selectedTerrainLocation.source, t)} · ${formatDateTime(selectedTerrainLocation.recorded_at, t('liveMapPage.fallbacks.notAvailable'))}`
+                          : t('liveMapPage.fallbacks.noPoint'))
+                        : t('liveMapPage.terrain.geolocationDisabled')}
                     />
                   </div>
                 </div>
@@ -1198,10 +1224,10 @@ function TerrainTab({
                   <div className="flex items-center justify-between gap-3 mb-3">
                     <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
                       <i className="fa-solid fa-file-invoice text-indigo-500" />
-                      Derniere facture / session terrain
+                      {t('liveMapPage.terrain.lastInvoiceSession')}
                     </h2>
                     {selectedRep.today?.last_invoice && (
-                      <span className="text-xs text-muted-color">{formatDateTime(selectedRep.today.last_invoice.created_at)}</span>
+                      <span className="text-xs text-muted-color">{formatDateTime(selectedRep.today.last_invoice.created_at, t('liveMapPage.fallbacks.notAvailable'))}</span>
                     )}
                   </div>
 
@@ -1212,41 +1238,47 @@ function TerrainTab({
                           <div>
                             <div className="text-sm font-semibold text-base-color">{selectedRep.today.last_invoice.number}</div>
                             <div className="text-xs text-muted-color mt-0.5">
-                              {selectedRep.today.last_invoice.customer_name || 'Client non défini'}
+                              {selectedRep.today.last_invoice.customer_name || t('liveMapPage.fallbacks.undefinedCustomer')}
                             </div>
                           </div>
                           <div className="text-right">
                             <div className="text-sm font-bold text-base-color">{formatMoney(selectedRep.today.last_invoice.total)}</div>
                             <div className="text-[11px] text-muted-color mt-0.5">
-                              {selectedRep.today.last_invoice.payment_status || '—'}
+                              {selectedRep.today.last_invoice.payment_status || t('liveMapPage.fallbacks.notAvailable')}
                             </div>
                           </div>
                         </div>
                       </div>
 
                       <div className="divide-y" style={{ '--tw-divide-opacity': 1 }}>
-                        <DetailRow label="Factures aujourd'hui" value={selectedRep.today.invoices_count} />
-                        <DetailRow label="CA du terrain" value={formatMoney(selectedRep.today.invoices_total)} />
-                        <DetailRow label="Version app" value={selectedRep.device?.app_version || selectedRep.device?.native_app_version || 'Non remontée'} />
-                        <DetailRow label="Plateforme / build" value={[selectedRep.device?.platform, selectedRep.device?.native_build_version].filter(Boolean).join(' · ') || 'Non remonte'} />
-                        <DetailRow label="Exécution" value={[selectedRep.device?.app_ownership, selectedRep.device?.execution_environment].filter(Boolean).join(' · ') || 'Non remontée'} />
+                        <DetailRow label={t('liveMapPage.terrain.invoicesTodayDetail')} value={formatCount(selectedRep.today.invoices_count)} />
+                        <DetailRow label={t('liveMapPage.terrain.terrainRevenue')} value={formatMoney(selectedRep.today.invoices_total)} />
+                        <DetailRow label={t('liveMapPage.terrain.appVersion')} value={selectedRep.device?.app_version || selectedRep.device?.native_app_version || t('liveMapPage.fallbacks.notReported')} />
+                        <DetailRow label={t('liveMapPage.terrain.platformBuild')} value={[selectedRep.device?.platform, selectedRep.device?.native_build_version].filter(Boolean).join(' · ') || t('liveMapPage.fallbacks.notReported')} />
+                        <DetailRow label={t('liveMapPage.terrain.execution')} value={[selectedRep.device?.app_ownership, selectedRep.device?.execution_environment].filter(Boolean).join(' · ') || t('liveMapPage.fallbacks.notReported')} />
                         <DetailRow
-                          label="Dernier ping"
+                          label={t('liveMapPage.terrain.lastPing')}
                           value={GEO_TRACKING_ENABLED
-                            ? (selectedRep.presence?.last_seen ? `${formatRelativeTime(selectedRep.presence.last_seen)} · ${formatDateTime(selectedRep.presence.last_seen)}` : 'Aucune remontée')
-                            : 'Presence mobile en pause'}
+                            ? (selectedRep.presence?.last_seen
+                              ? `${formatRelativeTime(selectedRep.presence.last_seen, t)} · ${formatDateTime(selectedRep.presence.last_seen, t('liveMapPage.fallbacks.notAvailable'))}`
+                              : t('liveMapPage.presence.neverSeen'))
+                            : t('liveMapPage.presence.paused')}
                         />
-                        <DetailRow label="Ecran / locale" value={[selectedRep.device?.screen_res, selectedRep.device?.locale].filter(Boolean).join(' · ') || 'Non remonte'} />
+                        <DetailRow label={t('liveMapPage.terrain.screenLocale')} value={[selectedRep.device?.screen_res, selectedRep.device?.locale].filter(Boolean).join(' · ') || t('liveMapPage.fallbacks.notReported')} />
                         <DetailRow
-                          label="Trace chargee"
-                          value={GEO_TRACKING_ENABLED ? (routeTrace.length > 0 ? `${routeTrace.length} point(s)` : 'Aucune trace pour le moment') : 'Desactivee'}
+                          label={t('liveMapPage.terrain.traceLoaded')}
+                          value={GEO_TRACKING_ENABLED
+                            ? (routeTrace.length > 0
+                              ? t('liveMapPage.terrain.tracePointsCount', { count: formatCount(routeTrace.length) })
+                              : t('liveMapPage.terrain.noTraceYet'))
+                            : t('liveMapPage.fallbacks.disabled')}
                         />
                       </div>
                     </div>
                   ) : (
                     <div className="rounded-2xl px-4 py-8 text-center" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                       <i className="fa-solid fa-file-circle-xmark text-muted-color opacity-40 mb-2 block" />
-                      <p className="text-sm text-muted-color">Aucune facture du jour pour ce commercial.</p>
+                      <p className="text-sm text-muted-color">{t('liveMapPage.terrain.noInvoiceToday')}</p>
                     </div>
                   )}
                 </div>
@@ -1262,6 +1294,7 @@ function TerrainTab({
 export default function LiveMapIndex() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAuth()
+  const { t } = useI18n()
   const mapExperienceEnabled = isAnyMapExperienceEnabled(user)
 
   GEO_TRACKING_ENABLED = mapExperienceEnabled
@@ -1271,8 +1304,8 @@ export default function LiveMapIndex() {
     return (
       <div className="space-y-6">
         <PageHeader
-          title="Carte et terrain"
-          subtitle="Module masque pour cette societe."
+          title={t('liveMapPage.page.title')}
+          subtitle={t('liveMapPage.page.hiddenSubtitle')}
         />
 
         <div className="card">
@@ -1284,10 +1317,9 @@ export default function LiveMapIndex() {
               <i className="fa-solid fa-map-location-dot" />
             </div>
             <div>
-              <div className="text-sm font-semibold text-base-color">Cartes et geolocalisation desactivees</div>
+              <div className="text-sm font-semibold text-base-color">{t('liveMapPage.page.hiddenTitle')}</div>
               <div className="text-sm text-secondary-color mt-1">
-                La societe connectee n a pas active les cartes clients et le suivi terrain. Le module reste masque
-                jusqu a activation depuis la configuration.
+                {t('liveMapPage.page.hiddenDescription')}
               </div>
             </div>
           </div>
@@ -1381,11 +1413,11 @@ export default function LiveMapIndex() {
       setTerrainError('')
       initialTerrainLoaded.current = true
     } catch {
-      setTerrainError('Le flux terrain n\'est pas encore disponible.')
+      setTerrainError(t('liveMapPage.terrain.streamUnavailable'))
     } finally {
       setLoadingTerrain(false)
     }
-  }, [selectedDepotId])
+  }, [selectedDepotId, t])
 
   const loadRouteTrace = useCallback(async (routeSessionId) => {
     if (!GEO_TRACKING_ENABLED) {
@@ -1522,8 +1554,13 @@ export default function LiveMapIndex() {
   }, [])
 
   const customerSubtitle = GEO_TRACKING_ENABLED
-    ? `${customers.length} clients · ${customers.filter(customer => getTunisiaPoint(customer.lat, customer.lng)).length} geolocalises`
-    : `${customers.length} clients - carte client temporairement desactivee`
+    ? t('liveMapPage.page.customerSubtitle', {
+      total: formatCount(customers.length),
+      mapped: formatCount(customers.filter(customer => getTunisiaPoint(customer.lat, customer.lng)).length),
+    })
+    : t('liveMapPage.page.customerSubtitleDisabled', {
+      total: formatCount(customers.length),
+    })
   const terrainTrackedCount = terrain.stats?.users_total ?? terrain.stats?.reps_total ?? 0
   const terrainMappedCount = GEO_TRACKING_ENABLED
     ? terrain.reps.filter(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude)).length
@@ -1534,18 +1571,27 @@ export default function LiveMapIndex() {
   const providerConfig = resolveProviderConfig(mapSettings)
   const terrainScopeLabel = selectedDepot
     ? `${selectedDepot.name}${selectedDepot.code ? ` (${selectedDepot.code})` : ''}`
-    : 'Tous les dépôts'
+    : t('liveMapPage.page.allDepots')
   const terrainSubtitle = terrain.generated_at
-    ? `${terrain.stats?.reps_total ?? 0} commerciaux suivis · MAJ ${formatDateTime(terrain.generated_at)}`
-    : (GEO_TRACKING_ENABLED ? 'Suivi mobile, GPS et stock terrain' : 'Suivi sessions, stock camion et facturation en temps reel')
+    ? t('liveMapPage.page.terrainSubtitleUpdated', {
+      count: formatCount(terrain.stats?.reps_total ?? 0),
+      date: formatDateTime(terrain.generated_at, t('liveMapPage.fallbacks.notAvailable')),
+    })
+    : (GEO_TRACKING_ENABLED ? t('liveMapPage.page.terrainSubtitleGps') : t('liveMapPage.page.terrainSubtitleSessions'))
 
   return (
     <div>
       <PageHeader
-        title="Carte & terrain"
+        title={t('liveMapPage.page.title')}
         subtitle={activeTab === 'terrain'
           ? (terrain.generated_at
-            ? `${terrainMappedCount}/${terrainTrackedCount} comptes positionnes - ${terrainOnlineCount} en ligne - ${terrainScopeLabel} - MAJ ${formatDateTime(terrain.generated_at)}`
+            ? t('liveMapPage.page.terrainHeaderUpdated', {
+              mapped: formatCount(terrainMappedCount),
+              tracked: formatCount(terrainTrackedCount),
+              online: formatCount(terrainOnlineCount),
+              scope: terrainScopeLabel,
+              date: formatDateTime(terrain.generated_at, t('liveMapPage.fallbacks.notAvailable')),
+            })
             : terrainSubtitle)
           : customerSubtitle}
         action={(
@@ -1558,7 +1604,7 @@ export default function LiveMapIndex() {
                 onChange={setSelectedDepotValue}
                 allowAll
                 canSelectAll={canSelectAll}
-                label="Périmètre terrain"
+                label={t('liveMapPage.page.terrainScope')}
               />
             )}
             <button
@@ -1576,7 +1622,7 @@ export default function LiveMapIndex() {
               }}
               className="btn-secondary text-xs py-2"
             >
-              <i className="fa-solid fa-rotate-right" /> Actualiser
+              <i className="fa-solid fa-rotate-right" /> {t('liveMapPage.page.refresh')}
             </button>
           </div>
         )}
@@ -1586,15 +1632,15 @@ export default function LiveMapIndex() {
         <TabButton
           active={activeTab === 'clients'}
           icon="fa-solid fa-users"
-          label="Clients"
-          count={customers.length}
+          label={t('layout.nav.customers')}
+          count={formatCount(customers.length)}
           onClick={() => patchSearchParams({ tab: 'clients' })}
         />
         <TabButton
           active={activeTab === 'terrain'}
           icon="fa-solid fa-tower-broadcast"
-          label="Terrain mobile"
-          count={terrainMappedCount}
+          label={t('liveMapPage.page.mobileTerrain')}
+          count={formatCount(terrainMappedCount)}
           onClick={() => patchSearchParams({ tab: 'terrain' })}
         />
       </div>
@@ -1604,7 +1650,7 @@ export default function LiveMapIndex() {
           <div className="flex items-start gap-3">
             <i className="fa-solid fa-circle-info text-amber-500 mt-0.5" />
             <div>
-              <div className="text-sm font-semibold text-base-color">Provider carte</div>
+              <div className="text-sm font-semibold text-base-color">{t('liveMapPage.page.providerTitle')}</div>
               <div className="text-xs text-secondary-color mt-1">{providerConfig.warning}</div>
             </div>
           </div>
@@ -1625,6 +1671,7 @@ export default function LiveMapIndex() {
           onSelectRep={(repId) => patchSearchParams({ tab: 'terrain', rep: repId })}
           routeTrace={routeTrace}
           traceLoading={traceLoading}
+          t={t}
         />
       ) : (
         <ClientsTab
@@ -1638,6 +1685,7 @@ export default function LiveMapIndex() {
           onFilterZone={setFilterZone}
           search={customerSearch}
           onSearch={setCustomerSearch}
+          t={t}
         />
       )}
     </div>

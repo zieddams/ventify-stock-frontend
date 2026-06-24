@@ -2,41 +2,42 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import NotificationBell from '../components/NotificationBell'
 import DepotScopeControls from '../components/DepotScopeControls'
-import { APP_NAME, APP_VERSION } from '../config/appMeta'
+import { APP_VERSION } from '../config/appMeta'
 import { useAuth } from '../contexts/AuthContext'
+import { useI18n } from '../contexts/I18nContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { useDepots } from '../hooks/useDepots'
 import { DEFAULT_APP_MARK, resolveUserBrandLogo } from '../utils/branding'
 
 const CORE_NAV = [
-  { to: '/invoices', icon: 'fa-solid fa-file-invoice', label: 'Factures' },
-  { to: '/customers', icon: 'fa-solid fa-users', label: 'Clients' },
-  { to: '/products', icon: 'fa-solid fa-box-open', label: 'Produits' },
+  { to: '/invoices', icon: 'fa-solid fa-file-invoice', labelKey: 'layout.nav.invoices' },
+  { to: '/customers', icon: 'fa-solid fa-users', labelKey: 'layout.nav.customers' },
+  { to: '/products', icon: 'fa-solid fa-box-open', labelKey: 'layout.nav.products' },
 ]
 
 const FINANCE_NAV = [
-  { to: '/credit', icon: 'fa-solid fa-credit-card', label: 'Crédit clients' },
-  { to: '/expenses', icon: 'fa-solid fa-receipt', label: 'Dépenses' },
+  { to: '/credit', icon: 'fa-solid fa-credit-card', labelKey: 'layout.nav.credit' },
+  { to: '/expenses', icon: 'fa-solid fa-receipt', labelKey: 'layout.nav.expenses' },
 ]
 
 const OPERATIONS_NAV = [
-  { to: '/routes', icon: 'fa-solid fa-truck-fast', label: 'Sorties journée' },
-  { to: '/depot', icon: 'fa-solid fa-warehouse', label: 'Dépôt' },
-  { to: '/camions', icon: 'fa-solid fa-truck', label: 'Camions' },
-  { to: '/inventory', icon: 'fa-solid fa-clipboard-list', label: 'Inventaire' },
-  { to: '/reports', icon: 'fa-solid fa-chart-line', label: 'Rapports' },
-  { to: '/data-tools', icon: 'fa-solid fa-file-arrow-up', label: 'Imports / exports' },
+  { to: '/routes', icon: 'fa-solid fa-truck-fast', labelKey: 'layout.nav.routes' },
+  { to: '/depot', icon: 'fa-solid fa-warehouse', labelKey: 'layout.nav.depot' },
+  { to: '/camions', icon: 'fa-solid fa-truck', labelKey: 'layout.nav.camions' },
+  { to: '/inventory', icon: 'fa-solid fa-clipboard-list', labelKey: 'layout.nav.inventory' },
+  { to: '/reports', icon: 'fa-solid fa-chart-line', labelKey: 'layout.nav.reports' },
+  { to: '/data-tools', icon: 'fa-solid fa-file-arrow-up', labelKey: 'layout.nav.dataTools' },
 ]
 
 const SUPPORT_NAV = [
-  { to: '/help', icon: 'fa-solid fa-circle-question', label: 'Aide' },
-  { to: '/notifications-center', icon: 'fa-solid fa-bell', label: 'Notifications' },
-  { to: '/bug-reports', icon: 'fa-solid fa-bug', label: 'Support et signalements' },
+  { to: '/help', icon: 'fa-solid fa-circle-question', labelKey: 'layout.nav.help' },
+  { to: '/notifications-center', icon: 'fa-solid fa-bell', labelKey: 'layout.nav.notificationsCenter' },
+  { to: '/bug-reports', icon: 'fa-solid fa-bug', labelKey: 'layout.nav.bugReports' },
 ]
 
 const DEVELOPER_NAV = [
-  { to: '/companies', icon: 'fa-solid fa-buildings', label: 'Societes' },
-  { to: '/developer-tools', icon: 'fa-solid fa-code', label: 'Outils développeur' },
+  { to: '/companies', icon: 'fa-solid fa-buildings', labelKey: 'layout.nav.companies' },
+  { to: '/developer-tools', icon: 'fa-solid fa-code', labelKey: 'layout.nav.developerTools' },
 ]
 
 const DEFAULT_SYSTEM_STATUS = {
@@ -45,29 +46,29 @@ const DEFAULT_SYSTEM_STATUS = {
 }
 
 const PAGE_TITLES = {
-  '/': { label: 'Tableau de bord', icon: 'fa-solid fa-chart-pie' },
-  '/invoices': { label: 'Factures', icon: 'fa-solid fa-file-invoice' },
-  '/customers': { label: 'Clients', icon: 'fa-solid fa-users' },
-  '/products': { label: 'Produits', icon: 'fa-solid fa-box-open' },
-  '/credit': { label: 'Crédit clients', icon: 'fa-solid fa-credit-card' },
-  '/expenses': { label: 'Dépenses', icon: 'fa-solid fa-receipt' },
-  '/routes': { label: 'Sorties journée', icon: 'fa-solid fa-truck-fast' },
-  '/depot': { label: 'Dépôt', icon: 'fa-solid fa-warehouse' },
-  '/camions': { label: 'Camions', icon: 'fa-solid fa-truck' },
-  '/reports': { label: 'Rapports', icon: 'fa-solid fa-chart-line' },
-  '/users': { label: 'Utilisateurs', icon: 'fa-solid fa-user-gear' },
-  '/zones': { label: 'Zones et tarifs', icon: 'fa-solid fa-map-location-dot' },
-  '/config': { label: 'Configuration', icon: 'fa-solid fa-sliders' },
-  '/map': { label: 'Carte et terrain', icon: 'fa-solid fa-map-location-dot' },
-  '/inventory': { label: 'Inventaire', icon: 'fa-solid fa-clipboard-list' },
-  '/data-tools': { label: 'Imports / exports', icon: 'fa-solid fa-file-arrow-up' },
-  '/import': { label: 'Imports / exports', icon: 'fa-solid fa-file-arrow-up' },
-  '/export': { label: 'Imports / exports', icon: 'fa-solid fa-file-arrow-up' },
-  '/help': { label: 'Aide et documentation', icon: 'fa-solid fa-circle-question' },
-  '/notifications-center': { label: 'Centre de notifications', icon: 'fa-solid fa-bell' },
-  '/bug-reports': { label: 'Support et signalements', icon: 'fa-solid fa-bug' },
-  '/companies': { label: 'Societes', icon: 'fa-solid fa-buildings' },
-  '/developer-tools': { label: 'Outils développeur', icon: 'fa-solid fa-code' },
+  '/': { labelKey: 'layout.nav.dashboard', icon: 'fa-solid fa-chart-pie' },
+  '/invoices': { labelKey: 'layout.nav.invoices', icon: 'fa-solid fa-file-invoice' },
+  '/customers': { labelKey: 'layout.nav.customers', icon: 'fa-solid fa-users' },
+  '/products': { labelKey: 'layout.nav.products', icon: 'fa-solid fa-box-open' },
+  '/credit': { labelKey: 'layout.nav.credit', icon: 'fa-solid fa-credit-card' },
+  '/expenses': { labelKey: 'layout.nav.expenses', icon: 'fa-solid fa-receipt' },
+  '/routes': { labelKey: 'layout.nav.routes', icon: 'fa-solid fa-truck-fast' },
+  '/depot': { labelKey: 'layout.nav.depot', icon: 'fa-solid fa-warehouse' },
+  '/camions': { labelKey: 'layout.nav.camions', icon: 'fa-solid fa-truck' },
+  '/reports': { labelKey: 'layout.nav.reports', icon: 'fa-solid fa-chart-line' },
+  '/users': { labelKey: 'layout.nav.users', icon: 'fa-solid fa-user-gear' },
+  '/zones': { labelKey: 'layout.nav.zones', icon: 'fa-solid fa-map-location-dot' },
+  '/config': { labelKey: 'layout.nav.config', icon: 'fa-solid fa-sliders' },
+  '/map': { labelKey: 'layout.nav.map', icon: 'fa-solid fa-map-location-dot' },
+  '/inventory': { labelKey: 'layout.nav.inventory', icon: 'fa-solid fa-clipboard-list' },
+  '/data-tools': { labelKey: 'layout.nav.dataTools', icon: 'fa-solid fa-file-arrow-up' },
+  '/import': { labelKey: 'layout.nav.dataTools', icon: 'fa-solid fa-file-arrow-up' },
+  '/export': { labelKey: 'layout.nav.dataTools', icon: 'fa-solid fa-file-arrow-up' },
+  '/help': { labelKey: 'layout.nav.help', icon: 'fa-solid fa-circle-question' },
+  '/notifications-center': { labelKey: 'layout.nav.notificationsCenter', icon: 'fa-solid fa-bell' },
+  '/bug-reports': { labelKey: 'layout.nav.bugReports', icon: 'fa-solid fa-bug' },
+  '/companies': { labelKey: 'layout.nav.companies', icon: 'fa-solid fa-buildings' },
+  '/developer-tools': { labelKey: 'layout.nav.developerTools', icon: 'fa-solid fa-code' },
 }
 
 const TOPBAR_ALLOW_ALL_PATHS = new Set(['/', '/credit', '/invoices', '/reports', '/routes', '/users'])
@@ -127,24 +128,24 @@ function TopbarLink({ to, icon, label }) {
   )
 }
 
-function getSystemStatusLabel(systemStatus) {
+function getSystemStatusLabel(systemStatus, t) {
   if (systemStatus.state === 'online') {
-    return systemStatus.dbOk ? 'API en ligne - base OK' : 'API en ligne - base à vérifier'
+    return systemStatus.dbOk ? t('layout.status.onlineDbOk') : t('layout.status.onlineDbCheck')
   }
 
   if (systemStatus.state === 'offline') {
-    return 'API hors ligne - vérifiez la connexion'
+    return t('layout.status.offline')
   }
 
-  return "Vérification de l'API en cours"
+  return t('layout.status.checking')
 }
 
-function buildAppDisplayName(user, companyName) {
+function buildAppDisplayName(user, companyName, appName) {
   if (user?.role === 'developer') {
-    return APP_NAME
+    return appName
   }
 
-  return companyName ? `${APP_NAME} (${companyName})` : APP_NAME
+  return companyName ? `${appName} (${companyName})` : appName
 }
 
 function setMetaContent(name, content) {
@@ -162,6 +163,7 @@ function setMetaContent(name, content) {
 function UserMenu({ user, onLogout }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
+  const { locale, savingLocale, setLocale, supportedLocales, t } = useI18n()
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -194,24 +196,51 @@ function UserMenu({ user, onLogout }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-56 bg-surface border border-theme rounded-xl shadow-md z-50 py-1 animate-fade-in">
+        <div className="absolute right-0 top-full mt-2 w-64 bg-surface border border-theme rounded-xl shadow-md z-50 py-1 animate-fade-in">
           <div className="px-3 py-2 border-b border-theme">
             <div className="text-sm font-semibold text-base-color">{user?.name}</div>
             <div className="text-xs text-muted-color">{user?.email}</div>
+          </div>
+          <div className="px-3 py-2 border-b border-theme">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-color">
+              {t('layout.userMenu.language')}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {supportedLocales.map((item) => {
+                const active = item.code === locale
+
+                return (
+                  <button
+                    key={item.code}
+                    type="button"
+                    onClick={() => { void setLocale(item.code) }}
+                    disabled={savingLocale}
+                    className="rounded-full border px-2.5 py-1 text-[11px] font-semibold transition"
+                    style={{
+                      borderColor: active ? '#0d9488' : 'var(--border)',
+                      background: active ? 'rgba(13,148,136,0.12)' : 'transparent',
+                      color: active ? '#0d9488' : 'var(--text-secondary)',
+                    }}
+                  >
+                    {item.short} · {item.label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
           <NavLink
             to="/notifications-center"
             className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-secondary-color hover:bg-surface-2 transition-colors"
           >
             <i className="fa-solid fa-bell w-4" />
-            Notifications
+            {t('layout.userMenu.notifications')}
           </NavLink>
           <NavLink
             to="/bug-reports"
             className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-secondary-color hover:bg-surface-2 transition-colors"
           >
             <i className="fa-solid fa-bug w-4" />
-            Support et signalements
+            {t('layout.userMenu.support')}
           </NavLink>
           {user?.role === 'developer' && (
             <>
@@ -220,14 +249,14 @@ function UserMenu({ user, onLogout }) {
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-secondary-color hover:bg-surface-2 transition-colors"
               >
                 <i className="fa-solid fa-buildings w-4" />
-                Societes
+                {t('layout.userMenu.companies')}
               </NavLink>
               <NavLink
                 to="/developer-tools"
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-secondary-color hover:bg-surface-2 transition-colors"
               >
                 <i className="fa-solid fa-code w-4" />
-                Outils développeur
+                {t('layout.userMenu.developerTools')}
               </NavLink>
             </>
           )}
@@ -236,7 +265,7 @@ function UserMenu({ user, onLogout }) {
             className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
           >
             <i className="fa-solid fa-right-from-bracket w-4" />
-            Déconnexion
+            {t('common.logout')}
           </button>
         </div>
       )}
@@ -281,9 +310,17 @@ function BrandMark({
 }
 
 function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper, statusLabel, appDisplayName, user }) {
+  const { t } = useI18n()
+
   if (!open) {
     return null
   }
+
+  const mobileCoreNav = CORE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
+  const mobileFinanceNav = FINANCE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
+  const mobileOperationsNav = OPERATIONS_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
+  const mobileSupportNav = SUPPORT_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
+  const mobileDeveloperNav = DEVELOPER_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
 
   return (
     <div className="fixed inset-0 z-50 md:hidden no-print">
@@ -318,13 +355,13 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper
             }
           >
             <i className="fa-solid fa-chart-pie w-4 text-center" />
-            Tableau de bord
+            {t('layout.nav.dashboard')}
           </NavLink>
 
           <div>
-            <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Exploitation</div>
+            <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>{t('layout.sections.core')}</div>
             <div className="space-y-0.5">
-              {CORE_NAV.map((item) => (
+              {mobileCoreNav.map((item) => (
                 <RailLink key={item.to} {...item} expanded onClick={onClose} />
               ))}
             </div>
@@ -332,9 +369,9 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper
 
           {(isFinance() || isAdmin()) && (
             <div>
-              <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Finance</div>
+              <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>{t('layout.sections.finance')}</div>
               <div className="space-y-0.5">
-                {FINANCE_NAV.map((item) => (
+                {mobileFinanceNav.map((item) => (
                   <RailLink key={item.to} {...item} expanded onClick={onClose} />
                 ))}
               </div>
@@ -344,18 +381,18 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper
           {isAdmin() && (
             <>
               <div>
-                <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Terrain et stock</div>
+                <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>{t('layout.sections.operations')}</div>
                 <div className="space-y-0.5">
-                  {OPERATIONS_NAV.map((item) => (
+                  {mobileOperationsNav.map((item) => (
                     <RailLink key={item.to} {...item} expanded onClick={onClose} />
                   ))}
                 </div>
               </div>
 
               <div>
-                <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Assistance</div>
+                <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>{t('layout.sections.assistance')}</div>
                 <div className="space-y-0.5">
-                  {SUPPORT_NAV.map((item) => (
+                  {mobileSupportNav.map((item) => (
                     <RailLink key={item.to} {...item} expanded onClick={onClose} />
                   ))}
                 </div>
@@ -365,9 +402,9 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper
 
           {isDeveloper() && (
             <div>
-              <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>Développement</div>
+              <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>{t('layout.sections.developer')}</div>
               <div className="space-y-0.5">
-                {DEVELOPER_NAV.map((item) => (
+                {mobileDeveloperNav.map((item) => (
                   <RailLink key={item.to} {...item} expanded onClick={onClose} />
                 ))}
               </div>
@@ -381,7 +418,7 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper
             className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-400 hover:bg-white/5 rounded-xl transition-colors"
           >
             <i className="fa-solid fa-right-from-bracket w-4" />
-            Déconnexion
+            {t('common.logout')}
           </button>
         </div>
       </div>
@@ -391,6 +428,7 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper
 
 export default function AppLayout() {
   const { user, logout, isAdmin, isFinance, isDeveloper } = useAuth()
+  const { t } = useI18n()
   const { toggle, isDark, toggleSidebarMode, isSidebarExpanded } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
@@ -453,6 +491,7 @@ export default function AppLayout() {
   ) ?? '/'
 
   const pageInfo = PAGE_TITLES[pageKey] ?? PAGE_TITLES['/']
+  const pageLabel = t(pageInfo.labelKey)
   const topbarAllowsAll = TOPBAR_ALLOW_ALL_PATHS.has(pageKey)
   const {
     depots: topbarDepots,
@@ -467,21 +506,26 @@ export default function AppLayout() {
     storageKey: 'app-depot-scope',
     enabled: Boolean(user),
   })
-  const statusLabel = getSystemStatusLabel(systemStatus)
+  const statusLabel = getSystemStatusLabel(systemStatus, t)
   const canSeeDepotScope = isDeveloper()
   const activeCompanyName = topbarSelectedDepot?.company?.name ?? user?.company?.name ?? null
-  const appDisplayName = buildAppDisplayName(user, activeCompanyName)
+  const appDisplayName = buildAppDisplayName(user, activeCompanyName, t('app.name'))
 
   useEffect(() => {
     if (typeof document === 'undefined') {
       return
     }
 
-    document.title = `${pageInfo.label} | ${appDisplayName}`
+    document.title = `${pageLabel} | ${appDisplayName}`
     setMetaContent('application-name', appDisplayName)
     setMetaContent('apple-mobile-web-app-title', appDisplayName)
-    setMetaContent('description', `${pageInfo.label} - ${appDisplayName}`)
-  }, [appDisplayName, pageInfo.label])
+    setMetaContent('description', `${pageLabel} - ${appDisplayName}`)
+  }, [appDisplayName, pageLabel])
+
+  const desktopCoreNav = CORE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
+  const desktopFinanceNav = FINANCE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
+  const desktopOperationsNav = OPERATIONS_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
+  const desktopDeveloperNav = DEVELOPER_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
 
   return (
     <div className="flex h-screen overflow-hidden bg-app">
@@ -509,20 +553,18 @@ export default function AppLayout() {
 
         <div className={`flex-1 min-h-0 w-full overflow-y-auto ${isSidebarExpanded ? 'overflow-x-hidden' : 'overflow-x-visible'}`}>
           <div className="space-y-4 pb-3">
-            <NavSection title="Exploitation" items={CORE_NAV} expanded={isSidebarExpanded} />
+            <NavSection title={t('layout.sections.core')} items={desktopCoreNav} expanded={isSidebarExpanded} />
 
             {(isFinance() || isAdmin()) && (
-              <NavSection title="Finance" items={FINANCE_NAV} expanded={isSidebarExpanded} />
+              <NavSection title={t('layout.sections.finance')} items={desktopFinanceNav} expanded={isSidebarExpanded} />
             )}
 
             {isAdmin() && (
-              <>
-                <NavSection title="Terrain et stock" items={OPERATIONS_NAV} expanded={isSidebarExpanded} />
-              </>
+              <NavSection title={t('layout.sections.operations')} items={desktopOperationsNav} expanded={isSidebarExpanded} />
             )}
 
             {isDeveloper() && (
-              <NavSection title="Développement" items={DEVELOPER_NAV} expanded={isSidebarExpanded} />
+              <NavSection title={t('layout.sections.developer')} items={desktopDeveloperNav} expanded={isSidebarExpanded} />
             )}
           </div>
         </div>
@@ -536,10 +578,10 @@ export default function AppLayout() {
                   loading={topbarDepotsLoading}
                   selectedValue={topbarDepotValue}
                   onChange={setTopbarDepotValue}
-                  label="Dépôt actif"
+                  label={t('layout.depotActive')}
                   allowAll={topbarAllowsAll}
                   canSelectAll={topbarCanSelectAll}
-                  allLabel="Tous les dépôts"
+                  allLabel={t('layout.depotAll')}
                 />
               </div>
             ) : (
@@ -547,10 +589,10 @@ export default function AppLayout() {
                 type="button"
                 onClick={toggleSidebarMode}
                 className="rail-link"
-                title="Dépôt actif"
+                title={t('layout.depotActive')}
               >
                 <i className="fa-solid fa-warehouse text-base" />
-                <span className="rail-tooltip">Dépôt actif</span>
+                <span className="rail-tooltip">{t('layout.depotActive')}</span>
               </button>
             )}
           </div>
@@ -565,7 +607,7 @@ export default function AppLayout() {
           <button
             className="hidden md:inline-flex btn-ghost p-2"
             onClick={toggleSidebarMode}
-            title={isSidebarExpanded ? 'Mode compact' : 'Mode étendu'}
+            title={isSidebarExpanded ? t('layout.theme.compact') : t('layout.theme.expanded')}
           >
             <i className={`fa-solid ${isSidebarExpanded ? 'fa-angles-left' : 'fa-angles-right'} text-base`} />
           </button>
@@ -585,7 +627,7 @@ export default function AppLayout() {
             </div>
             <div className="min-w-0">
               <div className="hidden md:flex items-center gap-2 min-w-0">
-                <h1 className="text-sm font-semibold text-base-color truncate">{pageInfo.label}</h1>
+                <h1 className="text-sm font-semibold text-base-color truncate">{pageLabel}</h1>
                 {activeCompanyName && (
                   <span
                     className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold"
@@ -601,8 +643,8 @@ export default function AppLayout() {
           <div className="flex-1" />
 
           <div className="flex items-center gap-1">
-            <TopbarLink to="/help" icon="fa-solid fa-circle-question" label="Aide" />
-            <TopbarLink to="/bug-reports" icon="fa-solid fa-bug" label="Support" />
+            <TopbarLink to="/help" icon="fa-solid fa-circle-question" label={t('common.help')} />
+            <TopbarLink to="/bug-reports" icon="fa-solid fa-bug" label={t('common.support')} />
             <NotificationBell />
             {isAdmin() && (
               <NavLink
@@ -610,7 +652,7 @@ export default function AppLayout() {
                 className={({ isActive }) =>
                   `btn-ghost p-2 ${isActive ? 'bg-teal-500/10 text-teal-600 dark:text-teal-300' : ''}`
                 }
-                title="Configuration"
+                title={t('layout.nav.config')}
               >
                 <i className="fa-solid fa-sliders text-base text-muted-color" />
               </NavLink>
@@ -618,7 +660,7 @@ export default function AppLayout() {
             <button
               className="btn-ghost p-2"
               onClick={toggle}
-              title={isDark ? 'Mode clair' : 'Mode sombre'}
+              title={isDark ? t('layout.theme.light') : t('layout.theme.dark')}
             >
               <i className={`fa-solid ${isDark ? 'fa-sun' : 'fa-moon'} text-base text-muted-color`} />
             </button>

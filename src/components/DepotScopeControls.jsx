@@ -1,4 +1,5 @@
 import { ALL_DEPOTS_VALUE } from '../hooks/useDepots'
+import { useI18n } from '../contexts/I18nContext'
 
 export function formatDepotLabel(depot) {
   if (!depot) {
@@ -12,13 +13,15 @@ export function DepotSelectionInfo({
   depot = null,
   hint = null,
 }) {
+  const { t } = useI18n()
+
   return (
     <div
       className="rounded-2xl border border-theme px-3 py-2.5"
       style={{ background: 'var(--surface-2)' }}
     >
       <div className="text-sm font-medium text-base-color">
-        {formatDepotLabel(depot) || 'Dépôt non défini'}
+        {formatDepotLabel(depot) || t('depot.notDefined')}
       </div>
       {hint && (
         <div className="text-[11px] text-muted-color mt-1">
@@ -34,20 +37,23 @@ export default function DepotScopeControls({
   loading = false,
   selectedValue = '',
   onChange,
-  label = 'Dépôt',
+  label = '',
   allowAll = false,
   canSelectAll = false,
-  allLabel = 'Tous les dépôts',
+  allLabel = '',
   disabled = false,
 }) {
+  const { t } = useI18n()
   const selectedDepot = depots.find((depot) => String(depot.id) === String(selectedValue)) ?? depots[0] ?? null
   const shouldRenderStatic = depots.length === 1
+  const resolvedLabel = label || t('depot.label')
+  const resolvedAllLabel = allLabel || t('depot.all')
 
   if (shouldRenderStatic) {
     return (
       <div className="min-w-[220px]">
         <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-color mb-1">
-          {label}
+          {resolvedLabel}
         </label>
         <DepotSelectionInfo depot={selectedDepot} />
       </div>
@@ -57,7 +63,7 @@ export default function DepotScopeControls({
   return (
     <div className="min-w-[220px]">
       <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-color mb-1">
-        {label}
+        {resolvedLabel}
       </label>
       <select
         value={selectedValue}
@@ -65,7 +71,7 @@ export default function DepotScopeControls({
         disabled={disabled || loading}
       >
         {allowAll && canSelectAll && (
-          <option value={ALL_DEPOTS_VALUE}>{allLabel}</option>
+          <option value={ALL_DEPOTS_VALUE}>{resolvedAllLabel}</option>
         )}
         {depots.map((depot) => (
           <option key={depot.id} value={String(depot.id)}>

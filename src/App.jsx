@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { I18nProvider } from './contexts/I18nContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import MaintenanceBoundary from './components/MaintenanceBoundary'
 import AppLayout from './layouts/AppLayout'
@@ -75,6 +76,7 @@ export default function App() {
   return (
     <ThemeProvider>
     <AuthProvider>
+    <I18nProvider>
       <BrowserRouter basename={APP_BASE_PATH}>
         <MaintenanceBoundary>
           <Routes>
@@ -112,6 +114,7 @@ export default function App() {
           </Routes>
         </MaintenanceBoundary>
       </BrowserRouter>
+    </I18nProvider>
     </AuthProvider>
     </ThemeProvider>
   )

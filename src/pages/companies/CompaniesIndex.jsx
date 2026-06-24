@@ -4,8 +4,10 @@ import irtiwaaLogo from '../../assets/irtiwaa-logo.png'
 import FormField from '../../components/FormField'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
+import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import api from '../../services/api'
+import { formatCount as formatLocaleCount, formatDateTime as formatLocaleDateTime } from '../../utils/format'
 
 function buildCompanyForm(company = null) {
   return {
@@ -21,12 +23,12 @@ function buildCompanyForm(company = null) {
   }
 }
 
-function formatDateTime(value) {
+function formatDateTime(value, fallback) {
   if (!value) {
-    return 'Non disponible'
+    return fallback
   }
 
-  return new Date(value).toLocaleString('fr-FR')
+  return formatLocaleDateTime(value)
 }
 
 function MetricPill({ label, value, tone = 'default' }) {
@@ -44,7 +46,7 @@ function MetricPill({ label, value, tone = 'default' }) {
   )
 }
 
-function CompanyCard({ company, selected, onOpen }) {
+function CompanyCard({ company, selected, onOpen, t }) {
   return (
     <button
       type="button"
@@ -60,8 +62,8 @@ function CompanyCard({ company, selected, onOpen }) {
           <div className="text-xs text-muted-color mt-1">{company.slug}</div>
         </div>
         <div className="flex flex-wrap gap-1.5 justify-end">
-          {company.is_default && <MetricPill label="Défaut" value="Oui" tone="success" />}
-          {!company.active && <MetricPill label="Statut" value="Inactive" tone="warning" />}
+          {company.is_default && <MetricPill label={t('companiesPage.badges.default')} value={t('companiesPage.badges.yes')} tone="success" />}
+          {!company.active && <MetricPill label={t('common.status')} value={t('companiesPage.badges.inactive')} tone="warning" />}
         </div>
       </div>
 
@@ -71,10 +73,10 @@ function CompanyCard({ company, selected, onOpen }) {
 
       <div className="grid grid-cols-2 gap-2 mt-4">
         {[
-          { label: 'Dépôts', value: company.depots_count },
-          { label: 'Camions', value: `${company.camions_count}/${company.max_camions}` },
-          { label: 'Utilisateurs', value: company.users_count },
-          { label: 'Audits', value: company.audits_count },
+          { label: t('layout.nav.depot'), value: company.depots_count },
+          { label: t('layout.nav.camions'), value: `${company.camions_count}/${company.max_camions}` },
+          { label: t('layout.nav.users'), value: company.users_count },
+          { label: t('companiesPage.metrics.audits'), value: company.audits_count },
         ].map((item) => (
           <div
             key={`${company.id}-${item.label}`}
@@ -90,12 +92,12 @@ function CompanyCard({ company, selected, onOpen }) {
   )
 }
 
-function ActivityList({ title, emptyLabel, items, renderItem }) {
+function ActivityList({ title, emptyLabel, items, renderItem, countText }) {
   return (
     <div className="card">
       <div className="flex items-center justify-between gap-3 mb-4">
         <h2 className="text-sm font-semibold text-base-color">{title}</h2>
-        <span className="text-xs text-muted-color">{items.length} élément(s)</span>
+        <span className="text-xs text-muted-color">{countText}</span>
       </div>
 
       {items.length === 0 ? (
@@ -112,15 +114,22 @@ function ActivityList({ title, emptyLabel, items, renderItem }) {
 }
 
 function DetailRow({ label, value }) {
+  const { t } = useI18n()
+
   return (
     <div className="flex items-center justify-between gap-3 py-2 text-sm">
       <span className="text-muted-color">{label}</span>
-      <span className="font-medium text-base-color text-right">{value || '-'}</span>
+      <span className="font-medium text-base-color text-right">{value || t('companiesPage.notAvailable')}</span>
     </div>
   )
 }
 
+function formatCount(value) {
+  return formatLocaleCount(Number(value ?? 0))
+}
+
 export default function CompaniesIndex() {
+  const { t } = useI18n()
   const { companyId: companyIdParam } = useParams()
   const navigate = useNavigate()
   const { setSelectedValue: setAppDepotScope } = useDepots({
@@ -146,6 +155,22 @@ export default function CompaniesIndex() {
   const [creating, setCreating] = useState(false)
 
   const activeCompanyId = companyIdParam ? Number(companyIdParam) : null
+  const translateRole = (role) => {
+    if (!role) {
+      return t('companiesPage.systemFallback')
+    }
+
+    const key = `badges.roles.${role}`
+    const translated = t(key)
+    return translated === key ? role : translated
+  }
+  const formatDateTimeValue = (value) => formatDateTime(value, t('companiesPage.notAvailable'))
+  const companyToggleLabels = [
+    ['active', t('companiesPage.form.toggles.active')],
+    ['is_default', t('companiesPage.form.toggles.default')],
+    ['fresh_install_enabled', t('companiesPage.form.toggles.freshInstall')],
+    ['background_tasks_enabled', t('companiesPage.form.toggles.backgroundTasks')],
+  ]
 
   const loadCompanies = async (preferredCompanyId = null) => {
     setLoadingCompanies(true)
@@ -164,7 +189,7 @@ export default function CompaniesIndex() {
         navigate(`/companies/${preferredCompanyId}`, { replace: true })
       }
     } catch (error) {
-      setCompanyError(error.response?.data?.message || 'Impossible de charger les sociétés.')
+      setCompanyError(error.response?.data?.message || t('companiesPage.errors.loadCompanies'))
       setCompanies([])
     } finally {
       setLoadingCompanies(false)
@@ -188,7 +213,7 @@ export default function CompaniesIndex() {
       setLogoFile(null)
       setCreating(false)
     } catch (error) {
-      setActionError(error.response?.data?.message || 'Impossible de charger le détail de la société.')
+      setActionError(error.response?.data?.message || t('companiesPage.errors.loadCompanyDetail'))
       setDetail(null)
     } finally {
       setDetailLoading(false)
@@ -276,7 +301,7 @@ export default function CompaniesIndex() {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
         const created = response.data ?? null
-        setNotice('Société créée.')
+        setNotice(t('companiesPage.notices.created'))
         await loadCompanies(created?.id ?? null)
         if (created?.id) {
           await loadCompanyDetail(created.id)
@@ -285,7 +310,7 @@ export default function CompaniesIndex() {
         const response = await api.put(`/companies/${selectedCompany.id}`, payload, {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
-        setNotice('Société mise à jour.')
+        setNotice(t('companiesPage.notices.updated'))
         await loadCompanies(selectedCompany.id)
         await loadCompanyDetail(response.data?.id ?? selectedCompany.id)
       }
@@ -294,7 +319,7 @@ export default function CompaniesIndex() {
         .flat()
         .filter(Boolean)
         .join(' ')
-      setActionError(fieldMessage || error.response?.data?.message || 'Impossible d’enregistrer la société.')
+      setActionError(fieldMessage || error.response?.data?.message || t('companiesPage.errors.save'))
     } finally {
       setSaving(false)
     }
@@ -306,7 +331,7 @@ export default function CompaniesIndex() {
     }
 
     if (freshConfirmation.trim() !== 'FRESH INSTALL') {
-      setActionError('Tapez exactement FRESH INSTALL pour confirmer la réinitialisation.')
+      setActionError(t('companiesPage.errors.freshInstallConfirmation'))
       return
     }
 
@@ -319,11 +344,11 @@ export default function CompaniesIndex() {
         confirmation: freshConfirmation.trim(),
       })
       setFreshConfirmation('')
-      setNotice('Fresh install exécuté pour cette société.')
+      setNotice(t('companiesPage.notices.freshInstallDone'))
       await loadCompanies(selectedCompany.id)
       await loadCompanyDetail(selectedCompany.id)
     } catch (error) {
-      setActionError(error.response?.data?.message || 'Le fresh install a échoué.')
+      setActionError(error.response?.data?.message || t('companiesPage.errors.freshInstall'))
     } finally {
       setRunningFreshInstall(false)
     }
@@ -342,11 +367,11 @@ export default function CompaniesIndex() {
     try {
       const response = await api.post(`/companies/${selectedCompany.id}/bootstrap-workspace`)
       setBootstrapResult(response.data?.result ?? null)
-      setNotice('Workspace de test préparé.')
+      setNotice(t('companiesPage.notices.workspaceReady'))
       await loadCompanies(selectedCompany.id)
       await loadCompanyDetail(selectedCompany.id)
     } catch (error) {
-      setActionError(error.response?.data?.message || 'Impossible de préparer ce workspace.')
+      setActionError(error.response?.data?.message || t('companiesPage.errors.workspace'))
     } finally {
       setBootstrapping(false)
     }
@@ -373,15 +398,15 @@ export default function CompaniesIndex() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Sociétés"
-        subtitle="Workspace développeur pour piloter les tenants, les audits, les imports et la remise à zéro par société."
+        title={t('companiesPage.page.title')}
+        subtitle={t('companiesPage.page.subtitle')}
         action={(
           <div className="flex flex-wrap gap-2">
             <button onClick={startCreate} className="btn-secondary text-xs">
-              <i className="fa-solid fa-plus" /> Nouvelle société
+              <i className="fa-solid fa-plus" /> {t('companiesPage.page.newCompany')}
             </button>
             <Link to="/developer-tools" className="btn-secondary text-xs">
-              <i className="fa-solid fa-code" /> Outils développeur
+              <i className="fa-solid fa-code" /> {t('companiesPage.page.developerTools')}
             </Link>
           </div>
         )}
@@ -406,6 +431,7 @@ export default function CompaniesIndex() {
               company={company}
               selected={Number(company.id) === Number(selectedCompany?.id)}
               onOpen={openCompany}
+              t={t}
             />
           ))}
         </div>
@@ -415,52 +441,52 @@ export default function CompaniesIndex() {
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5">
               <div>
                 <h2 className="text-sm font-semibold text-base-color">
-                  {creating ? 'Nouvelle société' : (selectedCompany?.name ?? 'Fiche société')}
+                  {creating ? t('companiesPage.detail.newTitle') : (selectedCompany?.name ?? t('companiesPage.detail.recordTitle'))}
                 </h2>
                 <p className="text-xs text-muted-color mt-1">
-                  Logo, limites flotte, flags d’exploitation et accès vers la configuration ou les données.
+                  {t('companiesPage.detail.subtitle')}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {!creating && selectedCompany?.id && (
                   <>
                     <button onClick={() => openCompanyContext('/config')} className="btn-secondary text-xs">
-                      <i className="fa-solid fa-sliders" /> Configurer
+                      <i className="fa-solid fa-sliders" /> {t('companiesPage.detail.configure')}
                     </button>
                     <button onClick={() => openCompanyContext('/data-tools')} className="btn-secondary text-xs">
-                      <i className="fa-solid fa-file-arrow-up" /> Données
+                      <i className="fa-solid fa-file-arrow-up" /> {t('companiesPage.detail.dataTools')}
                     </button>
                   </>
                 )}
                 <button onClick={saveCompany} disabled={saving} className="btn-primary text-xs">
-                  {saving ? <><i className="fa-solid fa-spinner fa-spin" /> Enregistrement...</> : <><i className="fa-solid fa-floppy-disk" /> Sauver</>}
+                  {saving ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : <><i className="fa-solid fa-floppy-disk" /> {t('common.save')}</>}
                 </button>
               </div>
             </div>
 
             {detailLoading ? (
               <div className="rounded-2xl px-4 py-10 text-center text-sm text-muted-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                <i className="fa-solid fa-spinner fa-spin mr-2" /> Chargement du détail...
+                <i className="fa-solid fa-spinner fa-spin mr-2" /> {t('companiesPage.detail.loading')}
               </div>
             ) : (
               <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6">
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField label="Nom" required>
-                      <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Irtiwaa" />
+                    <FormField label={t('companiesPage.form.name')} required>
+                      <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder={t('companiesPage.form.placeholders.name')} />
                     </FormField>
 
-                    <FormField label="Slug">
-                      <input value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder="irtiwaa" />
+                    <FormField label={t('companiesPage.form.slug')}>
+                      <input value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder={t('companiesPage.form.placeholders.slug')} />
                     </FormField>
                   </div>
 
-                  <FormField label="Note">
-                    <textarea rows="3" value={form.note} onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))} placeholder="Contexte métier, remarques internes, cible de ce tenant..." />
+                  <FormField label={t('companiesPage.form.note')}>
+                    <textarea rows="3" value={form.note} onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))} placeholder={t('companiesPage.form.placeholders.note')} />
                   </FormField>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField label="Camions maximum">
+                    <FormField label={t('companiesPage.form.maxCamions')}>
                       <input
                         type="number"
                         min="1"
@@ -470,7 +496,7 @@ export default function CompaniesIndex() {
                       />
                     </FormField>
 
-                    <FormField label="Logo">
+                    <FormField label={t('companiesPage.form.logo')}>
                       <input
                         type="file"
                         accept="image/png,image/jpeg,image/webp,image/svg+xml"
@@ -480,12 +506,7 @@ export default function CompaniesIndex() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                    {[
-                      ['active', 'Société active'],
-                      ['is_default', 'Société par défaut'],
-                      ['fresh_install_enabled', 'Fresh install autorisé'],
-                      ['background_tasks_enabled', 'Tâches de fond autorisées'],
-                    ].map(([key, label]) => (
+                    {companyToggleLabels.map(([key, label]) => (
                       <label key={key} className="rounded-2xl px-4 py-3 text-sm text-base-color cursor-pointer" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                         <span className="flex items-center gap-3">
                           <input
@@ -506,14 +527,14 @@ export default function CompaniesIndex() {
                         checked={form.remove_logo}
                         onChange={(event) => setForm((current) => ({ ...current, remove_logo: event.target.checked }))}
                       />
-                      Retirer le logo actuel
+                      {t('companiesPage.form.removeLogo')}
                     </label>
                   )}
                 </div>
 
                 <div className="space-y-4">
                   <div className="rounded-[24px] px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                    <div className="text-xs font-semibold text-muted-color uppercase tracking-[0.18em] mb-3">Aperçu</div>
+                    <div className="text-xs font-semibold text-muted-color uppercase tracking-[0.18em] mb-3">{t('companiesPage.preview.title')}</div>
                     <div className="flex items-center gap-3">
                       <div className="w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center overflow-hidden">
                         {companyPreviewImage ? (
@@ -523,30 +544,30 @@ export default function CompaniesIndex() {
                         )}
                       </div>
                       <div className="min-w-0">
-                        <div className="text-sm font-semibold text-base-color">{form.name || 'Nouvelle société'}</div>
-                        <div className="text-xs text-muted-color mt-1">{form.slug || 'slug-à-définir'}</div>
+                        <div className="text-sm font-semibold text-base-color">{form.name || t('companiesPage.preview.newCompany')}</div>
+                        <div className="text-xs text-muted-color mt-1">{form.slug || t('companiesPage.preview.slugFallback')}</div>
                       </div>
                     </div>
 
                     {!creating && detail?.company && (
                       <div className="space-y-2 mt-4">
-                        <MetricPill label="Utilisateurs" value={detail.company.users_count} />
-                        <MetricPill label="Dépôts" value={detail.company.depots_count} />
-                        <MetricPill label="Camions" value={`${detail.company.camions_count}/${detail.company.max_camions}`} />
-                        <MetricPill label="Transferts" value={detail.company.transfer_logs_count} />
+                        <MetricPill label={t('layout.nav.users')} value={detail.company.users_count} />
+                        <MetricPill label={t('layout.nav.depot')} value={detail.company.depots_count} />
+                        <MetricPill label={t('layout.nav.camions')} value={`${detail.company.camions_count}/${detail.company.max_camions}`} />
+                        <MetricPill label={t('companiesPage.metrics.transfers')} value={detail.company.transfer_logs_count} />
                       </div>
                     )}
                   </div>
 
                   {!creating && detail?.company && (
                     <div className="rounded-[24px] px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                      <div className="text-xs font-semibold text-muted-color uppercase tracking-[0.18em] mb-3">Pilotage sociétaire</div>
+                      <div className="text-xs font-semibold text-muted-color uppercase tracking-[0.18em] mb-3">{t('companiesPage.governance.title')}</div>
                       <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-                        <DetailRow label="Créée" value={formatDateTime(detail.company.created_at)} />
-                        <DetailRow label="Mise à jour" value={formatDateTime(detail.company.updated_at)} />
-                        <DetailRow label="Settings" value={`${detail.company.settings_count ?? 0} clé(s)`} />
-                        <DetailRow label="Fresh install" value={detail.company.fresh_install_enabled ? 'Autorisé' : 'Bloqué'} />
-                        <DetailRow label="Tâches de fond" value={detail.company.background_tasks_enabled ? 'Activées' : 'Bloquées'} />
+                        <DetailRow label={t('companiesPage.governance.createdAt')} value={formatDateTimeValue(detail.company.created_at)} />
+                        <DetailRow label={t('companiesPage.governance.updatedAt')} value={formatDateTimeValue(detail.company.updated_at)} />
+                        <DetailRow label={t('companiesPage.governance.settings')} value={t('companiesPage.governance.settingsCount', { count: detail.company.settings_count ?? 0 })} />
+                        <DetailRow label={t('companiesPage.governance.freshInstall')} value={detail.company.fresh_install_enabled ? t('companiesPage.governance.allowed') : t('companiesPage.governance.blocked')} />
+                        <DetailRow label={t('companiesPage.governance.backgroundTasks')} value={detail.company.background_tasks_enabled ? t('companiesPage.governance.enabled') : t('companiesPage.governance.blockedPlural')} />
                       </div>
 
                       {Object.entries(detail.company.settings_groups ?? {}).length > 0 && (
@@ -567,21 +588,21 @@ export default function CompaniesIndex() {
 
                   {!creating && detail?.company?.fresh_install_preview && (
                     <div className="rounded-[24px] px-4 py-4" style={{ background: 'rgba(249,115,22,0.08)', boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.16)' }}>
-                      <div className="text-sm font-semibold" style={{ color: '#c2410c' }}>Fresh install sociétaire</div>
+                      <div className="text-sm font-semibold" style={{ color: '#c2410c' }}>{t('companiesPage.freshInstall.title')}</div>
                       <div className="text-xs mt-2" style={{ color: '#9a3412' }}>
-                        Cette action purge l’opérationnel de la société, conserve les structures cœur et régénère dépôt principal + camions.
+                        {t('companiesPage.freshInstall.description')}
                       </div>
                       <div className="grid grid-cols-3 gap-2 mt-4">
                         <div className="rounded-2xl px-3 py-3 text-center" style={{ background: '#ffffffb8' }}>
-                          <div className="text-[11px] text-muted-color">Suppr.</div>
+                          <div className="text-[11px] text-muted-color">{t('companiesPage.freshInstall.delete')}</div>
                           <div className="text-sm font-bold text-base-color">{Object.values(detail.company.fresh_install_preview.delete ?? {}).reduce((sum, value) => sum + Number(value ?? 0), 0)}</div>
                         </div>
                         <div className="rounded-2xl px-3 py-3 text-center" style={{ background: '#ffffffb8' }}>
-                          <div className="text-[11px] text-muted-color">Reset</div>
+                          <div className="text-[11px] text-muted-color">{t('companiesPage.freshInstall.reset')}</div>
                           <div className="text-sm font-bold text-base-color">{Object.values(detail.company.fresh_install_preview.reset ?? {}).reduce((sum, value) => sum + Number(value ?? 0), 0)}</div>
                         </div>
                         <div className="rounded-2xl px-3 py-3 text-center" style={{ background: '#ffffffb8' }}>
-                          <div className="text-[11px] text-muted-color">Conserve</div>
+                          <div className="text-[11px] text-muted-color">{t('companiesPage.freshInstall.keep')}</div>
                           <div className="text-sm font-bold text-base-color">{Object.values(detail.company.fresh_install_preview.keep ?? {}).reduce((sum, value) => sum + Number(value ?? 0), 0)}</div>
                         </div>
                       </div>
@@ -589,22 +610,22 @@ export default function CompaniesIndex() {
                         className="mt-4"
                         value={freshConfirmation}
                         onChange={(event) => setFreshConfirmation(event.target.value)}
-                        placeholder="FRESH INSTALL"
+                        placeholder={t('companiesPage.freshInstall.placeholder')}
                       />
                       <button onClick={runFreshInstall} disabled={runningFreshInstall} className="btn-danger text-xs mt-3 w-full justify-center">
-                        {runningFreshInstall ? <><i className="fa-solid fa-spinner fa-spin" /> Exécution...</> : <><i className="fa-solid fa-power-off" /> Lancer le fresh install</>}
+                        {runningFreshInstall ? <><i className="fa-solid fa-spinner fa-spin" /> {t('companiesPage.freshInstall.running')}</> : <><i className="fa-solid fa-power-off" /> {t('companiesPage.freshInstall.run')}</>}
                       </button>
                     </div>
                   )}
 
                   {!creating && (
                     <div className="rounded-[24px] px-4 py-4" style={{ background: 'rgba(59,130,246,0.08)', boxShadow: 'inset 0 0 0 1px rgba(59,130,246,0.16)' }}>
-                      <div className="text-sm font-semibold text-base-color">Workspace de test</div>
+                      <div className="text-sm font-semibold text-base-color">{t('companiesPage.workspace.title')}</div>
                       <div className="text-xs text-secondary-color mt-2">
-                        Crée ou confirme un dépôt, deux camions, un comptable, deux commerciaux, des clients de test et un stock dépôt minimal.
+                        {t('companiesPage.workspace.description')}
                       </div>
                       <button onClick={bootstrapWorkspace} disabled={bootstrapping} className="btn-primary text-xs mt-3 w-full justify-center">
-                        {bootstrapping ? <><i className="fa-solid fa-spinner fa-spin" /> Préparation...</> : <><i className="fa-solid fa-wand-magic-sparkles" /> Préparer l’espace de test</>}
+                        {bootstrapping ? <><i className="fa-solid fa-spinner fa-spin" /> {t('companiesPage.workspace.preparing')}</> : <><i className="fa-solid fa-wand-magic-sparkles" /> {t('companiesPage.workspace.prepare')}</>}
                       </button>
                     </div>
                   )}
@@ -617,8 +638,9 @@ export default function CompaniesIndex() {
             <>
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <ActivityList
-                  title="Audit sociétaire"
-                  emptyLabel="Aucune trace d’audit pour cette société."
+                  title={t('companiesPage.activity.auditTitle')}
+                  emptyLabel={t('companiesPage.activity.auditEmpty')}
+                  countText={t('companiesPage.activity.count', { count: (detail.recent_audits ?? []).length })}
                   items={detail.recent_audits ?? []}
                   renderItem={(item) => (
                     <div key={`audit-${item.id}`} className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
@@ -628,8 +650,8 @@ export default function CompaniesIndex() {
                           <div className="text-xs text-muted-color mt-1">{item.action}</div>
                         </div>
                         <div className="text-right text-[11px] text-muted-color">
-                          <div>{item.actor_name || 'Système'}</div>
-                          <div className="mt-1">{formatDateTime(item.created_at)}</div>
+                          <div>{item.actor_name || t('companiesPage.systemFallback')}</div>
+                          <div className="mt-1">{formatDateTimeValue(item.created_at)}</div>
                         </div>
                       </div>
                       {Array.isArray(item.changes) && item.changes.length > 0 && (
@@ -646,19 +668,20 @@ export default function CompaniesIndex() {
                 />
 
                 <ActivityList
-                  title="Historique import / export"
-                  emptyLabel="Aucun transfert de données pour cette société."
+                  title={t('companiesPage.activity.transfersTitle')}
+                  emptyLabel={t('companiesPage.activity.transfersEmpty')}
+                  countText={t('companiesPage.activity.count', { count: (detail.recent_transfers ?? []).length })}
                   items={detail.recent_transfers ?? []}
                   renderItem={(item) => (
                     <div key={`transfer-${item.id}`} className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="text-sm font-semibold text-base-color">{item.entity_label}</div>
-                          <div className="text-xs text-muted-color mt-1">{item.direction === 'import' ? 'Import' : 'Export'} - {item.source}</div>
+                          <div className="text-xs text-muted-color mt-1">{item.direction === 'import' ? t('companiesPage.activity.import') : t('companiesPage.activity.export')} - {item.source}</div>
                         </div>
                         <div className="text-right text-[11px] text-muted-color">
-                          <div>{item.created_by || 'Système'}</div>
-                          <div className="mt-1">{formatDateTime(item.created_at)}</div>
+                          <div>{item.created_by || t('companiesPage.systemFallback')}</div>
+                          <div className="mt-1">{formatDateTimeValue(item.created_at)}</div>
                         </div>
                       </div>
                       {item.file_name && <div className="text-xs font-mono text-secondary-color mt-3">{item.file_name}</div>}
@@ -669,50 +692,50 @@ export default function CompaniesIndex() {
 
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 <div className="card">
-                  <h2 className="text-sm font-semibold text-base-color mb-4">Dépôts</h2>
+                  <h2 className="text-sm font-semibold text-base-color mb-4">{t('companiesPage.sections.depots')}</h2>
                   <div className="space-y-2">
                     {(detail.depots ?? []).map((entry) => (
                       <div key={`depot-${entry.id}`} className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                         <div className="flex items-center gap-2 flex-wrap">
                           <div className="text-sm font-semibold text-base-color">{entry.name}</div>
-                          {entry.is_default && <MetricPill label="Défaut" value="Oui" tone="success" />}
-                          {!entry.active && <MetricPill label="Statut" value="Inactive" tone="warning" />}
+                          {entry.is_default && <MetricPill label={t('companiesPage.badges.default')} value={t('companiesPage.badges.yes')} tone="success" />}
+                          {!entry.active && <MetricPill label={t('common.status')} value={t('companiesPage.badges.inactive')} tone="warning" />}
                         </div>
-                        <div className="text-xs text-muted-color mt-1">{entry.code || 'Code non défini'}</div>
-                        <div className="text-[11px] text-secondary-color mt-2">Créé le {formatDateTime(entry.created_at)}</div>
-                        <div className="text-[11px] text-secondary-color mt-1">Mis à jour le {formatDateTime(entry.updated_at)}</div>
+                        <div className="text-xs text-muted-color mt-1">{entry.code || t('companiesPage.sections.codeMissing')}</div>
+                        <div className="text-[11px] text-secondary-color mt-2">{t('companiesPage.sections.createdAt', { value: formatDateTimeValue(entry.created_at) })}</div>
+                        <div className="text-[11px] text-secondary-color mt-1">{t('companiesPage.sections.updatedAt', { value: formatDateTimeValue(entry.updated_at) })}</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div className="card">
-                  <h2 className="text-sm font-semibold text-base-color mb-4">Camions</h2>
+                  <h2 className="text-sm font-semibold text-base-color mb-4">{t('companiesPage.sections.camions')}</h2>
                   <div className="space-y-2">
                     {(detail.camions ?? []).map((entry) => (
                       <div key={`camion-${entry.id}`} className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                         <div className="flex items-center gap-2 flex-wrap">
                           <div className="text-sm font-semibold text-base-color">{entry.name}</div>
-                          {!entry.active && <MetricPill label="Statut" value="Inactive" tone="warning" />}
+                          {!entry.active && <MetricPill label={t('common.status')} value={t('companiesPage.badges.inactive')} tone="warning" />}
                         </div>
-                        <div className="text-xs text-muted-color mt-1">{entry.plate || 'Sans plaque'} - {entry.operational_status}</div>
-                        <div className="text-[11px] text-secondary-color mt-2">Créé le {formatDateTime(entry.created_at)}</div>
-                        <div className="text-[11px] text-secondary-color mt-1">Mis à jour le {formatDateTime(entry.updated_at)}</div>
+                        <div className="text-xs text-muted-color mt-1">{entry.plate || t('companiesPage.sections.noPlate')} - {entry.operational_status}</div>
+                        <div className="text-[11px] text-secondary-color mt-2">{t('companiesPage.sections.createdAt', { value: formatDateTimeValue(entry.created_at) })}</div>
+                        <div className="text-[11px] text-secondary-color mt-1">{t('companiesPage.sections.updatedAt', { value: formatDateTimeValue(entry.updated_at) })}</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div className="card">
-                  <h2 className="text-sm font-semibold text-base-color mb-4">Utilisateurs</h2>
+                  <h2 className="text-sm font-semibold text-base-color mb-4">{t('companiesPage.sections.users')}</h2>
                   <div className="space-y-2">
                     {(detail.users ?? []).map((entry) => (
                       <div key={`user-${entry.id}`} className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                         <div className="text-sm font-semibold text-base-color">{entry.name}</div>
-                        <div className="text-xs text-muted-color mt-1">{entry.role} - {entry.email}</div>
-                        <div className="text-xs text-secondary-color mt-2">{entry.depot?.name || 'Dépôt à confirmer'}</div>
-                        <div className="text-[11px] text-secondary-color mt-2">Créé le {formatDateTime(entry.created_at)}</div>
-                        <div className="text-[11px] text-secondary-color mt-1">Mis à jour le {formatDateTime(entry.updated_at)}</div>
+                        <div className="text-xs text-muted-color mt-1">{translateRole(entry.role)} - {entry.email}</div>
+                        <div className="text-xs text-secondary-color mt-2">{entry.depot?.name || t('companiesPage.sections.depotToConfirm')}</div>
+                        <div className="text-[11px] text-secondary-color mt-2">{t('companiesPage.sections.createdAt', { value: formatDateTimeValue(entry.created_at) })}</div>
+                        <div className="text-[11px] text-secondary-color mt-1">{t('companiesPage.sections.updatedAt', { value: formatDateTimeValue(entry.updated_at) })}</div>
                       </div>
                     ))}
                   </div>
@@ -722,14 +745,14 @@ export default function CompaniesIndex() {
               {bootstrapResult?.credentials?.length > 0 && (
                 <div className="card">
                   <div className="flex items-center justify-between gap-3 mb-4">
-                    <h2 className="text-sm font-semibold text-base-color">Identifiants créés pendant la préparation</h2>
-                    <span className="text-xs text-muted-color">{bootstrapResult.credentials.length} compte(s)</span>
+                    <h2 className="text-sm font-semibold text-base-color">{t('companiesPage.credentials.title')}</h2>
+                    <span className="text-xs text-muted-color">{t('companiesPage.credentials.count', { count: bootstrapResult.credentials.length })}</span>
                   </div>
                   <div className="space-y-3">
                     {bootstrapResult.credentials.map((entry) => (
                       <div key={entry.email} className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                         <div className="text-sm font-semibold text-base-color">{entry.name}</div>
-                        <div className="text-xs text-muted-color mt-1">{entry.role} - {entry.email}</div>
+                        <div className="text-xs text-muted-color mt-1">{translateRole(entry.role)} - {entry.email}</div>
                         <div className="text-xs font-mono text-secondary-color mt-2">{entry.password}</div>
                       </div>
                     ))}
