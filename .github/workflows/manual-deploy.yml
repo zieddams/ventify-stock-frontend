@@ -1,0 +1,129 @@
+name: Frontend Manual Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: Optional version bump before deploy
+        required: true
+        default: none
+        type: choice
+        options:
+          - none
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+concurrency:
+  group: frontend-production-deploy
+  cancel-in-progress: false
+
+env:
+  VPS_HOST: 79.137.72.8
+  VPS_USER: root
+  WEB_TARGET_DIR: /var/www/ventepro/web-platform-ui
+  BACKUP_ROOT: /var/www/ventepro/backups
+  DEPLOY_ROOT: /root/deploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply optional version bump
+        if: ${{ inputs.version_bump != 'none' }}
+        run: |
+          npm version "${{ inputs.version_bump }}" --no-git-tag-version
+          npm run sync:app-version
+
+      - name: Verify version sync
+        run: npm run check:app-version
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Capture release version
+        id: release
+        shell: bash
+        run: |
+          echo "version=$(node -p 'require(\"./package.json\").version')" >> "$GITHUB_OUTPUT"
+
+      - name: Commit version bump
+        if: ${{ inputs.version_bump != 'none' }}
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json src/config/appMeta.js
+          if [ -f package-lock.json ]; then
+            git add package-lock.json
+          fi
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "chore(release): web v${{ steps.release.outputs.version }}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Pack release bundle
+        shell: bash
+        run: tar -czf "web-platform-${GITHUB_RUN_ID}.tgz" -C dist .
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Trust VPS host key
+        shell: bash
+        run: ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload bundle to VPS
+        shell: bash
+        run: scp "web-platform-${GITHUB_RUN_ID}.tgz" "$VPS_USER@$VPS_HOST:$DEPLOY_ROOT/"
+
+      - name: Deploy bundle on VPS
+        shell: bash
+        run: |
+          ssh "$VPS_USER@$VPS_HOST" "RUN_ID='$GITHUB_RUN_ID' APP_VERSION='${{ steps.release.outputs.version }}' WEB_TARGET_DIR='$WEB_TARGET_DIR' BACKUP_ROOT='$BACKUP_ROOT' DEPLOY_ROOT='$DEPLOY_ROOT' bash -s" <<'EOF'
+          set -euo pipefail
+
+          stamp="$(date +%Y%m%d-%H%M%S)"
+          archive_path="$DEPLOY_ROOT/web-platform-$RUN_ID.tgz"
+          extract_dir="$DEPLOY_ROOT/web-platform-$RUN_ID"
+          backup_dir="$BACKUP_ROOT/web-platform-$stamp-v$APP_VERSION"
+
+          mkdir -p "$extract_dir" "$BACKUP_ROOT" "$WEB_TARGET_DIR"
+          tar -xzf "$archive_path" -C "$extract_dir"
+
+          if [ -d "$WEB_TARGET_DIR" ]; then
+            mkdir -p "$backup_dir"
+            rsync -a --delete "$WEB_TARGET_DIR"/ "$backup_dir"/
+          fi
+
+          rsync -a --delete "$extract_dir"/ "$WEB_TARGET_DIR"/
+          chown -R www-data:www-data "$WEB_TARGET_DIR"
+
+          rm -rf "$extract_dir" "$archive_path"
+
+          curl -fsS https://irtiwaa.ziedtech.com/web-platform/ >/dev/null
+          EOF

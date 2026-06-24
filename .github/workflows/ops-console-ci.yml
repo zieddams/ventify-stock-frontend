@@ -1,0 +1,33 @@
+name: Ops Console CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate-ops-console:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ops-console
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ops-console/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ops console tests
+        run: npm test
+
+      - name: Build standalone ops console
+        run: npm run build
