@@ -2224,6 +2224,14 @@ export default {
         dashboard: 'Dashboard privé',
       },
     },
+    opsConsole: {
+      title: 'Console ops séparée',
+      description: "La supervision live et le contrôle CI/CD ont été sortis de la web platform. Utilisez la nouvelle app dédiée sur son propre sous-domaine pour le trafic, les ressources VPS, les issues et les déploiements manuels.",
+      open: 'Ouvrir la console ops',
+      health: 'Ping console ops',
+      workflow: 'Workflow deploy ops',
+      note: 'Les actions métier sensibles restent ici, mais la supervision et les releases passent maintenant par une app isolée.',
+    },
     notAvailable: 'Non disponible',
   },
   configPage: {

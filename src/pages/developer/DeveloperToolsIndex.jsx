@@ -6,7 +6,7 @@ import { PageLoader } from '../../components/Spinner'
 import { useI18n } from '../../contexts/I18nContext'
 import api from '../../services/api'
 import { formatCount as formatLocaleCount, formatDateTime as formatLocaleDateTime } from '../../utils/format'
-import ObservabilityControlPanel from './ObservabilityControlPanel'
+import OpsConsoleLaunchCard from './OpsConsoleLaunchCard'
 import SystemTasksPanel from '../config/SystemTasksPanel'
 
 const EMPTY_OVERVIEW = {
@@ -211,7 +211,6 @@ export default function DeveloperToolsIndex() {
   const [editingCompanyId, setEditingCompanyId] = useState(null)
   const [companyForm, setCompanyForm] = useState(buildCompanyForm())
   const maintenancePageOptions = useMemo(() => getMaintenancePageOptions(t), [t])
-  const notAvailableLabel = t('developerToolsPage.notAvailable')
 
   const syncMaintenanceForm = useCallback((maintenance) => {
     setMaintenanceForm({
@@ -521,10 +520,7 @@ export default function DeveloperToolsIndex() {
         />
       </div>
 
-      <ObservabilityControlPanel
-        system={overview.system}
-        notAvailableLabel={notAvailableLabel}
-      />
+      <OpsConsoleLaunchCard />
 
       <div className="card">
         <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4 mb-5">

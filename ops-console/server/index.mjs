@@ -1,0 +1,523 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import os from 'node:os'
+import { promisify } from 'node:util'
+import { execFile } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
+import dotenv from 'dotenv'
+import express from 'express'
+import axios from 'axios'
+import si from 'systeminformation'
+import { Octokit } from '@octokit/rest'
+import { summarizeAccessLogFile } from './lib/accessLog.mjs'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const projectRoot = path.resolve(__dirname, '..')
+const distDir = path.resolve(projectRoot, 'dist')
+const packageJson = JSON.parse(fs.readFileSync(path.resolve(projectRoot, 'package.json'), 'utf8'))
+
+dotenv.config({ path: path.resolve(projectRoot, '.env.production') })
+dotenv.config({ path: path.resolve(projectRoot, '.env') })
+
+const execFileAsync = promisify(execFile)
+const PORT = Number(process.env.OPS_PORT || 3110)
+const HOST = process.env.OPS_HOST || '127.0.0.1'
+const PRODUCT_API_BASE = process.env.PRODUCT_API_BASE || 'https://irtiwaa.ziedtech.com/api/v1'
+const PRODUCT_ACCESS_LOG = process.env.PRODUCT_ACCESS_LOG || '/var/log/nginx/access.log'
+const OPS_ACCESS_LOG = process.env.OPS_ACCESS_LOG || '/var/log/nginx/ops.irtiwaa.access.log'
+const GITHUB_OWNER = process.env.GITHUB_OWNER || 'zieddams'
+const OPS_ALLOWED_ROLES = (process.env.OPS_ALLOWED_ROLES || 'admin,developer')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean)
+
+const WORKFLOWS = [
+  {
+    key: 'ops',
+    label: 'Ops console deploy',
+    repo: 'ventify-stock-frontend',
+    workflowId: 'manual-deploy-ops-console.yml',
+    description: 'Build and deploy the standalone ops console.',
+    allowedRoles: ['developer'],
+    inputs: [
+      { id: 'version_bump', type: 'choice', options: ['none', 'patch', 'minor', 'major'], defaultValue: 'none' },
+    ],
+  },
+  {
+    key: 'web',
+    label: 'Web platform deploy',
+    repo: 'ventify-stock-frontend',
+    workflowId: 'manual-deploy.yml',
+    description: 'Deploy the commercial web platform.',
+    allowedRoles: ['developer'],
+    inputs: [
+      { id: 'version_bump', type: 'choice', options: ['none', 'patch', 'minor', 'major'], defaultValue: 'none' },
+    ],
+  },
+  {
+    key: 'api',
+    label: 'API deploy',
+    repo: 'ventify-stock-api',
+    workflowId: 'manual-deploy.yml',
+    description: 'Run PHPUnit then deploy the Laravel API.',
+    allowedRoles: ['developer'],
+    inputs: [
+      { id: 'run_migrations', type: 'boolean', defaultValue: false },
+    ],
+  },
+  {
+    key: 'mobile',
+    label: 'Mobile release prep',
+    repo: 'ventify-stock',
+    workflowId: 'manual-release.yml',
+    description: 'Prepare the next mobile release package.',
+    allowedRoles: ['developer'],
+    inputs: [
+      { id: 'version_bump', type: 'choice', options: ['none', 'patch', 'minor', 'major'], defaultValue: 'patch' },
+      { id: 'version_code_increment', type: 'string', defaultValue: '1' },
+    ],
+  },
+]
+
+const productApi = axios.create({
+  baseURL: PRODUCT_API_BASE,
+  timeout: 15_000,
+  headers: {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  },
+})
+
+const octokit = process.env.GITHUB_TOKEN
+  ? new Octokit({ auth: process.env.GITHUB_TOKEN })
+  : null
+
+function getToken(req) {
+  const header = String(req.headers.authorization || '')
+  if (!header.startsWith('Bearer ')) {
+    return ''
+  }
+
+  return header.slice('Bearer '.length).trim()
+}
+
+async function productRequest(method, url, token, options = {}) {
+  return productApi.request({
+    method,
+    url,
+    data: options.data,
+    params: options.params,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  })
+}
+
+function normalizeError(error) {
+  if (error.response) {
+    return {
+      status: error.response.status,
+      body: error.response.data,
+    }
+  }
+
+  return {
+    status: 500,
+    body: {
+      message: error.message || 'Unexpected server error',
+    },
+  }
+}
+
+async function getUserFromToken(token) {
+  const response = await productRequest('get', '/auth/me', token)
+  const user = response.data
+
+  if (!OPS_ALLOWED_ROLES.includes(String(user?.role || '').trim())) {
+    const roleError = new Error('This console is reserved to admin and developer roles.')
+    roleError.response = {
+      status: 403,
+      data: {
+        message: 'This console is reserved to admin and developer roles.',
+      },
+    }
+    throw roleError
+  }
+
+  return user
+}
+
+function requireAuth(allowedRoles = OPS_ALLOWED_ROLES) {
+  return async (req, res, next) => {
+    try {
+      const token = getToken(req)
+
+      if (!token) {
+        return res.status(401).json({ message: 'Missing access token.' })
+      }
+
+      const user = await getUserFromToken(token)
+
+      if (!allowedRoles.includes(user.role)) {
+        return res.status(403).json({ message: 'This action requires a higher role.' })
+      }
+
+      req.accessToken = token
+      req.user = user
+      return next()
+    } catch (error) {
+      const normalized = normalizeError(error)
+      return res.status(normalized.status).json(normalized.body)
+    }
+  }
+}
+
+async function safeExec(command, args) {
+  try {
+    const result = await execFileAsync(command, args, {
+      timeout: 8_000,
+      maxBuffer: 1024 * 1024,
+    })
+
+    return String(result.stdout || '').trim()
+  } catch {
+    return ''
+  }
+}
+
+async function getPm2Processes() {
+  const output = await safeExec('pm2', ['jlist'])
+
+  if (!output) {
+    return []
+  }
+
+  try {
+    const payload = JSON.parse(output)
+    return payload.map((process) => ({
+      name: process.name,
+      status: process.pm2_env?.status || 'unknown',
+      cpu: Number(process.monit?.cpu || 0),
+      memory: Number(process.monit?.memory || 0),
+      uptime: Number(process.pm2_env?.pm_uptime || 0),
+    }))
+  } catch {
+    return []
+  }
+}
+
+async function getServiceState(name) {
+  const output = await safeExec('systemctl', ['is-active', name])
+  return output || 'unknown'
+}
+
+async function getInfrastructureOverview() {
+  const [load, memory, disks, pm2Processes, nginxState, phpState, fail2banState] = await Promise.all([
+    si.currentLoad(),
+    si.mem(),
+    si.fsSize(),
+    getPm2Processes(),
+    getServiceState('nginx'),
+    getServiceState('php8.5-fpm'),
+    getServiceState('fail2ban'),
+  ])
+
+  const rootDisk = disks.find((disk) => disk.mount === '/') || disks[0] || null
+
+  return {
+    generatedAt: new Date().toISOString(),
+    server: {
+      hostname: os.hostname(),
+      platform: os.platform(),
+      uptimeMinutes: Math.round(os.uptime() / 60),
+      cpuLoad: Number(load.currentLoad || 0),
+      memoryUsed: Number(memory.active || 0),
+      memoryTotal: Number(memory.total || 0),
+      diskUsed: Number(rootDisk?.used || 0),
+      diskTotal: Number(rootDisk?.size || 0),
+    },
+    services: [
+      { name: 'nginx', status: nginxState },
+      { name: 'php8.5-fpm', status: phpState },
+      { name: 'fail2ban', status: fail2banState },
+    ],
+    processes: pm2Processes,
+  }
+}
+
+async function getTrafficOverview() {
+  const [product, ops] = await Promise.all([
+    summarizeAccessLogFile(PRODUCT_ACCESS_LOG, { label: 'Irtiwaa platform' }),
+    summarizeAccessLogFile(OPS_ACCESS_LOG, { label: 'Ops console' }),
+  ])
+
+  return {
+    generatedAt: new Date().toISOString(),
+    product,
+    ops,
+  }
+}
+
+function sanitizeInputs(workflow, payload = {}) {
+  const next = {}
+
+  for (const input of workflow.inputs) {
+    const rawValue = payload[input.id]
+
+    if (input.type === 'boolean') {
+      next[input.id] = rawValue === true || rawValue === 'true' ? 'true' : 'false'
+      continue
+    }
+
+    if (input.type === 'choice') {
+      const choice = String(rawValue ?? input.defaultValue)
+      next[input.id] = input.options.includes(choice) ? choice : input.defaultValue
+      continue
+    }
+
+    next[input.id] = String(rawValue ?? input.defaultValue ?? '').trim()
+  }
+
+  return next
+}
+
+async function getWorkflowRuns() {
+  if (!octokit) {
+    return WORKFLOWS.map((workflow) => ({
+      ...workflow,
+      runs: [],
+      integrationReady: false,
+      integrationMessage: 'GitHub token not configured on the VPS runtime.',
+    }))
+  }
+
+  const runs = await Promise.all(WORKFLOWS.map(async (workflow) => {
+    try {
+      const response = await octokit.actions.listWorkflowRuns({
+        owner: GITHUB_OWNER,
+        repo: workflow.repo,
+        workflow_id: workflow.workflowId,
+        per_page: 5,
+      })
+
+      return {
+        ...workflow,
+        integrationReady: true,
+        integrationMessage: '',
+        runs: (response.data.workflow_runs || []).map((run) => ({
+          id: run.id,
+          name: run.name,
+          status: run.status,
+          conclusion: run.conclusion,
+          htmlUrl: run.html_url,
+          branch: run.head_branch,
+          createdAt: run.created_at,
+          updatedAt: run.updated_at,
+        })),
+      }
+    } catch (error) {
+      return {
+        ...workflow,
+        integrationReady: false,
+        integrationMessage: error.message || 'Unable to read workflow runs.',
+        runs: [],
+      }
+    }
+  }))
+
+  return runs
+}
+
+const app = express()
+
+app.disable('x-powered-by')
+app.use(express.json())
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store')
+  next()
+})
+
+app.get('/api/health', (req, res) => {
+  res.json({
+    ok: true,
+    app: 'Irtiwaa Ops Console',
+    version: packageJson.version,
+    generatedAt: new Date().toISOString(),
+    uptimeSeconds: Math.round(process.uptime()),
+  })
+})
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const response = await productApi.post('/auth/login', {
+      email: String(req.body?.email || '').trim(),
+      password: String(req.body?.password || ''),
+    })
+    const token = response.data?.token
+    const user = response.data?.user
+
+    if (!token || !user) {
+      return res.status(502).json({ message: 'Product API returned an incomplete login payload.' })
+    }
+
+    if (!OPS_ALLOWED_ROLES.includes(String(user.role || '').trim())) {
+      await productRequest('post', '/auth/logout', token).catch(() => null)
+      return res.status(403).json({ message: 'This console is reserved to admin and developer roles.' })
+    }
+
+    return res.json({ token, user })
+  } catch (error) {
+    const normalized = normalizeError(error)
+    return res.status(normalized.status).json(normalized.body)
+  }
+})
+
+app.get('/api/auth/me', requireAuth(), async (req, res) => {
+  res.json(req.user)
+})
+
+app.post('/api/auth/logout', requireAuth(), async (req, res) => {
+  try {
+    await productRequest('post', '/auth/logout', req.accessToken)
+  } catch {
+    // Ignore logout propagation failures and always clear the local session.
+  }
+
+  res.json({ ok: true })
+})
+
+app.get('/api/meta', requireAuth(), async (req, res) => {
+  res.json({
+    generatedAt: new Date().toISOString(),
+    consoleVersion: packageJson.version,
+    allowedRoles: OPS_ALLOWED_ROLES,
+    canDispatch: req.user.role === 'developer',
+    productApiBase: PRODUCT_API_BASE,
+    workflows: WORKFLOWS.map((workflow) => ({
+      key: workflow.key,
+      label: workflow.label,
+      repo: workflow.repo,
+      workflowId: workflow.workflowId,
+      description: workflow.description,
+      inputs: workflow.inputs,
+    })),
+  })
+})
+
+app.get('/api/app/overview', requireAuth(), async (req, res) => {
+  try {
+    const [systemStatus, developerTools, stats, sessions, terrain, bugReports] = await Promise.all([
+      productRequest('get', '/system/public-status', req.accessToken),
+      productRequest('get', '/developer-tools', req.accessToken),
+      productRequest('get', '/stats', req.accessToken),
+      productRequest('get', '/sessions', req.accessToken),
+      productRequest('get', '/monitor/terrain', req.accessToken),
+      productRequest('get', '/bug-reports', req.accessToken),
+    ])
+
+    res.json({
+      generatedAt: new Date().toISOString(),
+      systemStatus: systemStatus.data ?? {},
+      developerTools: developerTools.data ?? {},
+      stats: stats.data ?? {},
+      sessions: Array.isArray(sessions.data) ? sessions.data : [],
+      terrain: terrain.data ?? { stats: {}, reps: [] },
+      bugReports: Array.isArray(bugReports.data) ? bugReports.data : [],
+      user: req.user,
+    })
+  } catch (error) {
+    const normalized = normalizeError(error)
+    res.status(normalized.status).json(normalized.body)
+  }
+})
+
+app.get('/api/infrastructure/overview', requireAuth(), async (req, res) => {
+  try {
+    res.json(await getInfrastructureOverview())
+  } catch (error) {
+    const normalized = normalizeError(error)
+    res.status(normalized.status).json(normalized.body)
+  }
+})
+
+app.get('/api/traffic/overview', requireAuth(), async (req, res) => {
+  try {
+    res.json(await getTrafficOverview())
+  } catch (error) {
+    const normalized = normalizeError(error)
+    res.status(normalized.status).json(normalized.body)
+  }
+})
+
+app.get('/api/workflows/overview', requireAuth(), async (req, res) => {
+  try {
+    const workflows = await getWorkflowRuns()
+
+    res.json({
+      generatedAt: new Date().toISOString(),
+      canDispatch: req.user.role === 'developer',
+      workflows,
+    })
+  } catch (error) {
+    const normalized = normalizeError(error)
+    res.status(normalized.status).json(normalized.body)
+  }
+})
+
+app.post('/api/workflows/:workflowKey/dispatch', requireAuth(['developer']), async (req, res) => {
+  const workflow = WORKFLOWS.find((item) => item.key === req.params.workflowKey)
+
+  if (!workflow) {
+    return res.status(404).json({ message: 'Unknown workflow key.' })
+  }
+
+  if (!octokit) {
+    return res.status(503).json({ message: 'GitHub token is not configured on the VPS runtime.' })
+  }
+
+  const ref = String(req.body?.ref || 'main').trim()
+
+  if (!/^[A-Za-z0-9._/-]+$/.test(ref)) {
+    return res.status(422).json({ message: 'Invalid git ref.' })
+  }
+
+  try {
+    const inputs = sanitizeInputs(workflow, req.body)
+
+    await octokit.actions.createWorkflowDispatch({
+      owner: GITHUB_OWNER,
+      repo: workflow.repo,
+      workflow_id: workflow.workflowId,
+      ref,
+      inputs,
+    })
+
+    res.status(202).json({
+      ok: true,
+      workflowKey: workflow.key,
+      ref,
+      inputs,
+      dispatchedAt: new Date().toISOString(),
+    })
+  } catch (error) {
+    const normalized = normalizeError(error)
+    res.status(normalized.status).json(normalized.body)
+  }
+})
+
+if (fs.existsSync(distDir)) {
+  app.use(express.static(distDir))
+
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+      return next()
+    }
+
+    return res.sendFile(path.resolve(distDir, 'index.html'))
+  })
+}
+
+app.listen(PORT, HOST, () => {
+  console.log(`Irtiwaa Ops Console listening on http://${HOST}:${PORT}`)
+})

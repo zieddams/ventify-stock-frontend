@@ -1,0 +1,145 @@
+name: Ops Console Manual Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: Optional version bump before deploy
+        required: true
+        default: none
+        type: choice
+        options:
+          - none
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ops-console-production-deploy
+  cancel-in-progress: false
+
+env:
+  VPS_HOST: 79.137.72.8
+  VPS_USER: root
+  OPS_TARGET_DIR: /var/www/ventepro/ops-console
+  BACKUP_ROOT: /var/www/ventepro/backups
+  DEPLOY_ROOT: /root/deploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ops-console
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ops-console/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply optional version bump
+        if: ${{ inputs.version_bump != 'none' }}
+        run: npm version "${{ inputs.version_bump }}" --no-git-tag-version
+
+      - name: Run ops console tests
+        run: npm test
+
+      - name: Build standalone ops console
+        run: npm run build
+
+      - name: Capture release version
+        id: release
+        shell: bash
+        run: echo "version=$(node -p 'require(\"./package.json\").version')" >> "$GITHUB_OUTPUT"
+
+      - name: Commit version bump
+        if: ${{ inputs.version_bump != 'none' }}
+        working-directory: .
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ops-console/package.json ops-console/package-lock.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "chore(release): ops console v${{ steps.release.outputs.version }}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Pack ops console bundle
+        working-directory: .
+        shell: bash
+        run: |
+          tar \
+            --exclude='ops-console/node_modules' \
+            --exclude='ops-console/.env.production' \
+            -czf "ops-console-${GITHUB_RUN_ID}.tgz" ops-console
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Trust VPS host key
+        shell: bash
+        run: ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload bundle to VPS
+        working-directory: .
+        shell: bash
+        run: scp "ops-console-${GITHUB_RUN_ID}.tgz" "$VPS_USER@$VPS_HOST:$DEPLOY_ROOT/"
+
+      - name: Deploy ops console on VPS
+        shell: bash
+        run: |
+          ssh "$VPS_USER@$VPS_HOST" "RUN_ID='$GITHUB_RUN_ID' RELEASE_VERSION='${{ steps.release.outputs.version }}' OPS_TARGET_DIR='$OPS_TARGET_DIR' BACKUP_ROOT='$BACKUP_ROOT' DEPLOY_ROOT='$DEPLOY_ROOT' bash -s" <<'EOF'
+          set -euo pipefail
+
+          stamp="$(date +%Y%m%d-%H%M%S)"
+          archive_path="$DEPLOY_ROOT/ops-console-$RUN_ID.tgz"
+          extract_dir="$DEPLOY_ROOT/ops-console-$RUN_ID"
+          backup_dir="$BACKUP_ROOT/ops-console-$stamp-v$RELEASE_VERSION"
+
+          mkdir -p "$extract_dir" "$BACKUP_ROOT" "$OPS_TARGET_DIR"
+          tar -xzf "$archive_path" -C "$extract_dir"
+
+          if [ -d "$OPS_TARGET_DIR" ]; then
+            mkdir -p "$backup_dir"
+            rsync -a --delete "$OPS_TARGET_DIR"/ "$backup_dir"/
+          fi
+
+          rsync \
+            -a \
+            --delete \
+            --exclude='node_modules/' \
+            --exclude='.env.production' \
+            "$extract_dir/ops-console/"/ "$OPS_TARGET_DIR"/
+
+          cd "$OPS_TARGET_DIR"
+          npm ci --omit=dev
+
+          if pm2 describe irtiwaa-ops-console >/dev/null 2>&1; then
+            pm2 restart irtiwaa-ops-console --update-env
+          else
+            pm2 start ecosystem.config.cjs --only irtiwaa-ops-console
+          fi
+
+          rm -rf "$extract_dir" "$archive_path"
+
+          curl -fsS https://ops.irtiwaa.ziedtech.com/api/health >/dev/null
+          EOF
