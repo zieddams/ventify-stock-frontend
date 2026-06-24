@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import FormField from '../../components/FormField'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
-import { SUPPORT_BUG_RECIPIENTS } from '../../config/supportRecipients'
 import { useI18n } from '../../contexts/I18nContext'
 import api from '../../services/api'
 import { formatCount as formatLocaleCount, formatDateTime as formatLocaleDateTime } from '../../utils/format'
@@ -27,7 +26,7 @@ const EMPTY_OVERVIEW = {
     reset: {},
     keep: {},
   },
-  bug_recipients: SUPPORT_BUG_RECIPIENTS,
+  bug_recipients: [],
   system: {},
 }
 
@@ -514,7 +513,7 @@ export default function DeveloperToolsIndex() {
         />
         <MetricCard
           label={t('developerToolsPage.metrics.support')}
-          value={t('developerToolsPage.metrics.recipients', { count: overview.bug_recipients?.length || SUPPORT_BUG_RECIPIENTS.length })}
+          value={t('developerToolsPage.metrics.recipients', { count: overview.bug_recipients?.length || 0 })}
           icon="fa-solid fa-envelope-circle-check"
           color="#8b5cf6"
           helper={t('developerToolsPage.metrics.supportHint')}
@@ -837,7 +836,7 @@ export default function DeveloperToolsIndex() {
             </div>
 
             <div className="space-y-2">
-              {(overview.bug_recipients?.length ? overview.bug_recipients : SUPPORT_BUG_RECIPIENTS).map((email) => (
+              {(overview.bug_recipients ?? []).map((email) => (
                 <div
                   key={email}
                   className="rounded-2xl px-3 py-3 text-sm font-medium text-base-color"
@@ -846,6 +845,14 @@ export default function DeveloperToolsIndex() {
                   {email}
                 </div>
               ))}
+              {!(overview.bug_recipients?.length) && (
+                <div
+                  className="rounded-2xl px-3 py-3 text-sm text-secondary-color"
+                  style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+                >
+                  {t('developerToolsPage.metrics.supportHint')}
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-2 mt-4">

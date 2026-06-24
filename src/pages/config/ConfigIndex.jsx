@@ -5,7 +5,6 @@ import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
-import { SUPPORT_BUG_RECIPIENTS } from '../../config/supportRecipients'
 import { useAuth } from '../../contexts/AuthContext'
 import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
@@ -1381,21 +1380,6 @@ export default function ConfigIndex() {
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <div className="text-sm font-medium text-base-color mb-2">{t('configPage.systemSupport.lockedRecipients')}</div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {SUPPORT_BUG_RECIPIENTS.map((email) => (
-                      <div
-                        key={email}
-                        className="rounded-2xl px-3 py-3 text-sm font-medium text-base-color"
-                        style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
-                      >
-                        {email}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
                 <FormField label={t('configPage.systemSupport.helpContactLabel')}>
                   <input
                     value={settingValue('support.help_contact_label', t('configPage.systemSupport.helpContactPlaceholder'))}
