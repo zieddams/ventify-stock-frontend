@@ -72,6 +72,16 @@ function PublicOnly({ children }) {
   return children
 }
 
+function HomeIndex() {
+  const { user } = useAuth()
+
+  if (user?.role === 'developer') {
+    return <Navigate to="/developer-tools" replace />
+  }
+
+  return <Dashboard />
+}
+
 export default function App() {
   return (
     <ThemeProvider>
@@ -82,7 +92,7 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
             <Route path="/" element={<RequireAuth><AppLayout /></RequireAuth>}>
-              <Route index element={<Dashboard />} />
+              <Route index element={<HomeIndex />} />
               <Route path="products" element={<ProductsIndex />} />
               <Route path="customers" element={<CustomersIndex />} />
               <Route path="invoices" element={<InvoicesIndex />} />

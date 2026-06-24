@@ -72,6 +72,7 @@ const PAGE_TITLES = {
 }
 
 const TOPBAR_ALLOW_ALL_PATHS = new Set(['/', '/credit', '/invoices', '/reports', '/routes', '/users'])
+const DEVELOPER_WORKSPACE_PATHS = new Set(['/companies', '/developer-tools'])
 
 function RailLink({ to, icon, label, exact, expanded = false, onClick }) {
   return (
@@ -493,6 +494,7 @@ export default function AppLayout() {
   const pageInfo = PAGE_TITLES[pageKey] ?? PAGE_TITLES['/']
   const pageLabel = t(pageInfo.labelKey)
   const topbarAllowsAll = TOPBAR_ALLOW_ALL_PATHS.has(pageKey)
+  const isDeveloperWorkspacePage = isDeveloper() && DEVELOPER_WORKSPACE_PATHS.has(pageKey)
   const {
     depots: topbarDepots,
     loading: topbarDepotsLoading,
@@ -504,11 +506,13 @@ export default function AppLayout() {
     allowAll: topbarAllowsAll,
     defaultToAll: topbarAllowsAll,
     storageKey: 'app-depot-scope',
-    enabled: Boolean(user),
+    enabled: Boolean(user) && !isDeveloperWorkspacePage,
   })
   const statusLabel = getSystemStatusLabel(systemStatus, t)
-  const canSeeDepotScope = isDeveloper()
-  const activeCompanyName = topbarSelectedDepot?.company?.name ?? user?.company?.name ?? null
+  const canSeeDepotScope = isDeveloper() && !isDeveloperWorkspacePage
+  const activeCompanyName = isDeveloperWorkspacePage
+    ? (user?.company?.name ?? null)
+    : (topbarSelectedDepot?.company?.name ?? user?.company?.name ?? null)
   const appDisplayName = buildAppDisplayName(user, activeCompanyName, t('app.name'))
 
   useEffect(() => {

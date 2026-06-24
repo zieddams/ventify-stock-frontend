@@ -188,7 +188,15 @@ export default function CreditIndex() {
                       <span className="font-mono text-xs text-base-color">{entry.number || t('common.notAvailable')}</span>
                     )}
                   </td>
-                  <td className="py-3 pr-4 text-base-color">{entry.customer_name}</td>
+                  <td className="py-3 pr-4 text-base-color">
+                    {entry.customer_id ? (
+                      <Link to={`/customers?open_ledger=${entry.customer_id}`} className="font-medium text-primary hover:underline">
+                        {entry.customer_name}
+                      </Link>
+                    ) : (
+                      entry.customer_name
+                    )}
+                  </td>
                   <td className="py-3 pr-4 text-secondary-color">{entry.rep_name || t('common.notAvailable')}</td>
                   <td className="py-3 pr-4 text-xs text-secondary-color">
                     {entry.route_session_id ? (
@@ -254,6 +262,7 @@ export default function CreditIndex() {
                   t('credit.buckets.short61_90'),
                   t('credit.buckets.short90_plus'),
                   t('credit.buckets.totalDue'),
+                  t('common.actions'),
                 ].map((heading, index) => (
                   <th key={heading} className={`pb-3 pr-4 ${index > 0 ? 'text-right' : 'text-left'}`}>{heading}</th>
                 ))}
@@ -262,17 +271,26 @@ export default function CreditIndex() {
             <tbody>
               {customers.map((customer) => (
                 <tr key={customer.customer_id} className="table-row">
-                  <td className="py-3 pr-4 font-semibold text-base-color">{customer.customer_name}</td>
+                  <td className="py-3 pr-4 font-semibold text-base-color">
+                    <Link to={`/customers?open_ledger=${customer.customer_id}`} className="text-primary hover:underline">
+                      {customer.customer_name}
+                    </Link>
+                  </td>
                   <td className="py-3 pr-4 text-right font-mono text-sm text-secondary-color">{formatCurrency(customer.b0_30)}</td>
                   <td className="py-3 pr-4 text-right font-mono text-sm" style={{ color: parseFloat(customer.b31_60) > 0 ? '#d97706' : 'var(--text-muted)' }}>{formatCurrency(customer.b31_60)}</td>
                   <td className="py-3 pr-4 text-right font-mono text-sm" style={{ color: parseFloat(customer.b61_90) > 0 ? '#ea580c' : 'var(--text-muted)' }}>{formatCurrency(customer.b61_90)}</td>
                   <td className="py-3 pr-4 text-right font-mono text-sm font-bold" style={{ color: parseFloat(customer.b90_plus) > 0 ? '#dc2626' : 'var(--text-muted)' }}>{formatCurrency(customer.b90_plus)}</td>
                   <td className="py-3 font-bold font-mono text-sm text-right" style={{ color: '#7c3aed' }}>{formatCurrency(customer.total_due)}</td>
+                  <td className="py-3 pl-4 text-right">
+                    <Link to={`/customers?open_ledger=${customer.customer_id}`} className="btn-secondary text-xs">
+                      <i className="fa-solid fa-credit-card" /> {t('customers.ledger.collectPayment')}
+                    </Link>
+                  </td>
                 </tr>
               ))}
               {customers.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-10 text-center text-sm text-muted-color">
+                  <td colSpan={7} className="py-10 text-center text-sm text-muted-color">
                     {t('credit.emptyCustomers')}
                   </td>
                 </tr>
