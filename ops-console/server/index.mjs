@@ -20,6 +20,17 @@ const packageJson = JSON.parse(fs.readFileSync(path.resolve(projectRoot, 'packag
 dotenv.config({ path: path.resolve(projectRoot, '.env.production') })
 dotenv.config({ path: path.resolve(projectRoot, '.env') })
 
+function parseRoleList(value, fallback = 'admin,developer') {
+  return String(value || fallback)
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function hasRequiredRole(userRole, allowedRoles) {
+  return allowedRoles.includes(String(userRole || '').trim())
+}
+
 const execFileAsync = promisify(execFile)
 const PORT = Number(process.env.OPS_PORT || 3110)
 const HOST = process.env.OPS_HOST || '127.0.0.1'
@@ -27,10 +38,8 @@ const PRODUCT_API_BASE = process.env.PRODUCT_API_BASE || 'https://irtiwaa.ziedte
 const PRODUCT_ACCESS_LOG = process.env.PRODUCT_ACCESS_LOG || '/var/log/nginx/access.log'
 const OPS_ACCESS_LOG = process.env.OPS_ACCESS_LOG || '/var/log/nginx/ops.irtiwaa.access.log'
 const GITHUB_OWNER = process.env.GITHUB_OWNER || 'zieddams'
-const OPS_ALLOWED_ROLES = (process.env.OPS_ALLOWED_ROLES || 'admin,developer')
-  .split(',')
-  .map((value) => value.trim())
-  .filter(Boolean)
+const OPS_ALLOWED_ROLES = parseRoleList(process.env.OPS_ALLOWED_ROLES)
+const OPS_DISPATCH_ROLES = parseRoleList(process.env.OPS_DISPATCH_ROLES || process.env.OPS_ALLOWED_ROLES)
 
 const WORKFLOWS = [
   {
@@ -39,7 +48,7 @@ const WORKFLOWS = [
     repo: 'ventify-stock-frontend',
     workflowId: 'manual-deploy-ops-console.yml',
     description: 'Build and deploy the standalone ops console.',
-    allowedRoles: ['developer'],
+    allowedRoles: OPS_DISPATCH_ROLES,
     inputs: [
       { id: 'version_bump', type: 'choice', options: ['none', 'patch', 'minor', 'major'], defaultValue: 'none' },
     ],
@@ -50,7 +59,7 @@ const WORKFLOWS = [
     repo: 'ventify-stock-frontend',
     workflowId: 'manual-deploy.yml',
     description: 'Deploy the commercial web platform.',
-    allowedRoles: ['developer'],
+    allowedRoles: OPS_DISPATCH_ROLES,
     inputs: [
       { id: 'version_bump', type: 'choice', options: ['none', 'patch', 'minor', 'major'], defaultValue: 'none' },
     ],
@@ -61,7 +70,7 @@ const WORKFLOWS = [
     repo: 'ventify-stock-api',
     workflowId: 'manual-deploy.yml',
     description: 'Run PHPUnit then deploy the Laravel API.',
-    allowedRoles: ['developer'],
+    allowedRoles: OPS_DISPATCH_ROLES,
     inputs: [
       { id: 'run_migrations', type: 'boolean', defaultValue: false },
     ],
@@ -72,7 +81,7 @@ const WORKFLOWS = [
     repo: 'ventify-stock',
     workflowId: 'manual-release.yml',
     description: 'Prepare the next mobile release package.',
-    allowedRoles: ['developer'],
+    allowedRoles: OPS_DISPATCH_ROLES,
     inputs: [
       { id: 'version_bump', type: 'choice', options: ['none', 'patch', 'minor', 'major'], defaultValue: 'patch' },
       { id: 'version_code_increment', type: 'string', defaultValue: '1' },
@@ -134,7 +143,7 @@ async function getUserFromToken(token) {
   const response = await productRequest('get', '/auth/me', token)
   const user = response.data
 
-  if (!OPS_ALLOWED_ROLES.includes(String(user?.role || '').trim())) {
+  if (!hasRequiredRole(user?.role, OPS_ALLOWED_ROLES)) {
     const roleError = new Error('This console is reserved to admin and developer roles.')
     roleError.response = {
       status: 403,
@@ -159,7 +168,7 @@ function requireAuth(allowedRoles = OPS_ALLOWED_ROLES) {
 
       const user = await getUserFromToken(token)
 
-      if (!allowedRoles.includes(user.role)) {
+      if (!hasRequiredRole(user.role, allowedRoles)) {
         return res.status(403).json({ message: 'This action requires a higher role.' })
       }
 
@@ -392,7 +401,8 @@ app.get('/api/meta', requireAuth(), async (req, res) => {
     generatedAt: new Date().toISOString(),
     consoleVersion: packageJson.version,
     allowedRoles: OPS_ALLOWED_ROLES,
-    canDispatch: req.user.role === 'developer',
+    dispatchRoles: OPS_DISPATCH_ROLES,
+    canDispatch: hasRequiredRole(req.user.role, OPS_DISPATCH_ROLES),
     productApiBase: PRODUCT_API_BASE,
     workflows: WORKFLOWS.map((workflow) => ({
       key: workflow.key,
@@ -400,6 +410,7 @@ app.get('/api/meta', requireAuth(), async (req, res) => {
       repo: workflow.repo,
       workflowId: workflow.workflowId,
       description: workflow.description,
+      allowedRoles: workflow.allowedRoles,
       inputs: workflow.inputs,
     })),
   })
@@ -456,7 +467,7 @@ app.get('/api/workflows/overview', requireAuth(), async (req, res) => {
 
     res.json({
       generatedAt: new Date().toISOString(),
-      canDispatch: req.user.role === 'developer',
+      canDispatch: hasRequiredRole(req.user.role, OPS_DISPATCH_ROLES),
       workflows,
     })
   } catch (error) {
@@ -465,11 +476,15 @@ app.get('/api/workflows/overview', requireAuth(), async (req, res) => {
   }
 })
 
-app.post('/api/workflows/:workflowKey/dispatch', requireAuth(['developer']), async (req, res) => {
+app.post('/api/workflows/:workflowKey/dispatch', requireAuth(OPS_DISPATCH_ROLES), async (req, res) => {
   const workflow = WORKFLOWS.find((item) => item.key === req.params.workflowKey)
 
   if (!workflow) {
     return res.status(404).json({ message: 'Unknown workflow key.' })
+  }
+
+  if (!hasRequiredRole(req.user?.role, workflow.allowedRoles || OPS_DISPATCH_ROLES)) {
+    return res.status(403).json({ message: 'This workflow is not available for your role.' })
   }
 
   if (!octokit) {

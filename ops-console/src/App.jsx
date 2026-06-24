@@ -509,7 +509,7 @@ function Dashboard({ api, session, onLogout }) {
             {!canDispatch ? (
               <div className="info-card">
                 <ShieldCheck size={18} />
-                <p>This account can inspect workflows but only the developer role can dispatch deployments.</p>
+                <p>This account can inspect workflows but cannot dispatch deployments under the current console policy.</p>
               </div>
             ) : null}
 
