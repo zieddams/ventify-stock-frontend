@@ -7,6 +7,7 @@ import { SUPPORT_BUG_RECIPIENTS } from '../../config/supportRecipients'
 import { useI18n } from '../../contexts/I18nContext'
 import api from '../../services/api'
 import { formatCount as formatLocaleCount, formatDateTime as formatLocaleDateTime } from '../../utils/format'
+import ObservabilityControlPanel from './ObservabilityControlPanel'
 import SystemTasksPanel from '../config/SystemTasksPanel'
 
 const EMPTY_OVERVIEW = {
@@ -520,6 +521,11 @@ export default function DeveloperToolsIndex() {
           helper={t('developerToolsPage.metrics.supportHint')}
         />
       </div>
+
+      <ObservabilityControlPanel
+        system={overview.system}
+        notAvailableLabel={notAvailableLabel}
+      />
 
       <div className="card">
         <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4 mb-5">
