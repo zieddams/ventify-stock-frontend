@@ -10,6 +10,7 @@ import axios from 'axios'
 import si from 'systeminformation'
 import { Octokit } from '@octokit/rest'
 import { summarizeAccessLogFile } from './lib/accessLog.mjs'
+import { formatShortSha, parseExpoConfig, parsePackageVersion, parseWebAppVersion } from './lib/versionParsers.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -35,9 +36,13 @@ const execFileAsync = promisify(execFile)
 const PORT = Number(process.env.OPS_PORT || 3110)
 const HOST = process.env.OPS_HOST || '127.0.0.1'
 const PRODUCT_API_BASE = process.env.PRODUCT_API_BASE || 'https://irtiwaa.ziedtech.com/api/v1'
+const PRODUCT_WEB_URL = process.env.PRODUCT_WEB_URL || 'https://irtiwaa.ziedtech.com/web-platform/'
+const PRODUCT_API_PING_URL = process.env.PRODUCT_API_PING_URL || 'https://irtiwaa.ziedtech.com/api/v1/system/ping'
 const PRODUCT_ACCESS_LOG = process.env.PRODUCT_ACCESS_LOG || '/var/log/nginx/access.log'
 const OPS_ACCESS_LOG = process.env.OPS_ACCESS_LOG || '/var/log/nginx/ops.irtiwaa.access.log'
+const OPS_PUBLIC_URL = process.env.OPS_PUBLIC_URL || 'https://ops.irtiwaa.ziedtech.com'
 const GITHUB_OWNER = process.env.GITHUB_OWNER || 'zieddams'
+const MOBILE_RELEASES_URL = process.env.MOBILE_RELEASES_URL || 'https://github.com/zieddams/ventify-stock/releases'
 const OPS_ALLOWED_ROLES = parseRoleList(process.env.OPS_ALLOWED_ROLES)
 const OPS_DISPATCH_ROLES = parseRoleList(process.env.OPS_DISPATCH_ROLES || process.env.OPS_ALLOWED_ROLES)
 
@@ -136,6 +141,18 @@ function normalizeError(error) {
     body: {
       message: error.message || 'Unexpected server error',
     },
+  }
+}
+
+function decodeGitHubFileContent(payload) {
+  if (!payload || Array.isArray(payload) || payload.type !== 'file' || !payload.content) {
+    return ''
+  }
+
+  try {
+    return Buffer.from(String(payload.content).replace(/\n/g, ''), payload.encoding || 'base64').toString('utf8')
+  } catch {
+    return ''
   }
 }
 
@@ -291,6 +308,175 @@ function sanitizeInputs(workflow, payload = {}) {
   return next
 }
 
+async function getRepoFileContent(repo, filePath, ref = 'main') {
+  if (!octokit) {
+    return ''
+  }
+
+  try {
+    const response = await octokit.repos.getContent({
+      owner: GITHUB_OWNER,
+      repo,
+      path: filePath,
+      ref,
+    })
+
+    return decodeGitHubFileContent(response.data)
+  } catch {
+    return ''
+  }
+}
+
+function summarizeWorkflowRun(run) {
+  if (!run) {
+    return null
+  }
+
+  return {
+    id: run.id,
+    name: run.name,
+    status: run.status,
+    conclusion: run.conclusion,
+    htmlUrl: run.html_url,
+    branch: run.head_branch,
+    headSha: run.head_sha,
+    createdAt: run.created_at,
+    updatedAt: run.updated_at,
+  }
+}
+
+async function getLatestSuccessfulWorkflowRun(repo, workflowId) {
+  if (!octokit) {
+    return null
+  }
+
+  try {
+    const response = await octokit.actions.listWorkflowRuns({
+      owner: GITHUB_OWNER,
+      repo,
+      workflow_id: workflowId,
+      per_page: 20,
+    })
+
+    const successfulRun = (response.data.workflow_runs || []).find((run) => run.conclusion === 'success')
+    return summarizeWorkflowRun(successfulRun)
+  } catch {
+    return null
+  }
+}
+
+async function getLatestRelease(repo) {
+  if (!octokit) {
+    return null
+  }
+
+  try {
+    const response = await octokit.repos.getLatestRelease({
+      owner: GITHUB_OWNER,
+      repo,
+    })
+
+    return {
+      tagName: response.data.tag_name,
+      name: response.data.name,
+      htmlUrl: response.data.html_url,
+      targetCommitish: response.data.target_commitish,
+      publishedAt: response.data.published_at,
+      assets: (response.data.assets || []).map((asset) => ({
+        id: asset.id,
+        name: asset.name,
+        size: asset.size,
+        updatedAt: asset.updated_at,
+        downloadUrl: asset.browser_download_url,
+      })),
+    }
+  } catch {
+    return null
+  }
+}
+
+async function getVersionOverview(token) {
+  const [opsDeploy, webDeploy, apiDeploy, mobilePrepare, mobileRelease, developerTools] = await Promise.all([
+    getLatestSuccessfulWorkflowRun('ventify-stock-frontend', 'manual-deploy-ops-console.yml'),
+    getLatestSuccessfulWorkflowRun('ventify-stock-frontend', 'manual-deploy.yml'),
+    getLatestSuccessfulWorkflowRun('ventify-stock-api', 'manual-deploy.yml'),
+    getLatestSuccessfulWorkflowRun('ventify-stock', 'manual-release.yml'),
+    getLatestRelease('ventify-stock'),
+    productRequest('get', '/developer-tools', token).then((response) => response.data).catch(() => null),
+  ])
+
+  const [opsPackageSource, webMetaSource, mobilePackageSource, mobileExpoSource] = await Promise.all([
+    getRepoFileContent('ventify-stock-frontend', 'ops-console/package.json', opsDeploy?.headSha || opsDeploy?.branch || 'main'),
+    getRepoFileContent('ventify-stock-frontend', 'src/config/appMeta.js', webDeploy?.headSha || webDeploy?.branch || 'main'),
+    getRepoFileContent('ventify-stock', 'package.json', mobilePrepare?.headSha || mobilePrepare?.branch || mobileRelease?.targetCommitish || 'main'),
+    getRepoFileContent('ventify-stock', 'app.config.js', mobilePrepare?.headSha || mobilePrepare?.branch || mobileRelease?.targetCommitish || 'main'),
+  ])
+
+  const opsVersion = parsePackageVersion(opsPackageSource) || packageJson.version
+  const webVersion = parseWebAppVersion(webMetaSource)
+  const mobilePackageVersion = parsePackageVersion(mobilePackageSource)
+  const mobileExpoVersion = parseExpoConfig(mobileExpoSource)
+  const system = developerTools?.system ?? null
+
+  return {
+    generatedAt: new Date().toISOString(),
+    surfaces: [
+      {
+        key: 'ops',
+        label: 'Ops console',
+        environment: 'Standalone production control plane',
+        url: OPS_PUBLIC_URL,
+        version: opsVersion || packageJson.version,
+        sourceVersion: opsVersion || packageJson.version,
+        runtimeLabel: `Node ${process.version.replace(/^v/, '')}`,
+        buildLabel: opsDeploy?.headSha ? `Deploy ${formatShortSha(opsDeploy.headSha)}` : '',
+        deployment: opsDeploy,
+      },
+      {
+        key: 'web',
+        label: 'Web platform',
+        environment: 'Business-facing production frontend',
+        url: PRODUCT_WEB_URL,
+        version: webVersion || '',
+        sourceVersion: webVersion || '',
+        runtimeLabel: system?.frontend_url ? 'Public frontend live' : 'Awaiting frontend metadata',
+        buildLabel: webDeploy?.headSha ? `Deploy ${formatShortSha(webDeploy.headSha)}` : '',
+        deployment: webDeploy,
+      },
+      {
+        key: 'api',
+        label: 'API',
+        environment: 'Laravel production backend',
+        url: PRODUCT_API_PING_URL,
+        version: apiDeploy?.headSha ? formatShortSha(apiDeploy.headSha) : '',
+        sourceVersion: apiDeploy?.headSha ? formatShortSha(apiDeploy.headSha) : '',
+        runtimeLabel: [system?.laravel ? `Laravel ${system.laravel}` : '', system?.php ? `PHP ${system.php}` : '']
+          .filter(Boolean)
+          .join(' · '),
+        buildLabel: system?.db_ok ? 'Database reachable' : 'Database check required',
+        deployment: apiDeploy,
+      },
+      {
+        key: 'mobile',
+        label: 'Mobile',
+        environment: 'Public release and prepared candidate',
+        url: mobileRelease?.htmlUrl || MOBILE_RELEASES_URL,
+        version: mobileRelease?.tagName || (mobilePackageVersion ? `v${mobilePackageVersion}` : ''),
+        sourceVersion: mobilePackageVersion || mobileExpoVersion.version || '',
+        publicVersion: mobileRelease?.tagName || '',
+        candidateVersion: mobilePackageVersion || mobileExpoVersion.version || '',
+        candidateBuild: mobileExpoVersion.versionCode || '',
+        runtimeLabel: mobilePrepare
+          ? `Prepared v${mobilePackageVersion || mobileExpoVersion.version || 'n/a'} · code ${mobileExpoVersion.versionCode || 'n/a'}`
+          : 'No validated release-prep run yet',
+        buildLabel: mobileRelease?.publishedAt ? `Published ${mobileRelease.publishedAt}` : '',
+        deployment: mobilePrepare,
+        release: mobileRelease,
+      },
+    ],
+  }
+}
+
 async function getWorkflowRuns() {
   if (!octokit) {
     return WORKFLOWS.map((workflow) => ({
@@ -314,16 +500,7 @@ async function getWorkflowRuns() {
         ...workflow,
         integrationReady: true,
         integrationMessage: '',
-        runs: (response.data.workflow_runs || []).map((run) => ({
-          id: run.id,
-          name: run.name,
-          status: run.status,
-          conclusion: run.conclusion,
-          htmlUrl: run.html_url,
-          branch: run.head_branch,
-          createdAt: run.created_at,
-          updatedAt: run.updated_at,
-        })),
+        runs: (response.data.workflow_runs || []).map((run) => summarizeWorkflowRun(run)),
       }
     } catch (error) {
       return {
@@ -470,6 +647,15 @@ app.get('/api/workflows/overview', requireAuth(), async (req, res) => {
       canDispatch: hasRequiredRole(req.user.role, OPS_DISPATCH_ROLES),
       workflows,
     })
+  } catch (error) {
+    const normalized = normalizeError(error)
+    res.status(normalized.status).json(normalized.body)
+  }
+})
+
+app.get('/api/versions/overview', requireAuth(), async (req, res) => {
+  try {
+    res.json(await getVersionOverview(req.accessToken))
   } catch (error) {
     const normalized = normalizeError(error)
     res.status(normalized.status).json(normalized.body)
