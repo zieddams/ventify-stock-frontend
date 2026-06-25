@@ -2503,6 +2503,24 @@ export default {
       fieldFallback: 'Champ disponible pour ce document.',
       entityChoiceTitle: "Choix de l'entité",
       entityChoiceDescription: "Sélectionnez l'entité métier, puis ajustez les champs visibles pour les listes et fiches qui lui appartiennent.",
+      invoiceProfileTitle: 'Profil impression facture',
+      invoiceProfileDescription: "Pilotez l'entête et les règles métier des factures PDF / impression pour la société courante.",
+      invoiceProfileFields: {
+        headerStyle: "Style d'entête",
+        visibility: 'Visibilité',
+        headerNote: "Bloc libre sous l'entête",
+        footerNote: 'Note de pied de page',
+      },
+      invoiceProfileValues: {
+        logoAndName: 'Logo + nom société',
+        nameOnly: 'Nom société uniquement',
+        showTaxBreakdown: 'Afficher la TVA dans le document',
+        showDepotDetails: 'Afficher le dépôt sur la facture',
+      },
+      invoiceProfilePlaceholders: {
+        headerNote: 'Adresse, téléphone, matricule fiscal, horaires...',
+        footerNote: 'Mention commerciale, conditions ou note légale...',
+      },
       modelsCount: ({ count }) => `${count} modèle(s)`,
       summary: {
         categories: 'Catégories produits',

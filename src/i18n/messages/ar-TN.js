@@ -2502,6 +2502,24 @@ export default {
       fieldFallback: 'حقل متوفر للوثيقة هاذي.',
       entityChoiceTitle: 'اختيار الكيان',
       entityChoiceDescription: 'اختار الكيان متاع الخدمة وبعدها بدّل الحقول اللي تظهر في القوائم والبطاقات متاعو.',
+      invoiceProfileTitle: 'بروفيل طباعة الفاتورة',
+      invoiceProfileDescription: 'تحكّم في الهيدر والقواعد متاع فواتير PDF والطباعة للشركة الحالية.',
+      invoiceProfileFields: {
+        headerStyle: 'ستايل الهيدر',
+        visibility: 'الظهور',
+        headerNote: 'بلوك حر تحت الهيدر',
+        footerNote: 'ملاحظة أسفل الصفحة',
+      },
+      invoiceProfileValues: {
+        logoAndName: 'لوغو + اسم الشركة',
+        nameOnly: 'اسم الشركة فقط',
+        showTaxBreakdown: 'إظهار الأداء في الوثيقة',
+        showDepotDetails: 'إظهار المخزن في الفاتورة',
+      },
+      invoiceProfilePlaceholders: {
+        headerNote: 'العنوان، الهاتف، المعرّف الجبائي، التوقيت...',
+        footerNote: 'ملاحظة تجارية، شروط ولا تنبيه قانوني...',
+      },
       modelsCount: ({ count }) => `${count} موديل(ات)`,
       summary: {
         categories: 'أصناف المنتجات',

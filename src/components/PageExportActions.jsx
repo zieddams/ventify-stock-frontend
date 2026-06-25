@@ -17,6 +17,8 @@ export default function PageExportActions({
   subtitle = '',
   filename = '',
   meta = [],
+  documentSettings = null,
+  currentUser = null,
 }) {
   const { t } = useI18n()
   const shouldLoadLayouts = Boolean(documentKey) && documentLayouts == null
@@ -61,6 +63,8 @@ export default function PageExportActions({
         subtitle,
         filename,
         meta,
+        documentSettings,
+        user: currentUser,
       })
     } catch (error) {
       alert(error?.message === 'print_window_blocked'
@@ -84,6 +88,8 @@ export default function PageExportActions({
           subtitle,
           filename,
           meta,
+          documentSettings,
+          user: currentUser,
         })
     } catch (error) {
       alert(error?.message === 'print_window_blocked'

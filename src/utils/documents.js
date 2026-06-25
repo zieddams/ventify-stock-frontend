@@ -1,3 +1,8 @@
+import { APP_NAME } from '../config/appMeta'
+import {
+  DOCUMENT_INVOICE_PRINTING_SETTING_KEY,
+  normalizeInvoicePrintingSettings,
+} from '../hooks/useDocumentLayouts'
 import { asText, formatDateTime, getDefaultDocumentFieldKeys, getDocumentDefinition } from './documentDefinitions'
 
 function normalizeFileSafeSegment(value) {
@@ -42,6 +47,88 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
+}
+
+function cleanOptionalText(value) {
+  return String(value ?? '').trim()
+}
+
+function splitMultilineText(value) {
+  return cleanOptionalText(value)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+function isInvoiceDocument(definition) {
+  return ['invoice_item', 'invoice_detail', 'invoices_list'].includes(definition?.key)
+}
+
+function buildDepotLines(record, showDepotDetails) {
+  if (!showDepotDetails) {
+    return []
+  }
+
+  const depotName = cleanOptionalText(record?.depot?.name)
+  const depotCode = cleanOptionalText(record?.depot?.code)
+  const depotAddress = cleanOptionalText(record?.depot?.address)
+  const depotNote = cleanOptionalText(record?.depot?.note)
+  const lines = []
+
+  if (depotName) {
+    lines.push(depotCode ? `Depot: ${depotName} (${depotCode})` : `Depot: ${depotName}`)
+  } else if (depotCode) {
+    lines.push(`Depot code: ${depotCode}`)
+  }
+
+  if (depotAddress) {
+    lines.push(depotAddress)
+  }
+
+  if (depotNote) {
+    lines.push(depotNote)
+  }
+
+  return lines
+}
+
+function resolveInvoicePrintingConfig(documentSettings) {
+  if (documentSettings?.invoicePrintSettings) {
+    return normalizeInvoicePrintingSettings(documentSettings.invoicePrintSettings)
+  }
+
+  return normalizeInvoicePrintingSettings(
+    documentSettings?.[DOCUMENT_INVOICE_PRINTING_SETTING_KEY],
+  )
+}
+
+function buildDocumentBranding({ definition, record, user, documentSettings }) {
+  const invoicePrinting = resolveInvoicePrintingConfig(documentSettings)
+  const companyName = cleanOptionalText(user?.company?.name) || APP_NAME
+  const companyLogoUrl = invoicePrinting.header_style === 'logo_and_name'
+    ? cleanOptionalText(user?.company?.logo_url)
+    : ''
+  const headerLines = [
+    ...splitMultilineText(invoicePrinting.header_note),
+    ...(isInvoiceDocument(definition) ? buildDepotLines(record, invoicePrinting.show_depot_details) : []),
+  ]
+
+  return {
+    companyName,
+    companyLogoUrl,
+    headerStyle: invoicePrinting.header_style,
+    headerLines,
+    footerNote: cleanOptionalText(invoicePrinting.footer_note),
+    showTaxBreakdown: invoicePrinting.show_tax_breakdown,
+  }
+}
+
+function filterDocumentFields(definition, fields, branding) {
+  if (!isInvoiceDocument(definition) || branding.showTaxBreakdown) {
+    return fields
+  }
+
+  return fields.filter((field) => !['tax_rate', 'tax_amount'].includes(field.key))
 }
 
 function renderSummary(summary) {
@@ -163,6 +250,8 @@ export function buildDocumentModel({
   filename,
   meta = [],
   summary = [],
+  documentSettings = null,
+  user = null,
 }) {
   const definition = getDocumentDefinition(documentKey)
 
@@ -177,6 +266,8 @@ export function buildDocumentModel({
       : []
   const record = normalizedRecords[0] ?? null
   const layout = resolveDocumentLayout(definition, documentLayouts)
+  const branding = buildDocumentBranding({ definition, record, user, documentSettings })
+  const visibleFields = filterDocumentFields(definition, layout.fields, branding)
   const combinedSummary = [
     ...(definition.buildSummary?.({ records: normalizedRecords, record }) ?? []),
     ...summary,
@@ -187,7 +278,7 @@ export function buildDocumentModel({
     sections.push({
       kind: 'keyValue',
       title: 'Détails',
-      rows: layout.fields.map((field) => ({
+      rows: visibleFields.map((field) => ({
         label: field.label,
         value: field.value(record),
       })),
@@ -196,13 +287,13 @@ export function buildDocumentModel({
     sections.push({
       kind: 'table',
       title: definition.tableTitle || 'Éléments',
-      columns: layout.fields.map((field) => field.label),
-      rows: normalizedRecords.map((currentRecord) => layout.fields.map((field) => field.value(currentRecord))),
+      columns: visibleFields.map((field) => field.label),
+      rows: normalizedRecords.map((currentRecord) => visibleFields.map((field) => field.value(currentRecord))),
       emptyMessage: definition.emptyMessage || 'Aucune donnée disponible pour cette vue.',
     })
   }
 
-  sections.push(...(definition.buildSections?.({ records: normalizedRecords, record, fields: layout.fields }) ?? []))
+  sections.push(...(definition.buildSections?.({ records: normalizedRecords, record, fields: visibleFields }) ?? []))
 
   return {
     key: definition.key,
@@ -219,10 +310,16 @@ export function buildDocumentModel({
     ],
     summary: combinedSummary,
     sections,
+    branding,
   }
 }
 
-function buildPrintHtml(model) {
+export function buildPrintHtml(model) {
+  const brandLogoUrl = cleanOptionalText(model.branding?.companyLogoUrl)
+  const brandName = cleanOptionalText(model.branding?.companyName) || APP_NAME
+  const headerLines = Array.isArray(model.branding?.headerLines) ? model.branding.headerLines : []
+  const footerNote = cleanOptionalText(model.branding?.footerNote)
+
   return `<!DOCTYPE html>
 <html lang="fr">
   <head>
@@ -270,20 +367,38 @@ function buildPrintHtml(model) {
       }
 
       .brand {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 14px;
-        font-weight: 700;
-        color: var(--brand);
-        margin-bottom: 12px;
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        margin-bottom: 14px;
       }
 
-      .brand-dot {
-        width: 14px;
-        height: 14px;
-        border-radius: 999px;
-        background: linear-gradient(135deg, #14b8a6, #0f766e);
+      .brand-logo {
+        width: 58px;
+        height: 58px;
+        object-fit: contain;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: #ffffff;
+        padding: 8px;
+        flex-shrink: 0;
+      }
+
+      .brand-copy {
+        min-width: 0;
+      }
+
+      .brand-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--brand);
+      }
+
+      .brand-line {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
       }
 
       h1 {
@@ -395,6 +510,18 @@ function buildPrintHtml(model) {
         white-space: pre-wrap;
       }
 
+      .footer-note {
+        margin-top: 22px;
+        padding: 14px 16px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--soft);
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+      }
+
       @media print {
         body {
           background: transparent;
@@ -419,7 +546,13 @@ function buildPrintHtml(model) {
     <main class="sheet">
       <header class="header">
         <div>
-          <div class="brand"><span class="brand-dot"></span>El Irtiwaa</div>
+          <div class="brand">
+            ${brandLogoUrl ? `<img src="${escapeHtml(brandLogoUrl)}" alt="${escapeHtml(brandName)}" class="brand-logo" />` : ''}
+            <div class="brand-copy">
+              <div class="brand-name">${escapeHtml(brandName)}</div>
+              ${headerLines.map((line) => `<div class="brand-line">${escapeHtml(line)}</div>`).join('')}
+            </div>
+          </div>
           <h1>${escapeHtml(model.title)}</h1>
           ${model.subtitle ? `<div class="subtitle">${escapeHtml(model.subtitle)}</div>` : ''}
         </div>
@@ -430,9 +563,53 @@ function buildPrintHtml(model) {
 
       ${renderSummary(model.summary)}
       ${model.sections.map((section) => renderSection(section)).join('')}
+      ${footerNote ? `<div class="footer-note">${escapeHtml(footerNote)}</div>` : ''}
     </main>
   </body>
 </html>`
+}
+
+async function loadImageAsDataUrl(url) {
+  const targetUrl = cleanOptionalText(url)
+
+  if (!targetUrl || typeof fetch !== 'function' || typeof FileReader === 'undefined') {
+    return null
+  }
+
+  try {
+    const response = await fetch(targetUrl)
+
+    if (!response.ok) {
+      return null
+    }
+
+    const blob = await response.blob()
+
+    return await new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null)
+      reader.onerror = () => resolve(null)
+      reader.readAsDataURL(blob)
+    })
+  } catch {
+    return null
+  }
+}
+
+function imageFormatFromDataUrl(dataUrl) {
+  if (typeof dataUrl !== 'string') {
+    return 'PNG'
+  }
+
+  if (dataUrl.startsWith('data:image/jpeg') || dataUrl.startsWith('data:image/jpg')) {
+    return 'JPEG'
+  }
+
+  if (dataUrl.startsWith('data:image/webp')) {
+    return 'WEBP'
+  }
+
+  return 'PNG'
 }
 
 function cleanupPrintFrame(frame) {
@@ -561,12 +738,47 @@ export async function downloadDocumentPdf(options) {
   const bottom = 30
   const maxWidth = pageWidth - left - right
   let cursorY = top
+  const brandName = cleanOptionalText(model.branding?.companyName) || APP_NAME
+  const brandLogoDataUrl = await loadImageAsDataUrl(model.branding?.companyLogoUrl)
+  const brandHeaderLines = Array.isArray(model.branding?.headerLines) ? model.branding.headerLines : []
+  const footerNote = cleanOptionalText(model.branding?.footerNote)
+
+  const brandLogoSize = brandLogoDataUrl ? 44 : 0
+  const brandTextLeft = left + (brandLogoSize > 0 ? brandLogoSize + 14 : 0)
+
+  if (brandLogoDataUrl) {
+    try {
+      doc.addImage(
+        brandLogoDataUrl,
+        imageFormatFromDataUrl(brandLogoDataUrl),
+        left,
+        cursorY - 2,
+        brandLogoSize,
+        brandLogoSize,
+      )
+    } catch {
+      // Ignore image rendering failures and continue with text branding.
+    }
+  }
 
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(15, 118, 110)
   doc.setFontSize(11)
-  doc.text('El Irtiwaa', left, cursorY)
-  cursorY += 20
+  doc.text(normalizeText(brandName), brandTextLeft, cursorY + 10)
+
+  let brandBlockHeight = 18
+
+  if (brandHeaderLines.length > 0) {
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(71, 85, 105)
+    doc.setFontSize(9)
+    const detailLines = brandHeaderLines.flatMap((line) => doc.splitTextToSize(normalizeText(line), maxWidth - (brandTextLeft - left)))
+    doc.text(detailLines, brandTextLeft, cursorY + 24)
+    brandBlockHeight = Math.max(brandBlockHeight, 24 + (detailLines.length * 11))
+  }
+
+  brandBlockHeight = Math.max(brandBlockHeight, brandLogoSize)
+  cursorY += brandBlockHeight + 12
 
   doc.setTextColor(15, 23, 42)
   doc.setFontSize(20)
@@ -678,6 +890,20 @@ export async function downloadDocumentPdf(options) {
     cursorY = doc.lastAutoTable.finalY + 18
   })
 
+  if (footerNote) {
+    if (cursorY > pageHeight - 90) {
+      doc.addPage()
+      cursorY = top
+    }
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.setTextColor(71, 85, 105)
+    const footerLines = doc.splitTextToSize(normalizeText(footerNote), maxWidth)
+    doc.text(footerLines, left, cursorY + 10)
+    cursorY += footerLines.length * 12 + 18
+  }
+
   const pageCount = doc.getNumberOfPages()
 
   for (let page = 1; page <= pageCount; page += 1) {
@@ -685,7 +911,7 @@ export async function downloadDocumentPdf(options) {
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(8)
     doc.setTextColor(100, 116, 139)
-    doc.text(`El Irtiwaa  |  Page ${page}/${pageCount}`, pageWidth - right, pageHeight - bottom, { align: 'right' })
+    doc.text(`${normalizeText(brandName)}  |  Page ${page}/${pageCount}`, pageWidth - right, pageHeight - bottom, { align: 'right' })
   }
 
   doc.save(model.filename)

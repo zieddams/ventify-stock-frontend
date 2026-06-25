@@ -22,13 +22,13 @@ export default function InvoiceShow() {
   const [updating, setUpdating] = useState(false)
   const [payAmount, setPayAmount] = useState('')
   const { items: configItems } = useConfigItems('payment_method')
-  const { layouts: documentLayouts } = useDocumentLayouts()
+  const { layouts: documentLayouts, invoicePrintSettings } = useDocumentLayouts()
   const paymentMethods = filterPaymentMethodsByScope(configItems.payment_method ?? [], 'customer')
   const availablePaymentMethods = paymentMethods.length > 0 ? paymentMethods : [{ value: 'cash', display_label: t('invoiceShow.cashFallback') }]
   const defaultPaymentMethod = getDefaultConfigValue(availablePaymentMethods, 'cash')
   const [payMethod, setPayMethod] = useState(defaultPaymentMethod)
   const [paying, setPaying] = useState(false)
-  const { isAdmin } = useAuth()
+  const { user, isAdmin } = useAuth()
 
   const statusLabels = useMemo(() => ({
     draft: t('badges.invoiceStatus.draft'),
@@ -118,6 +118,8 @@ export default function InvoiceShow() {
           documentKey="invoice_detail"
           record={invoice}
           documentLayouts={documentLayouts}
+          documentSettings={{ invoicePrintSettings }}
+          currentUser={user}
         />
       </div>
 
