@@ -258,12 +258,26 @@ function KpiCard({ title, value, helper, icon: Icon, tone = 'neutral' }) {
   )
 }
 
+function MiniMetricCard({ label, value, helper, icon: Icon, tone = 'neutral' }) {
+  return (
+    <article className={`mini-metric-card mini-metric-card-${tone}`}>
+      <div className="mini-metric-topline">
+        <span>{label}</span>
+        {Icon ? <Icon size={16} /> : null}
+      </div>
+      <strong>{value}</strong>
+      {helper ? <p>{helper}</p> : null}
+    </article>
+  )
+}
+
 function SidebarSurfaceCard({ surface }) {
   return (
     <a className={`sidebar-surface-card sidebar-surface-card-${surface.key}`} href={surface.url} target="_blank" rel="noreferrer">
       <div>
         <div className="sidebar-surface-label">{surface.label}</div>
         <div className="sidebar-surface-version">{formatSurfaceVersion(surface)}</div>
+        <div className="sidebar-surface-helper">{surface.environment || formatSurfaceReference(surface)}</div>
       </div>
       <ChevronRight size={16} />
     </a>
@@ -452,16 +466,42 @@ function LoginScreen({ onLogin, loading, error }) {
   return (
     <main className="login-shell">
       <div className="login-hero">
-        <div className="section-eyebrow">Irtiwaa operator workspace</div>
-        <h1>Separate monitoring, rollout control, and production visibility.</h1>
-        <p>
-          The ops console now runs as its own application surface. Use it to inspect live traffic,
-          production versions, VPS health, and controlled GitHub Actions dispatches without mixing
-          the operator workflow into the commercial web platform.
-        </p>
-        <div className="hero-chip-row">
-          <StatusPill status="good">Standalone subdomain</StatusPill>
-          <StatusPill status="warm">Admin and developer roles only</StatusPill>
+        <div className="login-hero-copy">
+          <div className="section-eyebrow">Irtiwaa operator workspace</div>
+          <h1>Separate ops access with a calmer, product-style control plane.</h1>
+          <p>
+            Keep production monitoring, rollout control, and live field visibility inside a dedicated
+            operator surface without mixing those controls into the commercial web platform.
+          </p>
+          <div className="hero-chip-row">
+            <StatusPill status="good">Standalone subdomain</StatusPill>
+            <StatusPill status="neutral">Same Irtiwaa identity</StatusPill>
+            <StatusPill status="warm">Admin and developer roles only</StatusPill>
+          </div>
+        </div>
+
+        <div className="login-preview-grid">
+          <MiniMetricCard
+            label="Ops surface"
+            value="ops.irtiwaa"
+            helper="Separate monitoring and deploy lane for the Irtiwaa stack."
+            icon={Globe2}
+            tone="neutral"
+          />
+          <MiniMetricCard
+            label="Controlled dispatches"
+            value="Web · API · Mobile"
+            helper="Run validated GitHub workflows without entering the business workspace."
+            icon={Workflow}
+            tone="good"
+          />
+          <MiniMetricCard
+            label="Live watch"
+            value="Traffic · Sessions · VPS"
+            helper="Keep rollout refs, health checks, field activity, and incidents in one place."
+            icon={Activity}
+            tone="warm"
+          />
         </div>
       </div>
 
@@ -1306,6 +1346,10 @@ function Dashboard({ api, session, onLogout }) {
   }
 
   const activeNav = NAV_ITEMS.find((item) => item.id === activePage) || NAV_ITEMS[0]
+  const consoleVersion = meta.consoleVersion || surfaceMap.ops?.sourceVersion || '…'
+  const healthyServicesCount = serviceStates.filter((service) => service.status === 'active').length
+  const validatedSurfacesCount = surfaces.filter((surface) => surface.deployment || surface.release).length
+  const openIssuesCount = bugReports.filter((bug) => String(bug.status || '').toLowerCase() === 'open').length
 
   const setWorkflowValue = (workflowKey, fieldId, value) => {
     setWorkflowInputs((current) => ({
@@ -1394,25 +1438,41 @@ function Dashboard({ api, session, onLogout }) {
   return (
     <main className="workspace-shell">
       <aside className="workspace-sidebar">
-        <div className="sidebar-brand">
-          <div className="sidebar-brand-mark">IO</div>
-          <div>
-            <div className="sidebar-brand-title">Irtiwaa Ops</div>
-            <div className="sidebar-brand-helper">Separate operator control plane</div>
+        <div className="sidebar-brand-block">
+          <div className="sidebar-brand">
+            <div className="sidebar-brand-mark">IO</div>
+            <div>
+              <div className="sidebar-brand-title">Irtiwaa Ops</div>
+              <div className="sidebar-brand-helper">Separate operator control plane</div>
+            </div>
+          </div>
+
+          <div className="sidebar-status-row">
+            <StatusPill status="good">ops.irtiwaa.ziedtech.com</StatusPill>
+            <StatusPill status={systemSnapshot.db_ok ? 'good' : 'warm'}>
+              {systemSnapshot.db_ok ? 'DB linked' : 'DB check'}
+            </StatusPill>
           </div>
         </div>
 
         <div className="sidebar-hero-card">
-          <div className="section-eyebrow">Production subdomain</div>
-          <h2>Live version visibility and controlled dispatches.</h2>
-          <p>
-            Refactored into a real operator workspace with pages, side navigation, and rollout context.
-          </p>
-          <div className="hero-chip-row">
-            <StatusPill status="good">{session.user.role}</StatusPill>
-            <StatusPill status={systemSnapshot.db_ok ? 'good' : 'warm'}>
-              {systemSnapshot.db_ok ? 'DB linked' : 'DB check'}
+          <div className="sidebar-hero-topline">
+            <div className="section-eyebrow">Operator lane</div>
+            <StatusPill status={canDispatch ? 'good' : 'warm'}>
+              {canDispatch ? 'Dispatch enabled' : 'Inspect only'}
             </StatusPill>
+          </div>
+          <h2>{activeNav.label}</h2>
+          <p>{activeNav.description}</p>
+          <div className="sidebar-hero-metrics">
+            <div>
+              <span>Live snapshot</span>
+              <strong>{navMeta[activePage]}</strong>
+            </div>
+            <div>
+              <span>Last sync</span>
+              <strong>{formatDateTime(lastUpdated)}</strong>
+            </div>
           </div>
         </div>
 
@@ -1453,35 +1513,56 @@ function Dashboard({ api, session, onLogout }) {
           <div className="sidebar-user-card">
             <div className="sidebar-user-title">{session.user.name}</div>
             <div className="sidebar-user-helper">{session.user.email}</div>
-            <div className="sidebar-user-helper">Console v{meta.consoleVersion || surfaceMap.ops?.sourceVersion || '…'}</div>
+            <div className="sidebar-user-helper">{session.user.role} · Console v{consoleVersion}</div>
             <div className="sidebar-user-helper">Last sync {formatDateTime(lastUpdated)}</div>
           </div>
 
-          <div className="sidebar-action-stack">
-            <button className="ghost-button sidebar-action-button" type="button" onClick={refreshAll}>
-              <RefreshCcw size={16} />
-              <span>Refresh all pages</span>
-            </button>
-            <a className="ghost-button sidebar-action-button" href="https://irtiwaa.ziedtech.com/web-platform/developer-tools" target="_blank" rel="noreferrer">
-              <ChevronRight size={16} />
-              <span>Open developer-tools launch</span>
-            </a>
-            <button className="ghost-button sidebar-action-button" type="button" onClick={onLogout}>
-              <LogOut size={16} />
-              <span>Sign out</span>
-            </button>
-          </div>
+          <a className="sidebar-footer-link" href="https://irtiwaa.ziedtech.com/web-platform/developer-tools" target="_blank" rel="noreferrer">
+            <ChevronRight size={16} />
+            <span>Open developer-tools launch</span>
+          </a>
         </div>
       </aside>
 
       <section className="workspace-content">
+        <header className="workspace-toolbar">
+          <div className="workspace-toolbar-copy">
+            <div className="section-eyebrow">Separate ops app</div>
+            <h1 className="workspace-toolbar-title">Irtiwaa Ops Console</h1>
+            <p>Production control lane for releases, field activity, traffic, and VPS health.</p>
+          </div>
+
+          <div className="workspace-toolbar-actions">
+            <div className="workspace-toolbar-meta">
+              <span>{session.user.name}</span>
+              <strong>{session.user.role}</strong>
+              <small>Console v{consoleVersion}</small>
+            </div>
+
+            <div className="toolbar-action-group">
+              <button className="ghost-button toolbar-action-button" type="button" onClick={refreshAll}>
+                <RefreshCcw size={16} />
+                <span>Refresh</span>
+              </button>
+              <a className="ghost-button toolbar-action-button" href="https://irtiwaa.ziedtech.com/web-platform/developer-tools" target="_blank" rel="noreferrer">
+                <ChevronRight size={16} />
+                <span>Developer tools</span>
+              </a>
+              <button className="ghost-button toolbar-action-button" type="button" onClick={onLogout}>
+                <LogOut size={16} />
+                <span>Sign out</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
         <header className="page-hero">
           <div className="page-hero-copy">
-            <div className="section-eyebrow">Operator workspace</div>
-            <h1>{activeNav.label}</h1>
+            <div className="section-eyebrow">Current page</div>
+            <h2 className="page-hero-title">{activeNav.label}</h2>
             <p>{activeNav.description}</p>
             <div className="page-chip-row">
-              <StatusPill status="neutral">Console v{meta.consoleVersion || surfaceMap.ops?.sourceVersion || '…'}</StatusPill>
+              <StatusPill status="neutral">Console v{consoleVersion}</StatusPill>
               <StatusPill status={maintenanceState?.enabled ? 'warm' : 'good'}>
                 {maintenanceState?.enabled ? 'Maintenance live' : 'Maintenance off'}
               </StatusPill>
@@ -1497,6 +1578,30 @@ function Dashboard({ api, session, onLogout }) {
             <div className="page-summary-helper">{formatDateTime(lastUpdated)}</div>
           </div>
         </header>
+
+        <section className="mini-metric-grid">
+          <MiniMetricCard
+            label="Validated surfaces"
+            value={`${validatedSurfacesCount}/${surfaces.length || 0}`}
+            helper="Ops, web, API, and mobile release visibility."
+            icon={Rocket}
+            tone="good"
+          />
+          <MiniMetricCard
+            label="Healthy services"
+            value={`${healthyServicesCount}/${serviceStates.length || 0}`}
+            helper="Current nginx, PHP-FPM, PM2, and host-side service state."
+            icon={Server}
+            tone={healthyServicesCount === serviceStates.length ? 'good' : 'warm'}
+          />
+          <MiniMetricCard
+            label="Open issues"
+            value={formatCompactNumber(openIssuesCount)}
+            helper={latestBug?.subject ? `Latest: ${latestBug.subject}` : 'No recent bug report captured.'}
+            icon={Bug}
+            tone={openIssuesCount > 0 ? 'warm' : 'neutral'}
+          />
+        </section>
 
         <MessageBanner message={summaryError} tone="danger" />
         <MessageBanner message={!summaryError ? dispatchMessage : ''} tone="good" />
