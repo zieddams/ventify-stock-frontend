@@ -1,6 +1,14 @@
 import axios from 'axios'
 import { getStoredLocale } from '../i18n/locales'
 import { APP_BASE_PATH, appPath } from '../utils/appPaths'
+import {
+  clearStoredAuthState,
+  getStoredToken,
+  getStoredUser,
+  getStoredWorkspaceMode,
+  hasStoredPrimarySession,
+  restorePrimarySession,
+} from '../utils/authStorage'
 
 const api = axios.create({
   baseURL: '/api/v1',
@@ -24,9 +32,18 @@ function resolveFrontPath() {
 }
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('ventify_token')
-  if (token) config.headers.Authorization = `Bearer ${token}`
+  const token = getStoredToken()
+  const workspaceMode = getStoredWorkspaceMode()
+  const hasAuthorization = Boolean(config.headers?.Authorization || config.headers?.authorization)
+
+  if (token && !hasAuthorization) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+
   config.headers['X-Front-Path'] = resolveFrontPath()
+  if (workspaceMode && !config.headers['X-Workspace-Mode']) {
+    config.headers['X-Workspace-Mode'] = workspaceMode
+  }
   config.headers['X-App-Locale'] = getStoredLocale()
   return config
 })
@@ -35,8 +52,16 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      localStorage.removeItem('ventify_token')
-      localStorage.removeItem('ventify_user')
+      const activeUser = getStoredUser()
+      const isScopedCompanySession = activeUser?.auth_context?.is_scoped_company_session === true
+
+      if (isScopedCompanySession && hasStoredPrimarySession()) {
+        restorePrimarySession()
+        window.location.href = appPath('/developer')
+        return Promise.reject(err)
+      }
+
+      clearStoredAuthState()
       window.location.href = appPath('/login')
     }
     return Promise.reject(err)

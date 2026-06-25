@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom'
 import FormField from '../../components/FormField'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
-import { SUPPORT_BUG_RECIPIENTS } from '../../config/supportRecipients'
 import { useI18n } from '../../contexts/I18nContext'
 import api from '../../services/api'
 import { formatCount as formatLocaleCount, formatDateTime as formatLocaleDateTime } from '../../utils/format'
 import SystemTasksPanel from '../config/SystemTasksPanel'
+import OpsConsoleLaunchCard from './OpsConsoleLaunchCard'
 
 const EMPTY_OVERVIEW = {
   maintenance: {
@@ -27,7 +27,7 @@ const EMPTY_OVERVIEW = {
     reset: {},
     keep: {},
   },
-  bug_recipients: SUPPORT_BUG_RECIPIENTS,
+  bug_recipients: [],
   system: {},
 }
 
@@ -36,17 +36,6 @@ const EMPTY_TASK_SNAPSHOT = {
   stats: {},
   tasks: [],
   recent_runs: [],
-}
-
-function buildCompanyForm(company = null) {
-  return {
-    name: company?.name ?? '',
-    slug: company?.slug ?? '',
-    note: company?.note ?? '',
-    active: company?.active ?? true,
-    is_default: company?.is_default ?? false,
-    max_camions: String(company?.max_camions ?? 5),
-  }
 }
 
 function getMaintenancePageOptions(t) {
@@ -166,7 +155,7 @@ function CountTable({ title, description, values, tone = 'neutral', totalLabel, 
       </div>
 
       {entries.length === 0 ? (
-          <div className="text-sm text-muted-color">{emptyLabel}</div>
+        <div className="text-sm text-muted-color">{emptyLabel}</div>
       ) : (
         <div className="space-y-2">
           {entries.map(([key, count]) => (
@@ -178,6 +167,14 @@ function CountTable({ title, description, values, tone = 'neutral', totalLabel, 
         </div>
       )}
     </div>
+  )
+}
+
+function ShortcutLink({ to, icon, label }) {
+  return (
+    <Link to={to} className="btn-secondary text-xs w-full justify-center">
+      <i className={icon} /> {label}
+    </Link>
   )
 }
 
@@ -204,14 +201,9 @@ export default function DeveloperToolsIndex() {
   const [taskActionError, setTaskActionError] = useState('')
   const [runningTaskKey, setRunningTaskKey] = useState('')
   const [taskNotice, setTaskNotice] = useState('')
-  const [companies, setCompanies] = useState([])
-  const [companyLoading, setCompanyLoading] = useState(true)
-  const [companyError, setCompanyError] = useState('')
-  const [companySaving, setCompanySaving] = useState(false)
-  const [editingCompanyId, setEditingCompanyId] = useState(null)
-  const [companyForm, setCompanyForm] = useState(buildCompanyForm())
   const maintenancePageOptions = useMemo(() => getMaintenancePageOptions(t), [t])
   const notAvailableLabel = t('developerToolsPage.notAvailable')
+  const supportRecipientCount = Number(overview.bug_recipients?.length ?? 0)
 
   const syncMaintenanceForm = useCallback((maintenance) => {
     setMaintenanceForm({
@@ -249,26 +241,10 @@ export default function DeveloperToolsIndex() {
     }
   }, [t])
 
-  const loadCompanies = useCallback(async () => {
-    setCompanyLoading(true)
-    setCompanyError('')
-
-    try {
-      const response = await api.get('/companies')
-      setCompanies(Array.isArray(response.data) ? response.data : [])
-    } catch (error) {
-      setCompanyError(error.response?.data?.message || t('developerToolsPage.errors.loadCompanies'))
-      setCompanies([])
-    } finally {
-      setCompanyLoading(false)
-    }
-  }, [t])
-
   useEffect(() => {
     loadOverview()
     loadTasks()
-    loadCompanies()
-  }, [loadCompanies, loadOverview, loadTasks])
+  }, [loadOverview, loadTasks])
 
   const maintenancePaths = useMemo(
     () => parsePathInput(maintenanceForm.pathsText),
@@ -379,52 +355,9 @@ export default function DeveloperToolsIndex() {
     }
   }
 
-  const resetCompanyEditor = useCallback((company = null) => {
-    setEditingCompanyId(company?.id ?? null)
-    setCompanyForm(buildCompanyForm(company))
-    setCompanyError('')
-  }, [])
-
-  const saveCompany = async () => {
-    setCompanySaving(true)
-    setNotice('')
-    setActionError('')
-    setCompanyError('')
-
-    try {
-      const payload = {
-        name: companyForm.name.trim(),
-        slug: companyForm.slug.trim() || undefined,
-        note: companyForm.note.trim() || null,
-        active: companyForm.active,
-        is_default: companyForm.is_default,
-        max_camions: Number(companyForm.max_camions || 5),
-      }
-
-      if (editingCompanyId) {
-        await api.put(`/companies/${editingCompanyId}`, payload)
-      } else {
-        await api.post('/companies', payload)
-      }
-
-      setNotice(editingCompanyId ? t('developerToolsPage.notices.companyUpdated') : t('developerToolsPage.notices.companyCreated'))
-      resetCompanyEditor()
-      await Promise.all([loadCompanies(), loadOverview()])
-    } catch (error) {
-      const message = Object.values(error.response?.data?.errors ?? {})
-        .flat()
-        .filter(Boolean)
-        .join(' ')
-
-      setCompanyError(message || error.response?.data?.message || t('developerToolsPage.errors.saveCompany'))
-    } finally {
-      setCompanySaving(false)
-    }
-  }
-
   const refreshAll = async () => {
     setLoading(true)
-    await Promise.all([loadOverview(), loadTasks(), loadCompanies()])
+    await Promise.all([loadOverview(), loadTasks()])
   }
 
   if (loading) {
@@ -462,11 +395,11 @@ export default function DeveloperToolsIndex() {
         subtitle={t('developerToolsPage.page.subtitle')}
         action={(
           <div className="flex flex-wrap gap-2">
+            <Link to="/developer" className="btn-secondary text-xs">
+              <i className="fa-solid fa-compass-drafting" /> {t('developerWorkspace.nav.dashboard')}
+            </Link>
             <Link to="/companies" className="btn-secondary text-xs">
               <i className="fa-solid fa-buildings" /> {t('layout.nav.companies')}
-            </Link>
-            <Link to="/bug-reports" className="btn-secondary text-xs">
-              <i className="fa-solid fa-bug" /> {t('common.support')}
             </Link>
             <button onClick={refreshAll} className="btn-primary text-xs">
               <i className="fa-solid fa-rotate-right" /> {t('developerToolsPage.page.refresh')}
@@ -514,147 +447,14 @@ export default function DeveloperToolsIndex() {
         />
         <MetricCard
           label={t('developerToolsPage.metrics.support')}
-          value={t('developerToolsPage.metrics.recipients', { count: overview.bug_recipients?.length || SUPPORT_BUG_RECIPIENTS.length })}
+          value={t('developerToolsPage.metrics.recipients', { count: formatCount(supportRecipientCount) })}
           icon="fa-solid fa-envelope-circle-check"
           color="#8b5cf6"
           helper={t('developerToolsPage.metrics.supportHint')}
         />
       </div>
 
-      <div className="card">
-        <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4 mb-5">
-          <div>
-            <h2 className="text-sm font-semibold text-base-color">{t('developerToolsPage.companies.title')}</h2>
-            <p className="text-xs text-muted-color mt-1">
-              {t('developerToolsPage.companies.subtitle')}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => resetCompanyEditor()} className="btn-secondary text-xs">
-              <i className="fa-solid fa-plus" /> {t('companiesPage.page.newCompany')}
-            </button>
-            <button onClick={saveCompany} disabled={companySaving} className="btn-primary text-xs">
-              {companySaving ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : <><i className="fa-solid fa-floppy-disk" /> {t('common.save')}</>}
-            </button>
-          </div>
-        </div>
-
-        {companyError && (
-          <div
-            className="rounded-2xl px-4 py-4 text-sm font-medium mb-4"
-            style={{ background: 'rgba(239,68,68,0.08)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.16)', color: '#b91c1c' }}
-          >
-            {companyError}
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)] gap-5">
-          <div className="space-y-4">
-            <FormField label={t('companiesPage.form.name')} required>
-              <input
-                value={companyForm.name}
-                onChange={(event) => setCompanyForm((current) => ({ ...current, name: event.target.value }))}
-                placeholder={t('companiesPage.form.placeholders.name')}
-              />
-            </FormField>
-
-            <FormField label={t('companiesPage.form.slug')}>
-              <input
-                value={companyForm.slug}
-                onChange={(event) => setCompanyForm((current) => ({ ...current, slug: event.target.value }))}
-                placeholder={t('companiesPage.form.placeholders.slug')}
-              />
-            </FormField>
-
-            <FormField label={t('companiesPage.form.maxCamions')} required>
-              <input
-                type="number"
-                min="1"
-                max="5"
-                value={companyForm.max_camions}
-                onChange={(event) => setCompanyForm((current) => ({ ...current, max_camions: event.target.value }))}
-              />
-            </FormField>
-
-            <FormField label={t('companiesPage.form.note')}>
-              <textarea
-                rows="3"
-                value={companyForm.note}
-                onChange={(event) => setCompanyForm((current) => ({ ...current, note: event.target.value }))}
-                placeholder={t('companiesPage.form.placeholders.note')}
-              />
-            </FormField>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label className="rounded-2xl px-4 py-3 text-sm text-base-color cursor-pointer" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                <span className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={companyForm.active}
-                    onChange={(event) => setCompanyForm((current) => ({ ...current, active: event.target.checked }))}
-                  />
-                  {t('companiesPage.form.toggles.active')}
-                </span>
-              </label>
-              <label className="rounded-2xl px-4 py-3 text-sm text-base-color cursor-pointer" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                <span className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={companyForm.is_default}
-                    onChange={(event) => setCompanyForm((current) => ({ ...current, is_default: event.target.checked }))}
-                  />
-                  {t('companiesPage.form.toggles.default')}
-                </span>
-              </label>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {companyLoading ? (
-              <div className="rounded-2xl px-4 py-10 text-sm text-muted-color text-center" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                <i className="fa-solid fa-spinner fa-spin mr-2" /> {t('developerToolsPage.companies.loading')}
-              </div>
-            ) : companies.length === 0 ? (
-              <div className="rounded-2xl px-4 py-10 text-sm text-muted-color text-center" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                {t('developerToolsPage.companies.empty')}
-              </div>
-            ) : (
-              companies.map((company) => (
-                <div key={company.id} className="rounded-3xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="text-sm font-semibold text-base-color">{company.name}</div>
-                        {company.is_default && <span className="badge badge-blue">{t('companiesPage.badges.default')}</span>}
-                        {!company.active && <span className="badge badge-red">{t('companiesPage.badges.inactive')}</span>}
-                      </div>
-                      <div className="text-xs text-muted-color mt-1">{company.slug}</div>
-                      {company.note && <div className="text-xs text-secondary-color mt-2">{company.note}</div>}
-                    </div>
-                    <button onClick={() => resetCompanyEditor(company)} className="btn-secondary text-xs">
-                      <i className="fa-solid fa-pen" /> {t('common.edit')}
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-4">
-                    {[
-                      { label: t('layout.nav.depot'), value: company.depots_count },
-                      { label: t('layout.nav.camions'), value: `${company.camions_count}/${company.max_camions}` },
-                      { label: t('layout.nav.users'), value: company.users_count },
-                      { label: t('layout.nav.customers'), value: company.customers_count },
-                    ].map((item) => (
-                      <div key={`${company.id}-${item.label}`} className="rounded-2xl px-3 py-3 text-center" style={{ background: '#ffffff80', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.12)' }}>
-                        <div className="text-[11px] text-muted-color">{item.label}</div>
-                        <div className="text-sm font-bold text-base-color mt-1">{item.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
+      <OpsConsoleLaunchCard />
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_420px] gap-6">
         <div className="space-y-6">
@@ -836,16 +636,12 @@ export default function DeveloperToolsIndex() {
               <h2 className="text-sm font-semibold text-base-color">{t('developerToolsPage.support.title')}</h2>
             </div>
 
-            <div className="space-y-2">
-              {(overview.bug_recipients?.length ? overview.bug_recipients : SUPPORT_BUG_RECIPIENTS).map((email) => (
-                <div
-                  key={email}
-                  className="rounded-2xl px-3 py-3 text-sm font-medium text-base-color"
-                  style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
-                >
-                  {email}
-                </div>
-              ))}
+            <div className="text-sm text-secondary-color">
+              {t('developerToolsPage.support.description')}
+            </div>
+
+            <div className="rounded-2xl px-4 py-4 text-sm mt-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+              {t('developerToolsPage.support.serverManaged', { count: formatCount(supportRecipientCount) })}
             </div>
 
             <div className="flex flex-wrap gap-2 mt-4">
@@ -884,12 +680,8 @@ export default function DeveloperToolsIndex() {
             </div>
 
             <div className="space-y-2">
-              <Link to="/config/system-support" className="btn-secondary text-xs w-full justify-center">
-                <i className="fa-solid fa-sliders" /> {t('developerToolsPage.shortcuts.supportConfig')}
-              </Link>
-              <Link to="/help" className="btn-secondary text-xs w-full justify-center">
-                <i className="fa-solid fa-book-open" /> {t('developerToolsPage.shortcuts.documentation')}
-              </Link>
+              <ShortcutLink to="/companies" icon="fa-solid fa-buildings" label={t('developerToolsPage.shortcuts.companyConsole')} />
+              <ShortcutLink to="/developer" icon="fa-solid fa-compass-drafting" label={t('developerToolsPage.shortcuts.developerDashboard')} />
             </div>
 
             <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color mt-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>

@@ -4,8 +4,8 @@ import irtiwaaLogo from '../../assets/irtiwaa-logo.png'
 import FormField from '../../components/FormField'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
+import { useAuth } from '../../contexts/AuthContext'
 import { useI18n } from '../../contexts/I18nContext'
-import { useDepots } from '../../hooks/useDepots'
 import api from '../../services/api'
 import { formatCount as formatLocaleCount, formatDateTime as formatLocaleDateTime } from '../../utils/format'
 
@@ -130,12 +130,9 @@ function formatCount(value) {
 
 export default function CompaniesIndex() {
   const { t } = useI18n()
+  const { startCompanySession, switchingCompanySession, isScopedCompanySession, sessionContext } = useAuth()
   const { companyId: companyIdParam } = useParams()
   const navigate = useNavigate()
-  const { setSelectedValue: setAppDepotScope } = useDepots({
-    allowAll: true,
-    storageKey: 'app-depot-scope',
-  })
 
   const [companies, setCompanies] = useState([])
   const [loadingCompanies, setLoadingCompanies] = useState(true)
@@ -153,6 +150,7 @@ export default function CompaniesIndex() {
   const [bootstrapping, setBootstrapping] = useState(false)
   const [bootstrapResult, setBootstrapResult] = useState(null)
   const [creating, setCreating] = useState(false)
+  const [launchingRoleKey, setLaunchingRoleKey] = useState('')
 
   const activeCompanyId = companyIdParam ? Number(companyIdParam) : null
   const translateRole = (role) => {
@@ -249,6 +247,11 @@ export default function CompaniesIndex() {
     () => companies.find((entry) => Number(entry.id) === Number(activeCompanyId)) ?? detail?.company ?? null,
     [activeCompanyId, companies, detail],
   )
+  const currentScopedCompanyId = Number(sessionContext?.company_id ?? 0) || null
+  const currentScopedRole = String(sessionContext?.acting_role || '').trim()
+  const companySessionActive = isScopedCompanySession()
+    && Number(selectedCompany?.id ?? 0) > 0
+    && Number(selectedCompany?.id) === currentScopedCompanyId
   const companyPreviewImage = logoPreviewUrl
     || detail?.company?.logo_url
     || ((detail?.company?.slug === 'el-irtiwaa' || detail?.company?.is_default) ? irtiwaaLogo : '')
@@ -377,14 +380,23 @@ export default function CompaniesIndex() {
     }
   }
 
-  const openCompanyContext = (path) => {
-    const targetDepot = detail?.depots?.find((entry) => entry.is_default) ?? detail?.depots?.[0] ?? null
-
-    if (targetDepot?.id) {
-      setAppDepotScope(String(targetDepot.id))
+  const launchCompanySession = async (role, path = '/') => {
+    if (!selectedCompany?.id) {
+      return
     }
 
-    navigate(path)
+    setNotice('')
+    setActionError('')
+    setLaunchingRoleKey(`${selectedCompany.id}:${role}`)
+
+    try {
+      await startCompanySession(selectedCompany.id, role)
+      navigate(path)
+    } catch (error) {
+      setActionError(error.response?.data?.message || t('companiesPage.errors.launchSession'))
+    } finally {
+      setLaunchingRoleKey('')
+    }
   }
 
   if (loadingCompanies && companies.length === 0) {
@@ -450,10 +462,10 @@ export default function CompaniesIndex() {
               <div className="flex flex-wrap gap-2">
                 {!creating && selectedCompany?.id && (
                   <>
-                    <button onClick={() => openCompanyContext('/config')} className="btn-secondary text-xs">
+                    <button onClick={() => { void launchCompanySession('admin', '/config') }} className="btn-secondary text-xs">
                       <i className="fa-solid fa-sliders" /> {t('companiesPage.detail.configure')}
                     </button>
-                    <button onClick={() => openCompanyContext('/data-tools')} className="btn-secondary text-xs">
+                    <button onClick={() => { void launchCompanySession('admin', '/data-tools') }} className="btn-secondary text-xs">
                       <i className="fa-solid fa-file-arrow-up" /> {t('companiesPage.detail.dataTools')}
                     </button>
                   </>
@@ -533,6 +545,51 @@ export default function CompaniesIndex() {
                 </div>
 
                 <div className="space-y-4">
+                  {!creating && detail?.company && (
+                    <div className="rounded-[24px] px-4 py-4" style={{ background: 'rgba(13,148,136,0.08)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.16)' }}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-base-color">{t('companiesPage.session.title')}</div>
+                          <div className="text-xs text-secondary-color mt-2">
+                            {t('companiesPage.session.description')}
+                          </div>
+                        </div>
+                        {companySessionActive && (
+                          <span className="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold" style={{ background: 'rgba(255,255,255,0.82)', color: '#0f766e' }}>
+                            {t('companiesPage.session.activeRole', { role: translateRole(currentScopedRole) })}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 mt-4">
+                        {['admin', 'comptable', 'rep'].map((role) => {
+                          const roleKey = `${selectedCompany.id}:${role}`
+                          const busy = switchingCompanySession || launchingRoleKey === roleKey
+
+                          return (
+                            <button
+                              key={role}
+                              type="button"
+                              onClick={() => { void launchCompanySession(role, '/') }}
+                              disabled={busy}
+                              className="rounded-2xl px-3 py-3 text-left transition-colors"
+                              style={role === currentScopedRole && companySessionActive
+                                ? { background: 'rgba(13,148,136,0.12)', color: '#0f766e' }
+                                : { background: '#ffffffd1', color: 'var(--text-secondary)', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.16)' }}
+                            >
+                              <div className="text-xs font-semibold text-base-color">
+                                {busy ? t('companiesPage.session.starting') : translateRole(role)}
+                              </div>
+                              <div className="text-[11px] text-secondary-color mt-2">
+                                {t('companiesPage.session.fixedOneHour')}
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="rounded-[24px] px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                     <div className="text-xs font-semibold text-muted-color uppercase tracking-[0.18em] mb-3">{t('companiesPage.preview.title')}</div>
                     <div className="flex items-center gap-3">

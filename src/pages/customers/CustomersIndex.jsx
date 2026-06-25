@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { PaymentStatusBadge } from '../../components/Badge'
 import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
@@ -61,6 +61,7 @@ export default function CustomersIndex() {
   const { t } = useI18n()
   const notAvailable = t('common.notAvailable')
   const { user, canManageAllCustomers } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { layouts: documentLayouts } = useDocumentLayouts()
   const [customers, setCustomers] = useState([])
   const [zones, setZones] = useState([])
@@ -87,6 +88,7 @@ export default function CustomersIndex() {
   const [pay, setPay] = useState({ amount: '', method: defaultPaymentMethod, invoice_id: '', note: '' })
   const [paying, setPaying] = useState(false)
   const canAssignOwner = canManageAllCustomers()
+  const requestedLedgerCustomerId = Number(searchParams.get('open_ledger') ?? 0) || null
 
   const load = async () => {
     setLoading(true)
@@ -195,7 +197,7 @@ export default function CustomersIndex() {
     await load()
   }
 
-  const openLedger = async (customer) => {
+  const openLedger = useCallback(async (customer) => {
     setLedgerCustomer(customer)
     setLedger(null)
     setLedgerQuery('')
@@ -204,6 +206,19 @@ export default function CustomersIndex() {
 
     const response = await api.get(`/customers/${customer.id}/ledger`)
     setLedger(response.data)
+  }, [defaultPaymentMethod])
+
+  const closeLedger = () => {
+    setLedgerCustomer(null)
+    setLedger(null)
+    setLedgerQuery('')
+    setLedgerTypeFilter('all')
+
+    if (requestedLedgerCustomerId) {
+      const nextSearchParams = new URLSearchParams(searchParams)
+      nextSearchParams.delete('open_ledger')
+      setSearchParams(nextSearchParams, { replace: true })
+    }
   }
 
   const submitPayment = async () => {
@@ -309,6 +324,20 @@ export default function CustomersIndex() {
       setCustomersPage(customersMeta.current_page)
     }
   }, [customersMeta.current_page, customersPage])
+
+  useEffect(() => {
+    if (!requestedLedgerCustomerId || loading || ledgerCustomer?.id === requestedLedgerCustomerId) {
+      return
+    }
+
+    const targetCustomer = customers.find((entry) => Number(entry.id) === requestedLedgerCustomerId)
+
+    if (!targetCustomer) {
+      return
+    }
+
+    void openLedger(targetCustomer)
+  }, [customers, ledgerCustomer?.id, loading, openLedger, requestedLedgerCustomerId])
 
   const selectedOwner = useMemo(() => (
     assignableUsers.find((entry) => String(entry.id) === String(ownerFilter))
@@ -546,12 +575,7 @@ export default function CustomersIndex() {
 
       <Modal
         open={!!ledgerCustomer}
-        onClose={() => {
-          setLedgerCustomer(null)
-          setLedger(null)
-          setLedgerQuery('')
-          setLedgerTypeFilter('all')
-        }}
+        onClose={closeLedger}
         title={t('customers.ledger.title', { name: ledgerCustomer?.name ?? '' })}
         size="lg"
       >
