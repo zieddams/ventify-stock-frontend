@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import Modal from '../../components/Modal'
 import { DepotSelectionInfo } from '../../components/DepotScopeControls'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
@@ -16,14 +17,50 @@ import { paginateItems } from '../../utils/pagination'
 const DEFAULT_MONTH = new Date().toISOString().slice(0, 7)
 
 function buildEmptyExpense(defaultCategory, depotId = null, defaultPaymentMethod = 'cash') {
+  const today = new Date().toISOString().slice(0, 10)
+
   return {
-    expense_date: new Date().toISOString().slice(0, 10),
+    expense_date: today,
     category: defaultCategory,
     label: '',
     amount: '',
+    initial_paid_amount: '',
     payment_method: defaultPaymentMethod,
+    payment_date: today,
+    payment_note: '',
     depot_id: depotId ? String(depotId) : '',
   }
+}
+
+function buildExpensePayment(defaultPaymentMethod = 'cash') {
+  return {
+    amount: '',
+    payment_method: defaultPaymentMethod,
+    payment_date: new Date().toISOString().slice(0, 10),
+    note: '',
+  }
+}
+
+function resolveExpenseStatusMeta(status, t) {
+  const map = {
+    paid: {
+      label: t('expensesPage.status.paid'),
+      text: '#059669',
+      bg: 'rgba(16,185,129,0.10)',
+    },
+    partial: {
+      label: t('expensesPage.status.partial'),
+      text: '#d97706',
+      bg: 'rgba(245,158,11,0.12)',
+    },
+    unpaid: {
+      label: t('expensesPage.status.unpaid'),
+      text: '#dc2626',
+      bg: 'rgba(239,68,68,0.10)',
+    },
+  }
+
+  return map[status] ?? map.unpaid
 }
 
 export default function ExpensesIndex() {
@@ -71,6 +108,10 @@ export default function ExpensesIndex() {
   const [dateTo, setDateTo] = useState('')
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(15)
+  const [activeExpense, setActiveExpense] = useState(null)
+  const [paymentForm, setPaymentForm] = useState(buildExpensePayment(defaultPaymentMethod))
+  const [paymentSaving, setPaymentSaving] = useState(false)
+  const [paymentError, setPaymentError] = useState('')
 
   useEffect(() => {
     setForm((current) => ({
@@ -78,6 +119,10 @@ export default function ExpensesIndex() {
       category: current.category || defaultCategory,
       payment_method: current.payment_method || defaultPaymentMethod,
       depot_id: scopedDepotId ? String(scopedDepotId) : '',
+    }))
+    setPaymentForm((current) => ({
+      ...current,
+      payment_method: current.payment_method || defaultPaymentMethod,
     }))
   }, [defaultCategory, defaultPaymentMethod, scopedDepotId])
 
@@ -114,10 +159,13 @@ export default function ExpensesIndex() {
   }
 
   useEffect(() => {
-    load()
+    void load()
   }, [categoryFilter, dateFrom, dateTo, depotsReady, month, scopedDepotId])
 
   const total = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0)
+  const totalPaid = expenses.reduce((sum, expense) => sum + Number(expense.paid_amount || 0), 0)
+  const totalOutstanding = expenses.reduce((sum, expense) => sum + Number(expense.remaining_amount || 0), 0)
+  const followUpCount = expenses.filter((expense) => Number(expense.remaining_amount || 0) > 0).length
   const { items: paginatedExpenses, meta: expensesMeta } = useMemo(
     () => paginateItems(expenses, page, perPage),
     [expenses, page, perPage],
@@ -151,7 +199,14 @@ export default function ExpensesIndex() {
 
     try {
       await api.post('/expenses', {
-        ...form,
+        expense_date: form.expense_date,
+        category: form.category,
+        label: form.label,
+        amount: Number(form.amount),
+        initial_paid_amount: form.initial_paid_amount === '' ? undefined : Number(form.initial_paid_amount),
+        payment_method: form.payment_method || defaultPaymentMethod,
+        payment_date: form.payment_date || form.expense_date,
+        payment_note: form.payment_note || null,
         depot_id: Number(scopedDepotId),
       })
       setForm(buildEmptyExpense(defaultCategory, scopedDepotId, defaultPaymentMethod))
@@ -163,13 +218,54 @@ export default function ExpensesIndex() {
     }
   }
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (expense) => {
     if (!confirm(t('expensesPage.deleteConfirm'))) {
       return
     }
 
-    await api.delete(`/expenses/${id}`)
-    await load()
+    try {
+      await api.delete(`/expenses/${expense.id}`)
+      await load()
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || t('expensesPage.errors.deleteBlocked'))
+    }
+  }
+
+  const openPaymentModal = (expense) => {
+    setActiveExpense(expense)
+    setPaymentError('')
+    setPaymentForm({
+      amount: '',
+      payment_method: defaultPaymentMethod,
+      payment_date: expense.last_payment_date || expense.expense_date || new Date().toISOString().slice(0, 10),
+      note: '',
+    })
+  }
+
+  const submitExpensePayment = async () => {
+    if (!activeExpense?.id || !paymentForm.amount) {
+      return
+    }
+
+    setPaymentSaving(true)
+    setPaymentError('')
+
+    try {
+      const response = await api.post(`/expenses/${activeExpense.id}/payments`, {
+        amount: Number(paymentForm.amount),
+        payment_method: paymentForm.payment_method || defaultPaymentMethod,
+        payment_date: paymentForm.payment_date,
+        note: paymentForm.note || null,
+      })
+
+      setActiveExpense(response.data)
+      setPaymentForm(buildExpensePayment(defaultPaymentMethod))
+      await load()
+    } catch (requestError) {
+      setPaymentError(requestError.response?.data?.message || t('expensesPage.errors.paymentFailed'))
+    } finally {
+      setPaymentSaving(false)
+    }
   }
 
   const hasFilters = month !== DEFAULT_MONTH || categoryFilter || dateFrom || dateTo
@@ -274,17 +370,48 @@ export default function ExpensesIndex() {
               />
             </div>
             <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.form.fields.paymentMethod')}</label>
-              <select
-                value={form.payment_method}
-                onChange={(event) => setForm((current) => ({ ...current, payment_method: event.target.value }))}
-              >
-                {availablePaymentMethods.map((method) => (
-                  <option key={method.id ?? method.value} value={method.value}>
-                    {getConfigItemLabel(method)}
-                  </option>
-                ))}
-              </select>
+              <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.form.fields.initialPaidAmount')}</label>
+              <input
+                type="number"
+                step="0.001"
+                min="0"
+                placeholder={t('expensesPage.form.placeholders.initialPaidAmount')}
+                value={form.initial_paid_amount}
+                onChange={(event) => setForm((current) => ({ ...current, initial_paid_amount: event.target.value }))}
+              />
+              <p className="mt-1 text-[11px] text-muted-color">{t('expensesPage.form.initialPaidHint')}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.form.fields.paymentMethod')}</label>
+                <select
+                  value={form.payment_method}
+                  onChange={(event) => setForm((current) => ({ ...current, payment_method: event.target.value }))}
+                >
+                  {availablePaymentMethods.map((method) => (
+                    <option key={method.id ?? method.value} value={method.value}>
+                      {getConfigItemLabel(method)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.form.fields.paymentDate')}</label>
+                <input
+                  type="date"
+                  value={form.payment_date}
+                  onChange={(event) => setForm((current) => ({ ...current, payment_date: event.target.value }))}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.form.fields.paymentNote')}</label>
+              <input
+                type="text"
+                placeholder={t('expensesPage.form.placeholders.paymentNote')}
+                value={form.payment_note}
+                onChange={(event) => setForm((current) => ({ ...current, payment_note: event.target.value }))}
+              />
             </div>
             <button type="submit" disabled={saving || !scopedDepotId} className="btn-primary w-full justify-center">
               {saving
@@ -298,10 +425,12 @@ export default function ExpensesIndex() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-sm font-semibold text-base-color">{t('expensesPage.list.title')}</h2>
-              <p className="text-xs text-muted-color mt-0.5">
-                {t('expensesPage.list.total')}:{' '}
-                <span className="font-mono font-semibold" style={{ color: '#ea580c' }}>{formatCurrency(total)}</span>
-              </p>
+              <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-color">
+                <span>{t('expensesPage.list.total')}: <span className="font-mono font-semibold" style={{ color: '#ea580c' }}>{formatCurrency(total)}</span></span>
+                <span>{t('expensesPage.list.paidTotal')}: <span className="font-mono font-semibold text-emerald-600">{formatCurrency(totalPaid)}</span></span>
+                <span>{t('expensesPage.list.outstandingTotal')}: <span className="font-mono font-semibold text-red-600">{formatCurrency(totalOutstanding)}</span></span>
+                <span>{t('expensesPage.list.followUpCount', { count: followUpCount })}</span>
+              </div>
             </div>
           </div>
 
@@ -386,11 +515,14 @@ export default function ExpensesIndex() {
                       t('expensesPage.columns.category'),
                       t('expensesPage.columns.depot'),
                       t('expensesPage.columns.label'),
-                      t('expensesPage.columns.payment'),
                       t('expensesPage.columns.amount'),
+                      t('expensesPage.columns.paid'),
+                      t('expensesPage.columns.remaining'),
+                      t('expensesPage.columns.status'),
+                      t('expensesPage.columns.history'),
                       '',
-                    ].map((heading) => (
-                      <th key={heading || 'actions'} className={`pb-3 pr-3 ${heading === t('expensesPage.columns.amount') ? 'text-right' : 'text-left'}`}>
+                    ].map((heading, index) => (
+                      <th key={heading || 'actions'} className={`pb-3 pr-3 ${index >= 4 && index <= 6 ? 'text-right' : 'text-left'}`}>
                         {heading}
                       </th>
                     ))}
@@ -399,7 +531,7 @@ export default function ExpensesIndex() {
                 <tbody>
                   {expenses.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center">
+                      <td colSpan={10} className="py-12 text-center">
                         <i className="fa-solid fa-receipt text-3xl text-muted-color opacity-30 mb-2 block" />
                         <p className="text-muted-color text-sm">{t('expensesPage.empty')}</p>
                       </td>
@@ -411,6 +543,7 @@ export default function ExpensesIndex() {
                     const categoryMeta = expense.category_meta ?? categoryMap.get(String(categoryValue))
                     const badgeColor = categoryMeta?.color || '#64748b'
                     const badgeIcon = categoryMeta?.icon || 'fa-solid fa-tag'
+                    const statusMeta = resolveExpenseStatusMeta(expense.payment_status, t)
 
                     return (
                       <tr key={expense.id} className="table-row">
@@ -428,12 +561,32 @@ export default function ExpensesIndex() {
                         </td>
                         <td className="py-3 pr-3 text-muted-color text-xs">{expense.depot?.name ?? notAvailable}</td>
                         <td className="py-3 pr-3 text-base-color">{expense.label}</td>
-                        <td className="py-3 pr-3 text-muted-color text-xs">{expense.payment_method_label ?? expense.payment_method ?? t('expensesPage.cashFallback')}</td>
                         <td className="py-3 pr-3 text-right font-mono font-bold text-sm" style={{ color: '#ea580c' }}>
                           {formatCurrency(expense.amount)}
                         </td>
+                        <td className="py-3 pr-3 text-right font-mono text-sm text-emerald-600">
+                          {formatCurrency(expense.paid_amount)}
+                        </td>
+                        <td className="py-3 pr-3 text-right font-mono text-sm text-red-600">
+                          {formatCurrency(expense.remaining_amount)}
+                        </td>
+                        <td className="py-3 pr-3">
+                          <span
+                            className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                            style={{ color: statusMeta.text, background: statusMeta.bg }}
+                          >
+                            {statusMeta.label}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-3 text-xs text-secondary-color">
+                          <div>{t('expensesPage.history.summary', { count: expense.payment_count || 0 })}</div>
+                          <div>{expense.last_payment_date ? formatDate(expense.last_payment_date) : t('expensesPage.history.never')}</div>
+                        </td>
                         <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
+                            <button type="button" onClick={() => openPaymentModal(expense)} className="btn-secondary text-xs">
+                              <i className="fa-solid fa-wallet" /> {t('expensesPage.actions.followUp')}
+                            </button>
                             <RowDocumentActions
                               documentKey="expense_item"
                               record={expense}
@@ -441,7 +594,7 @@ export default function ExpensesIndex() {
                               title={t('expensesPage.documentTitle', { label: expense.label || expense.id, id: expense.id })}
                               filename={`depense_${expense.id}`}
                             />
-                            <button onClick={() => handleDelete(expense.id)} className="text-muted-color hover:text-red-500 transition-colors p-1">
+                            <button onClick={() => handleDelete(expense)} className="text-muted-color hover:text-red-500 transition-colors p-1">
                               <i className="fa-solid fa-trash text-xs" />
                             </button>
                           </div>
@@ -468,6 +621,135 @@ export default function ExpensesIndex() {
           )}
         </div>
       </div>
+
+      <Modal
+        open={!!activeExpense}
+        onClose={() => {
+          setActiveExpense(null)
+          setPaymentError('')
+        }}
+        title={activeExpense ? t('expensesPage.paymentModal.title', { label: activeExpense.label }) : t('expensesPage.paymentModal.fallbackTitle')}
+      >
+        {activeExpense && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="rounded-xl border border-theme p-4" style={{ background: 'var(--surface-2)' }}>
+                <div className="text-xs text-muted-color mb-1">{t('expensesPage.paymentModal.summary.total')}</div>
+                <div className="text-lg font-bold font-mono text-base-color">{formatCurrency(activeExpense.amount)}</div>
+              </div>
+              <div className="rounded-xl border border-theme p-4" style={{ background: 'rgba(16,185,129,0.08)' }}>
+                <div className="text-xs text-muted-color mb-1">{t('expensesPage.paymentModal.summary.paid')}</div>
+                <div className="text-lg font-bold font-mono text-emerald-600">{formatCurrency(activeExpense.paid_amount)}</div>
+              </div>
+              <div className="rounded-xl border border-theme p-4" style={{ background: 'rgba(239,68,68,0.08)' }}>
+                <div className="text-xs text-muted-color mb-1">{t('expensesPage.paymentModal.summary.remaining')}</div>
+                <div className="text-lg font-bold font-mono text-red-600">{formatCurrency(activeExpense.remaining_amount)}</div>
+              </div>
+              <div className="rounded-xl border border-theme p-4" style={{ background: 'var(--surface-2)' }}>
+                <div className="text-xs text-muted-color mb-1">{t('expensesPage.paymentModal.summary.status')}</div>
+                <div className="text-sm font-semibold text-base-color">{resolveExpenseStatusMeta(activeExpense.payment_status, t).label}</div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-theme p-4" style={{ background: 'var(--surface-2)' }}>
+              <div className="text-xs font-bold text-muted-color uppercase tracking-wider mb-3">{t('expensesPage.paymentModal.newPaymentTitle')}</div>
+              {paymentError && (
+                <div
+                  className="mb-3 rounded-xl border px-3 py-2 text-sm"
+                  style={{ color: '#dc2626', background: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.2)' }}
+                >
+                  {paymentError}
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.paymentModal.fields.amount')}</label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    value={paymentForm.amount}
+                    onChange={(event) => setPaymentForm((current) => ({ ...current, amount: event.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.paymentModal.fields.paymentMethod')}</label>
+                  <select
+                    value={paymentForm.payment_method}
+                    onChange={(event) => setPaymentForm((current) => ({ ...current, payment_method: event.target.value }))}
+                  >
+                    {availablePaymentMethods.map((method) => (
+                      <option key={method.id ?? method.value} value={method.value}>
+                        {getConfigItemLabel(method)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.paymentModal.fields.paymentDate')}</label>
+                  <input
+                    type="date"
+                    value={paymentForm.payment_date}
+                    onChange={(event) => setPaymentForm((current) => ({ ...current, payment_date: event.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.paymentModal.fields.note')}</label>
+                  <input
+                    type="text"
+                    value={paymentForm.note}
+                    onChange={(event) => setPaymentForm((current) => ({ ...current, note: event.target.value }))}
+                    placeholder={t('expensesPage.paymentModal.placeholders.note')}
+                  />
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button type="button" onClick={submitExpensePayment} disabled={paymentSaving || !paymentForm.amount} className="btn-primary">
+                  {paymentSaving
+                    ? <><i className="fa-solid fa-spinner fa-spin" /> {t('expensesPage.paymentModal.saving')}</>
+                    : <><i className="fa-solid fa-circle-check" /> {t('expensesPage.paymentModal.submit')}</>}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-theme p-4" style={{ background: 'var(--surface-2)' }}>
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div>
+                  <div className="text-xs font-bold text-muted-color uppercase tracking-wider">{t('expensesPage.paymentModal.historyTitle')}</div>
+                  <div className="text-xs text-secondary-color mt-1">{t('expensesPage.paymentModal.historyHint')}</div>
+                </div>
+                <div className="text-xs text-muted-color">{t('expensesPage.history.summary', { count: activeExpense.payment_history?.length || 0 })}</div>
+              </div>
+
+              <div className="space-y-2">
+                {(activeExpense.payment_history ?? []).map((payment) => (
+                  <div key={payment.id} className="rounded-xl border border-theme px-3 py-3" style={{ background: 'var(--surface)' }}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="font-semibold text-base-color">{formatCurrency(payment.amount)}</div>
+                        <div className="text-xs text-secondary-color mt-1">
+                          {payment.payment_method_label || payment.payment_method || t('expensesPage.cashFallback')}
+                        </div>
+                        <div className="text-xs text-secondary-color mt-1">
+                          {payment.note || t('expensesPage.paymentModal.noNote')}
+                        </div>
+                      </div>
+                      <div className="text-right text-xs text-muted-color">
+                        <div>{formatDate(payment.payment_date)}</div>
+                        <div className="mt-1">{payment.created_by || notAvailable}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {!(activeExpense.payment_history ?? []).length && (
+                  <div className="text-center text-sm text-muted-color py-8">{t('expensesPage.paymentModal.historyEmpty')}</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

@@ -5,7 +5,7 @@ import { APP_VERSION } from '../../config/appMeta'
 import { useAuth } from '../../contexts/AuthContext'
 import { useI18n } from '../../contexts/I18nContext'
 import api from '../../services/api'
-import { DEFAULT_APP_MARK } from '../../utils/branding'
+import { DEFAULT_APP_MARK, resolveCompanyBrandLogo } from '../../utils/branding'
 
 const OPS_CONSOLE_URL = 'https://ops.irtiwaa.ziedtech.com/'
 
@@ -83,7 +83,7 @@ function CompanyLaunchCard({
       <div className="flex items-start gap-3">
         <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm">
           <img
-            src={company.logo_url || DEFAULT_APP_MARK}
+            src={resolveCompanyBrandLogo(company)}
             alt={company.name}
             className="h-full w-full object-cover"
             onError={(event) => {

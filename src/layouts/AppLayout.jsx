@@ -157,6 +157,16 @@ function setMetaContent(name, content) {
   }
 }
 
+function setLinkHref(selector, href) {
+  if (typeof document === 'undefined' || !href) {
+    return
+  }
+
+  document.querySelectorAll(selector).forEach((tag) => {
+    tag.setAttribute('href', href)
+  })
+}
+
 function UserMenu({ user, onLogout }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
@@ -597,6 +607,11 @@ export default function AppLayout() {
     setMetaContent('apple-mobile-web-app-title', appDisplayName)
     setMetaContent('description', `${pageLabel} - ${appDisplayName}`)
   }, [appDisplayName, pageLabel])
+
+  useEffect(() => {
+    setLinkHref('link[rel="icon"]', resolveUserBrandLogo(user))
+    setLinkHref('link[rel="apple-touch-icon"]', resolveUserBrandLogo(user))
+  }, [user])
 
   const desktopCoreNav = CORE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
   const desktopFinanceNav = FINANCE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))

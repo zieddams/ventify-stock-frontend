@@ -1,5 +1,6 @@
-import { useDeferredValue, useEffect, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import CustomerLedgerModal from '../../components/CustomerLedgerModal'
 import DepotScopeControls from '../../components/DepotScopeControls'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
@@ -38,6 +39,8 @@ export default function CreditIndex() {
   const { t } = useI18n()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [ledgerCustomer, setLedgerCustomer] = useState(null)
+  const [ledgerInitialInvoiceId, setLedgerInitialInvoiceId] = useState('')
   const [search, setSearch] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -57,24 +60,49 @@ export default function CreditIndex() {
   })
   const deferredSearch = useDeferredValue(search.trim())
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!depotsReady) {
       return
     }
 
     setLoading(true)
 
-    api.get('/reports/aging', {
-      params: {
-        ...scopeParams,
-        ...(deferredSearch ? { q: deferredSearch } : {}),
-        ...(dateFrom ? { date_from: dateFrom } : {}),
-        ...(dateTo ? { date_to: dateTo } : {}),
-      },
+    try {
+      const response = await api.get('/reports/aging', {
+        params: {
+          ...scopeParams,
+          ...(deferredSearch ? { q: deferredSearch } : {}),
+          ...(dateFrom ? { date_from: dateFrom } : {}),
+          ...(dateTo ? { date_to: dateTo } : {}),
+        },
+      })
+
+      setData(response.data)
+    } finally {
+      setLoading(false)
+    }
+  }, [dateFrom, dateTo, deferredSearch, depotsReady, scopeParams])
+
+  useEffect(() => {
+    void load()
+  }, [load, selectedDepotId])
+
+  const openLedger = (customerLike, invoiceId = null) => {
+    if (!customerLike) {
+      return
+    }
+
+    setLedgerCustomer({
+      id: customerLike.id ?? customerLike.customer_id,
+      name: customerLike.name ?? customerLike.customer_name,
     })
-      .then((response) => setData(response.data))
-      .finally(() => setLoading(false))
-  }, [dateFrom, dateTo, deferredSearch, depotsReady, selectedDepotId])
+    setLedgerInitialInvoiceId(invoiceId ? String(invoiceId) : '')
+  }
+
+  const closeLedger = () => {
+    setLedgerCustomer(null)
+    setLedgerInitialInvoiceId('')
+  }
 
   if ((loading && !data) || !data) {
     return <PageLoader />
@@ -222,9 +250,14 @@ export default function CreditIndex() {
                     {formatCurrency(entry.due_amount)}
                   </td>
                   <td className="py-3 pr-4 text-xs text-secondary-color">
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                       <div>{t('credit.attempts', { count: entry.payment_attempt_count || 0 })}</div>
                       <div>{formatDateTimeCell(entry.last_payment_at)}</div>
+                      {entry.customer_id && (
+                        <button type="button" className="btn-secondary text-[11px]" onClick={() => openLedger(entry, entry.invoice_id)}>
+                          <i className="fa-solid fa-credit-card" /> {t('customers.ledger.collectPayment')}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -282,9 +315,9 @@ export default function CreditIndex() {
                   <td className="py-3 pr-4 text-right font-mono text-sm font-bold" style={{ color: parseFloat(customer.b90_plus) > 0 ? '#dc2626' : 'var(--text-muted)' }}>{formatCurrency(customer.b90_plus)}</td>
                   <td className="py-3 font-bold font-mono text-sm text-right" style={{ color: '#7c3aed' }}>{formatCurrency(customer.total_due)}</td>
                   <td className="py-3 pl-4 text-right">
-                    <Link to={`/customers?open_ledger=${customer.customer_id}`} className="btn-secondary text-xs">
+                    <button type="button" onClick={() => openLedger(customer)} className="btn-secondary text-xs">
                       <i className="fa-solid fa-credit-card" /> {t('customers.ledger.collectPayment')}
-                    </Link>
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -299,6 +332,14 @@ export default function CreditIndex() {
           </table>
         </div>
       </div>
+
+      <CustomerLedgerModal
+        open={!!ledgerCustomer}
+        customer={ledgerCustomer}
+        initialInvoiceId={ledgerInitialInvoiceId}
+        onClose={closeLedger}
+        onPaymentSaved={load}
+      />
     </div>
   )
 }

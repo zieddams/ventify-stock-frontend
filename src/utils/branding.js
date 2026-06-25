@@ -16,8 +16,12 @@ function shouldUseCompanyBrand(user) {
   return Boolean(user?.company?.id) && !isDeveloperUser(user)
 }
 
-function resolveCompanyFallbackLogo(user) {
-  return user?.company?.slug === 'el-irtiwaa' ? irtiwaaLogo : DEFAULT_APP_MARK
+function resolveCompanyFallbackLogo(company) {
+  return company?.slug === 'el-irtiwaa' ? irtiwaaLogo : DEFAULT_APP_MARK
+}
+
+export function resolveCompanyBrandLogo(company) {
+  return cleanString(company?.logo_url) || resolveCompanyFallbackLogo(company)
 }
 
 export function resolveUserBrandLogo(user) {
@@ -25,7 +29,7 @@ export function resolveUserBrandLogo(user) {
     return DEFAULT_APP_MARK
   }
 
-  return cleanString(user?.company?.logo_url) || resolveCompanyFallbackLogo(user)
+  return resolveCompanyBrandLogo(user?.company)
 }
 
 export function resolveUserBrandName(user) {
