@@ -1634,6 +1634,8 @@ export default {
   usersPage: {
     title: 'Utilisateurs',
     subtitle: ({ users, customers }) => `${users} utilisateur(s) enregistrés · ${customers} client(s) affectés`,
+    scopeHintCompany: 'Cette page reste limitée aux comptes actifs de la société {{company}}. Les accès développeur globaux restent masqués ici.',
+    scopeHintDeveloper: 'Vue développeur multi-société active. Les comptes développeur et les scopes multi-dépôts restent visibles uniquement dans cet espace.',
     newUser: 'Nouvel utilisateur',
     allDepots: 'Tous les dépôts',
     empty: 'Aucun utilisateur',

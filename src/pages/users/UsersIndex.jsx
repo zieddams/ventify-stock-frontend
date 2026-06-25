@@ -60,6 +60,9 @@ export default function UsersIndex() {
   const canManageUsers = ['admin', 'developer'].includes(me?.role)
   const canManageAssignments = ['admin', 'developer', 'comptable'].includes(me?.role)
   const isDeveloperUser = me?.role === 'developer'
+  const availableRoleOptions = isDeveloperUser
+    ? ['rep', 'comptable', 'admin', 'developer']
+    : ['rep', 'comptable', 'admin']
   const showDepotColumn = isDeveloperUser
   const totalAssignedCustomers = users.reduce((sum, entry) => sum + Number(entry.customers_count ?? 0), 0)
 
@@ -305,6 +308,11 @@ export default function UsersIndex() {
       />
 
       <div className="card">
+        <div className="mb-4 rounded-2xl px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
+          {isDeveloperUser
+            ? t('usersPage.scopeHintDeveloper')
+            : t('usersPage.scopeHintCompany', { company: me?.company?.name || t('common.notAvailable') })}
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -441,10 +449,9 @@ export default function UsersIndex() {
           <div className="grid grid-cols-2 gap-3">
             <FormField label={t('usersPage.modal.fields.role')} error={errors.role?.[0]} required>
               <select value={form.role} onChange={(event) => setForm((current) => ({ ...current, role: event.target.value }))}>
-                <option value="rep">{t('badges.roles.rep')}</option>
-                <option value="comptable">{t('badges.roles.comptable')}</option>
-                <option value="admin">{t('badges.roles.admin')}</option>
-                <option value="developer">{t('badges.roles.developer')}</option>
+                {availableRoleOptions.map((role) => (
+                  <option key={role} value={role}>{t(`badges.roles.${role}`)}</option>
+                ))}
               </select>
             </FormField>
 

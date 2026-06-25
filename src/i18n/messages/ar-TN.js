@@ -1634,6 +1634,8 @@ export default {
   usersPage: {
     title: 'المستعملين',
     subtitle: ({ users, customers }) => `${users} مستعمل · ${customers} حريف متعيّن`,
+    scopeHintCompany: 'الصفحة هاذي تبقى محدودة لحسابات الشركة {{company}} فقط. حسابات المطوّر العامة مخفية من هنا.',
+    scopeHintDeveloper: 'أنت في عرض المطوّر متاع multi-societe. حسابات المطوّر والـ scopes متاع الديبوات يبقاو ظاهرين كان هنا.',
     newUser: 'مستعمل جديد',
     allDepots: 'كل المخازن',
     empty: 'ما فما حتى مستعمل',
