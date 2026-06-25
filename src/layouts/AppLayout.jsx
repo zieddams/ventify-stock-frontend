@@ -142,11 +142,7 @@ function getSystemStatusLabel(systemStatus, t) {
 }
 
 function buildAppDisplayName(user, companyName, appName) {
-  if (user?.role === 'developer') {
-    return appName
-  }
-
-  return companyName ? `${appName} (${companyName})` : appName
+  return companyName || appName
 }
 
 function setMetaContent(name, content) {
@@ -310,6 +306,68 @@ function BrandMark({
   )
 }
 
+function ScopedCompanySessionBanner({
+  companyName,
+  activeRole,
+  onSwitchRole,
+  onExit,
+  switchingCompanySession,
+  exitingCompanySession,
+  t,
+}) {
+  const roles = ['admin', 'comptable', 'rep']
+
+  return (
+    <div
+      className="mb-5 rounded-[28px] px-4 py-4"
+      style={{ background: 'linear-gradient(135deg, rgba(13,148,136,0.10), rgba(59,130,246,0.08))', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.14)' }}
+    >
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-base-color">
+            {t('developerWorkspace.sessionActions.activeLabel', { company: companyName || t('common.notAvailable') })}
+          </div>
+          <div className="mt-1 text-sm text-secondary-color">
+            {t(`badges.roles.${activeRole || 'admin'}`)} · {t('developerWorkspace.launcher.fixedOneHour')}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {roles.map((role) => {
+            const busy = switchingCompanySession && role === activeRole
+
+            return (
+              <button
+                key={role}
+                type="button"
+                onClick={() => onSwitchRole(role)}
+                disabled={switchingCompanySession || exitingCompanySession}
+                className="rounded-full px-3 py-2 text-xs font-semibold transition-colors"
+                style={role === activeRole
+                  ? { background: 'rgba(13,148,136,0.14)', color: '#0f766e' }
+                  : { background: '#ffffffcc', color: 'var(--text-secondary)', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.16)' }}
+              >
+                {busy ? t('developerWorkspace.launcher.starting') : t(`badges.roles.${role}`)}
+              </button>
+            )
+          })}
+
+          <button
+            type="button"
+            onClick={onExit}
+            disabled={switchingCompanySession || exitingCompanySession}
+            className="btn-secondary text-xs"
+          >
+            {exitingCompanySession
+              ? <><i className="fa-solid fa-spinner fa-spin" /> {t('developerWorkspace.sessionActions.exiting')}</>
+              : <><i className="fa-solid fa-arrow-left" /> {t('developerWorkspace.sessionActions.exit')}</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper, statusLabel, appDisplayName, user }) {
   const { t } = useI18n()
 
@@ -428,7 +486,19 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper
 }
 
 export default function AppLayout() {
-  const { user, logout, isAdmin, isFinance, isDeveloper } = useAuth()
+  const {
+    user,
+    logout,
+    isAdmin,
+    isFinance,
+    isDeveloper,
+    isScopedCompanySession,
+    startCompanySession,
+    endCompanySession,
+    switchingCompanySession,
+    exitingCompanySession,
+    sessionContext,
+  } = useAuth()
   const { t } = useI18n()
   const { toggle, isDark, toggleSidebarMode, isSidebarExpanded } = useTheme()
   const navigate = useNavigate()
@@ -514,6 +584,8 @@ export default function AppLayout() {
     ? (user?.company?.name ?? null)
     : (topbarSelectedDepot?.company?.name ?? user?.company?.name ?? null)
   const appDisplayName = buildAppDisplayName(user, activeCompanyName, t('app.name'))
+  const scopedCompanyId = sessionContext?.company_id ?? user?.company?.id ?? null
+  const scopedRole = sessionContext?.acting_role ?? user?.role ?? 'admin'
 
   useEffect(() => {
     if (typeof document === 'undefined') {
@@ -530,6 +602,27 @@ export default function AppLayout() {
   const desktopFinanceNav = FINANCE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
   const desktopOperationsNav = OPERATIONS_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
   const desktopDeveloperNav = DEVELOPER_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
+
+  const handleExitScopedSession = async () => {
+    try {
+      await endCompanySession()
+      navigate('/developer')
+    } catch {
+      navigate('/login')
+    }
+  }
+
+  const handleSwitchScopedRole = async (role) => {
+    if (!scopedCompanyId) {
+      return
+    }
+
+    try {
+      await startCompanySession(scopedCompanyId, role)
+    } catch {
+      // leave the current session untouched when the switch fails
+    }
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-app">
@@ -674,6 +767,17 @@ export default function AppLayout() {
 
         <main className="flex-1 overflow-y-auto">
           <div className="p-4 md:p-6 max-w-screen-2xl mx-auto">
+            {isScopedCompanySession() && (
+              <ScopedCompanySessionBanner
+                companyName={user?.company?.name}
+                activeRole={scopedRole}
+                onSwitchRole={(role) => { void handleSwitchScopedRole(role) }}
+                onExit={() => { void handleExitScopedSession() }}
+                switchingCompanySession={switchingCompanySession}
+                exitingCompanySession={exitingCompanySession}
+                t={t}
+              />
+            )}
             <Outlet />
           </div>
         </main>

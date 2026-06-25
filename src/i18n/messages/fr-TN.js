@@ -98,6 +98,82 @@ export default {
     depotActive: 'Dépôt actif',
     depotAll: 'Tous les dépôts',
   },
+  developerWorkspace: {
+    eyebrow: 'Espace développeur',
+    brand: 'Console développeur',
+    sessionLabel: 'Session développeur principale',
+    nav: {
+      dashboard: 'Vue architecte',
+    },
+    page: {
+      dashboardTitle: 'Tableau de bord développeur',
+      dashboardSubtitle: 'Console séparée du métier pour piloter les sociétés, ouvrir une session de test sécurisée et revenir sans mélanger les contextes.',
+      supportSubtitle: 'Suivi transverse du workspace développeur et des alertes associées.',
+    },
+    hero: {
+      eyebrow: 'Isolation active',
+      description: 'Cette console développeur reste volontairement hors du flux métier. Préparez un tenant, lancez une session de test bornée à 1 heure, puis basculez la supervision lourde vers la console ops séparée.',
+      badges: {
+        isolated: 'Navigation isolée',
+        secure: 'Session test 1h',
+        roleSwitch: 'Changement de rôle rapide',
+      },
+    },
+    metrics: {
+      companies: 'Sociétés',
+      activeCompanies: ({ count }) => `${count} active(s)`,
+      defaultCompany: 'Société par défaut',
+      noDefault: 'Aucune société par défaut',
+      maintenance: 'Maintenance',
+      demo: 'Factures démo',
+      demoCustomers: ({ count }) => `${count} client(s) démo`,
+    },
+    launcher: {
+      title: 'Sessions société sécurisées',
+      description: 'Ouvrez un tenant dans un rôle métier isolé. La session dure 1 heure fixe et garde la console développeur séparée du back-office société.',
+      openCompanies: 'Ouvrir la fiche sociétés',
+      fixedOneHour: 'Session fixe 1h',
+      starting: 'Ouverture...',
+      empty: 'Aucune société active n’est prête pour une session de test.',
+    },
+    quickActions: {
+      title: 'Accès rapide',
+      subtitle: 'Gardez ici la gestion développeur, puis basculez dans une session société dédiée pour tester le métier.',
+      opsConsole: 'Console ops séparée',
+      descriptions: {
+        companies: 'Création société, logo, seed de test et gouvernance de tenant.',
+        tools: 'Maintenance ciblée, mode démo, fresh install et tâches serveur.',
+        ops: 'Supervision live, workflows et déploiements via l’app ops isolée.',
+      },
+    },
+    guide: {
+      title: 'Parcours sécurisé',
+      steps: {
+        registry: 'Préparez ou vérifiez la société cible.',
+        launch: 'Ouvrez un rôle admin, comptable ou commercial pour 1 heure.',
+        return: 'Revenez ici pour changer de rôle, de société ou repartir vers l’ops.',
+      },
+    },
+    policy: {
+      title: 'Règles de séparation',
+      description: 'Le compte développeur reste dans sa propre console. Les écrans métier s’ouvrent via une session société distincte et temporaire.',
+      items: {
+        session: 'Chaque session société expire après 1 heure.',
+        roles: 'Vous pouvez relancer la même société avec un autre rôle à tout moment.',
+        return: 'Quittez la session société pour revenir à la console développeur.',
+      },
+    },
+    sessionActions: {
+      activeLabel: ({ company }) => `Session société active · ${company}`,
+      exit: 'Retour console développeur',
+      exiting: 'Retour...',
+    },
+    errors: {
+      load: 'Impossible de charger le tableau de bord développeur.',
+      launchSession: 'Impossible d’ouvrir la session société.',
+    },
+    notAvailable: 'Non disponible',
+  },
   login: {
     eyebrow: 'Gestion de vente',
     title: 'Connexion à la plateforme',
@@ -1963,6 +2039,7 @@ export default {
       loadCompanies: 'Impossible de charger les sociétés.',
       loadCompanyDetail: 'Impossible de charger le détail de la société.',
       save: 'Impossible d’enregistrer la société.',
+      launchSession: 'Impossible d’ouvrir la session société.',
       freshInstallConfirmation: 'Tapez exactement FRESH INSTALL pour confirmer la réinitialisation.',
       freshInstall: 'Le fresh install a échoué.',
       workspace: 'Impossible de préparer ce workspace.',
@@ -2022,9 +2099,16 @@ export default {
     },
     workspace: {
       title: 'Workspace de test',
-      description: 'Crée ou confirme un dépôt, deux camions, un comptable, deux commerciaux, des clients de test et un stock dépôt minimal.',
+      description: 'Crée ou confirme un dépôt central, deux camions Nord/Sud, un responsable, un comptable, deux commerciaux, des points de vente de test et un stock dépôt minimal.',
       preparing: 'Préparation...',
       prepare: 'Préparer l’espace de test',
+    },
+    session: {
+      title: 'Session société sécurisée',
+      description: 'Ouvrez cette société dans un rôle métier isolé. La session utilise un compte société dédié et expire après 1 heure.',
+      activeRole: ({ role }) => `Session active : ${role}`,
+      starting: 'Ouverture...',
+      fixedOneHour: '1 heure fixe',
     },
     activity: {
       auditTitle: 'Audit sociétaire',
@@ -2055,7 +2139,7 @@ export default {
   developerToolsPage: {
     page: {
       title: 'Outils développeur',
-      subtitle: 'Maintenance ciblée, mode démo, fresh install, sociétés et diagnostic serveur réservés au rôle développeur.',
+      subtitle: 'Console développeur séparée du métier : ops externe, maintenance ciblée, mode démo, fresh install et diagnostic serveur.',
       errorSubtitle: 'Console réservée au rôle développeur.',
       refresh: 'Actualiser',
     },
@@ -2096,7 +2180,7 @@ export default {
       keptRows: ({ count }) => `${count} lignes conservées`,
       support: 'Support mail',
       recipients: ({ count }) => `${count} destinataire(s)`,
-      supportHint: 'Liste figée côté application',
+      supportHint: 'Routage géré côté serveur',
     },
     companies: {
       title: 'Sociétés et limites flotte',
@@ -2140,7 +2224,9 @@ export default {
       run: 'Lancer le fresh install',
     },
     support: {
-      title: 'Destinataires support figés',
+      title: 'Routage support',
+      description: 'Le routage des signalements reste géré côté serveur pour éviter de republier les destinataires dans le bundle frontend.',
+      serverManaged: ({ count }) => `${count} destinataire(s) actif(s) restent gérés côté serveur.`,
       open: 'Ouvrir le support',
     },
     system: {
@@ -2159,9 +2245,17 @@ export default {
     },
     shortcuts: {
       title: 'Raccourcis développeur',
-      supportConfig: 'Configuration support',
-      documentation: 'Documentation',
-      description: 'Cette console centralise les actions sensibles du cycle de vie environnement : maintenance, reset opérationnel, mode démo, vérification serveur et suivi des tickets.',
+      companyConsole: 'Console sociétés',
+      developerDashboard: 'Vue développeur',
+      description: 'Cette console reste centrée sur les contrôles environnement, tandis que la gestion détaillée des sociétés et les sessions de test passent par la page dédiée.',
+    },
+    opsConsole: {
+      title: 'Console ops séparée',
+      description: "La supervision live et le contrôle CI/CD ont été sortis de la web platform. Utilisez la nouvelle app dédiée sur son propre sous-domaine pour le trafic, les ressources VPS, les issues et les déploiements manuels.",
+      open: 'Ouvrir la console ops',
+      health: 'Ping console ops',
+      workflow: 'Workflow deploy ops',
+      note: 'Les actions métier sensibles restent ici, mais la supervision et les releases passent maintenant par une app isolée.',
     },
     observability: {
       title: 'Ops center & supervision',
@@ -2490,11 +2584,11 @@ export default {
     },
     systemSupport: {
       title: 'Support et signalements',
-      description: "Destinataires support fixes et libellé interne visible dans l'application.",
+      description: "Libellé d'aide visible dans l'application ; le routage support reste géré côté serveur.",
       lockedRecipients: 'Destinataires e-mail verrouillés',
       helpContactLabel: "Libellé du contact d'aide",
       helpContactPlaceholder: 'Équipe El Irtiwaa',
-      infoNotice: "Les emails de réception des signalements sont figés côté application pour éviter toute dérive de configuration. Cette page ne laisse éditable que le libellé du contact d'aide.",
+      infoNotice: "Les destinataires de signalement ne sont plus embarqués dans le bundle frontend. Le routage reste maintenu côté serveur et cette page ne modifie que le libellé du contact d'aide.",
       openSupport: 'Ouvrir le centre de support',
       notifications: 'Notifications',
     },

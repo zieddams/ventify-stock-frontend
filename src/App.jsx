@@ -3,9 +3,10 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { I18nProvider } from './contexts/I18nContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import MaintenanceBoundary from './components/MaintenanceBoundary'
-import AppLayout from './layouts/AppLayout'
+import WorkspaceLayout from './layouts/WorkspaceLayout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import DeveloperDashboard from './pages/developer/DeveloperDashboard'
 import ProductsIndex from './pages/products/ProductsIndex'
 import CustomersIndex from './pages/customers/CustomersIndex'
 import InvoicesIndex from './pages/invoices/InvoicesIndex'
@@ -37,46 +38,56 @@ function RequireAuth({ children }) {
   return children
 }
 
-function RequireAdmin({ children }) {
-  const { user } = useAuth()
+function RequireBusinessWorkspace({ children }) {
+  const { user, isDeveloperWorkspace } = useAuth()
   if (!user) return <Navigate to="/login" replace />
-  if (user.role !== 'admin' && user.role !== 'developer') return <Navigate to="/" replace />
+  if (isDeveloperWorkspace()) return <Navigate to="/developer" replace />
+  return children
+}
+
+function RequireAdmin({ children }) {
+  const { user, isDeveloperWorkspace } = useAuth()
+  if (!user) return <Navigate to="/login" replace />
+  if (isDeveloperWorkspace()) return <Navigate to="/developer" replace />
+  if (user.role !== 'admin') return <Navigate to="/" replace />
   return children
 }
 
 function RequireFinance({ children }) {
-  const { user } = useAuth()
+  const { user, isDeveloperWorkspace } = useAuth()
   if (!user) return <Navigate to="/login" replace />
-  if (!['admin', 'developer', 'comptable'].includes(user.role)) return <Navigate to="/" replace />
+  if (isDeveloperWorkspace()) return <Navigate to="/developer" replace />
+  if (!['admin', 'comptable'].includes(user.role)) return <Navigate to="/" replace />
   return children
 }
 
-function RequireDeveloper({ children }) {
-  const { user } = useAuth()
+function RequireDeveloperWorkspace({ children }) {
+  const { user, isDeveloperWorkspace } = useAuth()
   if (!user) return <Navigate to="/login" replace />
-  if (user.role !== 'developer') return <Navigate to="/" replace />
+  if (!isDeveloperWorkspace()) return <Navigate to="/" replace />
   return children
 }
 
 function RequireMapFeature({ children }) {
-  const { user } = useAuth()
+  const { user, isDeveloperWorkspace } = useAuth()
   if (!user) return <Navigate to="/login" replace />
-  if (user.role !== 'admin' && user.role !== 'developer') return <Navigate to="/" replace />
+  if (isDeveloperWorkspace()) return <Navigate to="/developer" replace />
+  if (user.role !== 'admin') return <Navigate to="/" replace />
   if (!isAnyMapExperienceEnabled(user)) return <Navigate to="/config/terrain-visibility" replace />
   return children
 }
 
 function PublicOnly({ children }) {
-  const { user } = useAuth()
-  if (user) return <Navigate to="/" replace />
+  const { user, isDeveloperWorkspace } = useAuth()
+  if (user) return <Navigate to={isDeveloperWorkspace() ? '/developer' : '/'} replace />
   return children
 }
 
 function HomeIndex() {
-  const { user } = useAuth()
+  const { isDeveloperWorkspace } = useAuth()
 
-  if (user?.role === 'developer') {
-    return <Navigate to="/developer-tools" replace />
+  if (isDeveloperWorkspace()) {
+    return <Navigate to="/developer" replace />
   }
 
   return <Dashboard />
@@ -91,13 +102,14 @@ export default function App() {
         <MaintenanceBoundary>
           <Routes>
             <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
-            <Route path="/" element={<RequireAuth><AppLayout /></RequireAuth>}>
+            <Route path="/" element={<RequireAuth><WorkspaceLayout /></RequireAuth>}>
               <Route index element={<HomeIndex />} />
-              <Route path="products" element={<ProductsIndex />} />
-              <Route path="customers" element={<CustomersIndex />} />
-              <Route path="invoices" element={<InvoicesIndex />} />
-              <Route path="invoices/create" element={<InvoiceCreate />} />
-              <Route path="invoices/:id" element={<InvoiceShow />} />
+              <Route path="developer" element={<RequireDeveloperWorkspace><DeveloperDashboard /></RequireDeveloperWorkspace>} />
+              <Route path="products" element={<RequireBusinessWorkspace><ProductsIndex /></RequireBusinessWorkspace>} />
+              <Route path="customers" element={<RequireBusinessWorkspace><CustomersIndex /></RequireBusinessWorkspace>} />
+              <Route path="invoices" element={<RequireBusinessWorkspace><InvoicesIndex /></RequireBusinessWorkspace>} />
+              <Route path="invoices/create" element={<RequireBusinessWorkspace><InvoiceCreate /></RequireBusinessWorkspace>} />
+              <Route path="invoices/:id" element={<RequireBusinessWorkspace><InvoiceShow /></RequireBusinessWorkspace>} />
               <Route path="depot" element={<RequireAdmin><DepotIndex /></RequireAdmin>} />
               <Route path="camions" element={<RequireAdmin><CamionsIndex /></RequireAdmin>} />
               <Route path="reports" element={<RequireAdmin><ReportsIndex /></RequireAdmin>} />
@@ -111,9 +123,9 @@ export default function App() {
               <Route path="map"       element={<RequireMapFeature><LiveMapIndex /></RequireMapFeature>} />
               <Route path="inventory" element={<RequireAdmin><InventaireIndex /></RequireAdmin>} />
               <Route path="data-tools" element={<RequireAdmin><DataToolsIndex /></RequireAdmin>} />
-              <Route path="companies" element={<RequireDeveloper><CompaniesIndex /></RequireDeveloper>} />
-              <Route path="companies/:companyId" element={<RequireDeveloper><CompaniesIndex /></RequireDeveloper>} />
-              <Route path="developer-tools" element={<RequireDeveloper><DeveloperToolsIndex /></RequireDeveloper>} />
+              <Route path="companies" element={<RequireDeveloperWorkspace><CompaniesIndex /></RequireDeveloperWorkspace>} />
+              <Route path="companies/:companyId" element={<RequireDeveloperWorkspace><CompaniesIndex /></RequireDeveloperWorkspace>} />
+              <Route path="developer-tools" element={<RequireDeveloperWorkspace><DeveloperToolsIndex /></RequireDeveloperWorkspace>} />
               <Route path="help" element={<HelpCenterIndex />} />
               <Route path="notifications-center" element={<NotificationsCenterIndex />} />
               <Route path="bug-reports" element={<BugReportsIndex />} />
