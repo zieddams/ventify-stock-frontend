@@ -24,6 +24,8 @@ export default function RowDocumentActions({
   subtitle,
   filename,
   meta = [],
+  documentSettings = null,
+  currentUser = null,
 }) {
   const { t } = useI18n()
   const [busyAction, setBusyAction] = useState('')
@@ -36,6 +38,8 @@ export default function RowDocumentActions({
     subtitle,
     filename,
     meta,
+    documentSettings,
+    user: currentUser,
   }
 
   const handlePdf = async () => {

@@ -9,7 +9,12 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import SystemTasksPanel from './SystemTasksPanel'
-import { DOCUMENT_LAYOUT_SETTING_KEY, normalizeDocumentLayouts } from '../../hooks/useDocumentLayouts'
+import {
+  DOCUMENT_INVOICE_PRINTING_SETTING_KEY,
+  DOCUMENT_LAYOUT_SETTING_KEY,
+  normalizeDocumentLayouts,
+  normalizeInvoicePrintingSettings,
+} from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 import {
   DOCUMENT_DEFINITIONS,
@@ -37,7 +42,10 @@ const SYSTEM_SETTING_KEYS = [
   'support.help_contact_label',
 ]
 
-const DOCUMENT_SETTING_KEYS = [DOCUMENT_LAYOUT_SETTING_KEY]
+const DOCUMENT_SETTING_KEYS = [
+  DOCUMENT_LAYOUT_SETTING_KEY,
+  DOCUMENT_INVOICE_PRINTING_SETTING_KEY,
+]
 const HIDDEN_CONFIG_SECTIONS = new Set(['map-provider', 'map-status'])
 
 const EMPTY_FORM = {
@@ -656,6 +664,9 @@ export default function ConfigIndex() {
     }))
   ), [modules, visibleSetupSections])
   const documentLayouts = normalizeDocumentLayouts(settingsByKey[DOCUMENT_LAYOUT_SETTING_KEY]?.value)
+  const invoicePrintingSettings = normalizeInvoicePrintingSettings(
+    settingsByKey[DOCUMENT_INVOICE_PRINTING_SETTING_KEY]?.value,
+  )
   const activeDocumentEntity = documentEntityGroups.find((item) => item.key === documentEntityKey) ?? documentEntityGroups[0]
   const documentDefinitions = useMemo(() => (
     activeDocumentEntity.definitionKeys
@@ -739,6 +750,13 @@ export default function ConfigIndex() {
 
   const updateDocumentLayouts = (nextLayouts) => {
     updateSetting(DOCUMENT_LAYOUT_SETTING_KEY, nextLayouts)
+  }
+
+  const updateInvoicePrintingSettings = (patch) => {
+    updateSetting(DOCUMENT_INVOICE_PRINTING_SETTING_KEY, {
+      ...invoicePrintingSettings,
+      ...patch,
+    })
   }
 
   const updateDocumentLayout = (definition, nextValue) => {
@@ -919,6 +937,76 @@ export default function ConfigIndex() {
           <SummaryCard label={t('configPage.documents.summary.units')} value={summary.unit} color="#3b82f6" icon="fa-solid fa-ruler-combined" />
           <SummaryCard label={t('configPage.documents.summary.paymentMethods')} value={summary.payment_method} color="#8b5cf6" icon="fa-solid fa-wallet" />
           <SummaryCard label={t('configPage.documents.summary.documents')} value={DOCUMENT_DEFINITIONS.length} color="#f59e0b" icon="fa-solid fa-print" />
+        </div>
+
+        <div className="card">
+          <div className="flex items-start gap-3 mb-4">
+            <i className="fa-solid fa-file-invoice mt-0.5" style={{ color: '#2563eb' }} />
+            <div>
+              <div className="text-sm font-semibold text-base-color">{t('configPage.documents.invoiceProfileTitle')}</div>
+              <div className="text-xs text-muted-color mt-1">
+                {t('configPage.documents.invoiceProfileDescription')}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label={t('configPage.documents.invoiceProfileFields.headerStyle')}>
+              <select
+                value={invoicePrintingSettings.header_style}
+                onChange={(event) => updateInvoicePrintingSettings({ header_style: event.target.value })}
+              >
+                <option value="logo_and_name">{t('configPage.documents.invoiceProfileValues.logoAndName')}</option>
+                <option value="name_only">{t('configPage.documents.invoiceProfileValues.nameOnly')}</option>
+              </select>
+            </FormField>
+
+            <div className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-color mb-2">
+                {t('configPage.documents.invoiceProfileFields.visibility')}
+              </div>
+              <div className="space-y-3">
+                <label className="flex items-center gap-3 text-sm text-base-color">
+                  <input
+                    type="checkbox"
+                    checked={invoicePrintingSettings.show_tax_breakdown}
+                    onChange={(event) => updateInvoicePrintingSettings({ show_tax_breakdown: event.target.checked })}
+                    style={{ width: 16, height: 16 }}
+                  />
+                  {t('configPage.documents.invoiceProfileValues.showTaxBreakdown')}
+                </label>
+                <label className="flex items-center gap-3 text-sm text-base-color">
+                  <input
+                    type="checkbox"
+                    checked={invoicePrintingSettings.show_depot_details}
+                    onChange={(event) => updateInvoicePrintingSettings({ show_depot_details: event.target.checked })}
+                    style={{ width: 16, height: 16 }}
+                  />
+                  {t('configPage.documents.invoiceProfileValues.showDepotDetails')}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <FormField label={t('configPage.documents.invoiceProfileFields.headerNote')}>
+              <textarea
+                rows="4"
+                value={invoicePrintingSettings.header_note}
+                onChange={(event) => updateInvoicePrintingSettings({ header_note: event.target.value })}
+                placeholder={t('configPage.documents.invoiceProfilePlaceholders.headerNote')}
+              />
+            </FormField>
+
+            <FormField label={t('configPage.documents.invoiceProfileFields.footerNote')}>
+              <textarea
+                rows="4"
+                value={invoicePrintingSettings.footer_note}
+                onChange={(event) => updateInvoicePrintingSettings({ footer_note: event.target.value })}
+                placeholder={t('configPage.documents.invoiceProfilePlaceholders.footerNote')}
+              />
+            </FormField>
+          </div>
         </div>
 
         <div className="card">
