@@ -2098,6 +2098,7 @@ export default {
       loadCompanies: 'Impossible de charger les sociétés.',
       loadCompanyDetail: 'Impossible de charger le détail de la société.',
       save: 'Impossible d’enregistrer la société.',
+      logoRequired: 'Ajoutez un logo dédié avant d’enregistrer la société.',
       launchSession: 'Impossible d’ouvrir la session société.',
       freshInstallConfirmation: 'Tapez exactement FRESH INSTALL pour confirmer la réinitialisation.',
       freshInstall: 'Le fresh install a échoué.',
@@ -2115,6 +2116,7 @@ export default {
       note: 'Note',
       maxCamions: 'Camions maximum',
       logo: 'Logo',
+      logoHint: 'Chaque société doit avoir son propre logo. Le logo plateforme reste réservé au login et au workspace développeur.',
       removeLogo: 'Retirer le logo actuel',
       toggles: {
         active: 'Société active',
@@ -2132,6 +2134,7 @@ export default {
       title: 'Aperçu',
       newCompany: 'Nouvelle société',
       slugFallback: 'slug-à-définir',
+      logoMissing: 'Logo obligatoire avant enregistrement',
     },
     governance: {
       title: 'Pilotage sociétaire',

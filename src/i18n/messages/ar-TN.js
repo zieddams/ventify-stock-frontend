@@ -2097,6 +2097,7 @@ export default {
       loadCompanies: 'ما نجمنّاش نحمّلوا الشركات.',
       loadCompanyDetail: 'ما نجمنّاش نحمّلوا تفاصيل الشركة.',
       save: 'ما نجمنّاش نسجّلوا الشركة.',
+      logoRequired: 'زيد شعار خاص بالشركة قبل ما تسجّلها.',
       launchSession: 'ما نجمنّاش نفتحوا جلسة الشركة.',
       freshInstallConfirmation: 'اكتب بالضبط FRESH INSTALL باش تأكّد التصفير.',
       freshInstall: 'الـ fresh install فشل.',
@@ -2114,6 +2115,7 @@ export default {
       note: 'ملاحظة',
       maxCamions: 'أقصى عدد شاحنات',
       logo: 'الشعار',
+      logoHint: 'كل شركة لازمها شعارها الخاص. شعار المنصّة يبقى مخصّص لصفحة الدخول ولفضاء المطوّر.',
       removeLogo: 'انحّي الشعار الحالي',
       toggles: {
         active: 'الشركة مفعّلة',
@@ -2131,6 +2133,7 @@ export default {
       title: 'معاينة',
       newCompany: 'شركة جديدة',
       slugFallback: 'slug-يلزم يتحدد',
+      logoMissing: 'الشعار إجباري قبل الحفظ',
     },
     governance: {
       title: 'قيادة الشركة',

@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
-import { DEFAULT_LOGIN_MARK } from '../utils/branding'
+import { DEFAULT_LOGIN_MARK, applyDocumentBranding } from '../utils/branding'
 
 const PARTICLES = Array.from({ length: 22 }, (_, index) => ({
   left: `${4 + ((index * 19) % 92)}%`,
@@ -23,6 +23,15 @@ export default function Login() {
   const { locale, setLocale, supportedLocales, t, raw } = useI18n()
   const navigate = useNavigate()
   const highlights = raw('login.highlights') ?? []
+
+  useEffect(() => {
+    applyDocumentBranding({
+      title: t('login.title'),
+      appName: t('app.name'),
+      description: t('login.subtitle'),
+      iconHref: DEFAULT_LOGIN_MARK,
+    })
+  }, [locale, t])
 
   const handleSubmit = async (event) => {
     event.preventDefault()

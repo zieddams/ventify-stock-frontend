@@ -546,7 +546,7 @@ export default function DeveloperToolsIndex() {
               <i className="fa-solid fa-compass-drafting" /> {t('developerWorkspace.nav.dashboard')}
             </Link>
             <Link to="/companies" className="btn-secondary text-xs">
-              <i className="fa-solid fa-buildings" /> {t('layout.nav.companies')}
+              <i className="fa-solid fa-building" /> {t('layout.nav.companies')}
             </Link>
             <button onClick={refreshAll} className="btn-primary text-xs">
               <i className="fa-solid fa-rotate-right" /> {t('developerToolsPage.page.refresh')}
@@ -656,7 +656,7 @@ export default function DeveloperToolsIndex() {
               <MetricCard
                 label={t('developerToolsPage.broadcast.stats.companies')}
                 value={formatCount(broadcastCatalog.summary?.active_companies ?? 0)}
-                icon="fa-solid fa-buildings"
+                icon="fa-solid fa-building"
                 color="#2563eb"
                 helper={t('developerToolsPage.broadcast.stats.companiesHint')}
               />
@@ -684,7 +684,7 @@ export default function DeveloperToolsIndex() {
                   },
                   {
                     value: 'company',
-                    icon: 'fa-solid fa-buildings',
+                    icon: 'fa-solid fa-building',
                     label: t('developerToolsPage.broadcast.targets.company.label'),
                     description: t('developerToolsPage.broadcast.targets.company.description'),
                   },
@@ -1019,7 +1019,7 @@ export default function DeveloperToolsIndex() {
             </div>
 
             <div className="space-y-2">
-              <ShortcutLink to="/companies" icon="fa-solid fa-buildings" label={t('developerToolsPage.shortcuts.companyConsole')} />
+              <ShortcutLink to="/companies" icon="fa-solid fa-building" label={t('developerToolsPage.shortcuts.companyConsole')} />
               <ShortcutLink to="/developer" icon="fa-solid fa-compass-drafting" label={t('developerToolsPage.shortcuts.developerDashboard')} />
             </div>
 

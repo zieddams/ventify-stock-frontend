@@ -279,7 +279,7 @@ export default function DeveloperDashboard() {
 
             <div className="mt-5 flex flex-wrap gap-2">
               <Link to="/companies" className="btn-primary text-xs">
-                <i className="fa-solid fa-buildings" /> {t('developerWorkspace.launcher.openCompanies')}
+                <i className="fa-solid fa-building" /> {t('developerWorkspace.launcher.openCompanies')}
               </Link>
               <Link to="/developer-tools#broadcast-panel" className="btn-secondary text-xs">
                 <i className="fa-solid fa-bullhorn" /> {t('developerWorkspace.quickActions.broadcast')}
@@ -307,7 +307,7 @@ export default function DeveloperDashboard() {
           label={t('developerWorkspace.metrics.companies')}
           value={companies.length}
           helper={t('developerWorkspace.metrics.activeCompanies', { count: activeCompanies.length })}
-          icon="fa-solid fa-buildings"
+          icon="fa-solid fa-building"
           tone="#0d9488"
         />
         <MetricCard
@@ -381,7 +381,7 @@ export default function DeveloperDashboard() {
             <div className="mt-4 space-y-3">
               <ActionSurface
                 to="/companies"
-                icon="fa-solid fa-buildings"
+                icon="fa-solid fa-building"
                 title={t('layout.nav.companies')}
                 description={t('developerWorkspace.quickActions.descriptions.companies')}
               />

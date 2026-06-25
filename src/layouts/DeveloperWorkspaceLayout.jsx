@@ -1,16 +1,18 @@
+import { useEffect } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import NotificationBell from '../components/NotificationBell'
 import { APP_VERSION } from '../config/appMeta'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { useTheme } from '../contexts/ThemeContext'
-import { DEFAULT_APP_MARK } from '../utils/branding'
+import { DEFAULT_APP_MARK, applyDocumentBranding } from '../utils/branding'
 
 const OPS_CONSOLE_URL = 'https://ops.irtiwaa.ziedtech.com/'
+const COMPANY_NAV_ICON = 'fa-solid fa-building'
 
 const DEVELOPER_NAV = [
   { to: '/developer', icon: 'fa-solid fa-compass-drafting', labelKey: 'developerWorkspace.nav.dashboard' },
-  { to: '/companies', icon: 'fa-solid fa-buildings', labelKey: 'layout.nav.companies' },
+  { to: '/companies', icon: COMPANY_NAV_ICON, labelKey: 'layout.nav.companies' },
   { to: '/developer-tools', icon: 'fa-solid fa-screwdriver-wrench', labelKey: 'layout.nav.developerTools' },
   { to: '/notifications-center', icon: 'fa-solid fa-bell', labelKey: 'layout.nav.notificationsCenter' },
   { to: '/bug-reports', icon: 'fa-solid fa-bug', labelKey: 'layout.nav.bugReports' },
@@ -68,11 +70,23 @@ export default function DeveloperWorkspaceLayout() {
     location.pathname === key || (key !== '/developer' && location.pathname.startsWith(`${key}/`))
   ) ?? '/developer'
   const pageMeta = PAGE_META[pageKey]
+  const workspaceBrand = t('developerWorkspace.brand')
+  const pageTitle = t(pageMeta.titleKey)
+  const pageSubtitle = t(pageMeta.subtitleKey)
 
   const handleLogout = async () => {
     await logout()
     navigate('/login')
   }
+
+  useEffect(() => {
+    applyDocumentBranding({
+      title: `${pageTitle} | ${workspaceBrand}`,
+      appName: workspaceBrand,
+      description: pageSubtitle,
+      iconHref: DEFAULT_APP_MARK,
+    })
+  }, [pageSubtitle, pageTitle, workspaceBrand])
 
   return (
     <div
@@ -95,7 +109,7 @@ export default function DeveloperWorkspaceLayout() {
             <div className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-color">
               {t('developerWorkspace.eyebrow')}
             </div>
-            <div className="truncate text-base font-semibold text-base-color">{t('developerWorkspace.brand')}</div>
+            <div className="truncate text-base font-semibold text-base-color">{workspaceBrand}</div>
             <div className="mt-1 text-xs text-secondary-color">v{APP_VERSION}</div>
           </div>
         </button>
@@ -174,8 +188,8 @@ export default function DeveloperWorkspaceLayout() {
               <div className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-color">
                 {t('developerWorkspace.eyebrow')}
               </div>
-              <h1 className="mt-1 truncate text-xl font-bold text-base-color">{t(pageMeta.titleKey)}</h1>
-              <p className="mt-1 max-w-3xl text-sm text-secondary-color">{t(pageMeta.subtitleKey)}</p>
+              <h1 className="mt-1 truncate text-xl font-bold text-base-color">{pageTitle}</h1>
+              <p className="mt-1 max-w-3xl text-sm text-secondary-color">{pageSubtitle}</p>
             </div>
 
             <div className="flex items-center gap-2">

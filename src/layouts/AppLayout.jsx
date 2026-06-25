@@ -7,7 +7,9 @@ import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { useDepots } from '../hooks/useDepots'
-import { DEFAULT_APP_MARK, resolveUserBrandLogo } from '../utils/branding'
+import { DEFAULT_APP_MARK, applyDocumentBranding, resolveUserBrandLogo } from '../utils/branding'
+
+const COMPANY_NAV_ICON = 'fa-solid fa-building'
 
 const CORE_NAV = [
   { to: '/invoices', icon: 'fa-solid fa-file-invoice', labelKey: 'layout.nav.invoices' },
@@ -36,7 +38,7 @@ const SUPPORT_NAV = [
 ]
 
 const DEVELOPER_NAV = [
-  { to: '/companies', icon: 'fa-solid fa-buildings', labelKey: 'layout.nav.companies' },
+  { to: '/companies', icon: COMPANY_NAV_ICON, labelKey: 'layout.nav.companies' },
   { to: '/developer-tools', icon: 'fa-solid fa-code', labelKey: 'layout.nav.developerTools' },
 ]
 
@@ -67,7 +69,7 @@ const PAGE_TITLES = {
   '/help': { labelKey: 'layout.nav.help', icon: 'fa-solid fa-circle-question' },
   '/notifications-center': { labelKey: 'layout.nav.notificationsCenter', icon: 'fa-solid fa-bell' },
   '/bug-reports': { labelKey: 'layout.nav.bugReports', icon: 'fa-solid fa-bug' },
-  '/companies': { labelKey: 'layout.nav.companies', icon: 'fa-solid fa-buildings' },
+  '/companies': { labelKey: 'layout.nav.companies', icon: COMPANY_NAV_ICON },
   '/developer-tools': { labelKey: 'layout.nav.developerTools', icon: 'fa-solid fa-code' },
 }
 
@@ -143,28 +145,6 @@ function getSystemStatusLabel(systemStatus, t) {
 
 function buildAppDisplayName(user, companyName, appName) {
   return companyName || appName
-}
-
-function setMetaContent(name, content) {
-  if (typeof document === 'undefined') {
-    return
-  }
-
-  const tag = document.querySelector(`meta[name="${name}"]`)
-
-  if (tag) {
-    tag.setAttribute('content', content)
-  }
-}
-
-function setLinkHref(selector, href) {
-  if (typeof document === 'undefined' || !href) {
-    return
-  }
-
-  document.querySelectorAll(selector).forEach((tag) => {
-    tag.setAttribute('href', href)
-  })
 }
 
 function UserMenu({ user, onLogout }) {
@@ -255,7 +235,7 @@ function UserMenu({ user, onLogout }) {
                 to="/companies"
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-secondary-color hover:bg-surface-2 transition-colors"
               >
-                <i className="fa-solid fa-buildings w-4" />
+                <i className={`${COMPANY_NAV_ICON} w-4`} />
                 {t('layout.userMenu.companies')}
               </NavLink>
               <NavLink
@@ -598,20 +578,13 @@ export default function AppLayout() {
   const scopedRole = sessionContext?.acting_role ?? user?.role ?? 'admin'
 
   useEffect(() => {
-    if (typeof document === 'undefined') {
-      return
-    }
-
-    document.title = `${pageLabel} | ${appDisplayName}`
-    setMetaContent('application-name', appDisplayName)
-    setMetaContent('apple-mobile-web-app-title', appDisplayName)
-    setMetaContent('description', `${pageLabel} - ${appDisplayName}`)
-  }, [appDisplayName, pageLabel])
-
-  useEffect(() => {
-    setLinkHref('link[rel="icon"]', resolveUserBrandLogo(user))
-    setLinkHref('link[rel="apple-touch-icon"]', resolveUserBrandLogo(user))
-  }, [user])
+    applyDocumentBranding({
+      title: `${pageLabel} | ${appDisplayName}`,
+      appName: appDisplayName,
+      description: `${pageLabel} - ${appDisplayName}`,
+      iconHref: resolveUserBrandLogo(user),
+    })
+  }, [appDisplayName, pageLabel, user])
 
   const desktopCoreNav = CORE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
   const desktopFinanceNav = FINANCE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))

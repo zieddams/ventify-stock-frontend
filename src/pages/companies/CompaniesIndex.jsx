@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import irtiwaaLogo from '../../assets/irtiwaa-logo.png'
 import FormField from '../../components/FormField'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
 import { useI18n } from '../../contexts/I18nContext'
 import api from '../../services/api'
+import { companyHasDedicatedLogo } from '../../utils/branding'
 import { formatCount as formatLocaleCount, formatDateTime as formatLocaleDateTime } from '../../utils/format'
 
 function buildCompanyForm(company = null) {
@@ -252,9 +252,11 @@ export default function CompaniesIndex() {
   const companySessionActive = isScopedCompanySession()
     && Number(selectedCompany?.id ?? 0) > 0
     && Number(selectedCompany?.id) === currentScopedCompanyId
+  const selectedCompanyRecord = detail?.company ?? selectedCompany ?? null
+  const companyHasStoredLogo = companyHasDedicatedLogo(selectedCompanyRecord)
+  const companyLogoRequired = creating || !companyHasStoredLogo || form.remove_logo
   const companyPreviewImage = logoPreviewUrl
-    || detail?.company?.logo_url
-    || ((detail?.company?.slug === 'el-irtiwaa' || detail?.company?.is_default) ? irtiwaaLogo : '')
+    || (companyHasStoredLogo ? selectedCompanyRecord?.logo_url : '')
 
   const openCompany = (company) => {
     setNotice('')
@@ -276,6 +278,12 @@ export default function CompaniesIndex() {
   }
 
   const saveCompany = async () => {
+    if (!logoFile && (!companyHasStoredLogo || form.remove_logo)) {
+      setNotice('')
+      setActionError(t('companiesPage.errors.logoRequired'))
+      return
+    }
+
     setSaving(true)
     setNotice('')
     setActionError('')
@@ -508,12 +516,14 @@ export default function CompaniesIndex() {
                       />
                     </FormField>
 
-                    <FormField label={t('companiesPage.form.logo')}>
+                    <FormField label={t('companiesPage.form.logo')} required={companyLogoRequired}>
                       <input
                         type="file"
                         accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        required={companyLogoRequired}
                         onChange={(event) => setLogoFile(event.target.files?.[0] ?? null)}
                       />
+                      <p className="mt-2 text-xs text-muted-color">{t('companiesPage.form.logoHint')}</p>
                     </FormField>
                   </div>
 
@@ -531,17 +541,6 @@ export default function CompaniesIndex() {
                       </label>
                     ))}
                   </div>
-
-                  {!creating && detail?.company?.logo_url && (
-                    <label className="rounded-2xl px-4 py-3 text-sm text-base-color cursor-pointer flex items-center gap-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                      <input
-                        type="checkbox"
-                        checked={form.remove_logo}
-                        onChange={(event) => setForm((current) => ({ ...current, remove_logo: event.target.checked }))}
-                      />
-                      {t('companiesPage.form.removeLogo')}
-                    </label>
-                  )}
                 </div>
 
                 <div className="space-y-4">
@@ -603,6 +602,11 @@ export default function CompaniesIndex() {
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-base-color">{form.name || t('companiesPage.preview.newCompany')}</div>
                         <div className="text-xs text-muted-color mt-1">{form.slug || t('companiesPage.preview.slugFallback')}</div>
+                        {!companyPreviewImage && (
+                          <div className="mt-2 text-[11px] font-medium" style={{ color: '#d97706' }}>
+                            {t('companiesPage.preview.logoMissing')}
+                          </div>
+                        )}
                       </div>
                     </div>
 
