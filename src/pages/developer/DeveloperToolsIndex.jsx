@@ -10,6 +10,10 @@ import SystemTasksPanel from '../config/SystemTasksPanel'
 import OpsConsoleLaunchCard from './OpsConsoleLaunchCard'
 
 const EMPTY_OVERVIEW = {
+  broadcast: {
+    active_companies: 0,
+    active_users: 0,
+  },
   maintenance: {
     enabled: false,
     global: false,
@@ -36,6 +40,15 @@ const EMPTY_TASK_SNAPSHOT = {
   stats: {},
   tasks: [],
   recent_runs: [],
+}
+
+const EMPTY_BROADCAST_CATALOG = {
+  summary: {
+    active_companies: 0,
+    active_users: 0,
+  },
+  companies: [],
+  users: [],
 }
 
 function getMaintenancePageOptions(t) {
@@ -182,17 +195,28 @@ export default function DeveloperToolsIndex() {
   const { t } = useI18n()
   const maintenanceDefaultMessage = t('developerToolsPage.maintenance.defaultMessage')
   const [overview, setOverview] = useState(EMPTY_OVERVIEW)
+  const [broadcastCatalog, setBroadcastCatalog] = useState(EMPTY_BROADCAST_CATALOG)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
+  const [broadcastLoading, setBroadcastLoading] = useState(true)
+  const [broadcastLoadError, setBroadcastLoadError] = useState('')
   const [notice, setNotice] = useState('')
   const [actionError, setActionError] = useState('')
   const [savingMaintenance, setSavingMaintenance] = useState(false)
   const [togglingDemo, setTogglingDemo] = useState(false)
   const [runningFreshInstall, setRunningFreshInstall] = useState(false)
+  const [sendingBroadcast, setSendingBroadcast] = useState(false)
   const [maintenanceForm, setMaintenanceForm] = useState({
     enabled: false,
     message: maintenanceDefaultMessage,
     pathsText: '',
+  })
+  const [broadcastForm, setBroadcastForm] = useState({
+    target: 'company',
+    companyId: '',
+    userId: '',
+    title: '',
+    message: '',
   })
   const [freshInstallConfirmation, setFreshInstallConfirmation] = useState('')
   const [taskSnapshot, setTaskSnapshot] = useState(EMPTY_TASK_SNAPSHOT)
@@ -204,6 +228,9 @@ export default function DeveloperToolsIndex() {
   const maintenancePageOptions = useMemo(() => getMaintenancePageOptions(t), [t])
   const notAvailableLabel = t('developerToolsPage.notAvailable')
   const supportRecipientCount = Number(overview.bug_recipients?.length ?? 0)
+  const broadcastSummary = overview.broadcast ?? EMPTY_OVERVIEW.broadcast
+  const broadcastCompanies = Array.isArray(broadcastCatalog.companies) ? broadcastCatalog.companies : []
+  const broadcastUsers = Array.isArray(broadcastCatalog.users) ? broadcastCatalog.users : []
 
   const syncMaintenanceForm = useCallback((maintenance) => {
     setMaintenanceForm({
@@ -227,6 +254,39 @@ export default function DeveloperToolsIndex() {
     }
   }, [syncMaintenanceForm, t])
 
+  const loadBroadcastCatalog = useCallback(async () => {
+    setBroadcastLoading(true)
+    setBroadcastLoadError('')
+
+    try {
+      const response = await api.get('/developer-tools/notifications/catalog')
+      const payload = response.data ?? EMPTY_BROADCAST_CATALOG
+      const nextCompanies = Array.isArray(payload.companies) ? payload.companies : []
+      const nextUsers = Array.isArray(payload.users) ? payload.users : []
+
+      setBroadcastCatalog({
+        summary: payload.summary ?? EMPTY_BROADCAST_CATALOG.summary,
+        companies: nextCompanies,
+        users: nextUsers,
+      })
+
+      setBroadcastForm((current) => {
+        const hasCompany = nextCompanies.some((company) => String(company.id) === String(current.companyId))
+        const hasUser = nextUsers.some((user) => String(user.id) === String(current.userId))
+
+        return {
+          ...current,
+          companyId: hasCompany ? current.companyId : String(nextCompanies[0]?.id ?? ''),
+          userId: hasUser ? current.userId : String(nextUsers[0]?.id ?? ''),
+        }
+      })
+    } catch (error) {
+      setBroadcastLoadError(error.response?.data?.message || t('developerToolsPage.errors.loadBroadcastCatalog'))
+    } finally {
+      setBroadcastLoading(false)
+    }
+  }, [t])
+
   const loadTasks = useCallback(async () => {
     setTaskLoading(true)
     setTaskLoadError('')
@@ -244,7 +304,8 @@ export default function DeveloperToolsIndex() {
   useEffect(() => {
     loadOverview()
     loadTasks()
-  }, [loadOverview, loadTasks])
+    loadBroadcastCatalog()
+  }, [loadBroadcastCatalog, loadOverview, loadTasks])
 
   const maintenancePaths = useMemo(
     () => parsePathInput(maintenanceForm.pathsText),
@@ -335,6 +396,40 @@ export default function DeveloperToolsIndex() {
     }
   }
 
+  const sendBroadcast = async () => {
+    setSendingBroadcast(true)
+    setNotice('')
+    setActionError('')
+
+    try {
+      const response = await api.post('/developer-tools/notifications/broadcast', {
+        target: broadcastForm.target,
+        company_id: broadcastForm.target === 'company' && broadcastForm.companyId
+          ? Number(broadcastForm.companyId)
+          : undefined,
+        user_id: broadcastForm.target === 'user' && broadcastForm.userId
+          ? Number(broadcastForm.userId)
+          : undefined,
+        title: broadcastForm.title.trim(),
+        message: broadcastForm.message.trim(),
+      })
+
+      const sentCount = response.data?.broadcast?.sent_count ?? 0
+
+      setBroadcastForm((current) => ({
+        ...current,
+        title: '',
+        message: '',
+      }))
+      setNotice(t('developerToolsPage.notices.broadcastSent', { count: formatCount(sentCount) }))
+      await Promise.all([loadOverview(), loadBroadcastCatalog()])
+    } catch (error) {
+      setActionError(error.response?.data?.message || t('developerToolsPage.errors.sendBroadcast'))
+    } finally {
+      setSendingBroadcast(false)
+    }
+  }
+
   const runBackgroundTask = async (taskKey) => {
     setRunningTaskKey(taskKey)
     setTaskNotice('')
@@ -357,8 +452,60 @@ export default function DeveloperToolsIndex() {
 
   const refreshAll = async () => {
     setLoading(true)
-    await Promise.all([loadOverview(), loadTasks()])
+    await Promise.all([loadOverview(), loadTasks(), loadBroadcastCatalog()])
   }
+
+  const selectedBroadcastCompany = useMemo(
+    () => broadcastCompanies.find((company) => String(company.id) === String(broadcastForm.companyId)) ?? null,
+    [broadcastCompanies, broadcastForm.companyId],
+  )
+
+  const selectedBroadcastUser = useMemo(
+    () => broadcastUsers.find((user) => String(user.id) === String(broadcastForm.userId)) ?? null,
+    [broadcastForm.userId, broadcastUsers],
+  )
+
+  const estimatedRecipients = useMemo(() => {
+    if (broadcastForm.target === 'user') {
+      return selectedBroadcastUser ? 1 : 0
+    }
+
+    if (broadcastForm.target === 'company') {
+      return Number(selectedBroadcastCompany?.active_users_count ?? 0)
+    }
+
+    return Number(broadcastCatalog.summary?.active_users ?? 0)
+  }, [broadcastCatalog.summary?.active_users, broadcastForm.target, selectedBroadcastCompany, selectedBroadcastUser])
+
+  const selectedTargetLabel = useMemo(() => {
+    if (broadcastForm.target === 'user') {
+      if (!selectedBroadcastUser) {
+        return t('developerToolsPage.broadcast.noneSelected')
+      }
+
+      return [
+        selectedBroadcastUser.name,
+        selectedBroadcastUser.company_name,
+        selectedBroadcastUser.email,
+      ].filter(Boolean).join(' · ')
+    }
+
+    if (broadcastForm.target === 'company') {
+      return selectedBroadcastCompany?.name || t('developerToolsPage.broadcast.noneSelected')
+    }
+
+    return t('developerToolsPage.broadcast.targets.allUsers.description')
+  }, [broadcastForm.target, selectedBroadcastCompany, selectedBroadcastUser, t])
+
+  const broadcastReady = Boolean(
+    broadcastForm.title.trim()
+    && broadcastForm.message.trim()
+    && (
+      broadcastForm.target === 'all_users'
+      || (broadcastForm.target === 'company' && selectedBroadcastCompany)
+      || (broadcastForm.target === 'user' && selectedBroadcastUser)
+    )
+  )
 
   if (loading) {
     return (
@@ -419,7 +566,7 @@ export default function DeveloperToolsIndex() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
         <MetricCard
           label={t('developerToolsPage.metrics.maintenance')}
           value={overview.maintenance?.enabled
@@ -446,6 +593,13 @@ export default function DeveloperToolsIndex() {
           helper={t('developerToolsPage.metrics.keptRows', { count: formatCount(sumValues(overview.fresh_install?.keep)) })}
         />
         <MetricCard
+          label={t('developerToolsPage.metrics.broadcast')}
+          value={t('developerToolsPage.metrics.recipients', { count: formatCount(broadcastSummary.active_users) })}
+          icon="fa-solid fa-bullhorn"
+          color="#0f766e"
+          helper={t('developerToolsPage.metrics.broadcastCompanies', { count: formatCount(broadcastSummary.active_companies) })}
+        />
+        <MetricCard
           label={t('developerToolsPage.metrics.support')}
           value={t('developerToolsPage.metrics.recipients', { count: formatCount(supportRecipientCount) })}
           icon="fa-solid fa-envelope-circle-check"
@@ -458,6 +612,191 @@ export default function DeveloperToolsIndex() {
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_420px] gap-6">
         <div className="space-y-6">
+          <div id="broadcast-panel" className="card">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5">
+              <div>
+                <h2 className="text-sm font-semibold text-base-color">{t('developerToolsPage.broadcast.title')}</h2>
+                <p className="text-xs text-muted-color mt-1">
+                  {t('developerToolsPage.broadcast.description')}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link to="/notifications-center" className="btn-secondary text-xs">
+                  <i className="fa-solid fa-bell" /> {t('developerToolsPage.broadcast.openCenter')}
+                </Link>
+                <button
+                  onClick={sendBroadcast}
+                  disabled={!broadcastReady || sendingBroadcast || broadcastLoading}
+                  className="btn-primary text-xs"
+                >
+                  {sendingBroadcast
+                    ? <><i className="fa-solid fa-spinner fa-spin" /> {t('developerToolsPage.broadcast.sending')}</>
+                    : <><i className="fa-solid fa-paper-plane" /> {t('developerToolsPage.broadcast.send')}</>}
+                </button>
+              </div>
+            </div>
+
+            {broadcastLoadError && (
+              <div
+                className="rounded-2xl px-4 py-4 text-sm mb-4"
+                style={{ background: 'rgba(239,68,68,0.08)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.16)', color: '#b91c1c' }}
+              >
+                {broadcastLoadError}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <MetricCard
+                label={t('developerToolsPage.broadcast.stats.users')}
+                value={formatCount(broadcastCatalog.summary?.active_users ?? 0)}
+                icon="fa-solid fa-user-group"
+                color="#0d9488"
+                helper={t('developerToolsPage.broadcast.stats.usersHint')}
+              />
+              <MetricCard
+                label={t('developerToolsPage.broadcast.stats.companies')}
+                value={formatCount(broadcastCatalog.summary?.active_companies ?? 0)}
+                icon="fa-solid fa-buildings"
+                color="#2563eb"
+                helper={t('developerToolsPage.broadcast.stats.companiesHint')}
+              />
+              <MetricCard
+                label={t('developerToolsPage.broadcast.stats.scope')}
+                value={formatCount(estimatedRecipients)}
+                icon="fa-solid fa-satellite-dish"
+                color="#8b5cf6"
+                helper={selectedTargetLabel}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-[240px_minmax(0,1fr)] gap-5 mt-5">
+              <div className="space-y-3">
+                <div className="text-xs font-semibold text-muted-color uppercase tracking-[0.18em]">
+                  {t('developerToolsPage.broadcast.targetLabel')}
+                </div>
+
+                {[
+                  {
+                    value: 'user',
+                    icon: 'fa-solid fa-user-large',
+                    label: t('developerToolsPage.broadcast.targets.user.label'),
+                    description: t('developerToolsPage.broadcast.targets.user.description'),
+                  },
+                  {
+                    value: 'company',
+                    icon: 'fa-solid fa-buildings',
+                    label: t('developerToolsPage.broadcast.targets.company.label'),
+                    description: t('developerToolsPage.broadcast.targets.company.description'),
+                  },
+                  {
+                    value: 'all_users',
+                    icon: 'fa-solid fa-globe',
+                    label: t('developerToolsPage.broadcast.targets.allUsers.label'),
+                    description: t('developerToolsPage.broadcast.targets.allUsers.description'),
+                  },
+                ].map((targetOption) => {
+                  const selected = broadcastForm.target === targetOption.value
+
+                  return (
+                    <button
+                      key={targetOption.value}
+                      type="button"
+                      onClick={() => setBroadcastForm((current) => ({ ...current, target: targetOption.value }))}
+                      className="w-full rounded-3xl px-4 py-4 text-left transition-colors"
+                      style={selected
+                        ? { background: 'rgba(13,148,136,0.10)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)' }
+                        : { background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+                          style={selected
+                            ? { background: 'rgba(13,148,136,0.14)', color: '#0f766e' }
+                            : { background: '#ffffffc9', color: 'var(--secondary)' }}
+                        >
+                          <i className={targetOption.icon} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-base-color">{targetOption.label}</div>
+                          <div className="text-xs text-secondary-color mt-1">{targetOption.description}</div>
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+
+                <div className="rounded-3xl px-4 py-4 text-sm" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-muted-color">{t('developerToolsPage.broadcast.recipientsLabel')}</div>
+                  <div className="text-lg font-bold text-base-color mt-1">{t('developerToolsPage.broadcast.recipientsValue', { count: formatCount(estimatedRecipients) })}</div>
+                  <div className="text-xs text-secondary-color mt-2">{selectedTargetLabel}</div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {broadcastForm.target === 'user' && (
+                  <FormField label={t('developerToolsPage.broadcast.userLabel')}>
+                    <select
+                      value={broadcastForm.userId}
+                      onChange={(event) => setBroadcastForm((current) => ({ ...current, userId: event.target.value }))}
+                      disabled={broadcastLoading || broadcastUsers.length === 0}
+                    >
+                      {broadcastUsers.length === 0 && (
+                        <option value="">{t('developerToolsPage.broadcast.targets.user.empty')}</option>
+                      )}
+                      {broadcastUsers.map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {[user.name, t(`badges.roles.${user.role}`), user.company_name || user.email].filter(Boolean).join(' · ')}
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
+                )}
+
+                {broadcastForm.target === 'company' && (
+                  <FormField label={t('developerToolsPage.broadcast.companyLabel')}>
+                    <select
+                      value={broadcastForm.companyId}
+                      onChange={(event) => setBroadcastForm((current) => ({ ...current, companyId: event.target.value }))}
+                      disabled={broadcastLoading || broadcastCompanies.length === 0}
+                    >
+                      {broadcastCompanies.length === 0 && (
+                        <option value="">{t('developerToolsPage.broadcast.targets.company.empty')}</option>
+                      )}
+                      {broadcastCompanies.map((company) => (
+                        <option key={company.id} value={company.id}>
+                          {company.name} · {t('developerToolsPage.broadcast.recipientsValue', { count: formatCount(company.active_users_count ?? 0) })}
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
+                )}
+
+                <FormField label={t('developerToolsPage.broadcast.titleLabel')} required>
+                  <input
+                    value={broadcastForm.title}
+                    onChange={(event) => setBroadcastForm((current) => ({ ...current, title: event.target.value }))}
+                    placeholder={t('developerToolsPage.broadcast.titlePlaceholder')}
+                    maxLength={120}
+                  />
+                </FormField>
+
+                <FormField label={t('developerToolsPage.broadcast.messageLabel')} required>
+                  <textarea
+                    rows="5"
+                    value={broadcastForm.message}
+                    onChange={(event) => setBroadcastForm((current) => ({ ...current, message: event.target.value }))}
+                    placeholder={t('developerToolsPage.broadcast.messagePlaceholder')}
+                    maxLength={500}
+                  />
+                </FormField>
+
+                <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                  {t('developerToolsPage.broadcast.serverHint')}
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="card">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5">
               <div>

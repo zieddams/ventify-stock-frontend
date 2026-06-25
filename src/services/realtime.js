@@ -62,17 +62,31 @@ export function getEcho() {
   return echoInstance
 }
 
-export function subscribeToOpsMonitor(callback) {
+export function subscribeToOpsMonitor(companyId, callback) {
   const echo = getEcho()
-  if (!echo) {
+  if (!echo || !companyId) {
     return () => {}
   }
 
-  const channel = echo.private('ops-monitor')
+  const channel = echo.private(`ops-monitor.company.${companyId}`)
   channel.listen('.ops.monitor.updated', callback)
 
   return () => {
     channel.stopListening('.ops.monitor.updated', callback)
+  }
+}
+
+export function subscribeToNotificationInbox(userId, callback) {
+  const echo = getEcho()
+  if (!echo || !userId) {
+    return () => {}
+  }
+
+  const channel = echo.private(`notifications.user.${userId}`)
+  channel.listen('.notifications.inbox.updated', callback)
+
+  return () => {
+    channel.stopListening('.notifications.inbox.updated', callback)
   }
 }
 

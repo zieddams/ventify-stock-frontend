@@ -1530,11 +1530,11 @@ export default function LiveMapIndex() {
   }, [activeTab, loadRouteTrace, selectedRepId, terrain.reps])
 
   useEffect(() => {
-    if (activeTab !== 'terrain') {
+    if (activeTab !== 'terrain' || !user?.company_id) {
       return undefined
     }
 
-    return subscribeToOpsMonitor((event) => {
+    return subscribeToOpsMonitor(user.company_id, (event) => {
       queueTerrainReload()
 
       const selectedRep = terrain.reps.find(rep => String(rep.id) === String(selectedRepId))
@@ -1542,7 +1542,7 @@ export default function LiveMapIndex() {
         queueTraceReload(selectedRep.route_session.id)
       }
     })
-  }, [activeTab, queueTerrainReload, queueTraceReload, selectedRepId, terrain.reps])
+  }, [activeTab, queueTerrainReload, queueTraceReload, selectedRepId, terrain.reps, user?.company_id])
 
   useEffect(() => () => {
     if (terrainReloadTimerRef.current) {

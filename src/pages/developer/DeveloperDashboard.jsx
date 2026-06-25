@@ -281,6 +281,9 @@ export default function DeveloperDashboard() {
               <Link to="/companies" className="btn-primary text-xs">
                 <i className="fa-solid fa-buildings" /> {t('developerWorkspace.launcher.openCompanies')}
               </Link>
+              <Link to="/developer-tools#broadcast-panel" className="btn-secondary text-xs">
+                <i className="fa-solid fa-bullhorn" /> {t('developerWorkspace.quickActions.broadcast')}
+              </Link>
               <Link to="/developer-tools" className="btn-secondary text-xs">
                 <i className="fa-solid fa-screwdriver-wrench" /> {t('layout.nav.developerTools')}
               </Link>
@@ -299,7 +302,7 @@ export default function DeveloperDashboard() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
         <MetricCard
           label={t('developerWorkspace.metrics.companies')}
           value={companies.length}
@@ -322,6 +325,13 @@ export default function DeveloperDashboard() {
           helper={t('developerToolsPage.metrics.targetedPages', { count: overview?.maintenance?.paths?.length || 0 })}
           icon="fa-solid fa-screwdriver-wrench"
           tone="#f97316"
+        />
+        <MetricCard
+          label={t('developerWorkspace.metrics.broadcast')}
+          value={overview?.broadcast?.active_users ?? 0}
+          helper={t('developerWorkspace.metrics.broadcastCompanies', { count: overview?.broadcast?.active_companies ?? 0 })}
+          icon="fa-solid fa-bullhorn"
+          tone="#0f766e"
         />
         <MetricCard
           label={t('developerWorkspace.metrics.demo')}
@@ -374,6 +384,12 @@ export default function DeveloperDashboard() {
                 icon="fa-solid fa-buildings"
                 title={t('layout.nav.companies')}
                 description={t('developerWorkspace.quickActions.descriptions.companies')}
+              />
+              <ActionSurface
+                to="/developer-tools#broadcast-panel"
+                icon="fa-solid fa-bullhorn"
+                title={t('developerWorkspace.quickActions.broadcast')}
+                description={t('developerWorkspace.quickActions.descriptions.broadcast')}
               />
               <ActionSurface
                 to="/developer-tools"

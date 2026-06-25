@@ -4,10 +4,9 @@ import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../contexts/AuthContext'
 import { useI18n } from '../../contexts/I18nContext'
 import api from '../../services/api'
-import { subscribeToOpsMonitor } from '../../services/realtime'
+import { subscribeToNotificationInbox } from '../../services/realtime'
 import {
   formatNotificationAge,
-  shouldRefreshNotificationsForEvent,
   notificationChanges,
   resolveNotificationConfig,
 } from '../../utils/notificationActivity'
@@ -65,10 +64,8 @@ export default function NotificationsCenterIndex() {
       return undefined
     }
 
-    return subscribeToOpsMonitor((event) => {
-      if (shouldRefreshNotificationsForEvent(event.kind)) {
-        load()
-      }
+    return subscribeToNotificationInbox(user.id, () => {
+      load()
     })
   }, [load, user?.id])
 

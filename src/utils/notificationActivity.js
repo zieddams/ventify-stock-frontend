@@ -197,6 +197,13 @@ export const ACTIVITY_KIND_CONFIG = {
     bg: 'rgba(239,68,68,0.12)',
     labelKey: 'activity.kinds.bugReportCreated',
   },
+  'developer.broadcast': {
+    icon: 'fa-solid fa-bullhorn',
+    color: '#0f766e',
+    bg: 'rgba(13,148,136,0.12)',
+    labelKey: 'activity.kinds.developerBroadcast',
+    route: '/notifications-center',
+  },
 }
 
 const NOTIFICATION_REFRESH_EXCLUDED_KINDS = new Set([

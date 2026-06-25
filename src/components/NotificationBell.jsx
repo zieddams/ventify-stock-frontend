@@ -4,10 +4,9 @@ import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { useTheme } from '../contexts/ThemeContext'
-import { subscribeToOpsMonitor } from '../services/realtime'
+import { subscribeToNotificationInbox } from '../services/realtime'
 import {
   formatNotificationAge,
-  shouldRefreshNotificationsForEvent,
   notificationChanges,
   resolveNotificationConfig,
 } from '../utils/notificationActivity'
@@ -189,10 +188,8 @@ export default function NotificationBell() {
       return undefined
     }
 
-    return subscribeToOpsMonitor((event) => {
-      if (shouldRefreshNotificationsForEvent(event.kind)) {
-        load({ announce: true })
-      }
+    return subscribeToNotificationInbox(user.id, () => {
+      load({ announce: true })
     })
   }, [load, user?.id])
 
