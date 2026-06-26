@@ -4,11 +4,12 @@ import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { useTheme } from '../contexts/ThemeContext'
-import { subscribeToNotificationInbox } from '../services/realtime'
+import { subscribeToNotificationInbox, subscribeToOpsMonitor } from '../services/realtime'
 import {
   formatNotificationAge,
   notificationChanges,
   resolveNotificationConfig,
+  shouldRefreshNotificationsForEvent,
 } from '../utils/notificationActivity'
 
 function requestDesktopPermission() {
@@ -36,13 +37,38 @@ export default function NotificationBell() {
   const interactedRef = useRef(false)
   const audioContextRef = useRef(null)
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, sessionContext } = useAuth()
   const { t } = useI18n()
   const { isDark } = useTheme()
+  const liveCompanyId = sessionContext?.company_id ?? user?.company_id ?? user?.company?.id ?? null
 
   useEffect(() => {
     notifsRef.current = notifs
   }, [notifs])
+
+  const ensureAudioContext = useCallback(async () => {
+    if (typeof window === 'undefined' || !interactedRef.current) {
+      return null
+    }
+
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext
+    if (!AudioContextCtor) {
+      return null
+    }
+
+    try {
+      const context = audioContextRef.current ?? new AudioContextCtor()
+      audioContextRef.current = context
+
+      if (context.state === 'suspended') {
+        await context.resume()
+      }
+
+      return context
+    } catch {
+      return null
+    }
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -51,30 +77,26 @@ export default function NotificationBell() {
 
     const handleFirstInteraction = () => {
       interactedRef.current = true
+      void ensureAudioContext()
     }
 
     window.addEventListener('pointerdown', handleFirstInteraction, { once: true })
-    return () => window.removeEventListener('pointerdown', handleFirstInteraction)
-  }, [])
+    window.addEventListener('keydown', handleFirstInteraction, { once: true })
 
-  const playNotificationTone = useCallback(() => {
-    if (typeof window === 'undefined' || !interactedRef.current) {
-      return
+    return () => {
+      window.removeEventListener('pointerdown', handleFirstInteraction)
+      window.removeEventListener('keydown', handleFirstInteraction)
     }
+  }, [ensureAudioContext])
 
-    const AudioContextCtor = window.AudioContext || window.webkitAudioContext
-    if (!AudioContextCtor) {
+  const playNotificationTone = useCallback(async () => {
+    const context = await ensureAudioContext()
+
+    if (!context || context.state !== 'running') {
       return
     }
 
     try {
-      const context = audioContextRef.current ?? new AudioContextCtor()
-      audioContextRef.current = context
-
-      if (context.state === 'suspended') {
-        context.resume().catch(() => {})
-      }
-
       const oscillator = context.createOscillator()
       const gain = context.createGain()
       const now = context.currentTime
@@ -92,7 +114,7 @@ export default function NotificationBell() {
     } catch {
       // ignore browser audio restrictions
     }
-  }, [])
+  }, [ensureAudioContext])
 
   const announceIncomingNotifications = useCallback((freshUnread) => {
     if (!Array.isArray(freshUnread) || freshUnread.length === 0) {
@@ -103,7 +125,7 @@ export default function NotificationBell() {
     const cfg = resolveNotificationConfig(newest)
     const message = notificationMessage(newest, cfg.label) || t('notifications.newFallback')
 
-    playNotificationTone()
+    void playNotificationTone()
 
     if (typeof window === 'undefined' || !('Notification' in window)) {
       return
@@ -188,10 +210,26 @@ export default function NotificationBell() {
       return undefined
     }
 
-    return subscribeToNotificationInbox(user.id, () => {
-      load({ announce: true })
-    })
-  }, [load, user?.id])
+    const cleanups = [
+      subscribeToNotificationInbox(user.id, () => {
+        load({ announce: true })
+      }),
+    ]
+
+    if (liveCompanyId) {
+      cleanups.push(
+        subscribeToOpsMonitor(liveCompanyId, (event) => {
+          if (shouldRefreshNotificationsForEvent(event.kind)) {
+            load({ announce: true })
+          }
+        }),
+      )
+    }
+
+    return () => {
+      cleanups.forEach((cleanup) => cleanup?.())
+    }
+  }, [liveCompanyId, load, user?.id])
 
   const markNotificationRead = useCallback(async (notificationId) => {
     setNotifs((current) => current.map((item) => (
@@ -262,6 +300,9 @@ export default function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => {
+          interactedRef.current = true
+          void ensureAudioContext()
+
           if (!open) {
             requestDesktopPermission()
             load()
