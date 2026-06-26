@@ -39,6 +39,21 @@ const invoiceRecord = {
   ],
 }
 
+const stockMovementRecord = {
+  id: 91,
+  type: 'adjustment',
+  qty: -3,
+  note: 'Inventory correction.',
+  created_at: '2026-06-25T11:15:00.000Z',
+  product: {
+    name: 'Pompe 12V',
+    reference: 'PMP-12V',
+  },
+  user: {
+    name: 'Nour Ben Ali',
+  },
+}
+
 const currentUser = {
   company: {
     name: 'Atlas Distribution',
@@ -165,5 +180,30 @@ describe('invoice documents', () => {
         legal_name: 'Societe Papier',
       },
     })).toBe('Societe Papier')
+  })
+
+  it('reuses the same company identity on non-invoice stock movement documents', () => {
+    const model = buildDocumentModel({
+      documentKey: 'stock_movement_item',
+      records: [stockMovementRecord],
+      user: currentUser,
+      documentSettings: {
+        [DOCUMENT_COMPANY_PROFILE_SETTING_KEY]: {
+          legal_name: 'Atlas Distribution SARL',
+          siret: '123 456 789 00012',
+          phone: '+216 55 100 200',
+        },
+      },
+    })
+
+    expect(model.branding.companyName).toBe('Atlas Distribution')
+    expect(model.branding.headerLines).toContain('Atlas Distribution SARL')
+    expect(model.branding.headerLines).toContain('SIRET: 123 456 789 00012')
+    expect(model.branding.headerLines).toContain('+216 55 100 200')
+
+    const html = buildPrintHtml(model)
+    expect(html).toContain('Mouvement stock')
+    expect(html).toContain('Atlas Distribution SARL')
+    expect(html).toContain('Pompe 12V')
   })
 })
