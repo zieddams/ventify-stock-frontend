@@ -26,6 +26,7 @@ const OPERATIONS_NAV = [
   { to: '/users', icon: 'fa-solid fa-user-gear', labelKey: 'layout.nav.users' },
   { to: '/routes', icon: 'fa-solid fa-truck-fast', labelKey: 'layout.nav.routes' },
   { to: '/depot', icon: 'fa-solid fa-warehouse', labelKey: 'layout.nav.depot' },
+  { to: '/inventory', icon: 'fa-solid fa-clipboard-list', labelKey: 'layout.nav.inventory' },
   { to: '/config', icon: 'fa-solid fa-sliders', labelKey: 'layout.nav.config' },
 ]
 
