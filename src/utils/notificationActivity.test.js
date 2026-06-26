@@ -2,8 +2,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { DEFAULT_LOCALE, setRuntimeLocale, translate } from '../i18n/locales'
 import {
+  buildRealtimeNotificationSignature,
   notificationChanges,
   resolveNotificationConfig,
+  resolveRealtimeNotification,
   shouldRefreshNotificationsForEvent,
 } from './notificationActivity'
 
@@ -55,6 +57,41 @@ describe('notificationActivity', () => {
       color: '#0f766e',
       route: '/notifications-center',
       label: translate('fr-TN', 'activity.kinds.developerBroadcast'),
+    })
+  })
+
+  it('converts realtime inbox events into notification-like payloads for announce handling', () => {
+    const opsEvent = resolveRealtimeNotification({
+      kind: 'route.session.opened',
+      route: '/route-sessions/42',
+      message: 'Session ouverte',
+      occurred_at: '2026-06-26T12:00:00.000Z',
+    })
+
+    expect(opsEvent).toMatchObject({
+      type: 'OpsActivityNotification',
+      data: {
+        kind: 'route.session.opened',
+        route: '/route-sessions/42',
+        message: 'Session ouverte',
+      },
+    })
+    expect(buildRealtimeNotificationSignature({
+      kind: 'route.session.opened',
+      route: '/route-sessions/42',
+      message: 'Session ouverte',
+      occurred_at: '2026-06-26T12:00:00.000Z',
+    })).toBe('route.session.opened|/route-sessions/42|Session ouverte|2026-06-26T12:00:00.000Z')
+
+    const legacyEvent = resolveRealtimeNotification({
+      kind: 'DailySummaryNotification',
+      message: 'Resume disponible',
+    })
+
+    expect(resolveNotificationConfig(legacyEvent)).toMatchObject({
+      icon: 'fa-solid fa-chart-line',
+      route: '/reports',
+      label: translate('fr-TN', 'activity.types.dailySummary'),
     })
   })
 

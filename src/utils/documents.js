@@ -1,6 +1,7 @@
 import {
   DOCUMENT_COMPANY_PROFILE_SETTING_KEY,
   DOCUMENT_INVOICE_PRINTING_SETTING_KEY,
+  normalizeCompanyEntityDocumentProfile,
   normalizeDocumentCompanyProfile,
   normalizeInvoicePrintingSettings,
 } from '../hooks/useDocumentLayouts'
@@ -106,14 +107,20 @@ function resolveInvoicePrintingConfig(documentSettings) {
   )
 }
 
-function resolveDocumentCompanyProfile(documentSettings) {
-  if (documentSettings?.companyProfile) {
-    return normalizeDocumentCompanyProfile(documentSettings.companyProfile)
-  }
+function resolveDocumentCompanyProfile(documentSettings, user) {
+  const settingsProfile = documentSettings?.companyProfile
+    ? normalizeDocumentCompanyProfile(documentSettings.companyProfile)
+    : normalizeDocumentCompanyProfile(
+        documentSettings?.[DOCUMENT_COMPANY_PROFILE_SETTING_KEY],
+      )
+  const companyProfile = normalizeCompanyEntityDocumentProfile(user?.company)
 
-  return normalizeDocumentCompanyProfile(
-    documentSettings?.[DOCUMENT_COMPANY_PROFILE_SETTING_KEY],
-  )
+  return {
+    ...settingsProfile,
+    ...Object.fromEntries(
+      Object.entries(companyProfile).filter(([, value]) => cleanOptionalText(value) !== ''),
+    ),
+  }
 }
 
 function cleanDocumentBrandName(user, companyProfile) {
@@ -177,13 +184,13 @@ function buildCompanyProfileLines(companyName, companyProfile) {
 }
 
 function resolveDocumentTitleBrand(user, documentSettings) {
-  const companyProfile = resolveDocumentCompanyProfile(documentSettings)
+  const companyProfile = resolveDocumentCompanyProfile(documentSettings, user)
 
   return cleanDocumentBrandName(user, companyProfile)
 }
 
 export function buildCompanyScopedFilename(baseName, user, documentSettings) {
-  const companyProfile = resolveDocumentCompanyProfile(documentSettings)
+  const companyProfile = resolveDocumentCompanyProfile(documentSettings, user)
   const companySegment = normalizeFileSafeSegment(
     cleanOptionalText(user?.company?.slug)
       || cleanDocumentBrandName(user, companyProfile),
@@ -195,7 +202,7 @@ export function buildCompanyScopedFilename(baseName, user, documentSettings) {
 
 function buildDocumentBranding({ definition, record, user, documentSettings }) {
   const invoicePrinting = resolveInvoicePrintingConfig(documentSettings)
-  const companyProfile = resolveDocumentCompanyProfile(documentSettings)
+  const companyProfile = resolveDocumentCompanyProfile(documentSettings, user)
   const companyName = cleanDocumentBrandName(user, companyProfile)
   const companyLogoUrl = invoicePrinting.header_style === 'logo_and_name'
     && companyHasDedicatedLogo(user?.company)

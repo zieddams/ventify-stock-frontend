@@ -135,6 +135,33 @@ describe('invoice documents', () => {
     expect(html).not.toContain('Gestion de vente')
   })
 
+  it('prefers company-entity document metadata when no document settings payload is passed', () => {
+    const model = buildDocumentModel({
+      documentKey: 'invoice_detail',
+      records: [invoiceRecord],
+      user: {
+        company: {
+          ...currentUser.company,
+          legal_name: 'Atlas Distribution Officielle',
+          siret: 'ENT-ATLAS-2026',
+          tax_id: 'MF-ATLAS-2026',
+          phone: '+216 22 333 444',
+          email: 'legal@atlas.test',
+          address: 'Zone industrielle, Bizerte',
+          admin_name: 'Leila Triki',
+          admin_email: 'leila@atlas.test',
+        },
+      },
+    })
+
+    expect(model.branding.companyName).toBe('Atlas Distribution')
+    expect(model.branding.headerLines).toContain('Atlas Distribution Officielle')
+    expect(model.branding.headerLines).toContain('SIRET: ENT-ATLAS-2026 | MF: MF-ATLAS-2026')
+    expect(model.branding.headerLines).toContain('+216 22 333 444 | legal@atlas.test')
+    expect(model.branding.headerLines).toContain('Zone industrielle, Bizerte')
+    expect(model.branding.headerLines).toContain('Admin: Leila Triki | leila@atlas.test')
+  })
+
   it('keeps tax fields and logo branding enabled by default', () => {
     const model = buildDocumentModel({
       documentKey: 'invoice_detail',

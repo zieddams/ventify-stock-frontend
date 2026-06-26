@@ -6,11 +6,15 @@ import { useI18n } from '../contexts/I18nContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { subscribeToNotificationInbox, subscribeToOpsMonitor } from '../services/realtime'
 import {
+  buildRealtimeNotificationSignature,
   formatNotificationAge,
   notificationChanges,
+  resolveRealtimeNotification,
   resolveNotificationConfig,
   shouldRefreshNotificationsForEvent,
 } from '../utils/notificationActivity'
+
+const AUDIO_UNLOCK_STORAGE_KEY = 'ventify_notification_audio_unlocked'
 
 function requestDesktopPermission() {
   if (typeof window === 'undefined' || !('Notification' in window)) {
@@ -26,6 +30,30 @@ function notificationMessage(notification, fallbackLabel) {
   return notification?.data?.message || fallbackLabel || ''
 }
 
+function getStoredAudioUnlock() {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  try {
+    return window.sessionStorage.getItem(AUDIO_UNLOCK_STORAGE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function rememberStoredAudioUnlock() {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    window.sessionStorage.setItem(AUDIO_UNLOCK_STORAGE_KEY, '1')
+  } catch {
+    // ignore session storage restrictions
+  }
+}
+
 export default function NotificationBell() {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -34,8 +62,11 @@ export default function NotificationBell() {
   const ref = useRef(null)
   const notifsRef = useRef([])
   const loadPromiseRef = useRef(null)
+  const queuedLoadRef = useRef(false)
+  const queuedAnnounceRef = useRef(false)
   const interactedRef = useRef(false)
   const audioContextRef = useRef(null)
+  const lastRealtimeAnnouncementRef = useRef('')
   const navigate = useNavigate()
   const { user, sessionContext } = useAuth()
   const { t } = useI18n()
@@ -45,6 +76,11 @@ export default function NotificationBell() {
   useEffect(() => {
     notifsRef.current = notifs
   }, [notifs])
+
+  const rememberInteraction = useCallback(() => {
+    interactedRef.current = true
+    rememberStoredAudioUnlock()
+  }, [])
 
   const ensureAudioContext = useCallback(async () => {
     if (typeof window === 'undefined' || !interactedRef.current) {
@@ -60,15 +96,22 @@ export default function NotificationBell() {
       const context = audioContextRef.current ?? new AudioContextCtor()
       audioContextRef.current = context
 
-      if (context.state === 'suspended') {
+      if (context.state !== 'running') {
         await context.resume()
       }
 
-      return context
+      return context.state === 'running' ? context : null
     } catch {
       return null
     }
   }, [])
+
+  useEffect(() => {
+    if (getStoredAudioUnlock()) {
+      interactedRef.current = true
+      void ensureAudioContext()
+    }
+  }, [ensureAudioContext])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -76,7 +119,7 @@ export default function NotificationBell() {
     }
 
     const handleFirstInteraction = () => {
-      interactedRef.current = true
+      rememberInteraction()
       void ensureAudioContext()
     }
 
@@ -87,7 +130,7 @@ export default function NotificationBell() {
       window.removeEventListener('pointerdown', handleFirstInteraction)
       window.removeEventListener('keydown', handleFirstInteraction)
     }
-  }, [ensureAudioContext])
+  }, [ensureAudioContext, rememberInteraction])
 
   const playNotificationTone = useCallback(async () => {
     const context = await ensureAudioContext()
@@ -116,14 +159,13 @@ export default function NotificationBell() {
     }
   }, [ensureAudioContext])
 
-  const announceIncomingNotifications = useCallback((freshUnread) => {
-    if (!Array.isArray(freshUnread) || freshUnread.length === 0) {
+  const announceNotification = useCallback((notification) => {
+    if (!notification) {
       return
     }
 
-    const newest = freshUnread[0]
-    const cfg = resolveNotificationConfig(newest)
-    const message = notificationMessage(newest, cfg.label) || t('notifications.newFallback')
+    const cfg = resolveNotificationConfig(notification)
+    const message = notificationMessage(notification, cfg.label) || t('notifications.newFallback')
 
     void playNotificationTone()
 
@@ -138,7 +180,7 @@ export default function NotificationBell() {
     try {
       const desktopNotification = new window.Notification(t('app.name'), {
         body: message,
-        tag: newest.id,
+        tag: String(notification.id ?? cfg.route ?? message).slice(0, 180),
       })
 
       desktopNotification.onclick = () => {
@@ -155,8 +197,33 @@ export default function NotificationBell() {
     }
   }, [navigate, playNotificationTone, t])
 
+  const announceIncomingNotifications = useCallback((freshUnread) => {
+    if (!Array.isArray(freshUnread) || freshUnread.length === 0) {
+      return
+    }
+
+    announceNotification(freshUnread[0])
+  }, [announceNotification])
+
+  const announceRealtimeEvent = useCallback((event) => {
+    const signature = buildRealtimeNotificationSignature(event)
+
+    if (!signature || signature === '|||') {
+      return
+    }
+
+    if (signature === lastRealtimeAnnouncementRef.current) {
+      return
+    }
+
+    lastRealtimeAnnouncementRef.current = signature
+    announceNotification(resolveRealtimeNotification(event))
+  }, [announceNotification])
+
   const load = useCallback(async ({ announce = false } = {}) => {
     if (loadPromiseRef.current) {
+      queuedLoadRef.current = true
+      queuedAnnounceRef.current = queuedAnnounceRef.current || announce
       return loadPromiseRef.current
     }
 
@@ -182,6 +249,13 @@ export default function NotificationBell() {
       .finally(() => {
         setLoading(false)
         loadPromiseRef.current = null
+
+        if (queuedLoadRef.current) {
+          const nextAnnounce = queuedAnnounceRef.current
+          queuedLoadRef.current = false
+          queuedAnnounceRef.current = false
+          void load({ announce: nextAnnounce })
+        }
       })
 
     loadPromiseRef.current = request
@@ -211,8 +285,9 @@ export default function NotificationBell() {
     }
 
     const cleanups = [
-      subscribeToNotificationInbox(user.id, () => {
-        load({ announce: true })
+      subscribeToNotificationInbox(user.id, (event) => {
+        announceRealtimeEvent(event)
+        void load()
       }),
     ]
 
@@ -220,7 +295,7 @@ export default function NotificationBell() {
       cleanups.push(
         subscribeToOpsMonitor(liveCompanyId, (event) => {
           if (shouldRefreshNotificationsForEvent(event.kind)) {
-            load({ announce: true })
+            void load()
           }
         }),
       )
@@ -300,12 +375,12 @@ export default function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => {
-          interactedRef.current = true
+          rememberInteraction()
           void ensureAudioContext()
 
           if (!open) {
             requestDesktopPermission()
-            load()
+            void load()
           }
 
           setOpen((value) => !value)

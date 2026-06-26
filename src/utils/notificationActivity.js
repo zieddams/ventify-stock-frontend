@@ -253,6 +253,35 @@ export function resolveNotificationConfig(notification) {
   }
 }
 
+function cleanRealtimeEventPart(value) {
+  return String(value ?? '').trim()
+}
+
+export function buildRealtimeNotificationSignature(event = {}) {
+  return [
+    cleanRealtimeEventPart(event?.kind),
+    cleanRealtimeEventPart(event?.route),
+    cleanRealtimeEventPart(event?.message),
+    cleanRealtimeEventPart(event?.occurred_at),
+  ].join('|')
+}
+
+export function resolveRealtimeNotification(event = {}) {
+  const kind = cleanRealtimeEventPart(event?.kind)
+  const isOpsActivity = Boolean(kind && ACTIVITY_KIND_CONFIG[kind])
+  const signature = buildRealtimeNotificationSignature(event)
+
+  return {
+    id: cleanRealtimeEventPart(event?.id) || cleanRealtimeEventPart(event?.occurred_at) || signature || 'realtime-notification',
+    type: isOpsActivity ? 'OpsActivityNotification' : (kind || 'default'),
+    data: {
+      ...(isOpsActivity ? { kind } : {}),
+      route: cleanRealtimeEventPart(event?.route) || null,
+      message: cleanRealtimeEventPart(event?.message) || '',
+    },
+  }
+}
+
 export function notificationChanges(notification, limit = 4) {
   const explicitChanges = notification?.data?.changes
 

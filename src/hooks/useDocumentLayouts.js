@@ -45,6 +45,23 @@ export function normalizeDocumentCompanyProfile(value) {
   }
 }
 
+export function normalizeCompanyEntityDocumentProfile(company) {
+  const source = company && typeof company === 'object' && !Array.isArray(company)
+    ? {
+        legal_name: company.legal_name,
+        siret: company.siret,
+        tax_id: company.tax_id,
+        phone: company.phone,
+        email: company.email,
+        address: company.address,
+        admin_name: company.admin_name,
+        admin_email: company.admin_email,
+      }
+    : {}
+
+  return normalizeDocumentCompanyProfile(source)
+}
+
 export function useDocumentLayouts(options = {}) {
   const enabled = options.enabled !== false
   const [layouts, setLayouts] = useState({})
