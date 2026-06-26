@@ -2,6 +2,7 @@ import { useCallback, useDeferredValue, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import CustomerLedgerModal from '../../components/CustomerLedgerModal'
 import DepotScopeControls from '../../components/DepotScopeControls'
+import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
 import { useI18n } from '../../contexts/I18nContext'
@@ -153,11 +154,11 @@ export default function CreditIndex() {
           </div>
           <div>
             <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateFrom')}</label>
-            <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+            <FrenchDateTimeInput type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
           </div>
           <div>
             <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateTo')}</label>
-            <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+            <FrenchDateTimeInput type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
           </div>
           <div className="flex items-end md:col-span-4">
             <button

@@ -2,6 +2,7 @@ import { useDeferredValue, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PaymentStatusBadge, StatusBadge } from '../../components/Badge'
 import DepotScopeControls from '../../components/DepotScopeControls'
+import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
 import PageExportActions from '../../components/PageExportActions'
 import PaginationControls from '../../components/PaginationControls'
 import RowDocumentActions from '../../components/RowDocumentActions'
@@ -260,7 +261,7 @@ export default function InvoicesIndex() {
           </div>
           <div>
             <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateFrom')}</label>
-            <input
+            <FrenchDateTimeInput
               type="date"
               value={dateFrom}
               onChange={(event) => {
@@ -271,7 +272,7 @@ export default function InvoicesIndex() {
           </div>
           <div>
             <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateTo')}</label>
-            <input
+            <FrenchDateTimeInput
               type="date"
               value={dateTo}
               onChange={(event) => {

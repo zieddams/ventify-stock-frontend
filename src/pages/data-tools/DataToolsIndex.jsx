@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import DepotScopeControls from '../../components/DepotScopeControls'
+import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
 import PageHeader from '../../components/PageHeader'
 import { APP_VERSION } from '../../config/appMeta'
 import { useAuth } from '../../contexts/AuthContext'
@@ -823,11 +824,11 @@ export default function DataToolsIndex() {
                 <div className="grid grid-cols-2 gap-4 mb-5">
                   <div>
                     <label className="block text-xs font-medium text-muted-color mb-1">{t('common.dateFrom')}</label>
-                    <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+                    <FrenchDateTimeInput type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-muted-color mb-1">{t('common.dateTo')}</label>
-                    <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+                    <FrenchDateTimeInput type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
                   </div>
                 </div>
               ) : (

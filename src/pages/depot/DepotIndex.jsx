@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import FormField from '../../components/FormField'
+import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
 import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
 import PaginationControls from '../../components/PaginationControls'
@@ -611,11 +612,11 @@ export default function DepotIndex() {
             </div>
             <div>
               <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateFrom')}</label>
-              <input type="date" value={movementDateFrom} onChange={(event) => { setMovementPage(1); setMovementDateFrom(event.target.value) }} />
+              <FrenchDateTimeInput type="date" value={movementDateFrom} onChange={(event) => { setMovementPage(1); setMovementDateFrom(event.target.value) }} />
             </div>
             <div>
               <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateTo')}</label>
-              <input type="date" value={movementDateTo} onChange={(event) => { setMovementPage(1); setMovementDateTo(event.target.value) }} />
+              <FrenchDateTimeInput type="date" value={movementDateTo} onChange={(event) => { setMovementPage(1); setMovementDateTo(event.target.value) }} />
             </div>
           </div>
 

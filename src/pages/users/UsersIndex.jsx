@@ -308,11 +308,14 @@ export default function UsersIndex() {
       />
 
       <div className="card">
-        <div className="mb-4 rounded-2xl px-4 py-3 text-sm text-secondary-color" style={{ background: 'var(--surface-2)' }}>
-          {isDeveloperUser
-            ? t('usersPage.scopeHintDeveloper')
-            : t('usersPage.scopeHintCompany', { company: me?.company?.name || t('common.notAvailable') })}
-        </div>
+        {isDeveloperUser && (
+          <div
+            className="mb-4 rounded-2xl px-4 py-3 text-sm text-secondary-color"
+            style={{ background: 'var(--surface-2)' }}
+          >
+            {t('usersPage.scopeHintDeveloper')}
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

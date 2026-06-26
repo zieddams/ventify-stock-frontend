@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Modal from '../../components/Modal'
 import { DepotSelectionInfo } from '../../components/DepotScopeControls'
+import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
@@ -317,7 +318,7 @@ export default function ExpensesIndex() {
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.form.fields.date')}</label>
-              <input
+              <FrenchDateTimeInput
                 type="date"
                 value={form.expense_date}
                 onChange={(event) => setForm((current) => ({ ...current, expense_date: event.target.value }))}
@@ -397,7 +398,7 @@ export default function ExpensesIndex() {
               </div>
               <div>
                 <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.form.fields.paymentDate')}</label>
-                <input
+                <FrenchDateTimeInput
                   type="date"
                   value={form.payment_date}
                   onChange={(event) => setForm((current) => ({ ...current, payment_date: event.target.value }))}
@@ -437,7 +438,7 @@ export default function ExpensesIndex() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
             <div>
               <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.filters.month')}</label>
-              <input
+              <FrenchDateTimeInput
                 type="month"
                 value={month}
                 onChange={(event) => {
@@ -463,7 +464,7 @@ export default function ExpensesIndex() {
             </div>
             <div>
               <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateFrom')}</label>
-              <input
+              <FrenchDateTimeInput
                 type="date"
                 value={dateFrom}
                 onChange={(event) => {
@@ -474,7 +475,7 @@ export default function ExpensesIndex() {
             </div>
             <div>
               <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateTo')}</label>
-              <input
+              <FrenchDateTimeInput
                 type="date"
                 value={dateTo}
                 onChange={(event) => {
@@ -687,7 +688,7 @@ export default function ExpensesIndex() {
                 </div>
                 <div>
                   <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.paymentModal.fields.paymentDate')}</label>
-                  <input
+                  <FrenchDateTimeInput
                     type="date"
                     value={paymentForm.payment_date}
                     onChange={(event) => setPaymentForm((current) => ({ ...current, payment_date: event.target.value }))}

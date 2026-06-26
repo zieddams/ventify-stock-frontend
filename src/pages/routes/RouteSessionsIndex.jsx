@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import DepotScopeControls from '../../components/DepotScopeControls'
+import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
@@ -145,7 +146,7 @@ export default function RouteSessionsIndex() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label className="block text-xs text-muted-color mb-1 font-medium">{t('routeSessions.filters.specificDay')}</label>
-            <input
+            <FrenchDateTimeInput
               type="date"
               value={date}
               onChange={(event) => {
@@ -160,7 +161,7 @@ export default function RouteSessionsIndex() {
           </div>
           <div>
             <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateFrom')}</label>
-            <input
+            <FrenchDateTimeInput
               type="date"
               value={dateFrom}
               onChange={(event) => {
@@ -172,7 +173,7 @@ export default function RouteSessionsIndex() {
           </div>
           <div>
             <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateTo')}</label>
-            <input
+            <FrenchDateTimeInput
               type="date"
               value={dateTo}
               onChange={(event) => {

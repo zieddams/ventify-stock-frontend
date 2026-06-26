@@ -1,7 +1,35 @@
-import { getRuntimeLocale } from '../i18n/locales'
+import { FIXED_DATE_TIME_LOCALE, getRuntimeLocale } from '../i18n/locales'
+
+const DATE_FORMATTER = new Intl.DateTimeFormat(FIXED_DATE_TIME_LOCALE, {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+})
+
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat(FIXED_DATE_TIME_LOCALE, {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
+const TIME_FORMATTER = new Intl.DateTimeFormat(FIXED_DATE_TIME_LOCALE, {
+  hour: '2-digit',
+  minute: '2-digit',
+})
 
 function isArabicLocale() {
   return String(getRuntimeLocale() || '').startsWith('ar')
+}
+
+function toValidDate(value) {
+  if (!value) {
+    return null
+  }
+
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
 }
 
 function toNumber(value, fallback = 0) {
@@ -27,40 +55,30 @@ export function formatCurrency(value, digits = 3) {
 }
 
 export function formatDate(value) {
-  if (!value) {
+  const date = toValidDate(value)
+  if (!date) {
     return '--'
   }
 
-  return new Date(value).toLocaleDateString(getRuntimeLocale(), {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
+  return DATE_FORMATTER.format(date)
 }
 
 export function formatDateTime(value) {
-  if (!value) {
+  const date = toValidDate(value)
+  if (!date) {
     return '--'
   }
 
-  return new Date(value).toLocaleString(getRuntimeLocale(), {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return DATE_TIME_FORMATTER.format(date)
 }
 
 export function formatTime(value) {
-  if (!value) {
+  const date = toValidDate(value)
+  if (!date) {
     return '--'
   }
 
-  return new Date(value).toLocaleTimeString(getRuntimeLocale(), {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return TIME_FORMATTER.format(date)
 }
 
 export function formatElapsedSeconds(seconds) {

@@ -4,6 +4,8 @@ import frTN from './messages/fr-TN'
 export const DEFAULT_LOCALE = 'ar-TN'
 export const FALLBACK_LOCALE = 'fr-TN'
 export const LOCALE_STORAGE_KEY = 'irtiwaa-locale'
+export const FIXED_DATE_INPUT_LANG = 'fr-FR'
+export const FIXED_DATE_TIME_LOCALE = 'fr-FR-u-ca-gregory-hc-h23-nu-latn'
 
 export const SUPPORTED_LOCALES = [
   { code: 'ar-TN', direction: 'rtl', flag: 'tn' },

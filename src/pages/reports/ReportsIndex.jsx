@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import DepotScopeControls from '../../components/DepotScopeControls'
+import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
 import PageExportActions from '../../components/PageExportActions'
 import { PageLoader } from '../../components/Spinner'
 import { useI18n } from '../../contexts/I18nContext'
@@ -209,11 +210,11 @@ function ProfitTab({ scopeParams }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateFrom')}</label>
-              <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+              <FrenchDateTimeInput type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
             </div>
             <div>
               <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateTo')}</label>
-              <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+              <FrenchDateTimeInput type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
             </div>
           </div>
         </div>
@@ -378,7 +379,7 @@ function SitationTab({ scopeParams }) {
   return (
     <>
       <div className="flex items-center gap-3 mb-5">
-        <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} style={{ width: 'auto' }} />
+        <FrenchDateTimeInput type="month" value={month} onChange={(event) => setMonth(event.target.value)} style={{ width: 'auto' }} />
         <span className="text-xs text-muted-color">{t('reportsPage.sitation.monthHint')}</span>
       </div>
 
