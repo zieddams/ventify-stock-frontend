@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Modal from '../../components/Modal'
 import { DepotSelectionInfo } from '../../components/DepotScopeControls'
+import FrenchDateRangeInput from '../../components/FrenchDateRangeInput'
 import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
@@ -462,24 +463,14 @@ export default function ExpensesIndex() {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateFrom')}</label>
-              <FrenchDateTimeInput
-                type="date"
-                value={dateFrom}
-                onChange={(event) => {
-                  setDateFrom(event.target.value)
-                  setMonth('')
-                }}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateTo')}</label>
-              <FrenchDateTimeInput
-                type="date"
-                value={dateTo}
-                onChange={(event) => {
-                  setDateTo(event.target.value)
+            <div className="md:col-span-2">
+              <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateRange')}</label>
+              <FrenchDateRangeInput
+                valueFrom={dateFrom}
+                valueTo={dateTo}
+                onChange={({ from, to }) => {
+                  setDateFrom(from)
+                  setDateTo(to)
                   setMonth('')
                 }}
               />

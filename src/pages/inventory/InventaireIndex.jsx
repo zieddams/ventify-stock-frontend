@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import DepotScopeControls from '../../components/DepotScopeControls'
-import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
+import FrenchDateRangeInput from '../../components/FrenchDateRangeInput'
 import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
@@ -423,9 +423,16 @@ export default function InventaireIndex() {
 
           <div className="space-y-3 mb-4">
             <input value={historySearch} onChange={(event) => { setHistoryPage(1); setHistorySearch(event.target.value) }} placeholder={t('inventory.history.searchPlaceholder')} />
-            <div className="grid grid-cols-2 gap-2">
-              <FrenchDateTimeInput type="date" value={historyDateFrom} onChange={(event) => { setHistoryPage(1); setHistoryDateFrom(event.target.value) }} />
-              <FrenchDateTimeInput type="date" value={historyDateTo} onChange={(event) => { setHistoryPage(1); setHistoryDateTo(event.target.value) }} />
+            <div>
+              <FrenchDateRangeInput
+                valueFrom={historyDateFrom}
+                valueTo={historyDateTo}
+                onChange={({ from, to }) => {
+                  setHistoryPage(1)
+                  setHistoryDateFrom(from)
+                  setHistoryDateTo(to)
+                }}
+              />
             </div>
           </div>
 

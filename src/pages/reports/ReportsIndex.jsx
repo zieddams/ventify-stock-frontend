@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import DepotScopeControls from '../../components/DepotScopeControls'
+import FrenchDateRangeInput from '../../components/FrenchDateRangeInput'
 import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
 import PageExportActions from '../../components/PageExportActions'
 import { PageLoader } from '../../components/Spinner'
@@ -207,15 +208,16 @@ function ProfitTab({ scopeParams }) {
 
       {period === 'custom' && (
         <div className="card mb-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateFrom')}</label>
-              <FrenchDateTimeInput type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
-            </div>
-            <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateTo')}</label>
-              <FrenchDateTimeInput type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
-            </div>
+          <div>
+            <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateRange')}</label>
+            <FrenchDateRangeInput
+              valueFrom={dateFrom}
+              valueTo={dateTo}
+              onChange={({ from, to }) => {
+                setDateFrom(from)
+                setDateTo(to)
+              }}
+            />
           </div>
         </div>
       )}

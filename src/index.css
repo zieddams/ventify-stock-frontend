@@ -1352,6 +1352,48 @@ html.dark .picker-lab__react-input--frame {
   z-index: 35;
 }
 
+.picker-lab__react-popper--glass,
+.picker-lab__react-calendar--glass.react-datepicker {
+  --picker-accent: #0d9488;
+  --picker-accent-rgb: 13, 148, 136;
+}
+
+.picker-lab__react-popper--slate,
+.picker-lab__react-calendar--slate.react-datepicker {
+  --picker-accent: #1d4ed8;
+  --picker-accent-rgb: 29, 78, 216;
+}
+
+.picker-lab__react-popper--dock,
+.picker-lab__react-calendar--dock.react-datepicker {
+  --picker-accent: #0f766e;
+  --picker-accent-rgb: 15, 118, 110;
+}
+
+.picker-lab__react-popper--sage,
+.picker-lab__react-calendar--sage.react-datepicker {
+  --picker-accent: #6b8a74;
+  --picker-accent-rgb: 107, 138, 116;
+}
+
+.picker-lab__react-popper--pill,
+.picker-lab__react-calendar--pill.react-datepicker {
+  --picker-accent: #ea580c;
+  --picker-accent-rgb: 234, 88, 12;
+}
+
+.picker-lab__react-popper--frame,
+.picker-lab__react-calendar--frame.react-datepicker {
+  --picker-accent: #7c3aed;
+  --picker-accent-rgb: 124, 58, 237;
+}
+
+.irtiwaa-date-input__popper,
+.irtiwaa-date-input__calendar.react-datepicker {
+  --picker-accent: #0f766e;
+  --picker-accent-rgb: 15, 118, 110;
+}
+
 .picker-lab__react-popper .react-datepicker,
 .irtiwaa-date-input__popper .react-datepicker {
   width: min(360px, calc(100vw - 2rem));

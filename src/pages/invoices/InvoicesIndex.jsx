@@ -2,7 +2,7 @@ import { useDeferredValue, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PaymentStatusBadge, StatusBadge } from '../../components/Badge'
 import DepotScopeControls from '../../components/DepotScopeControls'
-import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
+import FrenchDateRangeInput from '../../components/FrenchDateRangeInput'
 import PageExportActions from '../../components/PageExportActions'
 import PaginationControls from '../../components/PaginationControls'
 import RowDocumentActions from '../../components/RowDocumentActions'
@@ -259,24 +259,14 @@ export default function InvoicesIndex() {
               <option value="paid">{t('invoices.paymentOptions.paid')}</option>
             </select>
           </div>
-          <div>
-            <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateFrom')}</label>
-            <FrenchDateTimeInput
-              type="date"
-              value={dateFrom}
-              onChange={(event) => {
-                setDateFrom(event.target.value)
-                setPeriod('custom')
-              }}
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateTo')}</label>
-            <FrenchDateTimeInput
-              type="date"
-              value={dateTo}
-              onChange={(event) => {
-                setDateTo(event.target.value)
+          <div className="md:col-span-2">
+            <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateRange')}</label>
+            <FrenchDateRangeInput
+              valueFrom={dateFrom}
+              valueTo={dateTo}
+              onChange={({ from, to }) => {
+                setDateFrom(from)
+                setDateTo(to)
                 setPeriod('custom')
               }}
             />

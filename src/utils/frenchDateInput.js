@@ -1,6 +1,7 @@
 export const DOCK_RAIL_DATE_PICKER_LOCALE = 'irtiwaa-fr'
 export const DOCK_RAIL_DATE_PICKER_ACCENT = '#0f766e'
 export const DOCK_RAIL_DATE_PICKER_ACCENT_RGB = '15, 118, 110'
+export const FRENCH_DATE_RANGE_SEPARATOR = ' au '
 
 const DATE_INPUT_TYPE_DATE = 'date'
 const DATE_INPUT_TYPE_MONTH = 'month'
@@ -169,6 +170,26 @@ export function getFrenchDateInputPlaceholder(type) {
   }
 
   return 'jj/mm/aaaa'
+}
+
+export function parseFrenchDateRangeValue(valueFrom, valueTo) {
+  return [
+    parseFrenchDateInputValue(DATE_INPUT_TYPE_DATE, valueFrom),
+    parseFrenchDateInputValue(DATE_INPUT_TYPE_DATE, valueTo),
+  ]
+}
+
+export function formatFrenchDateRangePayload(value) {
+  const [startDate, endDate] = Array.isArray(value) ? value : []
+
+  return {
+    from: formatFrenchDateInputPayload(DATE_INPUT_TYPE_DATE, startDate),
+    to: formatFrenchDateInputPayload(DATE_INPUT_TYPE_DATE, endDate),
+  }
+}
+
+export function getFrenchDateRangePlaceholder() {
+  return `jj/mm/aaaa${FRENCH_DATE_RANGE_SEPARATOR}jj/mm/aaaa`
 }
 
 export function usesMonthPicker(type) {

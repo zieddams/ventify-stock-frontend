@@ -25,6 +25,7 @@ export default {
     total: 'المجموع',
     status: 'الحالة',
     date: 'التاريخ',
+    dateRange: 'الفترة',
     dateFrom: 'من',
     dateTo: 'إلى',
     all: 'الكل',

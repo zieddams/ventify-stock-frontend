@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import FormField from '../../components/FormField'
-import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
+import FrenchDateRangeInput from '../../components/FrenchDateRangeInput'
 import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
 import PaginationControls from '../../components/PaginationControls'
@@ -610,13 +610,17 @@ export default function DepotIndex() {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateFrom')}</label>
-              <FrenchDateTimeInput type="date" value={movementDateFrom} onChange={(event) => { setMovementPage(1); setMovementDateFrom(event.target.value) }} />
-            </div>
-            <div>
-              <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateTo')}</label>
-              <FrenchDateTimeInput type="date" value={movementDateTo} onChange={(event) => { setMovementPage(1); setMovementDateTo(event.target.value) }} />
+            <div className="md:col-span-2">
+              <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateRange')}</label>
+              <FrenchDateRangeInput
+                valueFrom={movementDateFrom}
+                valueTo={movementDateTo}
+                onChange={({ from, to }) => {
+                  setMovementPage(1)
+                  setMovementDateFrom(from)
+                  setMovementDateTo(to)
+                }}
+              />
             </div>
           </div>
 

@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest'
 
 import {
   formatFrenchDateInputPayload,
+  formatFrenchDateRangePayload,
   getFrenchDateInputDisplayFormat,
   getFrenchDateInputPlaceholder,
+  getFrenchDateRangePlaceholder,
   normalizeFrenchDateInputType,
+  parseFrenchDateRangeValue,
   parseFrenchDateInputValue,
   usesMonthPicker,
   usesTimeInput,
@@ -52,6 +55,22 @@ describe('frenchDateInput helpers', () => {
     expect(parseFrenchDateInputValue('datetime-local', '2026-06-26 09:45')).toBeNull()
     expect(parseFrenchDateInputValue('datetime-local', '2026-02-31T09:45')).toBeNull()
     expect(formatFrenchDateInputPayload('date', null)).toBe('')
+  })
+
+  it('parses and serializes range payloads for the shared Dock Rail range field', () => {
+    const [startDate, endDate] = parseFrenchDateRangeValue('2026-06-17', '2026-06-26')
+
+    expect(startDate).toBeInstanceOf(Date)
+    expect(endDate).toBeInstanceOf(Date)
+    expect(formatFrenchDateRangePayload([startDate, endDate])).toEqual({
+      from: '2026-06-17',
+      to: '2026-06-26',
+    })
+    expect(formatFrenchDateRangePayload(null)).toEqual({
+      from: '',
+      to: '',
+    })
+    expect(getFrenchDateRangePlaceholder()).toBe('jj/mm/aaaa au jj/mm/aaaa')
   })
 
   it('exposes the Dock Rail display metadata for date, month, and datetime fields', () => {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import DepotScopeControls from '../../components/DepotScopeControls'
+import FrenchDateRangeInput from '../../components/FrenchDateRangeInput'
 import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
@@ -159,27 +160,16 @@ export default function RouteSessionsIndex() {
               }}
             />
           </div>
-          <div>
-            <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateFrom')}</label>
-            <FrenchDateTimeInput
-              type="date"
-              value={dateFrom}
-              onChange={(event) => {
+          <div className="md:col-span-2">
+            <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateRange')}</label>
+            <FrenchDateRangeInput
+              valueFrom={dateFrom}
+              valueTo={dateTo}
+              onChange={({ from, to }) => {
                 setPage(1)
                 setDate('')
-                setDateFrom(event.target.value)
-              }}
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateTo')}</label>
-            <FrenchDateTimeInput
-              type="date"
-              value={dateTo}
-              onChange={(event) => {
-                setPage(1)
-                setDate('')
-                setDateTo(event.target.value)
+                setDateFrom(from)
+                setDateTo(to)
               }}
             />
           </div>

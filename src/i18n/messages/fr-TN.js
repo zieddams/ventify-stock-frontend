@@ -25,6 +25,7 @@ export default {
     total: 'Total',
     status: 'Statut',
     date: 'Date',
+    dateRange: 'Periode',
     dateFrom: 'Du',
     dateTo: 'Au',
     all: 'Tous',
