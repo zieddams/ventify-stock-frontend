@@ -1,6 +1,6 @@
 {
   "name": "ventify-stock-frontend",
-  "version": "2.11.23",
+  "version": "2.11.24",
   "type": "module",
   "scripts": {
     "dev": "vite",
