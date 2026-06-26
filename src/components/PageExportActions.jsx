@@ -1,8 +1,13 @@
 import { useState } from 'react'
-import { APP_NAME } from '../config/appMeta'
+import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { useDocumentLayouts } from '../hooks/useDocumentLayouts'
-import { downloadDocumentPdf, printGeneratedDocument } from '../utils/documents'
+import {
+  buildCompanyScopedFilename,
+  downloadDocumentPdf,
+  printGeneratedDocument,
+  resolveDocumentFallbackTitle,
+} from '../utils/documents'
 import { downloadCsvExport, printCurrentDocument } from '../utils/exporting'
 
 export default function PageExportActions({
@@ -21,11 +26,17 @@ export default function PageExportActions({
   currentUser = null,
 }) {
   const { t } = useI18n()
-  const shouldLoadLayouts = Boolean(documentKey) && documentLayouts == null
-  const { layouts: fetchedDocumentLayouts } = useDocumentLayouts({ enabled: shouldLoadLayouts })
+  const { user: authUser } = useAuth()
+  const shouldLoadDocumentConfig = Boolean(documentKey) && (documentLayouts == null || documentSettings == null)
+  const {
+    layouts: fetchedDocumentLayouts,
+    documentSettings: fetchedDocumentSettings,
+  } = useDocumentLayouts({ enabled: shouldLoadDocumentConfig })
   const [csvExporting, setCsvExporting] = useState(false)
   const [busyAction, setBusyAction] = useState('')
+  const activeUser = currentUser ?? authUser
   const activeDocumentLayouts = documentLayouts ?? fetchedDocumentLayouts
+  const activeDocumentSettings = documentSettings ?? fetchedDocumentSettings
   const documentRecords = Array.isArray(records)
     ? records
     : record
@@ -38,7 +49,11 @@ export default function PageExportActions({
 
     setCsvExporting(true)
     try {
-      await downloadCsvExport(csvEntity, csvParams, csvFilename || csvEntity)
+      await downloadCsvExport(
+        csvEntity,
+        csvParams,
+        buildCompanyScopedFilename(csvFilename || csvEntity, activeUser, activeDocumentSettings),
+      )
     } catch (error) {
       alert(error.response?.data?.message || t('documents.exportUnavailable'))
     } finally {
@@ -48,7 +63,7 @@ export default function PageExportActions({
 
   const handlePdf = async () => {
     if (!hasDocumentTemplate) {
-      printCurrentDocument(title ? `${title} | ${APP_NAME}` : APP_NAME)
+      printCurrentDocument(resolveDocumentFallbackTitle(title, activeUser, activeDocumentSettings))
       return
     }
 
@@ -63,8 +78,8 @@ export default function PageExportActions({
         subtitle,
         filename,
         meta,
-        documentSettings,
-        user: currentUser,
+        documentSettings: activeDocumentSettings,
+        user: activeUser,
       })
     } catch (error) {
       alert(error?.message === 'print_window_blocked'
@@ -88,8 +103,8 @@ export default function PageExportActions({
           subtitle,
           filename,
           meta,
-          documentSettings,
-          user: currentUser,
+          documentSettings: activeDocumentSettings,
+          user: activeUser,
         })
     } catch (error) {
       alert(error?.message === 'print_window_blocked'
@@ -101,7 +116,7 @@ export default function PageExportActions({
       return
     }
 
-    printCurrentDocument(title ? `${title} | ${APP_NAME}` : APP_NAME)
+    printCurrentDocument(resolveDocumentFallbackTitle(title, activeUser, activeDocumentSettings))
   }
 
   return (

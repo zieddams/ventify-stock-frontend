@@ -1,10 +1,13 @@
-import { APP_NAME } from '../config/appMeta'
 import {
+  DOCUMENT_COMPANY_PROFILE_SETTING_KEY,
   DOCUMENT_INVOICE_PRINTING_SETTING_KEY,
+  normalizeDocumentCompanyProfile,
   normalizeInvoicePrintingSettings,
 } from '../hooks/useDocumentLayouts'
 import { companyHasDedicatedLogo } from './branding'
 import { asText, formatDateTime, getDefaultDocumentFieldKeys, getDocumentDefinition } from './documentDefinitions'
+
+const DEFAULT_DOCUMENT_BRAND_NAME = 'El Irtiwaa'
 
 function normalizeFileSafeSegment(value) {
   return String(value ?? '')
@@ -103,14 +106,103 @@ function resolveInvoicePrintingConfig(documentSettings) {
   )
 }
 
+function resolveDocumentCompanyProfile(documentSettings) {
+  if (documentSettings?.companyProfile) {
+    return normalizeDocumentCompanyProfile(documentSettings.companyProfile)
+  }
+
+  return normalizeDocumentCompanyProfile(
+    documentSettings?.[DOCUMENT_COMPANY_PROFILE_SETTING_KEY],
+  )
+}
+
+function cleanDocumentBrandName(user, companyProfile) {
+  return cleanOptionalText(user?.company?.name)
+    || cleanOptionalText(companyProfile?.legal_name)
+    || DEFAULT_DOCUMENT_BRAND_NAME
+}
+
+function buildCompanyProfileLines(companyName, companyProfile) {
+  const lines = []
+  const legalName = cleanOptionalText(companyProfile?.legal_name)
+  const identityBits = []
+  const contactBits = []
+  const adminBits = []
+
+  if (legalName && legalName.toLowerCase() !== companyName.toLowerCase()) {
+    lines.push(legalName)
+  }
+
+  if (cleanOptionalText(companyProfile?.siret)) {
+    identityBits.push(`SIRET: ${cleanOptionalText(companyProfile.siret)}`)
+  }
+
+  if (cleanOptionalText(companyProfile?.tax_id)) {
+    identityBits.push(`MF: ${cleanOptionalText(companyProfile.tax_id)}`)
+  }
+
+  if (identityBits.length > 0) {
+    lines.push(identityBits.join(' | '))
+  }
+
+  if (cleanOptionalText(companyProfile?.phone)) {
+    contactBits.push(cleanOptionalText(companyProfile.phone))
+  }
+
+  if (cleanOptionalText(companyProfile?.email)) {
+    contactBits.push(cleanOptionalText(companyProfile.email))
+  }
+
+  if (contactBits.length > 0) {
+    lines.push(contactBits.join(' | '))
+  }
+
+  if (cleanOptionalText(companyProfile?.address)) {
+    lines.push(cleanOptionalText(companyProfile.address))
+  }
+
+  if (cleanOptionalText(companyProfile?.admin_name)) {
+    adminBits.push(`Admin: ${cleanOptionalText(companyProfile.admin_name)}`)
+  }
+
+  if (cleanOptionalText(companyProfile?.admin_email)) {
+    adminBits.push(cleanOptionalText(companyProfile.admin_email))
+  }
+
+  if (adminBits.length > 0) {
+    lines.push(adminBits.join(' | '))
+  }
+
+  return lines
+}
+
+function resolveDocumentTitleBrand(user, documentSettings) {
+  const companyProfile = resolveDocumentCompanyProfile(documentSettings)
+
+  return cleanDocumentBrandName(user, companyProfile)
+}
+
+export function buildCompanyScopedFilename(baseName, user, documentSettings) {
+  const companyProfile = resolveDocumentCompanyProfile(documentSettings)
+  const companySegment = normalizeFileSafeSegment(
+    cleanOptionalText(user?.company?.slug)
+      || cleanDocumentBrandName(user, companyProfile),
+  )
+  const baseSegment = normalizeFileSafeSegment(baseName) || 'document'
+
+  return companySegment ? `${companySegment}_${baseSegment}` : baseSegment
+}
+
 function buildDocumentBranding({ definition, record, user, documentSettings }) {
   const invoicePrinting = resolveInvoicePrintingConfig(documentSettings)
-  const companyName = cleanOptionalText(user?.company?.name) || APP_NAME
+  const companyProfile = resolveDocumentCompanyProfile(documentSettings)
+  const companyName = cleanDocumentBrandName(user, companyProfile)
   const companyLogoUrl = invoicePrinting.header_style === 'logo_and_name'
     && companyHasDedicatedLogo(user?.company)
     ? cleanOptionalText(user?.company?.logo_url)
     : ''
   const headerLines = [
+    ...buildCompanyProfileLines(companyName, companyProfile),
     ...splitMultilineText(invoicePrinting.header_note),
     ...(isInvoiceDocument(definition) ? buildDepotLines(record, invoicePrinting.show_depot_details) : []),
   ]
@@ -301,7 +393,10 @@ export function buildDocumentModel({
     key: definition.key,
     title: title || definition.title,
     subtitle: subtitle || definition.description,
-    filename: ensurePdfFilename(filename, definition.filename || definition.title),
+    filename: ensurePdfFilename(
+      buildCompanyScopedFilename(filename || definition.filename || definition.title, user, documentSettings),
+      buildCompanyScopedFilename(definition.filename || definition.title, user, documentSettings),
+    ),
     orientation: layout.orientation,
     meta: [
       ...meta.filter(Boolean),
@@ -318,7 +413,7 @@ export function buildDocumentModel({
 
 export function buildPrintHtml(model) {
   const brandLogoUrl = cleanOptionalText(model.branding?.companyLogoUrl)
-  const brandName = cleanOptionalText(model.branding?.companyName) || APP_NAME
+  const brandName = cleanOptionalText(model.branding?.companyName) || DEFAULT_DOCUMENT_BRAND_NAME
   const headerLines = Array.isArray(model.branding?.headerLines) ? model.branding.headerLines : []
   const footerNote = cleanOptionalText(model.branding?.footerNote)
 
@@ -740,7 +835,7 @@ export async function downloadDocumentPdf(options) {
   const bottom = 30
   const maxWidth = pageWidth - left - right
   let cursorY = top
-  const brandName = cleanOptionalText(model.branding?.companyName) || APP_NAME
+  const brandName = cleanOptionalText(model.branding?.companyName) || DEFAULT_DOCUMENT_BRAND_NAME
   const brandLogoDataUrl = await loadImageAsDataUrl(model.branding?.companyLogoUrl)
   const brandHeaderLines = Array.isArray(model.branding?.headerLines) ? model.branding.headerLines : []
   const footerNote = cleanOptionalText(model.branding?.footerNote)
@@ -932,4 +1027,10 @@ export function printGeneratedDocument(options) {
     const popupTarget = createPopupPrintTarget(html)
     schedulePrint(popupTarget.printWindow, popupTarget.cleanup)
   }
+}
+
+export function resolveDocumentFallbackTitle(title, user, documentSettings) {
+  const brandName = resolveDocumentTitleBrand(user, documentSettings)
+
+  return title ? `${title} | ${brandName}` : brandName || DEFAULT_DOCUMENT_BRAND_NAME
 }

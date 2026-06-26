@@ -10,8 +10,10 @@ import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import SystemTasksPanel from './SystemTasksPanel'
 import {
+  DOCUMENT_COMPANY_PROFILE_SETTING_KEY,
   DOCUMENT_INVOICE_PRINTING_SETTING_KEY,
   DOCUMENT_LAYOUT_SETTING_KEY,
+  normalizeDocumentCompanyProfile,
   normalizeDocumentLayouts,
   normalizeInvoicePrintingSettings,
 } from '../../hooks/useDocumentLayouts'
@@ -45,6 +47,7 @@ const SYSTEM_SETTING_KEYS = [
 const DOCUMENT_SETTING_KEYS = [
   DOCUMENT_LAYOUT_SETTING_KEY,
   DOCUMENT_INVOICE_PRINTING_SETTING_KEY,
+  DOCUMENT_COMPANY_PROFILE_SETTING_KEY,
 ]
 const HIDDEN_CONFIG_SECTIONS = new Set(['map-provider', 'map-status'])
 
@@ -667,6 +670,9 @@ export default function ConfigIndex() {
   const invoicePrintingSettings = normalizeInvoicePrintingSettings(
     settingsByKey[DOCUMENT_INVOICE_PRINTING_SETTING_KEY]?.value,
   )
+  const documentCompanyProfile = normalizeDocumentCompanyProfile(
+    settingsByKey[DOCUMENT_COMPANY_PROFILE_SETTING_KEY]?.value,
+  )
   const activeDocumentEntity = documentEntityGroups.find((item) => item.key === documentEntityKey) ?? documentEntityGroups[0]
   const documentDefinitions = useMemo(() => (
     activeDocumentEntity.definitionKeys
@@ -755,6 +761,13 @@ export default function ConfigIndex() {
   const updateInvoicePrintingSettings = (patch) => {
     updateSetting(DOCUMENT_INVOICE_PRINTING_SETTING_KEY, {
       ...invoicePrintingSettings,
+      ...patch,
+    })
+  }
+
+  const updateDocumentCompanyProfile = (patch) => {
+    updateSetting(DOCUMENT_COMPANY_PROFILE_SETTING_KEY, {
+      ...documentCompanyProfile,
       ...patch,
     })
   }
@@ -1006,6 +1019,94 @@ export default function ConfigIndex() {
                 placeholder={t('configPage.documents.invoiceProfilePlaceholders.footerNote')}
               />
             </FormField>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-start gap-3 mb-4">
+            <i className="fa-solid fa-building mt-0.5" style={{ color: '#0d9488' }} />
+            <div>
+              <div className="text-sm font-semibold text-base-color">{t('configPage.documents.companyProfileTitle')}</div>
+              <div className="text-xs text-muted-color mt-1">
+                {t('configPage.documents.companyProfileDescription')}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label={t('configPage.documents.companyProfileFields.legalName')}>
+              <input
+                value={documentCompanyProfile.legal_name}
+                onChange={(event) => updateDocumentCompanyProfile({ legal_name: event.target.value })}
+                placeholder={t('configPage.documents.companyProfilePlaceholders.legalName')}
+              />
+            </FormField>
+
+            <FormField label={t('configPage.documents.companyProfileFields.siret')}>
+              <input
+                value={documentCompanyProfile.siret}
+                onChange={(event) => updateDocumentCompanyProfile({ siret: event.target.value })}
+                placeholder={t('configPage.documents.companyProfilePlaceholders.siret')}
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <FormField label={t('configPage.documents.companyProfileFields.taxId')}>
+              <input
+                value={documentCompanyProfile.tax_id}
+                onChange={(event) => updateDocumentCompanyProfile({ tax_id: event.target.value })}
+                placeholder={t('configPage.documents.companyProfilePlaceholders.taxId')}
+              />
+            </FormField>
+
+            <FormField label={t('configPage.documents.companyProfileFields.phone')}>
+              <input
+                value={documentCompanyProfile.phone}
+                onChange={(event) => updateDocumentCompanyProfile({ phone: event.target.value })}
+                placeholder={t('configPage.documents.companyProfilePlaceholders.phone')}
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <FormField label={t('configPage.documents.companyProfileFields.email')}>
+              <input
+                value={documentCompanyProfile.email}
+                onChange={(event) => updateDocumentCompanyProfile({ email: event.target.value })}
+                placeholder={t('configPage.documents.companyProfilePlaceholders.email')}
+              />
+            </FormField>
+
+            <FormField label={t('configPage.documents.companyProfileFields.address')}>
+              <input
+                value={documentCompanyProfile.address}
+                onChange={(event) => updateDocumentCompanyProfile({ address: event.target.value })}
+                placeholder={t('configPage.documents.companyProfilePlaceholders.address')}
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <FormField label={t('configPage.documents.companyProfileFields.adminName')}>
+              <input
+                value={documentCompanyProfile.admin_name}
+                onChange={(event) => updateDocumentCompanyProfile({ admin_name: event.target.value })}
+                placeholder={t('configPage.documents.companyProfilePlaceholders.adminName')}
+              />
+            </FormField>
+
+            <FormField label={t('configPage.documents.companyProfileFields.adminEmail')}>
+              <input
+                value={documentCompanyProfile.admin_email}
+                onChange={(event) => updateDocumentCompanyProfile({ admin_email: event.target.value })}
+                placeholder={t('configPage.documents.companyProfilePlaceholders.adminEmail')}
+              />
+            </FormField>
+          </div>
+
+          <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color mt-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+            {t('configPage.documents.companyProfileNotice')}
           </div>
         </div>
 

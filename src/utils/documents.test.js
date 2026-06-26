@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { DOCUMENT_INVOICE_PRINTING_SETTING_KEY } from '../hooks/useDocumentLayouts'
-import { buildDocumentModel, buildPrintHtml } from './documents'
+import {
+  DOCUMENT_COMPANY_PROFILE_SETTING_KEY,
+  DOCUMENT_INVOICE_PRINTING_SETTING_KEY,
+} from '../hooks/useDocumentLayouts'
+import { buildCompanyScopedFilename, buildDocumentModel, buildPrintHtml, resolveDocumentFallbackTitle } from './documents'
 
 const invoiceRecord = {
   id: 14,
@@ -39,6 +42,7 @@ const invoiceRecord = {
 const currentUser = {
   company: {
     name: 'Atlas Distribution',
+    slug: 'atlas-distribution',
     logo_path: 'company-logos/atlas.png',
     logo_url: 'https://example.test/logo-atlas.png',
   },
@@ -84,6 +88,38 @@ describe('invoice documents', () => {
     expect(html).not.toContain('Montant TVA')
   })
 
+  it('injects company-scoped business identity fields into document branding when configured', () => {
+    const model = buildDocumentModel({
+      documentKey: 'invoice_detail',
+      records: [invoiceRecord],
+      user: currentUser,
+      documentSettings: {
+        [DOCUMENT_COMPANY_PROFILE_SETTING_KEY]: {
+          legal_name: 'Atlas Distribution SARL',
+          siret: '123 456 789 00012',
+          tax_id: '1234567/A/M/000',
+          phone: '+216 55 100 200',
+          email: 'contact@atlas.test',
+          address: 'Rue du Lac, Tunis',
+          admin_name: 'Nour Ben Ali',
+          admin_email: 'admin@atlas.test',
+        },
+      },
+    })
+
+    expect(model.branding.companyName).toBe('Atlas Distribution')
+    expect(model.branding.headerLines).toContain('Atlas Distribution SARL')
+    expect(model.branding.headerLines).toContain('SIRET: 123 456 789 00012 | MF: 1234567/A/M/000')
+    expect(model.branding.headerLines).toContain('+216 55 100 200 | contact@atlas.test')
+    expect(model.branding.headerLines).toContain('Rue du Lac, Tunis')
+    expect(model.branding.headerLines).toContain('Admin: Nour Ben Ali | admin@atlas.test')
+
+    const html = buildPrintHtml(model)
+    expect(html).toContain('Atlas Distribution SARL')
+    expect(html).toContain('SIRET: 123 456 789 00012 | MF: 1234567/A/M/000')
+    expect(html).not.toContain('Gestion de vente')
+  })
+
   it('keeps tax fields and logo branding enabled by default', () => {
     const model = buildDocumentModel({
       documentKey: 'invoice_detail',
@@ -119,5 +155,15 @@ describe('invoice documents', () => {
     })
 
     expect(model.branding.companyLogoUrl).toBe('')
+  })
+
+  it('builds company-scoped export names and fallback print titles without the old generic brand', () => {
+    expect(buildCompanyScopedFilename('factures', currentUser, null)).toBe('atlas_distribution_factures')
+    expect(resolveDocumentFallbackTitle('Factures', currentUser, null)).toBe('Factures | Atlas Distribution')
+    expect(resolveDocumentFallbackTitle('', null, {
+      [DOCUMENT_COMPANY_PROFILE_SETTING_KEY]: {
+        legal_name: 'Societe Papier',
+      },
+    })).toBe('Societe Papier')
   })
 })

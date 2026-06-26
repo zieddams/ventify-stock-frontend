@@ -12,6 +12,7 @@ import {
   clearDataTransferHistory,
   readDataTransferHistory,
 } from '../../utils/dataTransferHistory'
+import { buildCompanyScopedFilename } from '../../utils/documents'
 import { downloadCsvExport } from '../../utils/exporting'
 
 const IMPORT_TYPES = [
@@ -496,7 +497,11 @@ export default function DataToolsIndex() {
       if (exportSupportsDepot && selectedExportDepotId) {
         params.depot_id = selectedExportDepotId
       }
-      const filename = await downloadCsvExport(exportType, params, exportType)
+      const filename = await downloadCsvExport(
+        exportType,
+        params,
+        buildCompanyScopedFilename(exportType, user, null),
+      )
       const depotLabel = exportSupportsDepot
         ? (selectedExportDepot?.name ?? (canSelectAll ? t('layout.depotAll') : t('depot.label')))
         : null

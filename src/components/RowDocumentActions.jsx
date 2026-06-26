@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
+import { useDocumentLayouts } from '../hooks/useDocumentLayouts'
 import { downloadDocumentPdf, printGeneratedDocument } from '../utils/documents'
 
 function ActionButton({ children, title, disabled, onClick }) {
@@ -28,18 +30,27 @@ export default function RowDocumentActions({
   currentUser = null,
 }) {
   const { t } = useI18n()
+  const { user: authUser } = useAuth()
+  const shouldLoadDocumentConfig = Boolean(documentKey) && (documentLayouts == null || documentSettings == null)
+  const {
+    layouts: fetchedDocumentLayouts,
+    documentSettings: fetchedDocumentSettings,
+  } = useDocumentLayouts({ enabled: shouldLoadDocumentConfig })
   const [busyAction, setBusyAction] = useState('')
+  const activeUser = currentUser ?? authUser
+  const activeDocumentLayouts = documentLayouts ?? fetchedDocumentLayouts
+  const activeDocumentSettings = documentSettings ?? fetchedDocumentSettings
 
   const buildOptions = {
     documentKey,
     records: record ? [record] : [],
-    documentLayouts,
+    documentLayouts: activeDocumentLayouts,
     title,
     subtitle,
     filename,
     meta,
-    documentSettings,
-    user: currentUser,
+    documentSettings: activeDocumentSettings,
+    user: activeUser,
   }
 
   const handlePdf = async () => {

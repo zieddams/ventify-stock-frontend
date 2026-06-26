@@ -3,6 +3,7 @@ import api from '../services/api'
 
 export const DOCUMENT_LAYOUT_SETTING_KEY = 'documents.layouts'
 export const DOCUMENT_INVOICE_PRINTING_SETTING_KEY = 'documents.invoice_printing'
+export const DOCUMENT_COMPANY_PROFILE_SETTING_KEY = 'documents.company_profile'
 
 export function normalizeDocumentLayouts(value) {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -26,6 +27,21 @@ export function normalizeInvoicePrintingSettings(value) {
     show_depot_details: showDepotDetails,
     header_note: headerNote,
     footer_note: footerNote,
+  }
+}
+
+export function normalizeDocumentCompanyProfile(value) {
+  const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {}
+
+  return {
+    legal_name: typeof source.legal_name === 'string' ? source.legal_name : '',
+    siret: typeof source.siret === 'string' ? source.siret : '',
+    tax_id: typeof source.tax_id === 'string' ? source.tax_id : '',
+    phone: typeof source.phone === 'string' ? source.phone : '',
+    email: typeof source.email === 'string' ? source.email : '',
+    address: typeof source.address === 'string' ? source.address : '',
+    admin_name: typeof source.admin_name === 'string' ? source.admin_name : '',
+    admin_email: typeof source.admin_email === 'string' ? source.admin_email : '',
   }
 }
 
@@ -84,6 +100,18 @@ export function useDocumentLayouts(options = {}) {
     loading,
     setLayouts,
     settingsByKey,
+    documentSettings: {
+      ...settingsByKey,
+      invoicePrintSettings: normalizeInvoicePrintingSettings(
+        settingsByKey[DOCUMENT_INVOICE_PRINTING_SETTING_KEY]?.value,
+      ),
+      companyProfile: normalizeDocumentCompanyProfile(
+        settingsByKey[DOCUMENT_COMPANY_PROFILE_SETTING_KEY]?.value,
+      ),
+    },
+    companyProfile: normalizeDocumentCompanyProfile(
+      settingsByKey[DOCUMENT_COMPANY_PROFILE_SETTING_KEY]?.value,
+    ),
     invoicePrintSettings: normalizeInvoicePrintingSettings(
       settingsByKey[DOCUMENT_INVOICE_PRINTING_SETTING_KEY]?.value,
     ),
