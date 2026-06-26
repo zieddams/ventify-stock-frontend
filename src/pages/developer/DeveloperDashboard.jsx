@@ -278,6 +278,9 @@ export default function DeveloperDashboard() {
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
+              <Link to="/elements" className="btn-primary text-xs">
+                <i className="fa-solid fa-calendar-days" /> {t('developerWorkspace.nav.elements')}
+              </Link>
               <Link to="/companies" className="btn-primary text-xs">
                 <i className="fa-solid fa-building" /> {t('developerWorkspace.launcher.openCompanies')}
               </Link>
@@ -379,6 +382,12 @@ export default function DeveloperDashboard() {
             <div className="text-sm font-semibold text-base-color">{t('developerWorkspace.quickActions.title')}</div>
             <div className="mt-1 text-sm text-secondary-color">{t('developerWorkspace.quickActions.subtitle')}</div>
             <div className="mt-4 space-y-3">
+              <ActionSurface
+                to="/elements"
+                icon="fa-solid fa-calendar-days"
+                title={t('developerWorkspace.nav.elements')}
+                description={t('developerWorkspace.quickActions.descriptions.elements')}
+              />
               <ActionSurface
                 to="/companies"
                 icon="fa-solid fa-building"

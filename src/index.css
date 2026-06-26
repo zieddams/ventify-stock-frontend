@@ -626,6 +626,1103 @@ html.dark .rail-footer-version {
   box-shadow: none;
 }
 
+/* ─── Developer picker lab ──────────────────────────────────────────────── */
+.picker-lab-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2rem;
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at top right, rgba(255,255,255,0.55), rgba(255,255,255,0) 30%),
+    linear-gradient(135deg, rgba(13,148,136,0.14), rgba(59,130,246,0.11), rgba(234,88,12,0.08));
+  box-shadow: inset 0 0 0 1px rgba(13,148,136,0.12);
+}
+
+html.dark .picker-lab-hero {
+  background:
+    radial-gradient(circle at top right, rgba(255,255,255,0.12), rgba(255,255,255,0) 28%),
+    linear-gradient(135deg, rgba(13,148,136,0.18), rgba(37,99,235,0.18), rgba(234,88,12,0.14));
+  box-shadow: inset 0 0 0 1px rgba(45,212,191,0.16);
+}
+
+.picker-lab-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  background: rgba(255,255,255,0.76);
+  color: #0f766e;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+html.dark .picker-lab-hero__eyebrow {
+  background: rgba(15,23,42,0.46);
+  color: #ccfbf1;
+}
+
+.picker-lab-hero__side {
+  border-radius: 1.75rem;
+  padding: 1rem;
+  background: rgba(255,255,255,0.66);
+  box-shadow: inset 0 0 0 1px rgba(148,163,184,0.14);
+  backdrop-filter: blur(18px);
+}
+
+html.dark .picker-lab-hero__side {
+  background: rgba(15,23,42,0.34);
+  box-shadow: inset 0 0 0 1px rgba(148,163,184,0.12);
+}
+
+.picker-lab__anchor {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.picker-lab__anchor:hover {
+  transform: translateY(-1px);
+}
+
+.picker-lab__status-strip {
+  border-radius: 1.5rem;
+  padding: 1rem;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.picker-lab-shell {
+  position: relative;
+  overflow: visible;
+  border-radius: 2rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(var(--picker-accent-rgb), 0.12);
+  box-shadow: 0 22px 44px rgba(15,23,42,0.08);
+}
+
+.picker-lab-shell::before {
+  content: '';
+  position: absolute;
+  inset: -30% auto auto 55%;
+  width: 240px;
+  height: 240px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(var(--picker-accent-rgb), 0.16), rgba(var(--picker-accent-rgb), 0));
+  pointer-events: none;
+}
+
+.picker-lab-shell--glass {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.48)),
+    linear-gradient(145deg, rgba(13,148,136,0.14), rgba(255,255,255,0) 42%);
+  backdrop-filter: blur(24px);
+}
+
+.picker-lab-shell--slate {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.97), rgba(248,250,252,0.95)),
+    linear-gradient(135deg, rgba(29,78,216,0.08), rgba(255,255,255,0) 46%);
+}
+
+.picker-lab-shell--dock {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.96), rgba(241,245,249,0.94)),
+    linear-gradient(135deg, rgba(15,118,110,0.11), rgba(255,255,255,0) 44%);
+}
+
+.picker-lab-shell--sage {
+  background:
+    linear-gradient(180deg, rgba(249,251,249,0.98), rgba(241,246,242,0.95)),
+    linear-gradient(135deg, rgba(107,138,116,0.12), rgba(255,255,255,0) 48%);
+}
+
+.picker-lab-shell--dock::after {
+  content: '';
+  position: absolute;
+  top: 1.25rem;
+  bottom: 1.25rem;
+  left: 1.2rem;
+  width: 4px;
+  border-radius: 999px;
+  background: rgba(var(--picker-accent-rgb), 0.28);
+}
+
+.picker-lab-shell--pill {
+  background:
+    linear-gradient(180deg, rgba(255,247,237,0.92), rgba(255,255,255,0.88)),
+    linear-gradient(135deg, rgba(234,88,12,0.11), rgba(255,255,255,0) 46%);
+}
+
+.picker-lab-shell--frame {
+  background:
+    linear-gradient(180deg, rgba(250,245,255,0.96), rgba(255,255,255,0.9)),
+    linear-gradient(135deg, rgba(124,58,237,0.1), rgba(255,255,255,0) 46%);
+}
+
+html.dark .picker-lab-shell--glass {
+  background:
+    linear-gradient(180deg, rgba(15,23,42,0.78), rgba(15,23,42,0.52)),
+    linear-gradient(145deg, rgba(13,148,136,0.16), rgba(255,255,255,0) 42%);
+}
+
+html.dark .picker-lab-shell--slate {
+  background:
+    linear-gradient(180deg, rgba(15,23,42,0.92), rgba(17,24,39,0.9)),
+    linear-gradient(135deg, rgba(29,78,216,0.18), rgba(255,255,255,0) 48%);
+}
+
+html.dark .picker-lab-shell--dock {
+  background:
+    linear-gradient(180deg, rgba(15,23,42,0.9), rgba(17,24,39,0.88)),
+    linear-gradient(135deg, rgba(15,118,110,0.18), rgba(255,255,255,0) 48%);
+}
+
+html.dark .picker-lab-shell--sage {
+  background:
+    linear-gradient(180deg, rgba(18,28,24,0.96), rgba(15,23,42,0.92)),
+    linear-gradient(135deg, rgba(107,138,116,0.18), rgba(255,255,255,0) 48%);
+}
+
+html.dark .picker-lab-shell--pill {
+  background:
+    linear-gradient(180deg, rgba(31,22,16,0.92), rgba(15,23,42,0.9)),
+    linear-gradient(135deg, rgba(234,88,12,0.16), rgba(255,255,255,0) 46%);
+}
+
+html.dark .picker-lab-shell--frame {
+  background:
+    linear-gradient(180deg, rgba(24,16,34,0.94), rgba(15,23,42,0.92)),
+    linear-gradient(135deg, rgba(124,58,237,0.18), rgba(255,255,255,0) 46%);
+}
+
+.picker-lab__panel {
+  position: relative;
+  overflow: visible;
+  border-radius: 1.75rem;
+  padding: 1rem;
+  background: rgba(255,255,255,0.68);
+  box-shadow:
+    inset 0 0 0 1px rgba(148,163,184,0.14),
+    0 18px 32px rgba(15,23,42,0.06);
+  backdrop-filter: blur(20px);
+}
+
+html.dark .picker-lab__panel {
+  background: rgba(15,23,42,0.44);
+  box-shadow:
+    inset 0 0 0 1px rgba(148,163,184,0.12),
+    0 18px 32px rgba(2,6,23,0.18);
+}
+
+.picker-lab-shell--dock .picker-lab__panel,
+.picker-lab-shell--dock .picker-lab__control,
+.picker-lab-shell--slate .picker-lab__panel,
+.picker-lab-shell--slate .picker-lab__control {
+  border-radius: 1.35rem;
+}
+
+.picker-lab-shell--pill .picker-lab__panel {
+  border-radius: 2rem;
+}
+
+.picker-lab-shell--sage .picker-lab__panel,
+.picker-lab-shell--sage .picker-lab__control {
+  border-radius: 1.15rem;
+}
+
+.picker-lab-shell--frame .picker-lab__panel,
+.picker-lab-shell--frame .picker-lab__control {
+  border-radius: 1.1rem;
+}
+
+.picker-lab__scenario-icon {
+  display: flex;
+  height: 2.75rem;
+  width: 2.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+}
+
+.picker-lab__scenario-kicker {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.picker-lab__control {
+  position: relative;
+  overflow: visible;
+  border-radius: 1.5rem;
+  padding: 1rem;
+  background: rgba(255,255,255,0.7);
+  box-shadow: inset 0 0 0 1px rgba(148,163,184,0.14);
+}
+
+html.dark .picker-lab__control {
+  background: rgba(15,23,42,0.32);
+  box-shadow: inset 0 0 0 1px rgba(148,163,184,0.12);
+}
+
+.picker-lab__open-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.picker-lab__raw-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.picker-lab__control .flatpickr-wrapper {
+  display: block;
+  position: relative;
+}
+
+.picker-lab__control .flatpickr-wrapper::after {
+  content: '';
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-right: 2px solid rgba(var(--picker-accent-rgb), 0.6);
+  border-bottom: 2px solid rgba(var(--picker-accent-rgb), 0.6);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.picker-lab__text-input {
+  width: 100%;
+  border-radius: 1.1rem !important;
+  padding: 0.95rem 2.9rem 0.95rem 1rem !important;
+  background: rgba(255,255,255,0.92) !important;
+  border: 1px solid rgba(var(--picker-accent-rgb), 0.18) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.92),
+    0 12px 28px rgba(15,23,42,0.06) !important;
+  color: var(--text-base) !important;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+}
+
+html.dark .picker-lab__text-input {
+  background: rgba(15,23,42,0.7) !important;
+  border-color: rgba(var(--picker-accent-rgb), 0.26) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    0 12px 28px rgba(2,6,23,0.18) !important;
+}
+
+.picker-lab-shell--glass .picker-lab__text-input {
+  border-radius: 1.35rem !important;
+}
+
+.picker-lab-shell--pill .picker-lab__text-input {
+  border-radius: 999px !important;
+}
+
+.picker-lab__text-input--sage-flat {
+  border-radius: 0.95rem !important;
+  background: rgba(248,250,248,0.96) !important;
+  border-color: rgba(var(--picker-accent-rgb), 0.2) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.95),
+    0 10px 22px rgba(15,23,42,0.04) !important;
+}
+
+html.dark .picker-lab__text-input--sage-flat {
+  background: rgba(18,28,24,0.88) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 10px 22px rgba(2,6,23,0.16) !important;
+}
+
+.picker-lab__control .flatpickr-calendar.static {
+  position: absolute;
+  top: calc(100% + 0.75rem);
+  left: 0;
+  width: 100%;
+  min-width: 0;
+  margin-top: 0;
+  border: 0;
+  border-radius: 1.35rem;
+  background: rgba(255,255,255,0.96);
+  box-shadow:
+    0 24px 44px rgba(15,23,42,0.14),
+    inset 0 0 0 1px rgba(148,163,184,0.16);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: opacity 0.14s ease, transform 0.14s ease, visibility 0.14s ease;
+  z-index: 30;
+}
+
+html.dark .picker-lab__control .flatpickr-calendar.static {
+  background: rgba(15,23,42,0.98);
+  box-shadow:
+    0 24px 44px rgba(2,6,23,0.28),
+    inset 0 0 0 1px rgba(148,163,184,0.16);
+}
+
+.picker-lab__control .flatpickr-calendar.static::before,
+.picker-lab__control .flatpickr-calendar.static::after {
+  display: none;
+}
+
+.picker-lab__control .flatpickr-calendar.static.open {
+  width: 100%;
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.picker-lab__control .flatpickr-calendar.static.open .flatpickr-innerContainer,
+.picker-lab__control .flatpickr-calendar.static.open .flatpickr-rContainer,
+.picker-lab__control .flatpickr-calendar.static.open .flatpickr-days,
+.picker-lab__control .flatpickr-calendar.static.open .dayContainer {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
+.picker-lab__control .flatpickr-calendar.static.open .flatpickr-innerContainer {
+  display: block;
+}
+
+.picker-lab__control .flatpickr-innerContainer,
+.picker-lab__control .flatpickr-rContainer,
+.picker-lab__control .flatpickr-days,
+.picker-lab__control .dayContainer {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
+.picker-lab__control .flatpickr-calendar.static.open .dayContainer {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+  padding: 0.5rem 0.8rem 0.9rem;
+}
+
+.picker-lab__control .flatpickr-day {
+  max-width: none;
+  width: auto;
+  height: 2.65rem;
+  margin: 0;
+  line-height: 2.65rem;
+  border: 0;
+  border-radius: 1rem;
+  color: var(--text-base);
+  font-weight: 600;
+}
+
+.picker-lab__control .flatpickr-day.inRange,
+.picker-lab__control .flatpickr-day.prevMonthDay.inRange,
+.picker-lab__control .flatpickr-day.nextMonthDay.inRange,
+.picker-lab__control .flatpickr-day.today.inRange {
+  background: rgba(var(--picker-accent-rgb), 0.14);
+  color: var(--picker-accent);
+  box-shadow: none;
+}
+
+.picker-lab-shell--pill .picker-lab__control .flatpickr-day {
+  border-radius: 999px;
+}
+
+.picker-lab__control .flatpickr-day:hover,
+.picker-lab__control .flatpickr-day:focus {
+  background: rgba(var(--picker-accent-rgb), 0.12);
+  color: var(--picker-accent);
+}
+
+.picker-lab__control .flatpickr-day.today {
+  border: 1px solid rgba(var(--picker-accent-rgb), 0.28);
+  color: var(--picker-accent);
+}
+
+.picker-lab__control .flatpickr-day.selected,
+.picker-lab__control .flatpickr-day.startRange,
+.picker-lab__control .flatpickr-day.endRange,
+.picker-lab__control .flatpickr-day.selected:hover,
+.picker-lab__control .flatpickr-day.startRange:hover,
+.picker-lab__control .flatpickr-day.endRange:hover {
+  background: var(--picker-accent);
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(var(--picker-accent-rgb), 0.3);
+}
+
+.picker-lab__control .flatpickr-day.prevMonthDay,
+.picker-lab__control .flatpickr-day.nextMonthDay {
+  color: var(--text-muted);
+  opacity: 0.55;
+}
+
+.picker-lab__control .flatpickr-weekdays {
+  background: transparent;
+}
+
+.picker-lab__control .weekdaycontainer {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  width: 100%;
+  padding: 0 0.8rem;
+}
+
+.picker-lab__control span.flatpickr-weekday {
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.picker-lab__control .flatpickr-months {
+  padding: 0.85rem 0.7rem 0.25rem;
+  margin-bottom: 0.15rem;
+}
+
+.picker-lab__control .flatpickr-month {
+  color: var(--text-base);
+}
+
+.picker-lab__control .flatpickr-current-month {
+  padding-top: 0.25rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.picker-lab__control .flatpickr-current-month .flatpickr-monthDropdown-months,
+.picker-lab__control .flatpickr-current-month input.cur-year {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: var(--text-base) !important;
+  font-weight: 700;
+}
+
+.picker-lab__control .flatpickr-prev-month,
+.picker-lab__control .flatpickr-next-month {
+  fill: var(--text-base);
+  color: var(--text-base);
+}
+
+.picker-lab__control .flatpickr-prev-month:hover,
+.picker-lab__control .flatpickr-next-month:hover {
+  color: var(--picker-accent);
+  fill: var(--picker-accent);
+}
+
+.picker-lab__control .flatpickr-time {
+  max-height: none;
+  margin-top: 0.9rem;
+  border-top: 1px solid rgba(148,163,184,0.14);
+  background: transparent;
+  padding: 0.6rem 0.8rem 0.8rem;
+}
+
+.picker-lab__control .flatpickr-time .numInputWrapper,
+.picker-lab__control .flatpickr-time .flatpickr-time-separator,
+.picker-lab__control .flatpickr-time .flatpickr-am-pm {
+  color: var(--text-base);
+}
+
+.picker-lab__control .flatpickr-time input,
+.picker-lab__control .flatpickr-time .flatpickr-am-pm {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  font-weight: 700;
+}
+
+.picker-lab__control .flatpickr-time .numInputWrapper span.arrowUp:after,
+.picker-lab__control .flatpickr-time .numInputWrapper span.arrowDown:after {
+  border-bottom-color: var(--picker-accent);
+  border-top-color: var(--picker-accent);
+}
+
+.picker-lab-shell--sage .picker-lab__panel {
+  background: rgba(255,255,255,0.82);
+  box-shadow:
+    inset 0 0 0 1px rgba(107,138,116,0.12),
+    0 14px 26px rgba(15,23,42,0.05);
+  backdrop-filter: blur(14px);
+}
+
+html.dark .picker-lab-shell--sage .picker-lab__panel {
+  background: rgba(18,28,24,0.62);
+  box-shadow:
+    inset 0 0 0 1px rgba(107,138,116,0.16),
+    0 14px 28px rgba(2,6,23,0.18);
+}
+
+.picker-lab-shell--sage .picker-lab__control {
+  background: rgba(252,253,252,0.82);
+  box-shadow: inset 0 0 0 1px rgba(107,138,116,0.12);
+}
+
+html.dark .picker-lab-shell--sage .picker-lab__control {
+  background: rgba(18,28,24,0.42);
+  box-shadow: inset 0 0 0 1px rgba(107,138,116,0.14);
+}
+
+.picker-lab-shell--sage .picker-lab__control .flatpickr-calendar.static {
+  border-radius: 1rem;
+  background: rgba(250,252,250,0.98);
+  box-shadow:
+    0 20px 36px rgba(15,23,42,0.12),
+    inset 0 0 0 1px rgba(107,138,116,0.16);
+}
+
+html.dark .picker-lab-shell--sage .picker-lab__control .flatpickr-calendar.static {
+  background: rgba(18,28,24,0.98);
+  box-shadow:
+    0 20px 36px rgba(2,6,23,0.24),
+    inset 0 0 0 1px rgba(107,138,116,0.18);
+}
+
+.picker-lab-shell--sage .picker-lab__control .flatpickr-months {
+  padding-top: 0.95rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid rgba(var(--picker-accent-rgb), 0.12);
+}
+
+.picker-lab-shell--sage .picker-lab__control .flatpickr-day {
+  border-radius: 0.85rem;
+}
+
+.picker-lab__summary-item {
+  border-radius: 1.1rem;
+  padding: 0.8rem 0.9rem;
+  background: rgba(255,255,255,0.64);
+  box-shadow: inset 0 0 0 1px rgba(148,163,184,0.14);
+}
+
+html.dark .picker-lab__summary-item {
+  background: rgba(15,23,42,0.3);
+  box-shadow: inset 0 0 0 1px rgba(148,163,184,0.1);
+}
+
+.picker-lab__summary-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.picker-lab__summary-value {
+  margin-top: 0.45rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-base);
+  word-break: break-word;
+}
+
+.picker-lab__module-footer {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(148,163,184,0.14);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.irtiwaa-date-input-shell {
+  position: relative;
+  width: 100%;
+  --picker-accent: #0f766e;
+  --picker-accent-rgb: 15, 118, 110;
+}
+
+.irtiwaa-date-input-shell--compact {
+  max-width: 100%;
+}
+
+.irtiwaa-date-input-shell--disabled {
+  opacity: 0.78;
+}
+
+.picker-lab__react-wrapper,
+.irtiwaa-date-input__wrapper {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.picker-lab__react-wrapper::after,
+.irtiwaa-date-input__wrapper::after {
+  content: '';
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-right: 2px solid rgba(var(--picker-accent-rgb), 0.6);
+  border-bottom: 2px solid rgba(var(--picker-accent-rgb), 0.6);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.picker-lab__react-input,
+.irtiwaa-date-input__field {
+  width: 100% !important;
+  border-radius: 1.15rem !important;
+  padding: 0.95rem 2.9rem 0.95rem 1rem !important;
+  background: rgba(255,255,255,0.92) !important;
+  border: 1px solid rgba(var(--picker-accent-rgb), 0.18) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.92),
+    0 12px 28px rgba(15,23,42,0.06) !important;
+  color: var(--text-base) !important;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  direction: ltr;
+}
+
+.irtiwaa-date-input-shell--clearable .irtiwaa-date-input__field {
+  padding-right: 5rem !important;
+}
+
+.picker-lab__react-input::placeholder,
+.irtiwaa-date-input__field::placeholder {
+  color: var(--text-muted) !important;
+}
+
+html.dark .picker-lab__react-input,
+html.dark .irtiwaa-date-input__field {
+  background: rgba(15,23,42,0.72) !important;
+  border-color: rgba(var(--picker-accent-rgb), 0.26) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    0 12px 28px rgba(2,6,23,0.18) !important;
+}
+
+.picker-lab__react-input--slate,
+.picker-lab__react-input--dock,
+.irtiwaa-date-input__field {
+  border-radius: 1rem !important;
+}
+
+.picker-lab__react-input--pill {
+  border-radius: 999px !important;
+}
+
+.picker-lab__react-input--frame {
+  border-radius: 0.9rem !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.92),
+    0 0 0 4px rgba(var(--picker-accent-rgb), 0.05),
+    0 12px 28px rgba(15,23,42,0.06) !important;
+}
+
+html.dark .picker-lab__react-input--frame {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    0 0 0 4px rgba(var(--picker-accent-rgb), 0.08),
+    0 12px 28px rgba(2,6,23,0.18) !important;
+}
+
+.picker-lab__react-popper,
+.irtiwaa-date-input__popper {
+  z-index: 35;
+}
+
+.picker-lab__react-popper .react-datepicker,
+.irtiwaa-date-input__popper .react-datepicker {
+  width: min(360px, calc(100vw - 2rem));
+  border: 0;
+  border-radius: 1.35rem;
+  background: rgba(255,255,255,0.98);
+  box-shadow:
+    0 24px 44px rgba(15,23,42,0.14),
+    inset 0 0 0 1px rgba(148,163,184,0.16);
+  overflow: hidden;
+  font-family: inherit;
+  max-height: calc(100vh - 1.5rem);
+}
+
+html.dark .picker-lab__react-popper .react-datepicker,
+html.dark .irtiwaa-date-input__popper .react-datepicker {
+  background: rgba(15,23,42,0.98);
+  box-shadow:
+    0 24px 44px rgba(2,6,23,0.28),
+    inset 0 0 0 1px rgba(148,163,184,0.16);
+}
+
+.picker-lab__react-calendar--pill.react-datepicker {
+  border-radius: 1.7rem;
+}
+
+.picker-lab__react-calendar--frame.react-datepicker {
+  border-radius: 1rem;
+}
+
+.picker-lab__react-calendar--dock.react-datepicker {
+  border-radius: 1.1rem;
+}
+
+.irtiwaa-date-input__calendar.react-datepicker {
+  border-radius: 1.1rem;
+}
+
+.picker-lab__react-popper .react-datepicker__triangle,
+.irtiwaa-date-input__popper .react-datepicker__triangle {
+  display: none;
+}
+
+.picker-lab__react-popper .react-datepicker__header,
+.irtiwaa-date-input__popper .react-datepicker__header {
+  background: transparent;
+  border-bottom: 1px solid rgba(148,163,184,0.14);
+  padding: 0.95rem 0.9rem 0.55rem;
+}
+
+.picker-lab__react-popper .react-datepicker__current-month,
+.irtiwaa-date-input__popper .react-datepicker__current-month {
+  color: var(--text-base);
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.picker-lab__react-popper .react-datepicker__day-names,
+.picker-lab__react-popper .react-datepicker__week,
+.irtiwaa-date-input__popper .react-datepicker__day-names,
+.irtiwaa-date-input__popper .react-datepicker__week {
+  display: flex;
+  justify-content: center;
+  gap: 0.08rem;
+}
+
+.picker-lab__react-popper .react-datepicker__day-name,
+.picker-lab__react-popper .react-datepicker__day,
+.picker-lab__react-popper .react-datepicker__time-name,
+.irtiwaa-date-input__popper .react-datepicker__day-name,
+.irtiwaa-date-input__popper .react-datepicker__day,
+.irtiwaa-date-input__popper .react-datepicker__time-name {
+  width: 2.45rem;
+  line-height: 2.45rem;
+  margin: 0.12rem;
+}
+
+.picker-lab__react-popper .react-datepicker__day-name,
+.irtiwaa-date-input__popper .react-datepicker__day-name {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.picker-lab__react-popper .react-datepicker__day,
+.irtiwaa-date-input__popper .react-datepicker__day {
+  border-radius: 1rem;
+  color: var(--text-base);
+  font-weight: 600;
+}
+
+.picker-lab__react-calendar--pill .react-datepicker__day {
+  border-radius: 999px;
+}
+
+.picker-lab__react-popper .react-datepicker__day:hover,
+.picker-lab__react-popper .react-datepicker__day:focus,
+.irtiwaa-date-input__popper .react-datepicker__day:hover,
+.irtiwaa-date-input__popper .react-datepicker__day:focus {
+  background: rgba(var(--picker-accent-rgb), 0.12);
+  color: var(--picker-accent);
+}
+
+.picker-lab__react-popper .react-datepicker__day--today,
+.irtiwaa-date-input__popper .react-datepicker__day--today {
+  border: 1px solid rgba(var(--picker-accent-rgb), 0.28);
+  color: var(--picker-accent);
+}
+
+.picker-lab__react-popper .react-datepicker__day--selected,
+.picker-lab__react-popper .react-datepicker__day--keyboard-selected,
+.picker-lab__react-popper .react-datepicker__day--range-start,
+.picker-lab__react-popper .react-datepicker__day--range-end,
+.picker-lab__react-popper .react-datepicker__time-list-item--selected,
+.irtiwaa-date-input__popper .react-datepicker__day--selected,
+.irtiwaa-date-input__popper .react-datepicker__day--keyboard-selected,
+.irtiwaa-date-input__popper .react-datepicker__day--range-start,
+.irtiwaa-date-input__popper .react-datepicker__day--range-end,
+.irtiwaa-date-input__popper .react-datepicker__time-list-item--selected {
+  background: var(--picker-accent) !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 24px rgba(var(--picker-accent-rgb), 0.3);
+}
+
+.picker-lab__react-popper .react-datepicker__day--in-range,
+.picker-lab__react-popper .react-datepicker__day--in-selecting-range,
+.irtiwaa-date-input__popper .react-datepicker__day--in-range,
+.irtiwaa-date-input__popper .react-datepicker__day--in-selecting-range {
+  background: rgba(var(--picker-accent-rgb), 0.14);
+  color: var(--picker-accent);
+}
+
+.picker-lab__react-popper .react-datepicker__day--outside-month,
+.irtiwaa-date-input__popper .react-datepicker__day--outside-month {
+  color: var(--text-muted);
+  opacity: 0.55;
+}
+
+.picker-lab__react-popper .react-datepicker__navigation,
+.irtiwaa-date-input__popper .react-datepicker__navigation {
+  top: 0.95rem;
+}
+
+.picker-lab__react-popper .react-datepicker__navigation-icon::before,
+.irtiwaa-date-input__popper .react-datepicker__navigation-icon::before {
+  border-color: var(--text-base);
+}
+
+.picker-lab__react-popper .react-datepicker__navigation:hover *::before,
+.irtiwaa-date-input__popper .react-datepicker__navigation:hover *::before {
+  border-color: var(--picker-accent);
+}
+
+.picker-lab__react-popper .react-datepicker__month,
+.irtiwaa-date-input__popper .react-datepicker__month {
+  margin: 0.5rem 0.8rem 0.8rem;
+}
+
+.picker-lab__react-calendar--dock .react-datepicker__month,
+.irtiwaa-date-input__calendar .react-datepicker__month {
+  margin-bottom: 0.35rem;
+}
+
+.picker-lab__react-popper .react-datepicker__time-container,
+.irtiwaa-date-input__popper .react-datepicker__time-container {
+  border-left: 1px solid rgba(148,163,184,0.14);
+  width: 7.2rem;
+}
+
+.picker-lab__react-popper .react-datepicker__time-container .react-datepicker__time,
+.irtiwaa-date-input__popper .react-datepicker__time-container .react-datepicker__time {
+  background: transparent;
+}
+
+.picker-lab__react-popper .react-datepicker__time-container .react-datepicker__time-box,
+.irtiwaa-date-input__popper .react-datepicker__time-container .react-datepicker__time-box {
+  width: 7.2rem;
+}
+
+.picker-lab__react-popper .react-datepicker__time-container .react-datepicker__time-list-item,
+.irtiwaa-date-input__popper .react-datepicker__time-container .react-datepicker__time-list-item {
+  height: 2.2rem !important;
+  line-height: 2.2rem !important;
+  margin: 0.15rem 0.45rem;
+  border-radius: 0.8rem;
+  color: var(--text-base);
+}
+
+.picker-lab__react-popper .react-datepicker__time-container .react-datepicker__time-list-item:hover,
+.irtiwaa-date-input__popper .react-datepicker__time-container .react-datepicker__time-list-item:hover {
+  background: rgba(var(--picker-accent-rgb), 0.12);
+  color: var(--picker-accent);
+}
+
+.picker-lab__react-popper .react-datepicker__time-container .react-datepicker__header--time,
+.irtiwaa-date-input__popper .react-datepicker__time-container .react-datepicker__header--time {
+  background: transparent;
+  color: var(--text-base);
+  font-weight: 700;
+}
+
+.picker-lab__react-calendar--dock .react-datepicker__input-time-container {
+  clear: both;
+  width: auto;
+  margin: 0;
+  padding: 0.85rem 0.95rem 1rem;
+  border-top: 1px solid rgba(var(--picker-accent-rgb), 0.12);
+  background: linear-gradient(180deg, rgba(var(--picker-accent-rgb), 0.05), rgba(255,255,255,0));
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+}
+
+html.dark .picker-lab__react-calendar--dock .react-datepicker__input-time-container {
+  background: linear-gradient(180deg, rgba(var(--picker-accent-rgb), 0.09), rgba(15,23,42,0));
+}
+
+.irtiwaa-date-input__calendar .react-datepicker__input-time-container {
+  clear: both;
+  width: auto;
+  margin: 0;
+  padding: 0.85rem 0.95rem 1rem;
+  border-top: 1px solid rgba(var(--picker-accent-rgb), 0.12);
+  background: linear-gradient(180deg, rgba(var(--picker-accent-rgb), 0.05), rgba(255,255,255,0));
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+}
+
+html.dark .irtiwaa-date-input__calendar .react-datepicker__input-time-container {
+  background: linear-gradient(180deg, rgba(var(--picker-accent-rgb), 0.09), rgba(15,23,42,0));
+}
+
+.picker-lab__react-calendar--dock .react-datepicker-time__caption {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.irtiwaa-date-input__calendar .react-datepicker-time__caption {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.picker-lab__react-calendar--dock .react-datepicker-time__input-container,
+.picker-lab__react-calendar--dock .react-datepicker-time__input {
+  display: block;
+  width: 100%;
+}
+
+.irtiwaa-date-input__calendar .react-datepicker-time__input-container,
+.irtiwaa-date-input__calendar .react-datepicker-time__input {
+  display: block;
+  width: 100%;
+}
+
+.picker-lab__react-calendar--dock .react-datepicker-time__input {
+  margin-left: 0;
+}
+
+.irtiwaa-date-input__calendar .react-datepicker-time__input {
+  margin-left: 0;
+}
+
+.picker-lab__dock-time-field,
+.irtiwaa-date-input__time-field {
+  width: 100% !important;
+  border-radius: 0.9rem !important;
+  padding: 0.82rem 0.95rem !important;
+  background: rgba(255,255,255,0.94) !important;
+  border: 1px solid rgba(var(--picker-accent-rgb), 0.18) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.92),
+    0 10px 20px rgba(15,23,42,0.06) !important;
+  color: var(--text-base) !important;
+  font-weight: 700;
+}
+
+html.dark .picker-lab__dock-time-field,
+html.dark .irtiwaa-date-input__time-field {
+  background: rgba(15,23,42,0.72) !important;
+  border-color: rgba(var(--picker-accent-rgb), 0.24) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 10px 20px rgba(2,6,23,0.16) !important;
+}
+
+.irtiwaa-date-input__field:focus-visible {
+  outline: none;
+  border-color: rgba(var(--picker-accent-rgb), 0.32) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.92),
+    0 0 0 4px rgba(var(--picker-accent-rgb), 0.08),
+    0 12px 28px rgba(15,23,42,0.06) !important;
+}
+
+html.dark .irtiwaa-date-input__field:focus-visible {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    0 0 0 4px rgba(var(--picker-accent-rgb), 0.1),
+    0 12px 28px rgba(2,6,23,0.18) !important;
+}
+
+.irtiwaa-date-input__wrapper .react-datepicker__close-icon {
+  right: 2.7rem;
+  padding-right: 0;
+}
+
+.irtiwaa-date-input__wrapper .react-datepicker__close-icon::after {
+  width: 1.55rem;
+  height: 1.55rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(var(--picker-accent-rgb), 0.14);
+  color: var(--picker-accent);
+  font-size: 0.95rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.92),
+    0 8px 18px rgba(15,23,42,0.08);
+}
+
+html.dark .irtiwaa-date-input__wrapper .react-datepicker__close-icon::after {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 8px 18px rgba(2,6,23,0.16);
+}
+
+@media (max-width: 767px) {
+  .picker-lab-hero,
+  .picker-lab-shell {
+    padding: 1rem;
+    border-radius: 1.5rem;
+  }
+
+  .picker-lab__panel,
+  .picker-lab__control {
+    border-radius: 1.25rem;
+  }
+
+  .picker-lab__control .flatpickr-calendar.static {
+    left: 0;
+    right: 0;
+  }
+
+  .picker-lab__react-popper .react-datepicker {
+    width: min(330px, calc(100vw - 2rem));
+  }
+
+  .irtiwaa-date-input__popper .react-datepicker {
+    width: min(330px, calc(100vw - 2rem));
+  }
+
+  .picker-lab__control .flatpickr-day {
+    height: 2.45rem;
+    line-height: 2.45rem;
+  }
+}
+
 @media print {
   .no-print {
     display: none !important;

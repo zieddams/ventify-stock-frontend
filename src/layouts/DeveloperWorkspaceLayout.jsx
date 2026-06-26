@@ -12,6 +12,7 @@ const COMPANY_NAV_ICON = 'fa-solid fa-building'
 
 const DEVELOPER_NAV = [
   { to: '/developer', icon: 'fa-solid fa-compass-drafting', labelKey: 'developerWorkspace.nav.dashboard' },
+  { to: '/elements', icon: 'fa-solid fa-calendar-days', labelKey: 'developerWorkspace.nav.elements' },
   { to: '/companies', icon: COMPANY_NAV_ICON, labelKey: 'layout.nav.companies' },
   { to: '/developer-tools', icon: 'fa-solid fa-screwdriver-wrench', labelKey: 'layout.nav.developerTools' },
   { to: '/notifications-center', icon: 'fa-solid fa-bell', labelKey: 'layout.nav.notificationsCenter' },
@@ -22,6 +23,10 @@ const PAGE_META = {
   '/developer': {
     titleKey: 'developerWorkspace.page.dashboardTitle',
     subtitleKey: 'developerWorkspace.page.dashboardSubtitle',
+  },
+  '/elements': {
+    titleKey: 'developerElementsPage.page.title',
+    subtitleKey: 'developerElementsPage.page.subtitle',
   },
   '/companies': {
     titleKey: 'companiesPage.page.title',

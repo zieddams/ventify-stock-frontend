@@ -104,6 +104,7 @@ export default {
     sessionLabel: 'الجلسة الرئيسية متاع المطوّر',
     nav: {
       dashboard: 'الرؤية المعمارية',
+      elements: 'Elements',
     },
     page: {
       dashboardTitle: 'لوحة قيادة المطوّر',
@@ -144,6 +145,7 @@ export default {
       broadcast: 'ابعث إشعار',
       opsConsole: 'كونسول عمليات منفصلة',
       descriptions: {
+        elements: 'مقارنة فيها 6 candidats و2 libs: قاعدة محفوظة، Dock Rail هو الخيار الحالي، وزدنا Sage Flat كمنافس جديد.',
         companies: 'إنشاء الشركات، الشعار، seed التجربة وحوكمة الـ tenant.',
         broadcast: 'ابعث إعلان موجّه لمستخدم واحد، شركة وحدة، ولا كامل المنصّة.',
         tools: 'صيانة موجّهة، وضع الديمو، fresh install ومهامّ السيرفر.',
@@ -2198,6 +2200,104 @@ export default {
     },
     notAvailable: 'موش متوفر',
     systemFallback: 'السيستام',
+  },
+  developerElementsPage: {
+    page: {
+      title: 'Elements',
+      subtitle: 'مقارنة فيها 6 candidats: Glass Inline يبقى القاعدة، Dock Rail هو المتصدر، و Sage Flat داخل كمقترح هادئ جديد.',
+    },
+    hero: {
+      eyebrow: 'Date field lab',
+      description: 'السلوك يبقى نفسه: حقل مسكّر، يتحلّ بالكليك، واستعمال حقيقي للفواتير، التاريخ + الساعة والفترة. Dock Rail هو الاختيار الحالي، و Sage Flat جا كمقارنة اهدأ واكثر flat.',
+      note: 'Glass Inline يبقى محفوظ كقاعدة Flatpickr. Dock Rail ولى المفضل الحالي بعد اصلاح وضع التاريخ + الساعة، و Sage Flat يزيد قراءة plastique اهدأ ومتناغمة مع السيستام.',
+    },
+    links: {
+      title: 'وصول مباشر',
+      description: 'جرّب ال6 candidats في استعمال حقيقي وبعدها قلي هل Dock Rail بعد الاصلاح يكفي ولا Sage Flat يستحق نكملوا به.',
+    },
+    actions: {
+      today: 'تاريخ اليوم',
+      now: 'توة',
+      week: '7 ايام',
+      sample: 'ارجع للـ sample',
+      clear: 'فرّغ',
+    },
+    badges: {
+      accepted: 'القاعدة المحفوظة',
+      favorite: 'الخيار الحالي',
+      clickOpen: 'يفتح بالكليك',
+      range: 'Date range',
+      shared: '2 libs / 3 cas',
+    },
+    summary: {
+      display: 'العرض',
+      payload: 'Payload',
+      context: 'السياق',
+      empty: 'ما فما حتى قيمة',
+    },
+    scenarios: {
+      openHint: 'اكبس على الحقل باش يفتح الكالندر',
+      invoice: {
+        eyebrow: 'فاتورة',
+        title: 'تاريخ فقط',
+        description: 'حقل متاع فاتورة ولا وثيقة، يتحلّ بالكليك ويتسكر طبيعي بعد الاختيار.',
+        badge: 'Date',
+        fieldLabel: 'تاريخ الوثيقة',
+        placeholder: 'jj/mm/aaaa',
+        context: 'الاستعمال: فاتورة، مصروف، حركة ولا وثيقة بسيطة.',
+      },
+      schedule: {
+        eyebrow: 'تخطيط',
+        title: 'تاريخ + ساعة',
+        description: 'حقل لعملية مبرمجة ولا session يلزمها تحفظ التاريخ والساعة في نفس الحركة.',
+        badge: 'Date + heure',
+        fieldLabel: 'التاريخ والساعة',
+        timeField: 'الساعة',
+        placeholder: 'jj/mm/aaaa hh:mm',
+        context: 'الاستعمال: rendez-vous، مهمة مبرمجة، فتح ولا غلق بتاريخ ووقت.',
+      },
+      report: {
+        eyebrow: 'فلاتر',
+        title: 'Date range',
+        description: 'حقل periode يتحلّ بالكليك لاختيار البداية والنهاية من غير ما يبقى الكالندر ظاهر ديما.',
+        badge: 'Range',
+        fieldLabel: 'الفترة',
+        placeholder: 'jj/mm/aaaa au jj/mm/aaaa',
+        context: 'الاستعمال: تقارير، فواتير، historique وجداول فيها filtres.',
+      },
+    },
+    designs: {
+      glass: {
+        title: 'Glass Inline',
+        blurb: 'المرشح 01 محافظين عليه. Flatpickr يبقى هنا كقاعدة قبلناها.',
+        helper: 'هذا هو المرجع الحالي: حضور premium، حقل مسكّر، فتح واضح وإحساس اعتبرناه مقبول.',
+      },
+      slate: {
+        title: 'Slate Pop',
+        blurb: 'اول challenger بReact Datepicker، ابرد شوية واكثر editorial.',
+        helper: 'تنجم تنفع إذا تحب حقل واضح، مستقيم واكثر desktop في صفحات التسيير.',
+      },
+      dock: {
+        title: 'Dock Rail',
+        blurb: 'نسخة اكثر structure فيها repere جانبي، قراءة back-office، وتاريخ + ساعة ولى اهدأ واقل طول.',
+        helper: 'هذا هو الخيار الحالي للlists، filtres وصفحات الاعدادات كي نحبوا حضور واضح من غير popup ثقيل.',
+      },
+      sage: {
+        title: 'Sage Flat',
+        blurb: 'مقترح جديد اهدأ، افلط، وفيه plastique خفيف ومتوازن مع روح المنصة.',
+        helper: 'ينجم يكون قوي إذا تحب مظهر رزين، calm وpremium من غير برشة حركة بصرية.',
+      },
+      pill: {
+        title: 'Soft Pill',
+        blurb: 'نسخة اطرى، اكور واكثر tactile.',
+        helper: 'تنجم تكون باهية إذا تحب لغة اقرب للموبايل، الطراوة البصرية والوضوح في الشاشات الضيقة.',
+      },
+      frame: {
+        title: 'Frame Panel',
+        blurb: 'نسخة cadre، اوضح شوية وتعطي احساس تقني اكثر.',
+        helper: 'تنجم تكون candidate قوية إذا تحب variant ادق، اشد وتعطي احساس controle واضح.',
+      },
+    },
   },
   developerToolsPage: {
     page: {

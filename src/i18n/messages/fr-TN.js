@@ -104,6 +104,7 @@ export default {
     sessionLabel: 'Session développeur principale',
     nav: {
       dashboard: 'Vue architecte',
+      elements: 'Elements',
     },
     page: {
       dashboardTitle: 'Tableau de bord développeur',
@@ -144,6 +145,7 @@ export default {
       broadcast: 'Diffuser une notification',
       opsConsole: 'Console ops séparée',
       descriptions: {
+        elements: 'Comparateur a 6 candidats avec 2 librairies: base conservee, choix actuel Dock Rail et nouveau challenger Sage Flat.',
         companies: 'Création société, logo, seed de test et gouvernance de tenant.',
         broadcast: 'Envoyer une annonce ciblée à un utilisateur, une société ou toute la plateforme.',
         tools: 'Maintenance ciblée, mode démo, fresh install et tâches serveur.',
@@ -2199,6 +2201,104 @@ export default {
     },
     notAvailable: 'Non disponible',
     systemFallback: 'Système',
+  },
+  developerElementsPage: {
+    page: {
+      title: 'Elements',
+      subtitle: 'Comparateur a 6 candidats: Glass Inline reste la base, Dock Rail mene et Sage Flat arrive comme nouvelle piste calme.',
+    },
+    hero: {
+      eyebrow: 'Date field lab',
+      description: 'Le comportement reste le meme: champ ferme, ouverture au clic, usage reel facture / date-heure / periode. Dock Rail est le choix actuel, et Sage Flat arrive comme comparaison plus calme et plus plate.',
+      note: 'Glass Inline reste garde comme base Flatpickr. Dock Rail devient le favori courant apres correction du mode date + heure, et Sage Flat ajoute une autre lecture plastique plus sage.',
+    },
+    links: {
+      title: 'Acces direct',
+      description: 'Testez les 6 candidats en conditions reelles puis dites-moi si Dock Rail fixe suffit ou si Sage Flat merite la suite.',
+    },
+    actions: {
+      today: 'Date du jour',
+      now: 'Maintenant',
+      week: '7 jours',
+      sample: 'Revenir au sample',
+      clear: 'Vider',
+    },
+    badges: {
+      accepted: 'Base gardee',
+      favorite: 'Choix actuel',
+      clickOpen: 'Ouverture au clic',
+      range: 'Date range',
+      shared: '2 libs / 3 cas',
+    },
+    summary: {
+      display: 'Affichage',
+      payload: 'Payload',
+      context: 'Contexte',
+      empty: 'Aucune valeur',
+    },
+    scenarios: {
+      openHint: 'Cliquez sur le champ pour ouvrir le calendrier',
+      invoice: {
+        eyebrow: 'Facture',
+        title: 'Date seule',
+        description: 'Champ type facture ou document, avec ouverture au clic et fermeture naturelle apres selection.',
+        badge: 'Date',
+        fieldLabel: 'Date document',
+        placeholder: 'jj/mm/aaaa',
+        context: 'Usage cible: facture, depense, mouvement ou piece simple.',
+      },
+      schedule: {
+        eyebrow: 'Planification',
+        title: 'Date + heure',
+        description: 'Champ pour une action planifiee ou une session qui doit garder la date et l’heure dans le meme geste.',
+        badge: 'Date + heure',
+        fieldLabel: 'Date et heure',
+        timeField: 'Heure',
+        placeholder: 'jj/mm/aaaa hh:mm',
+        context: 'Usage cible: rendez-vous, tache planifiee, ouverture ou cloture datee.',
+      },
+      report: {
+        eyebrow: 'Filtres',
+        title: 'Date range',
+        description: 'Champ de periode qui ouvre le picker au clic pour choisir debut et fin sans afficher le calendrier en permanence.',
+        badge: 'Range',
+        fieldLabel: 'Periode',
+        placeholder: 'jj/mm/aaaa au jj/mm/aaaa',
+        context: 'Usage cible: rapports, factures, historique et tableaux filtres.',
+      },
+    },
+    designs: {
+      glass: {
+        title: 'Glass Inline',
+        blurb: 'Candidat 01 conserve. Flatpickr reste ici comme base deja acceptee.',
+        helper: 'Reference actuelle: presence premium, champ ferme, ouverture nette et ressenti deja juge acceptable.',
+      },
+      slate: {
+        title: 'Slate Pop',
+        blurb: 'Premier challenger React Datepicker, plus editorial et plus froid.',
+        helper: 'Bonne option si vous voulez un champ net, rectiligne et plus desktop dans les pages de gestion.',
+      },
+      dock: {
+        title: 'Dock Rail',
+        blurb: 'Version plus structuree avec un repere lateral, une lecture back-office et maintenant un mode date + heure plus compact.',
+        helper: 'Choix actuel pour les listes, filtres et pages de configuration quand on veut une presence nette sans alourdir le popup.',
+      },
+      sage: {
+        title: 'Sage Flat',
+        blurb: 'Nouvelle piste plus calme, plus plate et plus douce, avec un plastique discret aligne a la plateforme.',
+        helper: 'Bonne candidate si vous voulez un rendu serein, plus sage et moins editorial tout en gardant une vraie sensation premium.',
+      },
+      pill: {
+        title: 'Soft Pill',
+        blurb: 'Version plus souple, plus ronde et plus tactile.',
+        helper: 'Bonne option si vous voulez un langage plus mobile, plus doux et plus visible sur ecrans etroits.',
+      },
+      frame: {
+        title: 'Frame Panel',
+        blurb: 'Version plus cadre, plus nette et un peu plus technique.',
+        helper: 'Bonne candidate si vous voulez une variante plus precise, plus outillee, avec une sensation de controle fort.',
+      },
+    },
   },
   developerToolsPage: {
     page: {
