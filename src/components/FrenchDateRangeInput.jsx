@@ -12,6 +12,7 @@ import {
   getFrenchDateRangePlaceholder,
   parseFrenchDateRangeValue,
   parseFrenchDateInputValue,
+  shouldUseDockRailDateInputs,
 } from '../utils/frenchDateInput'
 
 registerLocale(DOCK_RAIL_DATE_PICKER_LOCALE, fr)
@@ -67,6 +68,7 @@ export default function FrenchDateRangeInput({
   const [startDate, endDate] = parseFrenchDateRangeValue(valueFrom, valueTo)
   const minValue = parseFrenchDateInputValue('date', min)
   const maxValue = parseFrenchDateInputValue('date', max)
+  const useDockRailPicker = shouldUseDockRailDateInputs()
   const shellClassName = [
     'irtiwaa-date-input-shell',
     'irtiwaa-date-input-shell--range',
@@ -81,6 +83,48 @@ export default function FrenchDateRangeInput({
     '--picker-accent': DOCK_RAIL_DATE_PICKER_ACCENT,
     '--picker-accent-rgb': DOCK_RAIL_DATE_PICKER_ACCENT_RGB,
     ...style,
+  }
+
+  if (!useDockRailPicker) {
+    return (
+      <div className={['grid grid-cols-1 sm:grid-cols-2 gap-2', className].filter(Boolean).join(' ')} style={style}>
+        <input
+          {...props}
+          type="date"
+          value={valueFrom || ''}
+          onChange={(event) => onChange?.({ from: event.target.value, to: valueTo || '' })}
+          autoComplete="off"
+          disabled={disabled}
+          required={required}
+          id={id ? `${id}-from` : undefined}
+          name={name ? `${name}_from` : undefined}
+          min={min || undefined}
+          max={valueTo || max || undefined}
+          placeholder={placeholder || getFrenchDateRangePlaceholder()}
+          lang={FIXED_DATE_INPUT_LANG}
+          dir="ltr"
+          translate="no"
+          data-no-translate="true"
+        />
+        <input
+          type="date"
+          value={valueTo || ''}
+          onChange={(event) => onChange?.({ from: valueFrom || '', to: event.target.value })}
+          autoComplete="off"
+          disabled={disabled}
+          required={required}
+          id={id ? `${id}-to` : undefined}
+          name={name ? `${name}_to` : undefined}
+          min={valueFrom || min || undefined}
+          max={max || undefined}
+          placeholder={placeholder || getFrenchDateRangePlaceholder()}
+          lang={FIXED_DATE_INPUT_LANG}
+          dir="ltr"
+          translate="no"
+          data-no-translate="true"
+        />
+      </div>
+    )
   }
 
   return (

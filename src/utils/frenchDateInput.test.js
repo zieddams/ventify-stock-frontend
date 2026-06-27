@@ -9,6 +9,7 @@ import {
   normalizeFrenchDateInputType,
   parseFrenchDateRangeValue,
   parseFrenchDateInputValue,
+  shouldUseDockRailDateInputs,
   usesMonthPicker,
   usesTimeInput,
 } from './frenchDateInput'
@@ -86,5 +87,11 @@ describe('frenchDateInput helpers', () => {
     expect(usesMonthPicker('date')).toBe(false)
     expect(usesTimeInput('datetime-local')).toBe(true)
     expect(usesTimeInput('date')).toBe(false)
+  })
+
+  it('keeps Dock Rail on dev hosts but disables it on the live production hostname', () => {
+    expect(shouldUseDockRailDateInputs('dev.irtiwaa.ziedtech.com')).toBe(true)
+    expect(shouldUseDockRailDateInputs('localhost')).toBe(true)
+    expect(shouldUseDockRailDateInputs('irtiwaa.ziedtech.com')).toBe(false)
   })
 })

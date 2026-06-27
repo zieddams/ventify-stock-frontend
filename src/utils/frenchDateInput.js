@@ -2,6 +2,7 @@ export const DOCK_RAIL_DATE_PICKER_LOCALE = 'irtiwaa-fr'
 export const DOCK_RAIL_DATE_PICKER_ACCENT = '#0f766e'
 export const DOCK_RAIL_DATE_PICKER_ACCENT_RGB = '15, 118, 110'
 export const FRENCH_DATE_RANGE_SEPARATOR = ' au '
+export const IRTIWAA_PRODUCTION_WEB_HOSTNAME = 'irtiwaa.ziedtech.com'
 
 const DATE_INPUT_TYPE_DATE = 'date'
 const DATE_INPUT_TYPE_MONTH = 'month'
@@ -198,4 +199,20 @@ export function usesMonthPicker(type) {
 
 export function usesTimeInput(type) {
   return normalizeFrenchDateInputType(type) === DATE_INPUT_TYPE_DATETIME
+}
+
+export function shouldUseDockRailDateInputs(hostname) {
+  const currentHostname = hostname ?? (
+    typeof window !== 'undefined'
+      ? window.location?.hostname
+      : ''
+  )
+
+  const normalizedHostname = String(currentHostname || '').trim().toLowerCase()
+
+  if (!normalizedHostname) {
+    return true
+  }
+
+  return normalizedHostname !== IRTIWAA_PRODUCTION_WEB_HOSTNAME
 }

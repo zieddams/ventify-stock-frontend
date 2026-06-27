@@ -12,6 +12,7 @@ import {
   getFrenchDateInputPlaceholder,
   normalizeFrenchDateInputType,
   parseFrenchDateInputValue,
+  shouldUseDockRailDateInputs,
   usesMonthPicker,
   usesTimeInput,
 } from '../utils/frenchDateInput'
@@ -104,6 +105,7 @@ export default function FrenchDateTimeInput({
   const monthPicker = usesMonthPicker(normalizedType)
   const timeInput = usesTimeInput(normalizedType)
   const isCompactMonthField = monthPicker && style?.width === 'auto'
+  const useDockRailPicker = shouldUseDockRailDateInputs()
   const shellClassName = [
     'irtiwaa-date-input-shell',
     `irtiwaa-date-input-shell--${normalizedType.replace('-local', '')}`,
@@ -120,6 +122,32 @@ export default function FrenchDateTimeInput({
     '--picker-accent-rgb': DOCK_RAIL_DATE_PICKER_ACCENT_RGB,
     ...style,
     ...(isCompactMonthField ? { width: '12.25rem' } : null),
+  }
+
+  if (!useDockRailPicker) {
+    return (
+      <input
+        {...props}
+        type={normalizedType}
+        value={value || ''}
+        onChange={onChange}
+        style={shellStyle}
+        className={className}
+        autoComplete="off"
+        disabled={disabled}
+        required={required}
+        id={id}
+        name={name}
+        min={min || undefined}
+        max={max || undefined}
+        placeholder={placeholder || getFrenchDateInputPlaceholder(normalizedType)}
+        step={timeInput ? 300 : undefined}
+        lang={FIXED_DATE_INPUT_LANG}
+        dir="ltr"
+        translate="no"
+        data-no-translate="true"
+      />
+    )
   }
 
   return (
