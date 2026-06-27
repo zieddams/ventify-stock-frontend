@@ -289,11 +289,6 @@ export default function CustomersIndex() {
               </select>
             )}
           </div>
-          {canAssignOwner && (
-            <p className="text-xs text-muted-color mt-2">
-              {t('customers.ownerHelp')}
-            </p>
-          )}
         </div>
 
         <div className="overflow-x-auto">

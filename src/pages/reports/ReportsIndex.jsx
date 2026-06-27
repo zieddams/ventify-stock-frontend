@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import DepotScopeControls from '../../components/DepotScopeControls'
-import FrenchDateRangeInput from '../../components/FrenchDateRangeInput'
 import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
 import PageExportActions from '../../components/PageExportActions'
 import { PageLoader } from '../../components/Spinner'
 import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import { useTheme } from '../../contexts/ThemeContext'
+import ProfitInsightsTab from './ProfitInsightsTab'
 import api from '../../services/api'
 import { formatCurrency, formatDate, formatNumber } from '../../utils/format'
 
@@ -120,237 +120,8 @@ function OverviewTab({ stats }) {
   )
 }
 
-function ProfitTab({ scopeParams }) {
-  const { t } = useI18n()
-  const notAvailable = t('common.notAvailable')
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [period, setPeriod] = useState('month')
-  const [dateFrom, setDateFrom] = useState(new Date().toISOString().slice(0, 10))
-  const [dateTo, setDateTo] = useState(new Date().toISOString().slice(0, 10))
-  const theme = useChartTheme()
-
-  useEffect(() => {
-    setLoading(true)
-
-    const params = { period, ...scopeParams }
-
-    if (period === 'custom') {
-      params.date_from = dateFrom
-      params.date_to = dateTo
-    }
-
-    api.get('/reports/profit', { params })
-      .then((response) => setData(response.data))
-      .finally(() => setLoading(false))
-  }, [period, dateFrom, dateTo, scopeParams.depot_id])
-
-  if (loading) {
-    return (
-      <div className="py-12 text-center text-muted-color">
-        <i className="fa-solid fa-spinner fa-spin mr-2" /> {t('reportsPage.profit.loading')}
-      </div>
-    )
-  }
-
-  const chartData = (data?.by_day ?? []).map((day) => ({
-    date: day.day?.slice(5),
-    revenue: Number(day.revenue ?? 0),
-    profit: Number(day.profit ?? 0),
-  }))
-
-  const periodOptions = [
-    ['today', t('reportsPage.profit.periods.today')],
-    ['week', t('reportsPage.profit.periods.week')],
-    ['month', t('reportsPage.profit.periods.month')],
-    ['custom', t('reportsPage.profit.periods.custom')],
-  ]
-
-  const repColumns = [
-    t('reportsPage.profit.columns.rep'),
-    t('reportsPage.profit.columns.revenue'),
-    t('reportsPage.profit.columns.cost'),
-    t('reportsPage.profit.columns.profit'),
-    t('reportsPage.profit.columns.invoices'),
-  ]
-
-  const camionColumns = [
-    t('reportsPage.profit.columns.camion'),
-    t('reportsPage.profit.columns.plate'),
-    t('reportsPage.profit.columns.revenue'),
-    t('reportsPage.profit.columns.profit'),
-    t('reportsPage.profit.columns.invoices'),
-  ]
-
-  const repCamionColumns = [
-    t('reportsPage.profit.columns.commercial'),
-    t('reportsPage.profit.columns.camion'),
-    t('reportsPage.profit.columns.revenue'),
-    t('reportsPage.profit.columns.profit'),
-    t('reportsPage.profit.columns.invoices'),
-  ]
-
-  return (
-    <>
-      <div className="flex items-center gap-2 mb-5 flex-wrap">
-        {periodOptions.map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setPeriod(key)}
-            className={`px-3 py-1.5 text-xs rounded-xl font-semibold border transition-colors ${
-              period === key ? 'bg-teal-600 text-white border-teal-600' : 'border-theme text-muted-color hover:text-base-color'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {period === 'custom' && (
-        <div className="card mb-5">
-          <div>
-            <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateRange')}</label>
-            <FrenchDateRangeInput
-              valueFrom={dateFrom}
-              valueTo={dateTo}
-              onChange={({ from, to }) => {
-                setDateFrom(from)
-                setDateTo(to)
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <KpiCard label={t('reportsPage.profit.totalRevenue')} value={formatCurrency(data?.totals?.revenue)} icon="fa-solid fa-sack-dollar" color="#0d9488" />
-        <KpiCard label={t('reportsPage.profit.totalCost')} value={formatCurrency(data?.totals?.cost)} icon="fa-solid fa-boxes-stacked" color="#64748b" />
-        <KpiCard
-          label={t('reportsPage.profit.grossProfit')}
-          value={formatCurrency(data?.totals?.profit)}
-          icon="fa-solid fa-coins"
-          color="#10b981"
-          sub={t('reportsPage.profit.margin', { value: data?.totals?.margin_pct ?? 0 })}
-        />
-        <KpiCard
-          label={t('reportsPage.profit.belowCost')}
-          value={data?.totals?.below_cost_lines ?? 0}
-          icon="fa-solid fa-triangle-exclamation"
-          color="#dc2626"
-          sub={t('reportsPage.profit.belowCostSub')}
-        />
-      </div>
-
-      {chartData.length > 0 && (
-        <div className="card mb-6">
-          <h2 className="text-sm font-semibold text-base-color mb-4">{t('reportsPage.profit.chartTitle')}</h2>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} />
-              <XAxis dataKey="date" stroke={theme.axis} tick={{ fontSize: 10, fill: theme.axis }} />
-              <YAxis stroke={theme.axis} tick={{ fontSize: 10, fill: theme.axis }} />
-              <Tooltip contentStyle={theme.tooltip} formatter={(value, name) => [formatCurrency(value), name]} />
-              <Bar dataKey="revenue" fill="#0d9488" radius={[4, 4, 0, 0]} name={t('reportsPage.overview.chartRevenue')} />
-              <Bar dataKey="profit" fill="#10b981" radius={[4, 4, 0, 0]} name={t('reportsPage.overview.chartProfit')} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      <div className="card">
-        <h2 className="text-sm font-semibold text-base-color mb-3">{t('reportsPage.profit.byRepTitle')}</h2>
-        <table className="w-full text-sm">
-          <thead>
-            <tr>
-              {repColumns.map((heading, index) => (
-                <th key={heading} className={`pb-3 pr-4 ${index > 0 ? 'text-right' : 'text-left'}`}>
-                  {heading}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {(data?.by_rep ?? []).map((rep, index) => (
-              <tr key={index} className="table-row">
-                <td className="py-3 pr-4 font-semibold text-base-color">{rep.rep_name || notAvailable}</td>
-                <td className="py-3 pr-4 text-right font-mono text-secondary-color">{formatCurrency(rep.revenue)}</td>
-                <td className="py-3 pr-4 text-right font-mono text-muted-color">{formatCurrency(rep.cost)}</td>
-                <td className="py-3 pr-4 text-right font-mono font-bold" style={{ color: '#059669' }}>{formatCurrency(rep.profit)}</td>
-                <td className="py-3 text-right text-muted-color">{rep.invoice_count}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mt-5">
-        <div className="card">
-          <h2 className="text-sm font-semibold text-base-color mb-3">{t('reportsPage.profit.byCamionTitle')}</h2>
-          <table className="w-full text-sm">
-            <thead>
-              <tr>
-                {camionColumns.map((heading, index) => (
-                  <th key={heading} className={`pb-3 pr-4 ${index > 1 ? 'text-right' : 'text-left'}`}>
-                    {heading}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {(data?.by_camion ?? []).map((camion, index) => (
-                <tr key={`${camion.camion_id ?? 'none'}-${index}`} className="table-row">
-                  <td className="py-3 pr-4 font-semibold text-base-color">{camion.camion_name || notAvailable}</td>
-                  <td className="py-3 pr-4 text-muted-color text-xs">{camion.camion_plate || notAvailable}</td>
-                  <td className="py-3 pr-4 text-right font-mono text-secondary-color">{formatCurrency(camion.revenue)}</td>
-                  <td className="py-3 pr-4 text-right font-mono font-bold" style={{ color: '#059669' }}>{formatCurrency(camion.profit)}</td>
-                  <td className="py-3 text-right text-muted-color">{camion.invoice_count}</td>
-                </tr>
-              ))}
-              {(data?.by_camion ?? []).length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-10 text-center text-muted-color">{t('reportsPage.profit.noCamion')}</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="card">
-          <h2 className="text-sm font-semibold text-base-color mb-3">{t('reportsPage.profit.byRepCamionTitle')}</h2>
-          <table className="w-full text-sm">
-            <thead>
-              <tr>
-                {repCamionColumns.map((heading, index) => (
-                  <th key={heading} className={`pb-3 pr-4 ${index > 1 ? 'text-right' : 'text-left'}`}>
-                    {heading}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {(data?.by_rep_camion ?? []).map((row, index) => (
-                <tr key={`${row.rep_id ?? 'rep'}-${row.camion_id ?? 'none'}-${index}`} className="table-row">
-                  <td className="py-3 pr-4 font-semibold text-base-color">{row.rep_name || notAvailable}</td>
-                  <td className="py-3 pr-4 text-secondary-color text-xs">
-                    {row.camion_name || notAvailable}
-                    {row.camion_plate ? ` - ${row.camion_plate}` : ''}
-                  </td>
-                  <td className="py-3 pr-4 text-right font-mono text-secondary-color">{formatCurrency(row.revenue)}</td>
-                  <td className="py-3 pr-4 text-right font-mono font-bold" style={{ color: '#059669' }}>{formatCurrency(row.profit)}</td>
-                  <td className="py-3 text-right text-muted-color">{row.invoice_count}</td>
-                </tr>
-              ))}
-              {(data?.by_rep_camion ?? []).length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-10 text-center text-muted-color">{t('reportsPage.profit.noRepCamion')}</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </>
-  )
+function ProfitTab({ scopeParams, onExportParamsChange }) {
+  return <ProfitInsightsTab scopeParams={scopeParams} onExportParamsChange={onExportParamsChange} />
 }
 
 function SitationTab({ scopeParams }) {
@@ -577,6 +348,7 @@ export default function ReportsIndex() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('overview')
+  const [profitExportParams, setProfitExportParams] = useState({})
   const {
     depots,
     selectedValue: selectedDepotValue,
@@ -595,6 +367,10 @@ export default function ReportsIndex() {
     api.get('/stats', { params: scopeParams }).then((response) => setStats(response.data)).finally(() => setLoading(false))
   }, [scopeParams.depot_id])
 
+  useEffect(() => {
+    setProfitExportParams(scopeParams.depot_id ? { depot_id: scopeParams.depot_id } : {})
+  }, [scopeParams.depot_id])
+
   if (loading) {
     return <PageLoader />
   }
@@ -608,7 +384,7 @@ export default function ReportsIndex() {
 
   const exportConfig = {
     overview: { csvEntity: 'invoices', csvFilename: 'rapport_vue_ensemble', csvParams: scopeParams },
-    profit: { csvEntity: 'invoices', csvFilename: 'rapport_benefices', csvParams: scopeParams },
+    profit: { csvEntity: 'invoices', csvFilename: 'rapport_benefices', csvParams: profitExportParams },
     sitation: { csvEntity: 'expenses', csvFilename: 'rapport_situation', csvParams: scopeParams },
     movements: { csvEntity: 'stock_movements', csvFilename: 'rapport_mouvements', csvParams: scopeParams },
   }
@@ -658,7 +434,7 @@ export default function ReportsIndex() {
       </div>
 
       {tab === 'overview' && <OverviewTab stats={stats} />}
-      {tab === 'profit' && <ProfitTab scopeParams={scopeParams} />}
+      {tab === 'profit' && <ProfitTab scopeParams={scopeParams} onExportParamsChange={setProfitExportParams} />}
       {tab === 'sitation' && <SitationTab scopeParams={scopeParams} />}
       {tab === 'movements' && <MovementsTab scopeParams={scopeParams} />}
     </div>
