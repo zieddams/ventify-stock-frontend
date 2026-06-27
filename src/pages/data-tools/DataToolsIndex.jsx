@@ -69,6 +69,7 @@ const EXPORT_TYPES = [
   { value: 'products', labelKey: 'exportPage.entities.products', icon: 'fa-solid fa-box-open', color: '#0d9488', hasDateRange: false, supportsDepot: true },
   { value: 'invoices', labelKey: 'exportPage.entities.invoices', icon: 'fa-solid fa-file-invoice', color: '#8b5cf6', hasDateRange: true, supportsDepot: true },
   { value: 'expenses', labelKey: 'exportPage.entities.expenses', icon: 'fa-solid fa-receipt', color: '#f59e0b', hasDateRange: true, supportsDepot: true },
+  { value: 'expenses_history', labelKey: 'exportPage.entities.expensesHistory', icon: 'fa-solid fa-clock-rotate-left', color: '#14b8a6', hasDateRange: true, supportsDepot: true },
   { value: 'stock_movements', labelKey: 'exportPage.entities.stockMovements', icon: 'fa-solid fa-arrows-rotate', color: '#06b6d4', hasDateRange: true, supportsDepot: true },
   { value: 'credit', labelKey: 'exportPage.entities.credit', icon: 'fa-solid fa-credit-card', color: '#ec4899', hasDateRange: true, supportsDepot: false },
   { value: 'route_sessions', labelKey: 'exportPage.entities.routeSessions', icon: 'fa-solid fa-truck-fast', color: '#f97316', hasDateRange: true, supportsDepot: true },

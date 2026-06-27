@@ -117,6 +117,10 @@ function expenseCategoryLabel(expense) {
   )
 }
 
+function expenseHistoryEventLabel(entry) {
+  return entry?.event_type === 'payment' ? 'Paiement' : 'Création'
+}
+
 function stockMin(item) {
   return Math.max(asNumber(item?.product?.min_stock ?? item?.min_stock ?? 1, 1), 1)
 }
@@ -377,6 +381,39 @@ export const DOCUMENT_DEFINITIONS = [
     ],
     buildSummary: ({ record }) => [
       { label: 'Montant', value: formatMoney(record?.amount) },
+    ],
+  },
+  {
+    key: 'expenses_history_list',
+    label: 'Dépenses - historique',
+    description: 'Timeline des créations de dépense et paiements affichés dans la vue courante.',
+    scope: 'list',
+    section: 'finance',
+    title: 'Historique des dépenses',
+    filename: 'depenses_historique',
+    orientation: 'landscape',
+    fields: [
+      field('event_date', 'Date événement', (entry) => formatDate(entry?.event_date), 'Date de création ou de paiement.'),
+      field('event_type', 'Événement', (entry) => expenseHistoryEventLabel(entry), 'Création ou paiement.'),
+      field('category_label', 'Catégorie', (entry) => expenseCategoryLabel(entry), 'Catégorie rattachée.'),
+      field('label', 'Libellé', (entry) => asText(entry?.label), 'Libellé de la dépense.'),
+      field('expense_amount', 'Montant dépense', (entry) => formatMoney(entry?.expense_amount), 'Montant total de la dépense.'),
+      field('payment_amount', 'Paiement', (entry) => asNumber(entry?.payment_amount) > 0 ? formatMoney(entry?.payment_amount) : '-', "Montant du paiement lié à l'événement."),
+      field('remaining_amount_after_event', 'Reste après', (entry) => formatMoney(entry?.remaining_amount_after_event), "Reste après l'événement."),
+      field('event_status_after', 'Statut après', (entry) => paymentStatusLabel(entry?.event_status_after), "Statut après l'événement."),
+      field('created_by', 'Saisi par', (entry) => asText(entry?.created_by), "Utilisateur ayant saisi l'événement."),
+      field('note', 'Note', (entry) => asText(entry?.note), 'Note du paiement.', { defaultEnabled: false }),
+    ],
+    buildSummary: ({ records }) => [
+      { label: 'Événements', value: asText(records.length, '0') },
+      {
+        label: 'Dépenses créées',
+        value: formatMoney(records.reduce((sum, entry) => sum + (entry?.event_type === 'expense' ? asNumber(entry?.expense_amount) : 0), 0)),
+      },
+      {
+        label: 'Paiements',
+        value: formatMoney(records.reduce((sum, entry) => sum + asNumber(entry?.payment_amount), 0)),
+      },
     ],
   },
   {

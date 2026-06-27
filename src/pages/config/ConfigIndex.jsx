@@ -239,7 +239,7 @@ function getDocumentEntityGroups(t) {
       label: t('configPage.documentEntities.expenses.label'),
       description: t('configPage.documentEntities.expenses.description'),
       icon: 'fa-solid fa-receipt',
-      definitionKeys: ['expenses_list', 'expense_item'],
+      definitionKeys: ['expenses_list', 'expense_item', 'expenses_history_list'],
     },
     {
       key: 'route-sessions',
