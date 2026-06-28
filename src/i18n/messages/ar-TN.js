@@ -381,6 +381,9 @@ export default {
       refresh: 'تحديث',
       mobileTerrain: 'ميدان الموبايل',
       providerTitle: 'مزود الخريطة',
+      providerFallbackGoogle: 'Google Maps متختارة أما من غير clé JavaScript صالحة. باش نستعملوا OpenStreetMap كحل احتياطي.',
+      providerFallbackCustom: 'المزوّد المخصّص متختار أما ما ثماش رابط تيلز. باش نستعملوا OpenStreetMap كحل احتياطي.',
+      providerFallbackUnknown: 'المزوّد المضبوط موش معروف. باش نستعملوا OpenStreetMap كحل احتياطي.',
     },
     sources: {
       trace: 'Trace GPS',
@@ -442,7 +445,7 @@ export default {
     },
     terrain: {
       streamUnavailable: 'فلو الميدان مازال موش متوفر.',
-      noGpsPoint: 'ما طلع حتى point GPS صالح في تونس للحساب هذا.',
+      noGpsPoint: 'ما طلع حتى point GPS صالح للحساب هذا.',
       noSharedPosition: 'الحساب هذا مازال ما شارك حتى موقع صالح للخريطة.',
       trackingDisabledReason: 'جيولوكاليزاسيون الميدان معطّلة مؤقتًا. المتابعة في الوقت الحقيقي تبقى مبنية على الجلسات، الفواتير والتعبئات.',
       mobileOnline: 'موبايلات أونلاين',
@@ -477,12 +480,12 @@ export default {
       selectMobilePrompt: 'اختار حساب موبايل باش تشوف التفاصيل متاع الميدان.',
       loadErrorTitle: 'ما نجّمنيش نحمّل متابعة الميدان',
       mapDisabledTitle: 'الخريطة معطّلة للتجاري هذا',
-      mapReactivates: 'المتابعة تبقى على OpenStreetMap وترجع تخدم وحدها أول ما يطلع point GPS صحيح.',
+      mapReactivates: 'الخريطة باش تتحدّث وحدها أول ما يطلع point GPS صحيح.',
       popupAppVersion: ({ version }) => `نسخة التطبيق v${version}`,
       popupTraceRecent: ({ date }) => `Trace GPS جديدة · ${date}`,
       popupTraceFallback: 'النقطة الحالية موش صالحة، الخريطة تستعمل آخر نقطة صحيحة من الـ trace.',
       positionUnavailableTitle: 'الموقع موش موجود للحساب هذا',
-      positionUnavailableDescription: 'الخريطة محدودة على تونس. الموقع هذا غايب ولا خارج تونس، لهذا ما يتعرضش.',
+      positionUnavailableDescription: 'الموقع هذا غايب ولا موش صالح، لهذا ما يتعرضش على الخريطة.',
       revenueToday: 'رقم معاملات اليوم',
       invoicesCount: ({ count }) => `${count} فاتورة`,
       loadedToday: 'المحمول اليوم',
@@ -2924,6 +2927,10 @@ export default {
       esriWorldImagery: {
         label: 'Esri Imagerie',
         description: 'صور قمر صناعي تنفع للسياق الميداني.',
+      },
+      esriWorldHybrid: {
+        label: 'Esri Satellite Hybrid',
+        description: 'صور قمر صناعي مع طرقات وأسامي فوقها باش القراءة تكون أوقع وأوضح.',
       },
       googleRoadmap: {
         label: 'Google Roadmap',

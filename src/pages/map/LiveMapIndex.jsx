@@ -4,6 +4,7 @@ import { Circle, MapContainer, Marker, Popup, Polyline, useMap } from 'react-lea
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.gridlayer.googlemutant'
+import './liveMap.css'
 import DepotScopeControls from '../../components/DepotScopeControls'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
@@ -23,6 +24,19 @@ import {
   formatDateTime as formatLocaleDateTime,
   formatNumber as formatLocaleNumber,
 } from '../../utils/format'
+import {
+  DEFAULT_CENTER,
+  DEFAULT_MIN_ZOOM,
+  DEFAULT_ZOOM,
+  GOOGLE_MAP_PROVIDERS,
+  MAP_PROVIDER_CONFIG,
+  fitMapToDefaultViewport,
+  getMapPoint,
+  normalizeMapSettings,
+  resolveGoogleMapType,
+  resolveProviderConfig,
+  resolveProviderWarning,
+} from './mapUtils'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -32,54 +46,13 @@ L.Icon.Default.mergeOptions({
 })
 
 const ZONE_COLORS = ['#0d9488', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#f97316', '#06b6d4', '#10b981']
-const TUNISIA_BOUNDS = [
-  [30.0, 7.0],
-  [37.6, 11.8],
-]
-const DEFAULT_CENTER = [34.2, 9.6]
-const DEFAULT_ZOOM = 6
 const HEARTBEAT_REFRESH_MS = 20 * 1000
 let CUSTOMER_GEOLOCATION_ENABLED = false
 let GEO_TRACKING_ENABLED = false
 let MAP_TERRAIN_UI_ENABLED = false
-const GOOGLE_MAP_PROVIDERS = new Set(['google_roadmap', 'google_satellite'])
-const GOOGLE_MAP_TYPES = new Set(['roadmap', 'satellite', 'terrain', 'hybrid'])
 const GOOGLE_MAPS_SCRIPT_ID = 'irtiwaa-google-maps-sdk'
-const MAP_PROVIDER_CONFIG = {
-  openstreetmap: {
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    options: { subdomains: ['a', 'b', 'c'] },
-  },
-  carto_light: {
-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    options: { subdomains: ['a', 'b', 'c', 'd'] },
-  },
-  open_topo_map: {
-    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-    attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap',
-    options: { subdomains: ['a', 'b', 'c'] },
-  },
-  esri_world_imagery: {
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri',
-    options: {},
-  },
-}
 let googleMapsLoaderPromise = null
 let googleMapsLoaderKey = ''
-
-function usesGoogleProvider(mapSettings) {
-  return GOOGLE_MAP_PROVIDERS.has(mapSettings.provider)
-}
-
-function resolveGoogleMapType(mapSettings) {
-  const fallbackType = mapSettings.provider === 'google_satellite' ? 'satellite' : 'roadmap'
-  const requestedType = String(mapSettings.googleMapType || fallbackType).toLowerCase()
-
-  return GOOGLE_MAP_TYPES.has(requestedType) ? requestedType : fallbackType
-}
 
 function loadGoogleMapsApi(apiKey) {
   if (!apiKey) {
@@ -145,66 +118,52 @@ function loadGoogleMapsApi(apiKey) {
   return googleMapsLoaderPromise
 }
 
-function normalizeMapSettings(settings = []) {
-  return {
-    provider: 'openstreetmap',
-    googleMapsApiKey: '',
-    googleMapType: 'roadmap',
-    googleMapId: '',
-    customTileUrl: '',
-    customTileAttribution: '',
-  }
-}
-
-function resolveProviderConfig(mapSettings) {
-  return {
-    provider: 'openstreetmap',
-    ...MAP_PROVIDER_CONFIG.openstreetmap,
-    warning: '',
-  }
-}
-
 function MapBaseLayer({ mapSettings }) {
   const map = useMap()
 
   useEffect(() => {
     const config = resolveProviderConfig(mapSettings)
     const fallbackConfig = MAP_PROVIDER_CONFIG.openstreetmap
-    let layer = null
+    let layers = []
     let disposed = false
 
     const attachLayer = async () => {
       try {
-        if (usesGoogleProvider(mapSettings) && mapSettings.googleMapsApiKey) {
+        if (GOOGLE_MAP_PROVIDERS.has(config.provider) && mapSettings.googleMapsApiKey) {
           await loadGoogleMapsApi(mapSettings.googleMapsApiKey)
 
           if (disposed) {
             return
           }
 
-          layer = L.gridLayer.googleMutant({
+          layers = [L.gridLayer.googleMutant({
             type: resolveGoogleMapType(mapSettings),
             maxZoom: 21,
             ...(mapSettings.googleMapId ? { mapId: mapSettings.googleMapId } : {}),
-          })
+          })]
+        } else if (Array.isArray(config.layers) && config.layers.length > 0) {
+          layers = config.layers.map((layerConfig) => L.tileLayer(layerConfig.url, {
+            attribution: layerConfig.attribution,
+            ...(layerConfig.options ?? {}),
+          }))
         } else {
-          layer = L.tileLayer(config.url, {
+          layers = [L.tileLayer(config.url, {
             attribution: config.attribution,
             ...(config.options ?? {}),
-          })
+          })]
         }
       } catch {
         if (disposed) {
           return
         }
 
-        layer = L.tileLayer(fallbackConfig.url, {
+        layers = [L.tileLayer(fallbackConfig.url, {
           attribution: fallbackConfig.attribution,
           ...(fallbackConfig.options ?? {}),
-        })
+        })]
       }
 
-      layer.addTo(map)
+      layers.forEach((layer) => layer.addTo(map))
     }
 
     attachLayer()
@@ -212,39 +171,21 @@ function MapBaseLayer({ mapSettings }) {
     return () => {
       disposed = true
 
-      if (layer && map.hasLayer(layer)) {
-        map.removeLayer(layer)
-      }
+      layers.forEach((layer) => {
+        if (layer && map.hasLayer(layer)) {
+          map.removeLayer(layer)
+        }
+      })
     }
   }, [map, mapSettings])
 
   return null
 }
 
-function getTunisiaPoint(latitude, longitude) {
-  const lat = Number(latitude)
-  const lng = Number(longitude)
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return null
-  }
-
-  if (
-    lat < TUNISIA_BOUNDS[0][0]
-    || lat > TUNISIA_BOUNDS[1][0]
-    || lng < TUNISIA_BOUNDS[0][1]
-    || lng > TUNISIA_BOUNDS[1][1]
-  ) {
-    return null
-  }
-
-  return [lat, lng]
-}
-
 function getLatestTraceLocation(routeTrace = []) {
   for (let index = routeTrace.length - 1; index >= 0; index -= 1) {
     const item = routeTrace[index]
-    const point = getTunisiaPoint(item.latitude, item.longitude)
+    const point = getMapPoint(item.latitude, item.longitude)
 
     if (point) {
       return {
@@ -263,7 +204,7 @@ function getLatestTraceLocation(routeTrace = []) {
 }
 
 function getSelectedTerrainLocation(rep, routeTrace = []) {
-  const livePoint = getTunisiaPoint(rep?.map_position?.latitude, rep?.map_position?.longitude)
+  const livePoint = getMapPoint(rep?.map_position?.latitude, rep?.map_position?.longitude)
 
   if (livePoint) {
     return {
@@ -285,13 +226,6 @@ function formatMapSourceLabel(source, t) {
   if (source === 'invoice') return t('liveMapPage.sources.invoice')
   if (source === 'mobile') return t('liveMapPage.sources.mobile')
   return t('liveMapPage.sources.gps')
-}
-
-function fitMapToTunisia(map) {
-  map.fitBounds(TUNISIA_BOUNDS, {
-    padding: [18, 18],
-    maxZoom: DEFAULT_ZOOM,
-  })
 }
 
 function formatNumber(value) {
@@ -447,7 +381,7 @@ function FitCustomersBounds({ customers }) {
 
   useEffect(() => {
     const points = customers
-      .map(customer => getTunisiaPoint(customer.lat, customer.lng))
+      .map(customer => getMapPoint(customer.lat, customer.lng))
       .filter(Boolean)
 
     if (points.length > 0) {
@@ -456,7 +390,7 @@ function FitCustomersBounds({ customers }) {
       } catch {}
     } else {
       try {
-        fitMapToTunisia(map)
+        fitMapToDefaultViewport(map)
       } catch {}
     }
   }, [customers, map])
@@ -480,10 +414,10 @@ function FitTerrainBounds({ reps, routeTrace, selectedPoint }) {
 
   useEffect(() => {
     const tracePoints = routeTrace
-      .map(item => getTunisiaPoint(item.latitude, item.longitude))
+      .map(item => getMapPoint(item.latitude, item.longitude))
       .filter(Boolean)
     const repPoints = reps
-      .map(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
+      .map(rep => getMapPoint(rep.map_position?.latitude, rep.map_position?.longitude))
       .filter(Boolean)
     const focusPoint = selectedPoint?.point ?? null
 
@@ -504,7 +438,7 @@ function FitTerrainBounds({ reps, routeTrace, selectedPoint }) {
       } catch {}
     } else {
       try {
-        fitMapToTunisia(map)
+        fitMapToDefaultViewport(map)
       } catch {}
     }
   }, [map, reps, routeTrace, selectedPoint])
@@ -566,6 +500,73 @@ function TabButton({ active, icon, label, count, onClick }) {
   )
 }
 
+function getMapProviderLabel(provider, t) {
+  switch (provider) {
+    case 'carto_light':
+      return t('configPage.mapProviders.cartoLight.label')
+    case 'open_topo_map':
+      return t('configPage.mapProviders.openTopoMap.label')
+    case 'esri_world_imagery':
+      return t('configPage.mapProviders.esriWorldImagery.label')
+    case 'esri_world_hybrid':
+      return t('configPage.mapProviders.esriWorldHybrid.label')
+    case 'google_roadmap':
+      return t('configPage.mapProviders.googleRoadmap.label')
+    case 'google_satellite':
+      return t('configPage.mapProviders.googleSatellite.label')
+    case 'custom':
+      return t('configPage.mapProviders.custom.label')
+    default:
+      return t('configPage.mapProviders.openstreetmap.label')
+  }
+}
+
+function MapMetaChip({ icon, label, value, tone = 'neutral' }) {
+  return (
+    <span className={`irtiwaa-map-chip irtiwaa-map-chip--${tone}`}>
+      {icon && <i className={icon} />}
+      <span>{label}</span>
+      {value != null && value !== '' && <strong>{value}</strong>}
+    </span>
+  )
+}
+
+function MapShell({
+  title,
+  subtitle,
+  themeTone = 'light',
+  chips = [],
+  height = 560,
+  children,
+}) {
+  return (
+    <div className={`irtiwaa-map-shell irtiwaa-map-shell--${themeTone}`}>
+      <div className="irtiwaa-map-shell__chrome">
+        <div className="min-w-0">
+          <div className="irtiwaa-map-shell__title">{title}</div>
+          {subtitle && <div className="irtiwaa-map-shell__subtitle">{subtitle}</div>}
+        </div>
+        {chips.length > 0 && (
+          <div className="irtiwaa-map-shell__chip-row">
+            {chips.map((chip) => (
+              <MapMetaChip
+                key={`${chip.label}-${chip.value ?? ''}`}
+                icon={chip.icon}
+                label={chip.label}
+                value={chip.value}
+                tone={chip.tone}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="irtiwaa-map-shell__canvas" style={{ height }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 function ClientsTab({
   customers,
   zones,
@@ -592,11 +593,14 @@ function ClientsTab({
   })
 
   const mapped = CUSTOMER_GEOLOCATION_ENABLED
-    ? filtered.filter(customer => getTunisiaPoint(customer.lat, customer.lng))
+    ? filtered.filter(customer => getMapPoint(customer.lat, customer.lng))
     : []
   const unmapped = CUSTOMER_GEOLOCATION_ENABLED
-    ? filtered.filter(customer => !getTunisiaPoint(customer.lat, customer.lng))
+    ? filtered.filter(customer => !getMapPoint(customer.lat, customer.lng))
     : filtered
+  const providerConfig = resolveProviderConfig(mapSettings)
+  const providerLabel = getMapProviderLabel(mapSettings.provider, t)
+  const shellTone = providerConfig.tone || 'light'
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -670,7 +674,30 @@ function ClientsTab({
       </div>
 
       <div className="lg:col-span-3">
-        <div className="card overflow-hidden p-0" style={{ height: 560 }}>
+        <MapShell
+          title={t('liveMapPage.clients.clientMap')}
+          subtitle={CUSTOMER_GEOLOCATION_ENABLED
+            ? t('liveMapPage.page.customerSubtitle', {
+              total: formatCount(filtered.length),
+              mapped: formatCount(mapped.length),
+            })
+            : t('liveMapPage.clients.mapDisabledDescription')}
+          themeTone={shellTone}
+          chips={[
+            {
+              icon: 'fa-solid fa-layer-group',
+              label: t('liveMapPage.page.providerTitle'),
+              value: providerLabel,
+              tone: shellTone === 'satellite' ? 'night' : (shellTone === 'topo' ? 'earth' : 'neutral'),
+            },
+            {
+              icon: 'fa-solid fa-location-dot',
+              label: t('liveMapPage.clients.onMap'),
+              value: CUSTOMER_GEOLOCATION_ENABLED ? formatCount(mapped.length) : t('liveMapPage.fallbacks.paused'),
+              tone: 'success',
+            },
+          ]}
+        >
           {loading ? (
             <PageLoader />
           ) : !CUSTOMER_GEOLOCATION_ENABLED ? (
@@ -687,9 +714,7 @@ function ClientsTab({
             <MapContainer
               center={DEFAULT_CENTER}
               zoom={DEFAULT_ZOOM}
-              minZoom={DEFAULT_ZOOM}
-              maxBounds={TUNISIA_BOUNDS}
-              maxBoundsViscosity={1}
+              minZoom={DEFAULT_MIN_ZOOM}
               style={{ height: '100%', width: '100%' }}
               zoomControl
             >
@@ -697,7 +722,7 @@ function ClientsTab({
               <FitCustomersBounds customers={mapped} />
 
               {mapped.map(customer => {
-                const point = getTunisiaPoint(customer.lat, customer.lng)
+                const point = getMapPoint(customer.lat, customer.lng)
                 if (!point) return null
 
                 return (
@@ -707,20 +732,13 @@ function ClientsTab({
                     icon={makeDotIcon(zoneColor(customer.zone_id), selectedCustomerId === customer.id ? 14 : 10)}
                     eventHandlers={{ click: () => onSelectCustomer(customer.id) }}
                   >
-                    <Popup>
-                      <div style={{ minWidth: 160 }}>
-                        <div style={{ fontWeight: 700, marginBottom: 4 }}>{customer.name}</div>
-                        {customer.phone && <div style={{ color: '#64748b', fontSize: 12 }}>{customer.phone}</div>}
-                        {customer.address && <div style={{ color: '#64748b', fontSize: 12 }}>{customer.address}</div>}
+                  <Popup>
+                      <div className="irtiwaa-map-popup" style={{ minWidth: 160 }}>
+                        <div className="irtiwaa-map-popup__title">{customer.name}</div>
+                        {customer.phone && <div className="irtiwaa-map-popup__meta">{customer.phone}</div>}
+                        {customer.address && <div className="irtiwaa-map-popup__meta">{customer.address}</div>}
                         {customer.credit_balance != null && Math.abs(customer.credit_balance) > 0 && (
-                          <div
-                            style={{
-                              marginTop: 6,
-                              fontWeight: 600,
-                              fontSize: 12,
-                              color: customer.credit_balance > 0 ? '#dc2626' : '#059669',
-                            }}
-                          >
+                          <div className="irtiwaa-map-popup__accent" style={{ color: customer.credit_balance > 0 ? '#dc2626' : '#059669' }}>
                             {t('liveMapPage.clients.creditLabel')}: {formatMoney(customer.credit_balance)}
                           </div>
                         )}
@@ -731,7 +749,7 @@ function ClientsTab({
               })}
             </MapContainer>
           )}
-        </div>
+        </MapShell>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
           <MetricCard label={t('liveMapPage.clients.totalCustomers')} value={formatCount(customers.length)} color="#0d9488" icon="fa-solid fa-users" />
@@ -788,14 +806,17 @@ function TerrainTab({
   const presenceMeta = getPresenceMeta(selectedRep, t)
   const routeMeta = getRouteMeta(selectedRep?.route_session, t)
   const routeTracePoints = GEO_TRACKING_ENABLED
-    ? routeTrace.map(item => getTunisiaPoint(item.latitude, item.longitude)).filter(Boolean)
+    ? routeTrace.map(item => getMapPoint(item.latitude, item.longitude)).filter(Boolean)
     : []
   const terrainPositions = GEO_TRACKING_ENABLED
-    ? (terrain.reps ?? []).filter(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
+    ? (terrain.reps ?? []).filter(rep => getMapPoint(rep.map_position?.latitude, rep.map_position?.longitude))
     : []
   const selectedTerrainLocation = GEO_TRACKING_ENABLED ? getSelectedTerrainLocation(selectedRep, routeTrace) : null
   const selectedRepHasMapPosition = GEO_TRACKING_ENABLED && Boolean(selectedTerrainLocation?.point)
   const selectedRepUsesTraceFallback = GEO_TRACKING_ENABLED && selectedTerrainLocation?.source === 'trace'
+  const providerConfig = resolveProviderConfig(mapSettings)
+  const providerLabel = getMapProviderLabel(mapSettings.provider, t)
+  const shellTone = providerConfig.tone || 'light'
   let mapDisabledReason = selectedRep && !selectedRepHasMapPosition
     ? (selectedRep.presence?.last_seen
       ? t('liveMapPage.terrain.noGpsPoint')
@@ -1031,7 +1052,33 @@ function TerrainTab({
         </div>
 
         <div className="xl:col-span-8 space-y-4">
-          <div className="card overflow-hidden p-0 relative" style={{ height: 560 }}>
+          <MapShell
+            title={t('liveMapPage.terrain.terrainMap')}
+            subtitle={selectedRep
+              ? `${selectedRep.name} · ${presenceMeta.label}`
+              : t('liveMapPage.terrain.selectMobilePrompt')}
+            themeTone={shellTone}
+            chips={[
+              {
+                icon: 'fa-solid fa-layer-group',
+                label: t('liveMapPage.page.providerTitle'),
+                value: providerLabel,
+                tone: shellTone === 'satellite' ? 'night' : (shellTone === 'topo' ? 'earth' : 'neutral'),
+              },
+              {
+                icon: 'fa-solid fa-location-crosshairs',
+                label: t('liveMapPage.terrain.gpsPoints'),
+                value: GEO_TRACKING_ENABLED ? formatCount(terrainPositions.length) : t('liveMapPage.fallbacks.paused'),
+                tone: 'success',
+              },
+              {
+                icon: 'fa-solid fa-route',
+                label: t('liveMapPage.terrain.traceLoaded'),
+                value: GEO_TRACKING_ENABLED ? formatCount(routeTrace.length) : t('liveMapPage.fallbacks.disabled'),
+                tone: 'info',
+              },
+            ]}
+          >
             {terrainError ? (
               <div className="flex items-center justify-center h-full text-center px-6">
                 <div>
@@ -1045,9 +1092,7 @@ function TerrainTab({
                 <MapContainer
                   center={DEFAULT_CENTER}
                   zoom={DEFAULT_ZOOM}
-                  minZoom={DEFAULT_ZOOM}
-                  maxBounds={TUNISIA_BOUNDS}
-                  maxBoundsViscosity={1}
+                  minZoom={DEFAULT_MIN_ZOOM}
                   style={{ height: '100%', width: '100%' }}
                   zoomControl
                 >
@@ -1057,7 +1102,7 @@ function TerrainTab({
                   {terrainPositions.map(rep => {
                     const presence = getPresenceMeta(rep, t)
                     const selected = String(rep.id) === String(selectedRepId)
-                    const point = getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude)
+                    const point = getMapPoint(rep.map_position?.latitude, rep.map_position?.longitude)
 
                     if (!point) {
                       return null
@@ -1071,16 +1116,16 @@ function TerrainTab({
                         eventHandlers={{ click: () => onSelectRep(rep.id) }}
                       >
                         <Popup>
-                          <div style={{ minWidth: 180 }}>
-                            <div style={{ fontWeight: 700 }}>{rep.name}</div>
-                            <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
+                          <div className="irtiwaa-map-popup" style={{ minWidth: 180 }}>
+                            <div className="irtiwaa-map-popup__title">{rep.name}</div>
+                            <div className="irtiwaa-map-popup__meta">
                               {presence.label} · {formatRelativeTime(rep.presence?.last_seen, t)}
                             </div>
-                            <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
+                            <div className="irtiwaa-map-popup__meta">
                               {rep.route_session?.status === 'open' ? t('liveMapPage.route.open') : t('liveMapPage.route.noActiveSession')}
                             </div>
                             {rep.device?.app_version && (
-                              <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
+                              <div className="irtiwaa-map-popup__meta">
                                 {t('liveMapPage.terrain.popupAppVersion', { version: rep.device.app_version })}
                               </div>
                             )}
@@ -1097,16 +1142,16 @@ function TerrainTab({
                       eventHandlers={{ click: () => onSelectRep(selectedRep.id) }}
                     >
                       <Popup>
-                        <div style={{ minWidth: 180 }}>
-                          <div style={{ fontWeight: 700 }}>{selectedRep.name}</div>
-                          <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
+                        <div className="irtiwaa-map-popup" style={{ minWidth: 180 }}>
+                          <div className="irtiwaa-map-popup__title">{selectedRep.name}</div>
+                          <div className="irtiwaa-map-popup__meta">
                             {t('liveMapPage.terrain.popupTraceRecent', {
                               date: selectedTerrainLocation.recorded_at
                                 ? formatDateTime(selectedTerrainLocation.recorded_at, t('liveMapPage.fallbacks.notAvailable'))
                                 : t('liveMapPage.fallbacks.unknownTime'),
                             })}
                           </div>
-                          <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
+                          <div className="irtiwaa-map-popup__meta">
                             {t('liveMapPage.terrain.popupTraceFallback')}
                           </div>
                         </div>
@@ -1123,15 +1168,17 @@ function TerrainTab({
                   )}
 
                   {routeTracePoints.length > 1 && (
-                    <Polyline positions={routeTracePoints} pathOptions={{ color: '#0d9488', weight: 4, opacity: 0.85 }} />
+                    <>
+                      <Polyline positions={routeTracePoints} pathOptions={{ color: '#f8fafc', weight: 7, opacity: shellTone === 'satellite' ? 0.42 : 0.24 }} />
+                      <Polyline positions={routeTracePoints} pathOptions={{ color: shellTone === 'satellite' ? '#22d3ee' : '#0d9488', weight: 4, opacity: 0.92 }} />
+                    </>
                   )}
                 </MapContainer>
 
                 {mapDisabledReason && (
-                  <div className="absolute top-4 left-4 right-4 z-[500] pointer-events-none">
+                  <div className="absolute top-4 left-4 right-4 z-[500] pointer-events-none irtiwaa-map-banner-wrap">
                     <div
-                      className="mx-auto max-w-lg rounded-2xl px-4 py-4 text-center shadow-lg backdrop-blur-sm"
-                      style={{ background: 'rgba(255,255,255,0.92)', boxShadow: '0 18px 40px rgba(15,23,42,0.18)' }}
+                      className="mx-auto max-w-lg rounded-2xl px-4 py-4 text-center shadow-lg backdrop-blur-sm irtiwaa-map-banner"
                     >
                       <i className="fa-solid fa-location-slash text-2xl text-amber-500 mb-3 block" />
                       <p className="text-sm text-base-color font-semibold">{t('liveMapPage.terrain.mapDisabledTitle')}</p>
@@ -1144,7 +1191,7 @@ function TerrainTab({
                 )}
               </>
             )}
-          </div>
+          </MapShell>
 
           {selectedRep && !selectedRepHasMapPosition && (
             <div className="card py-3 px-4">
@@ -1318,7 +1365,7 @@ export default function LiveMapIndex() {
 
   if (!MAP_TERRAIN_UI_ENABLED) {
     return (
-      <div className="space-y-6">
+      <div className="irtiwaa-map-page irtiwaa-map-page--light space-y-6">
         <PageHeader
           title={t('liveMapPage.page.title')}
           subtitle={t('liveMapPage.page.hiddenSubtitle')}
@@ -1430,7 +1477,18 @@ export default function LiveMapIndex() {
   }, [])
 
   const loadMapSettings = useCallback(async () => {
-    setMapSettings(normalizeMapSettings())
+    try {
+      const response = await api.get('/settings', {
+        params: {
+          group: 'map',
+          public: 1,
+        },
+      })
+
+      setMapSettings(normalizeMapSettings(response.data ?? []))
+    } catch {
+      setMapSettings(normalizeMapSettings())
+    }
   }, [])
 
   const loadTerrain = useCallback(async () => {
@@ -1546,12 +1604,12 @@ export default function LiveMapIndex() {
     }
 
     const repCandidates = terrain.reps.filter(rep => rep.role === 'rep')
-    const fallbackRep = repCandidates.find(rep => rep.route_session?.status === 'open' && getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
-      || repCandidates.find(rep => rep.presence?.is_online && getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
-      || repCandidates.find(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
-      || terrain.reps.find(rep => rep.route_session?.status === 'open' && getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
-      || terrain.reps.find(rep => rep.presence?.is_online && getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
-      || terrain.reps.find(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude))
+    const fallbackRep = repCandidates.find(rep => rep.route_session?.status === 'open' && getMapPoint(rep.map_position?.latitude, rep.map_position?.longitude))
+      || repCandidates.find(rep => rep.presence?.is_online && getMapPoint(rep.map_position?.latitude, rep.map_position?.longitude))
+      || repCandidates.find(rep => getMapPoint(rep.map_position?.latitude, rep.map_position?.longitude))
+      || terrain.reps.find(rep => rep.route_session?.status === 'open' && getMapPoint(rep.map_position?.latitude, rep.map_position?.longitude))
+      || terrain.reps.find(rep => rep.presence?.is_online && getMapPoint(rep.map_position?.latitude, rep.map_position?.longitude))
+      || terrain.reps.find(rep => getMapPoint(rep.map_position?.latitude, rep.map_position?.longitude))
       || repCandidates.find(rep => rep.presence?.is_online)
       || terrain.reps.find(rep => rep.presence?.is_online)
       || terrain.reps.find(rep => rep.route_session?.status === 'open')
@@ -1604,19 +1662,23 @@ export default function LiveMapIndex() {
   const customerSubtitle = CUSTOMER_GEOLOCATION_ENABLED
     ? t('liveMapPage.page.customerSubtitle', {
       total: formatCount(customers.length),
-      mapped: formatCount(customers.filter(customer => getTunisiaPoint(customer.lat, customer.lng)).length),
+      mapped: formatCount(customers.filter(customer => getMapPoint(customer.lat, customer.lng)).length),
     })
     : t('liveMapPage.page.customerSubtitleDisabled', {
       total: formatCount(customers.length),
     })
+  const customerMappedCount = customers.filter(customer => getMapPoint(customer.lat, customer.lng)).length
   const terrainTrackedCount = terrain.stats?.users_total ?? terrain.stats?.reps_total ?? 0
   const terrainMappedCount = GEO_TRACKING_ENABLED
-    ? terrain.reps.filter(rep => getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude)).length
+    ? terrain.reps.filter(rep => getMapPoint(rep.map_position?.latitude, rep.map_position?.longitude)).length
     : (terrain.stats?.open_sessions ?? terrainTrackedCount)
   const terrainOnlineCount = GEO_TRACKING_ENABLED
     ? (terrain.stats?.online_users ?? terrain.stats?.online_reps ?? 0)
     : (terrain.stats?.open_sessions ?? 0)
   const providerConfig = resolveProviderConfig(mapSettings)
+  const providerWarning = resolveProviderWarning(providerConfig.warningKey, t)
+  const providerLabel = getMapProviderLabel(mapSettings.provider, t)
+  const pageTone = providerConfig.tone || 'light'
   const terrainScopeLabel = selectedDepot
     ? `${selectedDepot.name}${selectedDepot.code ? ` (${selectedDepot.code})` : ''}`
     : t('liveMapPage.page.allDepots')
@@ -1628,7 +1690,7 @@ export default function LiveMapIndex() {
     : (GEO_TRACKING_ENABLED ? t('liveMapPage.page.terrainSubtitleGps') : t('liveMapPage.page.terrainSubtitleSessions'))
 
   return (
-    <div>
+    <div className={`irtiwaa-map-page irtiwaa-map-page--${pageTone}`}>
       <PageHeader
         title={t('liveMapPage.page.title')}
         subtitle={activeTab === 'terrain'
@@ -1676,34 +1738,53 @@ export default function LiveMapIndex() {
         )}
       />
 
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <TabButton
-          active={activeTab === 'clients'}
-          icon="fa-solid fa-users"
-          label={t('layout.nav.customers')}
-          count={formatCount(customers.length)}
-          onClick={() => patchSearchParams({ tab: 'clients' })}
-        />
-        <TabButton
-          active={activeTab === 'terrain'}
-          icon="fa-solid fa-tower-broadcast"
-          label={t('liveMapPage.page.mobileTerrain')}
-          count={formatCount(terrainMappedCount)}
-          onClick={() => patchSearchParams({ tab: 'terrain' })}
-        />
-      </div>
+      <div className={`card irtiwaa-map-toolbar irtiwaa-map-toolbar--${pageTone} mb-4`}>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <TabButton
+              active={activeTab === 'clients'}
+              icon="fa-solid fa-users"
+              label={t('layout.nav.customers')}
+              count={formatCount(customers.length)}
+              onClick={() => patchSearchParams({ tab: 'clients' })}
+            />
+            <TabButton
+              active={activeTab === 'terrain'}
+              icon="fa-solid fa-tower-broadcast"
+              label={t('liveMapPage.page.mobileTerrain')}
+              count={formatCount(terrainMappedCount)}
+              onClick={() => patchSearchParams({ tab: 'terrain' })}
+            />
+          </div>
 
-      {providerConfig.warning && (
-        <div className="card py-3 px-4 mb-4">
-          <div className="flex items-start gap-3">
-            <i className="fa-solid fa-circle-info text-amber-500 mt-0.5" />
-            <div>
-              <div className="text-sm font-semibold text-base-color">{t('liveMapPage.page.providerTitle')}</div>
-              <div className="text-xs text-secondary-color mt-1">{providerConfig.warning}</div>
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <MapMetaChip
+              icon="fa-solid fa-layer-group"
+              label={t('liveMapPage.page.providerTitle')}
+              value={providerLabel}
+              tone={pageTone === 'satellite' ? 'night' : (pageTone === 'topo' ? 'earth' : 'neutral')}
+            />
+            <MapMetaChip
+              icon={activeTab === 'terrain' ? 'fa-solid fa-location-crosshairs' : 'fa-solid fa-location-dot'}
+              label={activeTab === 'terrain' ? t('liveMapPage.terrain.mobileOnline') : t('liveMapPage.clients.onMap')}
+              value={activeTab === 'terrain' ? formatCount(terrainOnlineCount) : formatCount(customerMappedCount)}
+              tone={activeTab === 'terrain' ? 'success' : 'info'}
+            />
           </div>
         </div>
-      )}
+
+        {providerWarning && (
+          <div className="mt-4 irtiwaa-map-provider-note">
+            <div className="flex items-start gap-3">
+              <i className="fa-solid fa-circle-info text-amber-500 mt-0.5" />
+              <div>
+                <div className="text-sm font-semibold text-base-color">{t('liveMapPage.page.providerTitle')}</div>
+                <div className="text-xs text-secondary-color mt-1">{providerWarning}</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {activeTab === 'terrain' ? (
         <TerrainTab

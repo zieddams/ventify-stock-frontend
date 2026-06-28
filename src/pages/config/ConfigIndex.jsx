@@ -277,6 +277,11 @@ function getMapProviders(t) {
       description: t('configPage.mapProviders.esriWorldImagery.description'),
     },
     {
+      key: 'esri_world_hybrid',
+      label: t('configPage.mapProviders.esriWorldHybrid.label'),
+      description: t('configPage.mapProviders.esriWorldHybrid.description'),
+    },
+    {
       key: 'google_roadmap',
       label: t('configPage.mapProviders.googleRoadmap.label'),
       description: t('configPage.mapProviders.googleRoadmap.description'),

@@ -381,6 +381,9 @@ export default {
       refresh: 'Actualiser',
       mobileTerrain: 'Terrain mobile',
       providerTitle: 'Provider carte',
+      providerFallbackGoogle: 'Google Maps est sélectionné sans clé JavaScript valide. OpenStreetMap est utilisé en secours.',
+      providerFallbackCustom: 'Le provider personnalisé est sélectionné sans URL de tuiles. OpenStreetMap est utilisé en secours.',
+      providerFallbackUnknown: 'Le provider configuré est inconnu. OpenStreetMap est utilisé en secours.',
     },
     sources: {
       trace: 'Trace GPS',
@@ -442,7 +445,7 @@ export default {
     },
     terrain: {
       streamUnavailable: "Le flux terrain n'est pas encore disponible.",
-      noGpsPoint: "Aucun point GPS exploitable en Tunisie n’a encore été remonté pour ce compte.",
+      noGpsPoint: "Aucun point GPS exploitable n’a encore été remonté pour ce compte.",
       noSharedPosition: "Ce compte n’a pas encore partagé de position exploitable pour la carte terrain.",
       trackingDisabledReason: 'La géolocalisation terrain est temporairement désactivée. Le suivi temps réel reste basé sur les sessions, les factures et les recharges.',
       mobileOnline: 'Mobiles en ligne',
@@ -477,12 +480,12 @@ export default {
       selectMobilePrompt: 'Sélectionnez un compte mobile pour afficher ses détails terrain.',
       loadErrorTitle: 'Impossible de charger le suivi terrain',
       mapDisabledTitle: 'Carte désactivée pour ce commercial',
-      mapReactivates: 'Le suivi restera sur OpenStreetMap et se réactivera automatiquement dès qu’un point GPS valide sera reçu.',
+      mapReactivates: 'La carte se mettra automatiquement à jour dès qu’un point GPS valide sera reçu.',
       popupAppVersion: ({ version }) => `App v${version}`,
       popupTraceRecent: ({ date }) => `Trace GPS récente · ${date}`,
       popupTraceFallback: 'Le point courant n’est pas exploitable, la carte utilise le dernier point valide de la trace.',
       positionUnavailableTitle: 'Position introuvable pour ce compte',
-      positionUnavailableDescription: 'La carte reste limitée à la Tunisie. Cette position est absente ou hors Tunisie, donc elle n’est pas affichée.',
+      positionUnavailableDescription: 'Cette position est absente ou invalide, donc elle n’est pas affichée sur la carte.',
       revenueToday: 'CA du jour',
       invoicesCount: ({ count }) => `${count} facture(s)`,
       loadedToday: 'Chargé du jour',
@@ -2948,6 +2951,10 @@ export default {
       esriWorldImagery: {
         label: 'Esri Imagerie',
         description: 'Imagerie satellite utile pour le contexte terrain.',
+      },
+      esriWorldHybrid: {
+        label: 'Esri Satellite Hybrid',
+        description: 'Imagerie satellite avec routes et labels superposés pour une lecture plus réaliste.',
       },
       googleRoadmap: {
         label: 'Google Roadmap',
