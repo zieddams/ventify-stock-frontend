@@ -771,13 +771,6 @@ export default function CreditIndex() {
                                   </div>
                                 </div>
                               )}
-                              {entry.customer_id && (
-                                <div className="pt-1">
-                                  <button type="button" className="btn-secondary text-[11px]" onClick={() => openLedger(entry, entry.invoice_id)}>
-                                    <i className="fa-solid fa-credit-card" /> {t('customers.ledger.collectPayment')}
-                                  </button>
-                                </div>
-                              )}
                             </div>
                           </td>
                         </tr>
