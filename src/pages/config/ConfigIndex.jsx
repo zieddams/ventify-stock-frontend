@@ -35,10 +35,6 @@ const MAP_SETTING_KEYS = [
   'map.custom_tile_url',
   'map.custom_tile_attribution',
 ]
-const MAP_VISIBILITY_SETTING_KEYS = [
-  'map.customer_geolocation_enabled',
-  'map.terrain_tracking_enabled',
-]
 
 const SYSTEM_SETTING_KEYS = [
   'support.help_contact_label',
@@ -172,13 +168,6 @@ function getSetupSections(t) {
       title: t('configPage.sections.documents.title'),
       description: t('configPage.sections.documents.description'),
       icon: 'fa-solid fa-print',
-    },
-    {
-      key: 'terrain-visibility',
-      module: 'system',
-      title: t('configPage.sections.terrainVisibility.title'),
-      description: t('configPage.sections.terrainVisibility.description'),
-      icon: 'fa-solid fa-map-location-dot',
     },
     {
       key: 'system-support',
@@ -1437,74 +1426,6 @@ export default function ConfigIndex() {
 
                 <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color mt-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                   {t('configPage.mapProvider.note')}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {setupSection?.key === 'terrain-visibility' && (
-            <div className="space-y-6">
-              <div className="card">
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div>
-                    <h2 className="text-sm font-semibold text-base-color">{t('configPage.terrainVisibility.title')}</h2>
-                    <p className="text-xs text-muted-color mt-1">
-                      {t('configPage.terrainVisibility.description')}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => saveSettings(MAP_VISIBILITY_SETTING_KEYS, 'map-visibility')}
-                    disabled={savingSettings === 'map-visibility'}
-                    className="btn-primary text-xs"
-                  >
-                    {savingSettings === 'map-visibility'
-                      ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</>
-                      : <><i className="fa-solid fa-floppy-disk" /> {t('common.save')}</>
-                    }
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateSetting('map.customer_geolocation_enabled', true)
-                      updateSetting('map.terrain_tracking_enabled', true)
-                    }}
-                    className="rounded-2xl px-4 py-4 text-left transition-all"
-                    style={mapExperienceEnabled
-                      ? { background: 'rgba(13,148,136,0.10)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)' }
-                      : { background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
-                  >
-                    <div className="text-sm font-semibold text-base-color">{t('configPage.terrainVisibility.enableTitle')}</div>
-                    <div className="text-xs text-secondary-color mt-1">
-                      {t('configPage.terrainVisibility.enableDescription')}
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateSetting('map.customer_geolocation_enabled', false)
-                      updateSetting('map.terrain_tracking_enabled', false)
-                    }}
-                    className="rounded-2xl px-4 py-4 text-left transition-all"
-                    style={!mapExperienceEnabled
-                      ? { background: 'rgba(100,116,139,0.12)', boxShadow: 'inset 0 0 0 1px rgba(100,116,139,0.18)' }
-                      : { background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
-                  >
-                    <div className="text-sm font-semibold text-base-color">{t('configPage.terrainVisibility.disableTitle')}</div>
-                    <div className="text-xs text-secondary-color mt-1">
-                      {t('configPage.terrainVisibility.disableDescription')}
-                    </div>
-                  </button>
-                </div>
-
-                <div className="rounded-2xl px-4 py-3 mt-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-color mb-1">{t('configPage.terrainVisibility.currentStateLabel')}</div>
-                  <div className="text-sm font-medium text-base-color">
-                    {mapExperienceEnabled ? t('configPage.terrainVisibility.currentStateActive') : t('configPage.terrainVisibility.currentStateHidden')}
-                  </div>
                 </div>
               </div>
             </div>

@@ -74,7 +74,7 @@ function RequireMapFeature({ children }) {
   if (!user) return <Navigate to="/login" replace />
   if (isDeveloperWorkspace()) return <Navigate to="/developer" replace />
   if (user.role !== 'admin') return <Navigate to="/" replace />
-  if (!isAnyMapExperienceEnabled(user)) return <Navigate to="/config/terrain-visibility" replace />
+  if (!isAnyMapExperienceEnabled(user)) return <Navigate to="/" replace />
   return children
 }
 

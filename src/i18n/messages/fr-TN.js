@@ -2244,6 +2244,7 @@ export default {
       loadCompanies: 'Impossible de charger les sociétés.',
       loadCompanyDetail: 'Impossible de charger le détail de la société.',
       save: 'Impossible d’enregistrer la société.',
+      mapSettingsSave: 'Impossible de mettre à jour la cartographie de la société.',
       logoRequired: 'Ajoutez un logo dédié avant d’enregistrer la société.',
       launchSession: 'Impossible d’ouvrir la session société.',
       freshInstallConfirmation: 'Tapez exactement FRESH INSTALL pour confirmer la réinitialisation.',
@@ -2253,6 +2254,7 @@ export default {
     notices: {
       created: 'Société créée.',
       updated: 'Société mise à jour.',
+      mapSettingsUpdated: 'Configuration cartographie mise à jour.',
       freshInstallDone: 'Fresh install exécuté pour cette société.',
       workspaceReady: 'Workspace de test préparé.',
     },
@@ -2294,6 +2296,20 @@ export default {
       blocked: 'Bloqué',
       enabled: 'Activées',
       blockedPlural: 'Bloquées',
+    },
+    mapSettings: {
+      title: 'Cartographie & GPS',
+      description: 'Gérez ici, côté développeur, les cartes clients et le partage GPS terrain pour cette société.',
+      enabled: 'Activé',
+      disabled: 'Désactivé',
+      customer: {
+        title: 'Carte clients',
+        description: 'Affiche ou masque les points clients géolocalisés dans le module carte.',
+      },
+      terrain: {
+        title: 'Suivi terrain GPS',
+        description: 'Autorise ou coupe la remontée GPS mobile, la carte terrain et les traces de tournée.',
+      },
     },
     freshInstall: {
       title: 'Fresh install sociétaire',

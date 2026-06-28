@@ -12,7 +12,11 @@ import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import api from '../../services/api'
 import { subscribeToOpsMonitor } from '../../services/realtime'
-import { isAnyMapExperienceEnabled } from '../../utils/companyFeatures'
+import {
+  isAnyMapExperienceEnabled,
+  isCustomerGeolocationEnabled,
+  isTerrainTrackingEnabled,
+} from '../../utils/companyFeatures'
 import {
   formatCount as formatLocaleCount,
   formatCurrency as formatLocaleCurrency,
@@ -35,6 +39,7 @@ const TUNISIA_BOUNDS = [
 const DEFAULT_CENTER = [34.2, 9.6]
 const DEFAULT_ZOOM = 6
 const HEARTBEAT_REFRESH_MS = 20 * 1000
+let CUSTOMER_GEOLOCATION_ENABLED = false
 let GEO_TRACKING_ENABLED = false
 let MAP_TERRAIN_UI_ENABLED = false
 const GOOGLE_MAP_PROVIDERS = new Set(['google_roadmap', 'google_satellite'])
@@ -586,10 +591,10 @@ function ClientsTab({
     return true
   })
 
-  const mapped = GEO_TRACKING_ENABLED
+  const mapped = CUSTOMER_GEOLOCATION_ENABLED
     ? filtered.filter(customer => getTunisiaPoint(customer.lat, customer.lng))
     : []
-  const unmapped = GEO_TRACKING_ENABLED
+  const unmapped = CUSTOMER_GEOLOCATION_ENABLED
     ? filtered.filter(customer => !getTunisiaPoint(customer.lat, customer.lng))
     : filtered
 
@@ -668,7 +673,7 @@ function ClientsTab({
         <div className="card overflow-hidden p-0" style={{ height: 560 }}>
           {loading ? (
             <PageLoader />
-          ) : !GEO_TRACKING_ENABLED ? (
+          ) : !CUSTOMER_GEOLOCATION_ENABLED ? (
             <div className="flex items-center justify-center h-full text-center px-6">
               <div className="max-w-md">
                 <i className="fa-solid fa-location-slash text-2xl text-amber-500 mb-3 block" />
@@ -731,16 +736,16 @@ function ClientsTab({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
           <MetricCard label={t('liveMapPage.clients.totalCustomers')} value={formatCount(customers.length)} color="#0d9488" icon="fa-solid fa-users" />
           <MetricCard
-            label={GEO_TRACKING_ENABLED ? t('liveMapPage.clients.onMap') : t('liveMapPage.clients.clientMap')}
-            value={GEO_TRACKING_ENABLED ? formatCount(mapped.length) : t('liveMapPage.fallbacks.paused')}
+            label={CUSTOMER_GEOLOCATION_ENABLED ? t('liveMapPage.clients.onMap') : t('liveMapPage.clients.clientMap')}
+            value={CUSTOMER_GEOLOCATION_ENABLED ? formatCount(mapped.length) : t('liveMapPage.fallbacks.paused')}
             color="#3b82f6"
-            icon={GEO_TRACKING_ENABLED ? 'fa-solid fa-location-dot' : 'fa-solid fa-location-slash'}
+            icon={CUSTOMER_GEOLOCATION_ENABLED ? 'fa-solid fa-location-dot' : 'fa-solid fa-location-slash'}
           />
           <MetricCard
-            label={GEO_TRACKING_ENABLED ? t('liveMapPage.clients.withoutPosition') : t('liveMapPage.clients.filteredCustomers')}
-            value={GEO_TRACKING_ENABLED ? formatCount(unmapped.length) : formatCount(filtered.length)}
+            label={CUSTOMER_GEOLOCATION_ENABLED ? t('liveMapPage.clients.withoutPosition') : t('liveMapPage.clients.filteredCustomers')}
+            value={CUSTOMER_GEOLOCATION_ENABLED ? formatCount(unmapped.length) : formatCount(filtered.length)}
             color="#f59e0b"
-            icon={GEO_TRACKING_ENABLED ? 'fa-solid fa-location-dot-slash' : 'fa-solid fa-list'}
+            icon={CUSTOMER_GEOLOCATION_ENABLED ? 'fa-solid fa-location-dot-slash' : 'fa-solid fa-list'}
           />
         </div>
       </div>
@@ -1295,9 +1300,13 @@ export default function LiveMapIndex() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAuth()
   const { t } = useI18n()
+  const customerGeolocationEnabled = isCustomerGeolocationEnabled(user)
+  const terrainTrackingEnabled = isTerrainTrackingEnabled(user)
   const mapExperienceEnabled = isAnyMapExperienceEnabled(user)
+  const requestedTab = searchParams.get('tab')
 
-  GEO_TRACKING_ENABLED = mapExperienceEnabled
+  CUSTOMER_GEOLOCATION_ENABLED = customerGeolocationEnabled
+  GEO_TRACKING_ENABLED = terrainTrackingEnabled
   MAP_TERRAIN_UI_ENABLED = mapExperienceEnabled
 
   if (!MAP_TERRAIN_UI_ENABLED) {
@@ -1360,7 +1369,11 @@ export default function LiveMapIndex() {
   const terrainReloadTimerRef = useRef(null)
   const traceReloadTimerRef = useRef(null)
 
-  const activeTab = searchParams.get('tab') === 'clients' ? 'clients' : 'terrain'
+  const activeTab = requestedTab === 'clients'
+    ? (customerGeolocationEnabled ? 'clients' : 'terrain')
+    : requestedTab === 'terrain'
+      ? (terrainTrackingEnabled ? 'terrain' : 'clients')
+      : (terrainTrackingEnabled ? 'terrain' : 'clients')
   const selectedRepId = searchParams.get('rep') || ''
 
   const patchSearchParams = useCallback((patch) => {
@@ -1376,6 +1389,19 @@ export default function LiveMapIndex() {
 
     setSearchParams(next, { replace: true })
   }, [searchParams, setSearchParams])
+
+  useEffect(() => {
+    const currentTab = searchParams.get('tab')
+
+    if (currentTab === activeTab) {
+      return
+    }
+
+    patchSearchParams({
+      tab: activeTab,
+      ...(activeTab === 'terrain' ? {} : { rep: null }),
+    })
+  }, [activeTab, patchSearchParams, searchParams])
 
   const loadClients = useCallback(async () => {
     if (!initialClientsLoaded.current) {
@@ -1401,6 +1427,14 @@ export default function LiveMapIndex() {
   }, [])
 
   const loadTerrain = useCallback(async () => {
+    if (!terrainTrackingEnabled) {
+      initialTerrainLoaded.current = false
+      setTerrain({ generated_at: null, stats: {}, reps: [] })
+      setTerrainError('')
+      setLoadingTerrain(false)
+      return
+    }
+
     if (!initialTerrainLoaded.current) {
       setLoadingTerrain(true)
     }
@@ -1417,7 +1451,7 @@ export default function LiveMapIndex() {
     } finally {
       setLoadingTerrain(false)
     }
-  }, [selectedDepotId, t])
+  }, [selectedDepotId, t, terrainTrackingEnabled])
 
   const loadRouteTrace = useCallback(async (routeSessionId) => {
     if (!GEO_TRACKING_ENABLED) {
@@ -1465,9 +1499,16 @@ export default function LiveMapIndex() {
 
   useEffect(() => {
     loadClients()
-    loadTerrain()
     loadMapSettings()
-  }, [loadClients, loadMapSettings, loadTerrain])
+  }, [loadClients, loadMapSettings])
+
+  useEffect(() => {
+    if (activeTab !== 'terrain') {
+      return
+    }
+
+    loadTerrain()
+  }, [activeTab, loadTerrain])
 
   useEffect(() => {
     if (activeTab !== 'terrain') {
@@ -1553,7 +1594,7 @@ export default function LiveMapIndex() {
     }
   }, [])
 
-  const customerSubtitle = GEO_TRACKING_ENABLED
+  const customerSubtitle = CUSTOMER_GEOLOCATION_ENABLED
     ? t('liveMapPage.page.customerSubtitle', {
       total: formatCount(customers.length),
       mapped: formatCount(customers.filter(customer => getTunisiaPoint(customer.lat, customer.lng)).length),

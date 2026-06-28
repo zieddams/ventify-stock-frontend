@@ -2243,6 +2243,7 @@ export default {
       loadCompanies: 'ما نجمنّاش نحمّلوا الشركات.',
       loadCompanyDetail: 'ما نجمنّاش نحمّلوا تفاصيل الشركة.',
       save: 'ما نجمنّاش نسجّلوا الشركة.',
+      mapSettingsSave: 'ما نجمنّاش نحدّثوا إعدادات الخرايط متاع الشركة.',
       logoRequired: 'زيد شعار خاص بالشركة قبل ما تسجّلها.',
       launchSession: 'ما نجمنّاش نفتحوا جلسة الشركة.',
       freshInstallConfirmation: 'اكتب بالضبط FRESH INSTALL باش تأكّد التصفير.',
@@ -2252,6 +2253,7 @@ export default {
     notices: {
       created: 'الشركة تخلقت.',
       updated: 'الشركة تحدّثت.',
+      mapSettingsUpdated: 'إعدادات الخرايط تحدّثت.',
       freshInstallDone: 'الـ fresh install تخدم للشركة هاذي.',
       workspaceReady: 'فضاء الاختبار تجهّز.',
     },
@@ -2293,6 +2295,20 @@ export default {
       blocked: 'ممنوع',
       enabled: 'مفعّلة',
       blockedPlural: 'ممنوعة',
+    },
+    mapSettings: {
+      title: 'الخرايط و GPS',
+      description: 'من هنا، في فضاء المطوّر، تتحكّم في خرايط الحرفاء ومشاركة GPS الميدان لكل شركة.',
+      enabled: 'مفعّل',
+      disabled: 'موقوف',
+      customer: {
+        title: 'خريطة الحرفاء',
+        description: 'تظهر ولا تخبّي نقاط الحرفاء المتموقعين في موديول الخريطة.',
+      },
+      terrain: {
+        title: 'تتبع الميدان GPS',
+        description: 'يفعّل ولا يوقف صعود GPS من الموبايل، خريطة الميدان وتتبع المسار.',
+      },
     },
     freshInstall: {
       title: 'Fresh install متاع الشركة',

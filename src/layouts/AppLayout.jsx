@@ -8,8 +8,10 @@ import { useI18n } from '../contexts/I18nContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { useDepots } from '../hooks/useDepots'
 import { DEFAULT_APP_MARK, applyDocumentBranding, resolveUserBrandLogo } from '../utils/branding'
+import { isAnyMapExperienceEnabled } from '../utils/companyFeatures'
 
 const COMPANY_NAV_ICON = 'fa-solid fa-building'
+const MAP_NAV_ITEM = { to: '/map', icon: 'fa-solid fa-map-location-dot', labelKey: 'layout.nav.map' }
 
 const CORE_NAV = [
   { to: '/invoices', icon: 'fa-solid fa-file-invoice', labelKey: 'layout.nav.invoices' },
@@ -358,16 +360,19 @@ function ScopedCompanySessionBanner({
   )
 }
 
-function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper, statusLabel, appDisplayName, user }) {
+function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper, statusLabel, appDisplayName, user, mapExperienceEnabled }) {
   const { t } = useI18n()
 
   if (!open) {
     return null
   }
 
+  const operationsNavItems = mapExperienceEnabled
+    ? [...OPERATIONS_NAV.slice(0, 2), MAP_NAV_ITEM, ...OPERATIONS_NAV.slice(2)]
+    : OPERATIONS_NAV
   const mobileCoreNav = CORE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
   const mobileFinanceNav = FINANCE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
-  const mobileOperationsNav = OPERATIONS_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
+  const mobileOperationsNav = operationsNavItems.map((item) => ({ ...item, label: t(item.labelKey) }))
   const mobileSupportNav = SUPPORT_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
   const mobileDeveloperNav = DEVELOPER_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
 
@@ -570,6 +575,7 @@ export default function AppLayout() {
   })
   const statusLabel = getSystemStatusLabel(systemStatus, t)
   const canSeeDepotScope = isDeveloper() && !isDeveloperWorkspacePage
+  const mapExperienceEnabled = isAnyMapExperienceEnabled(user)
   const activeCompanyName = isDeveloperWorkspacePage
     ? (user?.company?.name ?? null)
     : (topbarSelectedDepot?.company?.name ?? user?.company?.name ?? null)
@@ -586,9 +592,12 @@ export default function AppLayout() {
     })
   }, [appDisplayName, pageLabel, user])
 
+  const operationsNavItems = mapExperienceEnabled
+    ? [...OPERATIONS_NAV.slice(0, 2), MAP_NAV_ITEM, ...OPERATIONS_NAV.slice(2)]
+    : OPERATIONS_NAV
   const desktopCoreNav = CORE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
   const desktopFinanceNav = FINANCE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
-  const desktopOperationsNav = OPERATIONS_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
+  const desktopOperationsNav = operationsNavItems.map((item) => ({ ...item, label: t(item.labelKey) }))
   const desktopDeveloperNav = DEVELOPER_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
 
   const handleExitScopedSession = async () => {
@@ -780,6 +789,7 @@ export default function AppLayout() {
         isDeveloper={isDeveloper}
         statusLabel={statusLabel}
         appDisplayName={appDisplayName}
+        mapExperienceEnabled={mapExperienceEnabled}
         user={user}
       />
     </div>

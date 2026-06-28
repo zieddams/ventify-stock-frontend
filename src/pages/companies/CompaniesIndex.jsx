@@ -9,6 +9,11 @@ import api from '../../services/api'
 import { companyHasDedicatedLogo } from '../../utils/branding'
 import { formatCount as formatLocaleCount, formatDateTime as formatLocaleDateTime } from '../../utils/format'
 
+const MAP_FEATURE_SETTING_KEYS = {
+  customer_geolocation_enabled: 'map.customer_geolocation_enabled',
+  terrain_tracking_enabled: 'map.terrain_tracking_enabled',
+}
+
 function buildCompanyForm(company = null) {
   return {
     name: company?.name ?? '',
@@ -20,6 +25,38 @@ function buildCompanyForm(company = null) {
     fresh_install_enabled: company?.fresh_install_enabled ?? true,
     background_tasks_enabled: company?.background_tasks_enabled ?? true,
     remove_logo: false,
+  }
+}
+
+function readBooleanSetting(value) {
+  if (typeof value === 'boolean') {
+    return value
+  }
+
+  if (typeof value === 'number') {
+    return value === 1
+  }
+
+  if (typeof value === 'string') {
+    return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase())
+  }
+
+  return false
+}
+
+function normalizeCompanyMapFeatures(features = null) {
+  return {
+    customer_geolocation_enabled: features?.customer_geolocation_enabled === true,
+    terrain_tracking_enabled: features?.terrain_tracking_enabled === true,
+  }
+}
+
+function extractCompanyMapFeaturesFromSettings(settings = []) {
+  const indexed = new Map((Array.isArray(settings) ? settings : []).map((item) => [item.key, item.value]))
+
+  return {
+    customer_geolocation_enabled: readBooleanSetting(indexed.get(MAP_FEATURE_SETTING_KEYS.customer_geolocation_enabled)),
+    terrain_tracking_enabled: readBooleanSetting(indexed.get(MAP_FEATURE_SETTING_KEYS.terrain_tracking_enabled)),
   }
 }
 
@@ -145,6 +182,8 @@ export default function CompaniesIndex() {
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState('')
   const [actionError, setActionError] = useState('')
+  const [mapFeatures, setMapFeatures] = useState(() => normalizeCompanyMapFeatures())
+  const [savingMapFeatures, setSavingMapFeatures] = useState(false)
   const [freshConfirmation, setFreshConfirmation] = useState('')
   const [runningFreshInstall, setRunningFreshInstall] = useState(false)
   const [bootstrapping, setBootstrapping] = useState(false)
@@ -197,6 +236,7 @@ export default function CompaniesIndex() {
   const loadCompanyDetail = async (targetCompanyId) => {
     if (!targetCompanyId) {
       setDetail(null)
+      setMapFeatures(normalizeCompanyMapFeatures())
       return
     }
 
@@ -208,6 +248,7 @@ export default function CompaniesIndex() {
       const payload = response.data ?? null
       setDetail(payload)
       setForm(buildCompanyForm(payload?.company ?? null))
+      setMapFeatures(normalizeCompanyMapFeatures(payload?.company?.features))
       setLogoFile(null)
       setCreating(false)
     } catch (error) {
@@ -227,6 +268,7 @@ export default function CompaniesIndex() {
       loadCompanyDetail(activeCompanyId)
     } else if (creating) {
       setDetail(null)
+      setMapFeatures(normalizeCompanyMapFeatures())
       setForm(buildCompanyForm())
     }
   }, [activeCompanyId])
@@ -273,6 +315,7 @@ export default function CompaniesIndex() {
     setBootstrapResult(null)
     setNotice('')
     setActionError('')
+    setMapFeatures(normalizeCompanyMapFeatures())
     setForm(buildCompanyForm())
     navigate('/companies')
   }
@@ -385,6 +428,51 @@ export default function CompaniesIndex() {
       setActionError(error.response?.data?.message || t('companiesPage.errors.workspace'))
     } finally {
       setBootstrapping(false)
+    }
+  }
+
+  const saveMapFeatures = async () => {
+    if (!selectedCompany?.id) {
+      return
+    }
+
+    setSavingMapFeatures(true)
+    setNotice('')
+    setActionError('')
+
+    try {
+      const response = await api.put('/settings', {
+        company_id: selectedCompany.id,
+        settings: [
+          {
+            key: MAP_FEATURE_SETTING_KEYS.customer_geolocation_enabled,
+            value: mapFeatures.customer_geolocation_enabled,
+          },
+          {
+            key: MAP_FEATURE_SETTING_KEYS.terrain_tracking_enabled,
+            value: mapFeatures.terrain_tracking_enabled,
+          },
+        ],
+      })
+
+      const nextFeatures = extractCompanyMapFeaturesFromSettings(response.data ?? [])
+      setMapFeatures(nextFeatures)
+      setDetail((current) => (
+        current?.company
+          ? {
+            ...current,
+            company: {
+              ...current.company,
+              features: nextFeatures,
+            },
+          }
+          : current
+      ))
+      setNotice(t('companiesPage.notices.mapSettingsUpdated'))
+    } catch (error) {
+      setActionError(error.response?.data?.message || t('companiesPage.errors.mapSettingsSave'))
+    } finally {
+      setSavingMapFeatures(false)
     }
   }
 
@@ -644,6 +732,66 @@ export default function CompaniesIndex() {
                           ))}
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {!creating && detail?.company && (
+                    <div className="rounded-[24px] px-4 py-4" style={{ background: 'rgba(13,148,136,0.08)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.16)' }}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-base-color">{t('companiesPage.mapSettings.title')}</div>
+                          <div className="text-xs text-secondary-color mt-2">
+                            {t('companiesPage.mapSettings.description')}
+                          </div>
+                        </div>
+                        <button onClick={saveMapFeatures} disabled={savingMapFeatures} className="btn-primary text-xs">
+                          {savingMapFeatures ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : <><i className="fa-solid fa-floppy-disk" /> {t('common.save')}</>}
+                        </button>
+                      </div>
+
+                      <div className="space-y-3 mt-4">
+                        {[
+                          {
+                            key: 'customer_geolocation_enabled',
+                            title: t('companiesPage.mapSettings.customer.title'),
+                            description: t('companiesPage.mapSettings.customer.description'),
+                          },
+                          {
+                            key: 'terrain_tracking_enabled',
+                            title: t('companiesPage.mapSettings.terrain.title'),
+                            description: t('companiesPage.mapSettings.terrain.description'),
+                          },
+                        ].map((item) => {
+                          const enabled = mapFeatures[item.key] === true
+
+                          return (
+                            <button
+                              key={item.key}
+                              type="button"
+                              onClick={() => setMapFeatures((current) => ({ ...current, [item.key]: !enabled }))}
+                              className="w-full rounded-2xl px-4 py-4 text-left transition-all"
+                              style={enabled
+                                ? { background: 'rgba(13,148,136,0.12)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)' }
+                                : { background: '#ffffffcc', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.14)' }}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <div className="text-sm font-semibold text-base-color">{item.title}</div>
+                                  <div className="text-xs text-secondary-color mt-1">{item.description}</div>
+                                </div>
+                                <span
+                                  className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                                  style={enabled
+                                    ? { background: '#ffffffd9', color: '#0f766e' }
+                                    : { background: 'rgba(148,163,184,0.14)', color: '#64748b' }}
+                                >
+                                  {enabled ? t('companiesPage.mapSettings.enabled') : t('companiesPage.mapSettings.disabled')}
+                                </span>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
                     </div>
                   )}
 
