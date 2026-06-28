@@ -2329,9 +2329,13 @@ export default {
     },
     mapSettings: {
       title: 'Cartographie & GPS',
-      description: 'Gérez ici, côté développeur, les cartes clients et le partage GPS terrain pour cette société.',
+      description: 'Gérez ici, côté développeur, l’accès global à la cartographie, à la carte terrain et au partage GPS mobile pour cette société.',
       enabled: 'Activé',
       disabled: 'Désactivé',
+      master: {
+        title: 'Cartographie & GPS société',
+        description: 'Active ou coupe en même temps la carte clients, la carte terrain et la remontée GPS mobile pour cette société.',
+      },
       customer: {
         title: 'Carte clients',
         description: 'Affiche ou masque les points clients géolocalisés dans le module carte.',

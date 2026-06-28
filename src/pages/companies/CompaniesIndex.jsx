@@ -14,6 +14,15 @@ const MAP_FEATURE_SETTING_KEYS = {
   terrain_tracking_enabled: 'map.terrain_tracking_enabled',
 }
 
+function buildUnifiedCompanyMapFeatures(enabled = false) {
+  const normalized = enabled === true
+
+  return {
+    customer_geolocation_enabled: normalized,
+    terrain_tracking_enabled: normalized,
+  }
+}
+
 function buildCompanyForm(company = null) {
   return {
     name: company?.name ?? '',
@@ -44,20 +53,22 @@ function readBooleanSetting(value) {
   return false
 }
 
+function isCompanyMapExperienceEnabled(features = null) {
+  return features?.customer_geolocation_enabled === true
+    || features?.terrain_tracking_enabled === true
+}
+
 function normalizeCompanyMapFeatures(features = null) {
-  return {
-    customer_geolocation_enabled: features?.customer_geolocation_enabled === true,
-    terrain_tracking_enabled: features?.terrain_tracking_enabled === true,
-  }
+  return buildUnifiedCompanyMapFeatures(isCompanyMapExperienceEnabled(features))
 }
 
 function extractCompanyMapFeaturesFromSettings(settings = []) {
   const indexed = new Map((Array.isArray(settings) ? settings : []).map((item) => [item.key, item.value]))
 
-  return {
-    customer_geolocation_enabled: readBooleanSetting(indexed.get(MAP_FEATURE_SETTING_KEYS.customer_geolocation_enabled)),
-    terrain_tracking_enabled: readBooleanSetting(indexed.get(MAP_FEATURE_SETTING_KEYS.terrain_tracking_enabled)),
-  }
+  return buildUnifiedCompanyMapFeatures(
+    readBooleanSetting(indexed.get(MAP_FEATURE_SETTING_KEYS.customer_geolocation_enabled))
+      || readBooleanSetting(indexed.get(MAP_FEATURE_SETTING_KEYS.terrain_tracking_enabled))
+  )
 }
 
 function formatDateTime(value, fallback) {
@@ -371,6 +382,7 @@ export default function CompaniesIndex() {
     && Number(selectedCompany?.id ?? 0) > 0
     && Number(selectedCompany?.id) === currentScopedCompanyId
   const selectedCompanyRecord = detail?.company ?? selectedCompany ?? null
+  const companyMapEnabled = isCompanyMapExperienceEnabled(mapFeatures)
   const companyHasStoredLogo = companyHasDedicatedLogo(selectedCompanyRecord)
   const companyLogoRequired = creating || !companyHasStoredLogo || form.remove_logo
   const companyPreviewImage = logoPreviewUrl
@@ -547,16 +559,17 @@ export default function CompaniesIndex() {
     setActionError('')
 
     try {
+      const nextEnabled = isCompanyMapExperienceEnabled(mapFeatures)
       const response = await api.put('/settings', {
         company_id: selectedCompany.id,
         settings: [
           {
             key: MAP_FEATURE_SETTING_KEYS.customer_geolocation_enabled,
-            value: mapFeatures.customer_geolocation_enabled,
+            value: nextEnabled,
           },
           {
             key: MAP_FEATURE_SETTING_KEYS.terrain_tracking_enabled,
-            value: mapFeatures.terrain_tracking_enabled,
+            value: nextEnabled,
           },
         ],
       })
@@ -574,6 +587,7 @@ export default function CompaniesIndex() {
           }
           : current
       ))
+      await loadCompanyDetail(selectedCompany.id)
       setNotice(t('companiesPage.notices.mapSettingsUpdated'))
     } catch (error) {
       setActionError(error.response?.data?.message || t('companiesPage.errors.mapSettingsSave'))
@@ -1175,58 +1189,39 @@ export default function CompaniesIndex() {
                               {t('companiesPage.mapSettings.description')}
                             </div>
                           </div>
-                          <button onClick={saveMapFeatures} disabled={savingMapFeatures} className="btn-primary text-xs">
+                          <button type="button" onClick={saveMapFeatures} disabled={savingMapFeatures} className="btn-primary text-xs">
                             {savingMapFeatures ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : <><i className="fa-solid fa-floppy-disk" /> {t('common.save')}</>}
                           </button>
                         </div>
 
                         <div className="flex flex-wrap gap-2 mt-4">
-                          <MetricPill label={t('companiesPage.mapSettings.customer.title')} value={mapFeatures.customer_geolocation_enabled ? t('companiesPage.mapSettings.enabled') : t('companiesPage.mapSettings.disabled')} tone={mapFeatures.customer_geolocation_enabled ? 'success' : 'warning'} />
-                          <MetricPill label={t('companiesPage.mapSettings.terrain.title')} value={mapFeatures.terrain_tracking_enabled ? t('companiesPage.mapSettings.enabled') : t('companiesPage.mapSettings.disabled')} tone={mapFeatures.terrain_tracking_enabled ? 'success' : 'warning'} />
+                          <MetricPill label={t('companiesPage.mapSettings.master.title')} value={companyMapEnabled ? t('companiesPage.mapSettings.enabled') : t('companiesPage.mapSettings.disabled')} tone={companyMapEnabled ? 'success' : 'warning'} />
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-4">
-                          {[
-                            {
-                              key: 'customer_geolocation_enabled',
-                              title: t('companiesPage.mapSettings.customer.title'),
-                              description: t('companiesPage.mapSettings.customer.description'),
-                            },
-                            {
-                              key: 'terrain_tracking_enabled',
-                              title: t('companiesPage.mapSettings.terrain.title'),
-                              description: t('companiesPage.mapSettings.terrain.description'),
-                            },
-                          ].map((item) => {
-                            const enabled = mapFeatures[item.key] === true
-
-                            return (
-                              <button
-                                key={item.key}
-                                type="button"
-                                onClick={() => setMapFeatures((current) => ({ ...current, [item.key]: !enabled }))}
-                                className="w-full rounded-2xl px-4 py-4 text-left transition-all"
-                                style={enabled
-                                  ? { background: '#ffffffd9', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)' }
-                                  : { background: 'rgba(255,255,255,0.72)', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.14)' }}
+                        <div className="grid grid-cols-1 gap-3 mt-4">
+                          <button
+                            type="button"
+                            onClick={() => setMapFeatures(buildUnifiedCompanyMapFeatures(!companyMapEnabled))}
+                            className="w-full rounded-2xl px-4 py-4 text-left transition-all"
+                            style={companyMapEnabled
+                              ? { background: '#ffffffd9', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)' }
+                              : { background: 'rgba(255,255,255,0.72)', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.14)' }}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="text-sm font-semibold text-base-color">{t('companiesPage.mapSettings.master.title')}</div>
+                                <div className="text-xs text-secondary-color mt-1">{t('companiesPage.mapSettings.master.description')}</div>
+                              </div>
+                              <span
+                                className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                                style={companyMapEnabled
+                                  ? { background: 'rgba(13,148,136,0.12)', color: '#0f766e' }
+                                  : { background: 'rgba(148,163,184,0.14)', color: '#64748b' }}
                               >
-                                <div className="flex items-start justify-between gap-3">
-                                  <div>
-                                    <div className="text-sm font-semibold text-base-color">{item.title}</div>
-                                    <div className="text-xs text-secondary-color mt-1">{item.description}</div>
-                                  </div>
-                                  <span
-                                    className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                                    style={enabled
-                                      ? { background: 'rgba(13,148,136,0.12)', color: '#0f766e' }
-                                      : { background: 'rgba(148,163,184,0.14)', color: '#64748b' }}
-                                  >
-                                    {enabled ? t('companiesPage.mapSettings.enabled') : t('companiesPage.mapSettings.disabled')}
-                                  </span>
-                                </div>
-                              </button>
-                            )
-                          })}
+                                {companyMapEnabled ? t('companiesPage.mapSettings.enabled') : t('companiesPage.mapSettings.disabled')}
+                              </span>
+                            </div>
+                          </button>
                         </div>
                       </div>
 
