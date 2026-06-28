@@ -500,6 +500,7 @@ export default function AppLayout() {
   const location = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [systemStatus, setSystemStatus] = useState(DEFAULT_SYSTEM_STATUS)
+  const [routeNotice, setRouteNotice] = useState(null)
 
   useEffect(() => {
     let active = true
@@ -546,6 +547,40 @@ export default function AppLayout() {
       window.clearInterval(interval)
     }
   }, [])
+
+  useEffect(() => {
+    const nextNotice = location.state?.notice
+
+    if (!nextNotice) {
+      return
+    }
+
+    setRouteNotice(nextNotice)
+
+    const nextState = { ...(location.state ?? {}) }
+    delete nextState.notice
+
+    navigate(
+      {
+        pathname: location.pathname,
+        search: location.search,
+        hash: location.hash,
+      },
+      {
+        replace: true,
+        state: Object.keys(nextState).length > 0 ? nextState : null,
+      },
+    )
+  }, [location.hash, location.pathname, location.search, location.state, navigate])
+
+  useEffect(() => {
+    if (!routeNotice) {
+      return undefined
+    }
+
+    const timer = window.setTimeout(() => setRouteNotice(null), 7000)
+    return () => window.clearTimeout(timer)
+  }, [routeNotice])
 
   const handleLogout = async () => {
     await logout()
@@ -764,6 +799,40 @@ export default function AppLayout() {
 
         <main className="flex-1 overflow-y-auto">
           <div className="p-4 md:p-6 max-w-screen-2xl mx-auto">
+            {routeNotice && (
+              <div
+                className="mb-5 rounded-[24px] px-4 py-4"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(13,148,136,0.10), rgba(56,189,248,0.08))',
+                  boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.16)',
+                }}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div
+                      className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'rgba(13,148,136,0.14)', color: '#0f766e' }}
+                    >
+                      <i className="fa-solid fa-circle-info" />
+                    </div>
+                    <div className="min-w-0">
+                      {routeNotice.title && (
+                        <div className="text-sm font-semibold text-base-color">{routeNotice.title}</div>
+                      )}
+                      <div className="text-sm text-secondary-color mt-1">{routeNotice.message}</div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setRouteNotice(null)}
+                    className="btn-ghost p-2 flex-shrink-0"
+                    title={t('common.close')}
+                  >
+                    <i className="fa-solid fa-xmark text-base text-muted-color" />
+                  </button>
+                </div>
+              </div>
+            )}
             {isScopedCompanySession() && (
               <ScopedCompanySessionBanner
                 companyName={user?.company?.name}

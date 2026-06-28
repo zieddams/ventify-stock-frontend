@@ -370,6 +370,8 @@ export default {
       hiddenSubtitle: 'Module masqué pour cette société.',
       hiddenTitle: 'Cartes et géolocalisation désactivées',
       hiddenDescription: "La société connectée n'a pas activé les cartes clients et le suivi terrain. Le module reste masqué jusqu'à activation depuis la configuration.",
+      disabledNoticeTitle: 'Carte et terrain indisponibles',
+      disabledNoticeMessage: 'La cartographie et le suivi terrain sont désactivés pour votre société pour le moment.',
       customerSubtitle: ({ total, mapped }) => `${total} clients · ${mapped} géolocalisés`,
       customerSubtitleDisabled: ({ total }) => `${total} clients · carte client temporairement désactivée`,
       allDepots: 'Tous les dépôts',

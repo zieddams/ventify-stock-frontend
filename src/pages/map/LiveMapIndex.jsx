@@ -600,7 +600,8 @@ function ClientsTab({
     : filtered
   const providerConfig = resolveProviderConfig(mapSettings)
   const providerLabel = getMapProviderLabel(mapSettings.provider, t)
-  const shellTone = providerConfig.tone || 'light'
+  const providerTone = providerConfig.tone || 'light'
+  const shellTone = providerTone === 'topo' ? 'topo' : 'light'
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -688,7 +689,7 @@ function ClientsTab({
               icon: 'fa-solid fa-layer-group',
               label: t('liveMapPage.page.providerTitle'),
               value: providerLabel,
-              tone: shellTone === 'satellite' ? 'night' : (shellTone === 'topo' ? 'earth' : 'neutral'),
+              tone: shellTone === 'topo' ? 'earth' : 'neutral',
             },
             {
               icon: 'fa-solid fa-location-dot',
@@ -816,7 +817,8 @@ function TerrainTab({
   const selectedRepUsesTraceFallback = GEO_TRACKING_ENABLED && selectedTerrainLocation?.source === 'trace'
   const providerConfig = resolveProviderConfig(mapSettings)
   const providerLabel = getMapProviderLabel(mapSettings.provider, t)
-  const shellTone = providerConfig.tone || 'light'
+  const providerTone = providerConfig.tone || 'light'
+  const shellTone = providerTone === 'topo' ? 'topo' : 'light'
   let mapDisabledReason = selectedRep && !selectedRepHasMapPosition
     ? (selectedRep.presence?.last_seen
       ? t('liveMapPage.terrain.noGpsPoint')
@@ -1058,16 +1060,16 @@ function TerrainTab({
               ? `${selectedRep.name} · ${presenceMeta.label}`
               : t('liveMapPage.terrain.selectMobilePrompt')}
             themeTone={shellTone}
-            chips={[
-              {
-                icon: 'fa-solid fa-layer-group',
-                label: t('liveMapPage.page.providerTitle'),
-                value: providerLabel,
-                tone: shellTone === 'satellite' ? 'night' : (shellTone === 'topo' ? 'earth' : 'neutral'),
-              },
-              {
-                icon: 'fa-solid fa-location-crosshairs',
-                label: t('liveMapPage.terrain.gpsPoints'),
+          chips={[
+            {
+              icon: 'fa-solid fa-layer-group',
+              label: t('liveMapPage.page.providerTitle'),
+              value: providerLabel,
+              tone: shellTone === 'topo' ? 'earth' : 'neutral',
+            },
+            {
+              icon: 'fa-solid fa-location-crosshairs',
+              label: t('liveMapPage.terrain.gpsPoints'),
                 value: GEO_TRACKING_ENABLED ? formatCount(terrainPositions.length) : t('liveMapPage.fallbacks.paused'),
                 tone: 'success',
               },
@@ -1169,8 +1171,8 @@ function TerrainTab({
 
                   {routeTracePoints.length > 1 && (
                     <>
-                      <Polyline positions={routeTracePoints} pathOptions={{ color: '#f8fafc', weight: 7, opacity: shellTone === 'satellite' ? 0.42 : 0.24 }} />
-                      <Polyline positions={routeTracePoints} pathOptions={{ color: shellTone === 'satellite' ? '#22d3ee' : '#0d9488', weight: 4, opacity: 0.92 }} />
+                      <Polyline positions={routeTracePoints} pathOptions={{ color: '#f8fafc', weight: 7, opacity: providerTone === 'satellite' ? 0.42 : 0.24 }} />
+                      <Polyline positions={routeTracePoints} pathOptions={{ color: providerTone === 'satellite' ? '#22d3ee' : '#0d9488', weight: 4, opacity: 0.92 }} />
                     </>
                   )}
                 </MapContainer>
@@ -1678,7 +1680,8 @@ export default function LiveMapIndex() {
   const providerConfig = resolveProviderConfig(mapSettings)
   const providerWarning = resolveProviderWarning(providerConfig.warningKey, t)
   const providerLabel = getMapProviderLabel(mapSettings.provider, t)
-  const pageTone = providerConfig.tone || 'light'
+  const providerTone = providerConfig.tone || 'light'
+  const pageTone = providerTone === 'topo' ? 'topo' : 'light'
   const terrainScopeLabel = selectedDepot
     ? `${selectedDepot.name}${selectedDepot.code ? ` (${selectedDepot.code})` : ''}`
     : t('liveMapPage.page.allDepots')
@@ -1762,7 +1765,7 @@ export default function LiveMapIndex() {
               icon="fa-solid fa-layer-group"
               label={t('liveMapPage.page.providerTitle')}
               value={providerLabel}
-              tone={pageTone === 'satellite' ? 'night' : (pageTone === 'topo' ? 'earth' : 'neutral')}
+              tone={pageTone === 'topo' ? 'earth' : 'neutral'}
             />
             <MapMetaChip
               icon={activeTab === 'terrain' ? 'fa-solid fa-location-crosshairs' : 'fa-solid fa-location-dot'}

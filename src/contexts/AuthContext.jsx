@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import api from '../services/api'
 import { closeEcho } from '../services/realtime'
 import {
@@ -28,7 +28,7 @@ function isScopedCompanySessionUser(user) {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => getStoredUser())
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(() => Boolean(getStoredToken() && getStoredUser()))
   const [switchingCompanySession, setSwitchingCompanySession] = useState(false)
   const [exitingCompanySession, setExitingCompanySession] = useState(false)
 
@@ -200,6 +200,33 @@ export function AuthProvider({ children }) {
   const canManageAllCustomers = () => ['admin', 'comptable'].includes(user?.role)
   const canManageMultiDepot = () => user?.role === 'developer'
   const canLaunchCompanySessions = () => user?.auth_context?.can_launch_company_sessions === true
+
+  useEffect(() => {
+    const token = getStoredToken()
+    const restoredUser = getStoredUser()
+
+    if (!token || !restoredUser) {
+      setLoading(false)
+      return undefined
+    }
+
+    let active = true
+    setLoading(true)
+
+    void refreshUser()
+      .catch(() => {
+        // Keep the locally restored session visible if the sync fails for a non-auth reason.
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false)
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   return (
     <AuthContext.Provider

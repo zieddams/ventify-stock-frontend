@@ -370,6 +370,8 @@ export default {
       hiddenSubtitle: 'الموديول مخفي على الشركة هاذي.',
       hiddenTitle: 'الخرايط والجيولوكاليزاسيون معطّلين',
       hiddenDescription: 'الشركة المتصلة ما فعّلتش خرايط الحرفاء ولا متابعة الميدان. الموديول يبقى مخفي حتى يتفعّل من الإعدادات.',
+      disabledNoticeTitle: 'الخريطة والميدان موش متاحين',
+      disabledNoticeMessage: 'الكارتوغرافيا ومتابعة الميدان معطّلين للشركة متاعك في الوقت الحالي.',
       customerSubtitle: ({ total, mapped }) => `${total} حريف · ${mapped} متجيولوكاليزي`,
       customerSubtitleDisabled: ({ total }) => `${total} حريف · خريطة الحرفاء معطّلة مؤقتًا`,
       allDepots: 'كل المخازن',
