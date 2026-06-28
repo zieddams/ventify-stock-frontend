@@ -9,11 +9,6 @@ import api from '../../services/api'
 import { companyHasDedicatedLogo } from '../../utils/branding'
 import { formatCount as formatLocaleCount, formatDateTime as formatLocaleDateTime } from '../../utils/format'
 
-const MAP_FEATURE_SETTING_KEYS = {
-  customer_geolocation_enabled: 'map.customer_geolocation_enabled',
-  terrain_tracking_enabled: 'map.terrain_tracking_enabled',
-}
-
 function buildUnifiedCompanyMapFeatures(enabled = false) {
   const normalized = enabled === true
 
@@ -37,22 +32,6 @@ function buildCompanyForm(company = null) {
   }
 }
 
-function readBooleanSetting(value) {
-  if (typeof value === 'boolean') {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return value === 1
-  }
-
-  if (typeof value === 'string') {
-    return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase())
-  }
-
-  return false
-}
-
 function isCompanyMapExperienceEnabled(features = null) {
   return features?.customer_geolocation_enabled === true
     || features?.terrain_tracking_enabled === true
@@ -60,15 +39,6 @@ function isCompanyMapExperienceEnabled(features = null) {
 
 function normalizeCompanyMapFeatures(features = null) {
   return buildUnifiedCompanyMapFeatures(isCompanyMapExperienceEnabled(features))
-}
-
-function extractCompanyMapFeaturesFromSettings(settings = []) {
-  const indexed = new Map((Array.isArray(settings) ? settings : []).map((item) => [item.key, item.value]))
-
-  return buildUnifiedCompanyMapFeatures(
-    readBooleanSetting(indexed.get(MAP_FEATURE_SETTING_KEYS.customer_geolocation_enabled))
-      || readBooleanSetting(indexed.get(MAP_FEATURE_SETTING_KEYS.terrain_tracking_enabled))
-  )
 }
 
 function formatDateTime(value, fallback) {
@@ -560,21 +530,11 @@ export default function CompaniesIndex() {
 
     try {
       const nextEnabled = isCompanyMapExperienceEnabled(mapFeatures)
-      const response = await api.put('/settings', {
-        company_id: selectedCompany.id,
-        settings: [
-          {
-            key: MAP_FEATURE_SETTING_KEYS.customer_geolocation_enabled,
-            value: nextEnabled,
-          },
-          {
-            key: MAP_FEATURE_SETTING_KEYS.terrain_tracking_enabled,
-            value: nextEnabled,
-          },
-        ],
+      const response = await api.put(`/companies/${selectedCompany.id}/map-settings`, {
+        enabled: nextEnabled,
       })
 
-      const nextFeatures = extractCompanyMapFeaturesFromSettings(response.data ?? [])
+      const nextFeatures = normalizeCompanyMapFeatures(response.data?.features ?? buildUnifiedCompanyMapFeatures(nextEnabled))
       setMapFeatures(nextFeatures)
       setDetail((current) => (
         current?.company
