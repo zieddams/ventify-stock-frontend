@@ -1031,7 +1031,7 @@ function TerrainTab({
         </div>
 
         <div className="xl:col-span-8 space-y-4">
-          <div className="card overflow-hidden p-0" style={{ height: 560 }}>
+          <div className="card overflow-hidden p-0 relative" style={{ height: 560 }}>
             {terrainError ? (
               <div className="flex items-center justify-center h-full text-center px-6">
                 <div>
@@ -1040,102 +1040,109 @@ function TerrainTab({
                   <p className="text-xs text-muted-color mt-1">{terrainError}</p>
                 </div>
               </div>
-            ) : mapDisabledReason ? (
-              <div className="flex items-center justify-center h-full text-center px-6">
-                <div className="max-w-md">
-                  <i className="fa-solid fa-location-slash text-2xl text-amber-500 mb-3 block" />
-                  <p className="text-sm text-base-color font-semibold">{t('liveMapPage.terrain.mapDisabledTitle')}</p>
-                  <p className="text-xs text-muted-color mt-1">{mapDisabledReason}</p>
-                  <p className="text-xs text-secondary-color mt-3">
-                    {t('liveMapPage.terrain.mapReactivates')}
-                  </p>
-                </div>
-              </div>
             ) : (
-              <MapContainer
-                center={DEFAULT_CENTER}
-                zoom={DEFAULT_ZOOM}
-                minZoom={DEFAULT_ZOOM}
-                maxBounds={TUNISIA_BOUNDS}
-                maxBoundsViscosity={1}
-                style={{ height: '100%', width: '100%' }}
-                zoomControl
-              >
-                <MapBaseLayer mapSettings={mapSettings} />
-                <FitTerrainBounds reps={terrainPositions} routeTrace={routeTrace} selectedPoint={selectedTerrainLocation} />
+              <>
+                <MapContainer
+                  center={DEFAULT_CENTER}
+                  zoom={DEFAULT_ZOOM}
+                  minZoom={DEFAULT_ZOOM}
+                  maxBounds={TUNISIA_BOUNDS}
+                  maxBoundsViscosity={1}
+                  style={{ height: '100%', width: '100%' }}
+                  zoomControl
+                >
+                  <MapBaseLayer mapSettings={mapSettings} />
+                  <FitTerrainBounds reps={terrainPositions} routeTrace={routeTrace} selectedPoint={selectedTerrainLocation} />
 
-                {terrainPositions.map(rep => {
-                  const presence = getPresenceMeta(rep, t)
-                  const selected = String(rep.id) === String(selectedRepId)
-                  const point = getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude)
+                  {terrainPositions.map(rep => {
+                    const presence = getPresenceMeta(rep, t)
+                    const selected = String(rep.id) === String(selectedRepId)
+                    const point = getTunisiaPoint(rep.map_position?.latitude, rep.map_position?.longitude)
 
-                  if (!point) {
-                    return null
-                  }
+                    if (!point) {
+                      return null
+                    }
 
-                  return (
+                    return (
+                      <Marker
+                        key={rep.id}
+                        position={point}
+                        icon={makeRepIcon(selected ? '#2563eb' : presence.color, selected)}
+                        eventHandlers={{ click: () => onSelectRep(rep.id) }}
+                      >
+                        <Popup>
+                          <div style={{ minWidth: 180 }}>
+                            <div style={{ fontWeight: 700 }}>{rep.name}</div>
+                            <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
+                              {presence.label} · {formatRelativeTime(rep.presence?.last_seen, t)}
+                            </div>
+                            <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
+                              {rep.route_session?.status === 'open' ? t('liveMapPage.route.open') : t('liveMapPage.route.noActiveSession')}
+                            </div>
+                            {rep.device?.app_version && (
+                              <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
+                                {t('liveMapPage.terrain.popupAppVersion', { version: rep.device.app_version })}
+                              </div>
+                            )}
+                          </div>
+                        </Popup>
+                      </Marker>
+                    )
+                  })}
+
+                  {selectedRepUsesTraceFallback && selectedRep && selectedTerrainLocation?.point && (
                     <Marker
-                      key={rep.id}
-                      position={point}
-                      icon={makeRepIcon(selected ? '#2563eb' : presence.color, selected)}
-                      eventHandlers={{ click: () => onSelectRep(rep.id) }}
+                      position={selectedTerrainLocation.point}
+                      icon={makeRepIcon('#2563eb', true)}
+                      eventHandlers={{ click: () => onSelectRep(selectedRep.id) }}
                     >
                       <Popup>
                         <div style={{ minWidth: 180 }}>
-                          <div style={{ fontWeight: 700 }}>{rep.name}</div>
+                          <div style={{ fontWeight: 700 }}>{selectedRep.name}</div>
                           <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
-                            {presence.label} · {formatRelativeTime(rep.presence?.last_seen, t)}
+                            {t('liveMapPage.terrain.popupTraceRecent', {
+                              date: selectedTerrainLocation.recorded_at
+                                ? formatDateTime(selectedTerrainLocation.recorded_at, t('liveMapPage.fallbacks.notAvailable'))
+                                : t('liveMapPage.fallbacks.unknownTime'),
+                            })}
                           </div>
                           <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
-                            {rep.route_session?.status === 'open' ? t('liveMapPage.route.open') : t('liveMapPage.route.noActiveSession')}
+                            {t('liveMapPage.terrain.popupTraceFallback')}
                           </div>
-                          {rep.device?.app_version && (
-                            <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
-                              {t('liveMapPage.terrain.popupAppVersion', { version: rep.device.app_version })}
-                            </div>
-                          )}
                         </div>
                       </Popup>
                     </Marker>
-                  )
-                })}
+                  )}
 
-                {selectedRepUsesTraceFallback && selectedRep && selectedTerrainLocation?.point && (
-                  <Marker
-                    position={selectedTerrainLocation.point}
-                    icon={makeRepIcon('#2563eb', true)}
-                    eventHandlers={{ click: () => onSelectRep(selectedRep.id) }}
-                  >
-                    <Popup>
-                      <div style={{ minWidth: 180 }}>
-                        <div style={{ fontWeight: 700 }}>{selectedRep.name}</div>
-                        <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
-                          {t('liveMapPage.terrain.popupTraceRecent', {
-                            date: selectedTerrainLocation.recorded_at
-                              ? formatDateTime(selectedTerrainLocation.recorded_at, t('liveMapPage.fallbacks.notAvailable'))
-                              : t('liveMapPage.fallbacks.unknownTime'),
-                          })}
-                        </div>
-                        <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
-                          {t('liveMapPage.terrain.popupTraceFallback')}
-                        </div>
-                      </div>
-                    </Popup>
-                  </Marker>
-                )}
+                  {selectedRepHasMapPosition && selectedTerrainLocation?.accuracy > 0 && (
+                    <Circle
+                      center={selectedTerrainLocation.point}
+                      radius={Number(selectedTerrainLocation.accuracy)}
+                      pathOptions={{ color: '#2563eb', fillColor: '#2563eb', fillOpacity: 0.08 }}
+                    />
+                  )}
 
-                {selectedRepHasMapPosition && selectedTerrainLocation?.accuracy > 0 && (
-                  <Circle
-                    center={selectedTerrainLocation.point}
-                    radius={Number(selectedTerrainLocation.accuracy)}
-                    pathOptions={{ color: '#2563eb', fillColor: '#2563eb', fillOpacity: 0.08 }}
-                  />
-                )}
+                  {routeTracePoints.length > 1 && (
+                    <Polyline positions={routeTracePoints} pathOptions={{ color: '#0d9488', weight: 4, opacity: 0.85 }} />
+                  )}
+                </MapContainer>
 
-                {routeTracePoints.length > 1 && (
-                  <Polyline positions={routeTracePoints} pathOptions={{ color: '#0d9488', weight: 4, opacity: 0.85 }} />
+                {mapDisabledReason && (
+                  <div className="absolute top-4 left-4 right-4 z-[500] pointer-events-none">
+                    <div
+                      className="mx-auto max-w-lg rounded-2xl px-4 py-4 text-center shadow-lg backdrop-blur-sm"
+                      style={{ background: 'rgba(255,255,255,0.92)', boxShadow: '0 18px 40px rgba(15,23,42,0.18)' }}
+                    >
+                      <i className="fa-solid fa-location-slash text-2xl text-amber-500 mb-3 block" />
+                      <p className="text-sm text-base-color font-semibold">{t('liveMapPage.terrain.mapDisabledTitle')}</p>
+                      <p className="text-xs text-muted-color mt-1">{mapDisabledReason}</p>
+                      <p className="text-xs text-secondary-color mt-3">
+                        {t('liveMapPage.terrain.mapReactivates')}
+                      </p>
+                    </div>
+                  </div>
                 )}
-              </MapContainer>
+              </>
             )}
           </div>
 
