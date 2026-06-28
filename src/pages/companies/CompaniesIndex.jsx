@@ -99,6 +99,7 @@ function CompanyCard({ company, selected, onOpen, t }) {
           <div className="text-xs text-muted-color mt-1">{company.slug}</div>
         </div>
         <div className="flex flex-wrap gap-1.5 justify-end">
+          <MetricPill label={t('companiesPage.summary.companyId')} value={`#${company.id}`} />
           {company.is_default && <MetricPill label={t('companiesPage.badges.default')} value={t('companiesPage.badges.yes')} tone="success" />}
           {!company.active && <MetricPill label={t('common.status')} value={t('companiesPage.badges.inactive')} tone="warning" />}
         </div>
@@ -126,6 +127,62 @@ function CompanyCard({ company, selected, onOpen, t }) {
         ))}
       </div>
     </button>
+  )
+}
+
+function SummaryStatCard({ label, value, helper, tone = 'default' }) {
+  const palette = tone === 'accent'
+    ? { background: 'rgba(13,148,136,0.10)', ring: 'rgba(13,148,136,0.18)' }
+    : tone === 'warning'
+      ? { background: 'rgba(249,115,22,0.10)', ring: 'rgba(249,115,22,0.16)' }
+      : { background: 'var(--surface-2)', ring: 'var(--border)' }
+
+  return (
+    <div
+      className="rounded-2xl px-4 py-4"
+      style={{ background: palette.background, boxShadow: `inset 0 0 0 1px ${palette.ring}` }}
+    >
+      <div className="text-[11px] uppercase tracking-[0.16em] text-muted-color">{label}</div>
+      <div className="text-lg font-bold text-base-color mt-2">{value}</div>
+      {helper && <div className="text-xs text-secondary-color mt-2">{helper}</div>}
+    </div>
+  )
+}
+
+function DetailTabButton({ active, icon, label, count, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium transition-all"
+      style={active
+        ? { background: 'rgba(13,148,136,0.12)', color: '#0f766e', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)' }
+        : { background: 'var(--surface-2)', color: 'var(--text-secondary)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+    >
+      <i className={`${icon} text-xs`} />
+      <span>{label}</span>
+      {count != null && (
+        <span
+          className="ml-auto inline-flex min-w-7 items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
+          style={active
+            ? { background: '#ffffffd9', color: '#0f766e' }
+            : { background: 'rgba(148,163,184,0.12)', color: '#64748b' }}
+        >
+          {count}
+        </span>
+      )}
+    </button>
+  )
+}
+
+function EmptyCollectionState({ label }) {
+  return (
+    <div
+      className="rounded-2xl px-4 py-10 text-center text-sm text-muted-color"
+      style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+    >
+      {label}
+    </div>
   )
 }
 
@@ -190,6 +247,8 @@ export default function CompaniesIndex() {
   const [bootstrapResult, setBootstrapResult] = useState(null)
   const [creating, setCreating] = useState(false)
   const [launchingRoleKey, setLaunchingRoleKey] = useState('')
+  const [companyQuery, setCompanyQuery] = useState('')
+  const [activeDetailTab, setActiveDetailTab] = useState('profile')
 
   const activeCompanyId = companyIdParam ? Number(companyIdParam) : null
   const translateRole = (role) => {
@@ -285,10 +344,27 @@ export default function CompaniesIndex() {
     return () => URL.revokeObjectURL(nextUrl)
   }, [logoFile])
 
+  useEffect(() => {
+    setActiveDetailTab('profile')
+  }, [activeCompanyId, creating])
+
   const selectedCompany = useMemo(
     () => companies.find((entry) => Number(entry.id) === Number(activeCompanyId)) ?? detail?.company ?? null,
     [activeCompanyId, companies, detail],
   )
+  const filteredCompanies = useMemo(() => {
+    const query = companyQuery.trim().toLowerCase()
+
+    if (!query) {
+      return companies
+    }
+
+    return companies.filter((company) => (
+      [company.name, company.slug, company.note, String(company.id)]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query))
+    ))
+  }, [companies, companyQuery])
   const currentScopedCompanyId = Number(sessionContext?.company_id ?? 0) || null
   const currentScopedRole = String(sessionContext?.acting_role || '').trim()
   const companySessionActive = isScopedCompanySession()
@@ -299,6 +375,36 @@ export default function CompaniesIndex() {
   const companyLogoRequired = creating || !companyHasStoredLogo || form.remove_logo
   const companyPreviewImage = logoPreviewUrl
     || (companyHasStoredLogo ? selectedCompanyRecord?.logo_url : '')
+  const detailTabs = useMemo(() => {
+    if (creating) {
+      return []
+    }
+
+    return [
+      {
+        key: 'profile',
+        icon: 'fa-solid fa-building',
+        label: t('companiesPage.tabs.profile'),
+      },
+      {
+        key: 'structure',
+        icon: 'fa-solid fa-users-gear',
+        label: t('companiesPage.tabs.structure'),
+        count: formatCount((detail?.depots ?? []).length + (detail?.camions ?? []).length + (detail?.users ?? []).length),
+      },
+      {
+        key: 'activity',
+        icon: 'fa-solid fa-clock-rotate-left',
+        label: t('companiesPage.tabs.activity'),
+        count: formatCount((detail?.recent_audits ?? []).length + (detail?.recent_transfers ?? []).length),
+      },
+      {
+        key: 'workspace',
+        icon: 'fa-solid fa-wand-magic-sparkles',
+        label: t('companiesPage.tabs.workspace'),
+      },
+    ]
+  }, [creating, detail, t])
 
   const openCompany = (company) => {
     setNotice('')
@@ -495,6 +601,436 @@ export default function CompaniesIndex() {
     }
   }
 
+  const companyStatusPills = creating
+    ? [
+      {
+        key: 'status',
+        label: t('common.status'),
+        value: form.active ? t('companiesPage.summary.active') : t('companiesPage.summary.inactive'),
+        tone: form.active ? 'success' : 'warning',
+      },
+      {
+        key: 'fresh-install',
+        label: t('companiesPage.governance.freshInstall'),
+        value: form.fresh_install_enabled ? t('companiesPage.governance.allowed') : t('companiesPage.governance.blocked'),
+        tone: form.fresh_install_enabled ? 'success' : 'warning',
+      },
+      {
+        key: 'background-tasks',
+        label: t('companiesPage.governance.backgroundTasks'),
+        value: form.background_tasks_enabled ? t('companiesPage.governance.enabled') : t('companiesPage.governance.blockedPlural'),
+        tone: form.background_tasks_enabled ? 'success' : 'warning',
+      },
+    ]
+    : [
+      {
+        key: 'company-id',
+        label: t('companiesPage.summary.companyId'),
+        value: selectedCompanyRecord?.id ? `#${selectedCompanyRecord.id}` : t('companiesPage.notAvailable'),
+      },
+      {
+        key: 'status',
+        label: t('common.status'),
+        value: selectedCompanyRecord?.active ? t('companiesPage.summary.active') : t('companiesPage.summary.inactive'),
+        tone: selectedCompanyRecord?.active ? 'success' : 'warning',
+      },
+      ...(selectedCompanyRecord?.is_default ? [{
+        key: 'default',
+        label: t('companiesPage.badges.default'),
+        value: t('companiesPage.badges.yes'),
+        tone: 'success',
+      }] : []),
+      {
+        key: 'fresh-install',
+        label: t('companiesPage.governance.freshInstall'),
+        value: selectedCompanyRecord?.fresh_install_enabled ? t('companiesPage.governance.allowed') : t('companiesPage.governance.blocked'),
+        tone: selectedCompanyRecord?.fresh_install_enabled ? 'success' : 'warning',
+      },
+      {
+        key: 'background-tasks',
+        label: t('companiesPage.governance.backgroundTasks'),
+        value: selectedCompanyRecord?.background_tasks_enabled ? t('companiesPage.governance.enabled') : t('companiesPage.governance.blockedPlural'),
+        tone: selectedCompanyRecord?.background_tasks_enabled ? 'success' : 'warning',
+      },
+    ]
+
+  const companySummaryMetrics = creating
+    ? [
+      {
+        key: 'max-camions',
+        label: t('companiesPage.form.maxCamions'),
+        value: formatCount(form.max_camions || 0),
+        helper: t('layout.nav.camions'),
+      },
+      {
+        key: 'logo',
+        label: t('companiesPage.form.logo'),
+        value: companyPreviewImage ? t('companiesPage.summary.logoReady') : t('companiesPage.summary.logoMissing'),
+        tone: companyPreviewImage ? 'accent' : 'warning',
+      },
+      {
+        key: 'fresh-install',
+        label: t('companiesPage.governance.freshInstall'),
+        value: form.fresh_install_enabled ? t('companiesPage.governance.allowed') : t('companiesPage.governance.blocked'),
+      },
+      {
+        key: 'background-tasks',
+        label: t('companiesPage.governance.backgroundTasks'),
+        value: form.background_tasks_enabled ? t('companiesPage.governance.enabled') : t('companiesPage.governance.blockedPlural'),
+      },
+    ]
+    : [
+      {
+        key: 'users',
+        label: t('layout.nav.users'),
+        value: formatCount(selectedCompanyRecord?.users_count ?? 0),
+      },
+      {
+        key: 'depots',
+        label: t('layout.nav.depot'),
+        value: formatCount(selectedCompanyRecord?.depots_count ?? 0),
+      },
+      {
+        key: 'camions',
+        label: t('layout.nav.camions'),
+        value: `${formatCount(selectedCompanyRecord?.camions_count ?? 0)} / ${formatCount(selectedCompanyRecord?.max_camions ?? 0)}`,
+      },
+      {
+        key: 'settings',
+        label: t('companiesPage.governance.settings'),
+        value: formatCount(selectedCompanyRecord?.settings_count ?? 0),
+        helper: t('companiesPage.governance.settingsCount', { count: selectedCompanyRecord?.settings_count ?? 0 }),
+      },
+    ]
+
+  const renderProfileSection = () => (
+    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-6">
+      <div className="card">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
+          <div>
+            <h2 className="text-sm font-semibold text-base-color">{t('companiesPage.tabs.profile')}</h2>
+            <p className="text-xs text-muted-color mt-1">{t('companiesPage.detail.subtitle')}</p>
+          </div>
+          <button onClick={saveCompany} disabled={saving} className="btn-primary text-xs">
+            {saving ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : <><i className="fa-solid fa-floppy-disk" /> {t('common.save')}</>}
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label={t('companiesPage.form.name')} required>
+              <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder={t('companiesPage.form.placeholders.name')} />
+            </FormField>
+
+            <FormField label={t('companiesPage.form.slug')}>
+              <input value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder={t('companiesPage.form.placeholders.slug')} />
+            </FormField>
+          </div>
+
+          <FormField label={t('companiesPage.form.note')}>
+            <textarea rows="3" value={form.note} onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))} placeholder={t('companiesPage.form.placeholders.note')} />
+          </FormField>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label={t('companiesPage.form.maxCamions')}>
+              <input
+                type="number"
+                min="1"
+                max="5"
+                value={form.max_camions}
+                onChange={(event) => setForm((current) => ({ ...current, max_camions: event.target.value }))}
+              />
+            </FormField>
+
+            <FormField label={t('companiesPage.form.logo')} required={companyLogoRequired}>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                required={companyLogoRequired}
+                onChange={(event) => setLogoFile(event.target.files?.[0] ?? null)}
+              />
+              <p className="mt-2 text-xs text-muted-color">{t('companiesPage.form.logoHint')}</p>
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            {companyToggleLabels.map(([key, label]) => (
+              <label key={key} className="rounded-2xl px-4 py-3 text-sm text-base-color cursor-pointer" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                <span className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form[key])}
+                    onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.checked }))}
+                  />
+                  {label}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        <div className="card">
+          <div className="text-xs font-semibold text-muted-color uppercase tracking-[0.18em] mb-3">{t('companiesPage.preview.title')}</div>
+          <div className="flex items-center gap-3">
+            <div className="w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center overflow-hidden">
+              {companyPreviewImage ? (
+                <img src={companyPreviewImage} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <i className="fa-solid fa-image text-slate-400 text-xl" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-base-color">{form.name || t('companiesPage.preview.newCompany')}</div>
+              <div className="text-xs text-muted-color mt-1">{form.slug || t('companiesPage.preview.slugFallback')}</div>
+              {!companyPreviewImage && (
+                <div className="mt-2 text-[11px] font-medium" style={{ color: '#d97706' }}>
+                  {t('companiesPage.preview.logoMissing')}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {!creating && detail?.company && (
+            <div className="space-y-2 mt-4">
+              <MetricPill label={t('layout.nav.users')} value={detail.company.users_count} />
+              <MetricPill label={t('layout.nav.depot')} value={detail.company.depots_count} />
+              <MetricPill label={t('layout.nav.camions')} value={`${detail.company.camions_count}/${detail.company.max_camions}`} />
+              <MetricPill label={t('companiesPage.metrics.transfers')} value={detail.company.transfer_logs_count} />
+            </div>
+          )}
+        </div>
+
+        {!creating && detail?.company && (
+          <div className="card">
+            <div className="text-xs font-semibold text-muted-color uppercase tracking-[0.18em] mb-3">{t('companiesPage.governance.title')}</div>
+            <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
+              <DetailRow label={t('companiesPage.governance.createdAt')} value={formatDateTimeValue(detail.company.created_at)} />
+              <DetailRow label={t('companiesPage.governance.updatedAt')} value={formatDateTimeValue(detail.company.updated_at)} />
+              <DetailRow label={t('companiesPage.governance.settings')} value={t('companiesPage.governance.settingsCount', { count: detail.company.settings_count ?? 0 })} />
+              <DetailRow label={t('companiesPage.governance.freshInstall')} value={detail.company.fresh_install_enabled ? t('companiesPage.governance.allowed') : t('companiesPage.governance.blocked')} />
+              <DetailRow label={t('companiesPage.governance.backgroundTasks')} value={detail.company.background_tasks_enabled ? t('companiesPage.governance.enabled') : t('companiesPage.governance.blockedPlural')} />
+            </div>
+
+            {Object.entries(detail.company.settings_groups ?? {}).length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-4">
+                {Object.entries(detail.company.settings_groups).map(([group, count]) => (
+                  <span
+                    key={group}
+                    className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium"
+                    style={{ background: 'rgba(13,148,136,0.12)', color: '#0f766e' }}
+                  >
+                    {group} · {count}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  const renderStructureSection = () => (
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="card">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h2 className="text-sm font-semibold text-base-color">{t('companiesPage.sections.depots')}</h2>
+          <span className="text-xs text-muted-color">{formatCount((detail?.depots ?? []).length)}</span>
+        </div>
+        {(detail?.depots ?? []).length === 0 ? (
+          <EmptyCollectionState label={t('companiesPage.sections.empty')} />
+        ) : (
+          <div className="space-y-2">
+            {(detail?.depots ?? []).map((entry) => (
+              <div key={`depot-${entry.id}`} className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="text-sm font-semibold text-base-color">{entry.name}</div>
+                  {entry.is_default && <MetricPill label={t('companiesPage.badges.default')} value={t('companiesPage.badges.yes')} tone="success" />}
+                  {!entry.active && <MetricPill label={t('common.status')} value={t('companiesPage.badges.inactive')} tone="warning" />}
+                </div>
+                <div className="text-xs text-muted-color mt-1">{entry.code || t('companiesPage.sections.codeMissing')}</div>
+                <div className="text-[11px] text-secondary-color mt-2">{t('companiesPage.sections.createdAt', { value: formatDateTimeValue(entry.created_at) })}</div>
+                <div className="text-[11px] text-secondary-color mt-1">{t('companiesPage.sections.updatedAt', { value: formatDateTimeValue(entry.updated_at) })}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h2 className="text-sm font-semibold text-base-color">{t('companiesPage.sections.camions')}</h2>
+          <span className="text-xs text-muted-color">{formatCount((detail?.camions ?? []).length)}</span>
+        </div>
+        {(detail?.camions ?? []).length === 0 ? (
+          <EmptyCollectionState label={t('companiesPage.sections.empty')} />
+        ) : (
+          <div className="space-y-2">
+            {(detail?.camions ?? []).map((entry) => (
+              <div key={`camion-${entry.id}`} className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="text-sm font-semibold text-base-color">{entry.name}</div>
+                  {!entry.active && <MetricPill label={t('common.status')} value={t('companiesPage.badges.inactive')} tone="warning" />}
+                </div>
+                <div className="text-xs text-muted-color mt-1">{entry.plate || t('companiesPage.sections.noPlate')} - {entry.operational_status}</div>
+                <div className="text-[11px] text-secondary-color mt-2">{t('companiesPage.sections.createdAt', { value: formatDateTimeValue(entry.created_at) })}</div>
+                <div className="text-[11px] text-secondary-color mt-1">{t('companiesPage.sections.updatedAt', { value: formatDateTimeValue(entry.updated_at) })}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h2 className="text-sm font-semibold text-base-color">{t('companiesPage.sections.users')}</h2>
+          <span className="text-xs text-muted-color">{formatCount((detail?.users ?? []).length)}</span>
+        </div>
+        {(detail?.users ?? []).length === 0 ? (
+          <EmptyCollectionState label={t('companiesPage.sections.empty')} />
+        ) : (
+          <div className="space-y-2">
+            {(detail?.users ?? []).map((entry) => (
+              <div key={`user-${entry.id}`} className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                <div className="text-sm font-semibold text-base-color">{entry.name}</div>
+                <div className="text-xs text-muted-color mt-1">{translateRole(entry.role)} - {entry.email}</div>
+                <div className="text-xs text-secondary-color mt-2">{entry.depot?.name || t('companiesPage.sections.depotToConfirm')}</div>
+                <div className="text-[11px] text-secondary-color mt-2">{t('companiesPage.sections.createdAt', { value: formatDateTimeValue(entry.created_at) })}</div>
+                <div className="text-[11px] text-secondary-color mt-1">{t('companiesPage.sections.updatedAt', { value: formatDateTimeValue(entry.updated_at) })}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  const renderActivitySection = () => (
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <ActivityList
+        title={t('companiesPage.activity.auditTitle')}
+        emptyLabel={t('companiesPage.activity.auditEmpty')}
+        countText={t('companiesPage.activity.count', { count: (detail?.recent_audits ?? []).length })}
+        items={detail?.recent_audits ?? []}
+        renderItem={(item) => (
+          <div key={`audit-${item.id}`} className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-base-color">{item.message}</div>
+                <div className="text-xs text-muted-color mt-1">{item.action}</div>
+              </div>
+              <div className="text-right text-[11px] text-muted-color">
+                <div>{item.actor_name || t('companiesPage.systemFallback')}</div>
+                <div className="mt-1">{formatDateTimeValue(item.created_at)}</div>
+              </div>
+            </div>
+            {Array.isArray(item.changes) && item.changes.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {item.changes.map((change) => (
+                  <span key={`${item.id}-${change}`} className="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-medium" style={{ background: 'rgba(13,148,136,0.12)', color: '#0f766e' }}>
+                    {change}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      />
+
+      <ActivityList
+        title={t('companiesPage.activity.transfersTitle')}
+        emptyLabel={t('companiesPage.activity.transfersEmpty')}
+        countText={t('companiesPage.activity.count', { count: (detail?.recent_transfers ?? []).length })}
+        items={detail?.recent_transfers ?? []}
+        renderItem={(item) => (
+          <div key={`transfer-${item.id}`} className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-base-color">{item.entity_label}</div>
+                <div className="text-xs text-muted-color mt-1">{item.direction === 'import' ? t('companiesPage.activity.import') : t('companiesPage.activity.export')} - {item.source}</div>
+              </div>
+              <div className="text-right text-[11px] text-muted-color">
+                <div>{item.created_by || t('companiesPage.systemFallback')}</div>
+                <div className="mt-1">{formatDateTimeValue(item.created_at)}</div>
+              </div>
+            </div>
+            {item.file_name && <div className="text-xs font-mono text-secondary-color mt-3">{item.file_name}</div>}
+          </div>
+        )}
+      />
+    </div>
+  )
+
+  const renderWorkspaceSection = () => (
+    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-6">
+      <div className="space-y-6">
+        <div className="card">
+          <div className="text-sm font-semibold text-base-color">{t('companiesPage.workspace.title')}</div>
+          <div className="text-xs text-secondary-color mt-2">
+            {t('companiesPage.workspace.description')}
+          </div>
+          <button onClick={bootstrapWorkspace} disabled={bootstrapping} className="btn-primary text-xs mt-4 w-full justify-center">
+            {bootstrapping ? <><i className="fa-solid fa-spinner fa-spin" /> {t('companiesPage.workspace.preparing')}</> : <><i className="fa-solid fa-wand-magic-sparkles" /> {t('companiesPage.workspace.prepare')}</>}
+          </button>
+        </div>
+
+        {bootstrapResult?.credentials?.length > 0 && (
+          <div className="card">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h2 className="text-sm font-semibold text-base-color">{t('companiesPage.credentials.title')}</h2>
+              <span className="text-xs text-muted-color">{t('companiesPage.credentials.count', { count: bootstrapResult.credentials.length })}</span>
+            </div>
+            <div className="space-y-3">
+              {bootstrapResult.credentials.map((entry) => (
+                <div key={entry.email} className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+                  <div className="text-sm font-semibold text-base-color">{entry.name}</div>
+                  <div className="text-xs text-muted-color mt-1">{translateRole(entry.role)} - {entry.email}</div>
+                  <div className="text-xs font-mono text-secondary-color mt-2">{entry.password}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-6">
+        {detail?.company?.fresh_install_preview && (
+          <div className="rounded-[24px] px-4 py-4" style={{ background: 'rgba(249,115,22,0.08)', boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.16)' }}>
+            <div className="text-sm font-semibold" style={{ color: '#c2410c' }}>{t('companiesPage.freshInstall.title')}</div>
+            <div className="text-xs mt-2" style={{ color: '#9a3412' }}>
+              {t('companiesPage.freshInstall.description')}
+            </div>
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              <div className="rounded-2xl px-3 py-3 text-center" style={{ background: '#ffffffb8' }}>
+                <div className="text-[11px] text-muted-color">{t('companiesPage.freshInstall.delete')}</div>
+                <div className="text-sm font-bold text-base-color">{Object.values(detail.company.fresh_install_preview.delete ?? {}).reduce((sum, value) => sum + Number(value ?? 0), 0)}</div>
+              </div>
+              <div className="rounded-2xl px-3 py-3 text-center" style={{ background: '#ffffffb8' }}>
+                <div className="text-[11px] text-muted-color">{t('companiesPage.freshInstall.reset')}</div>
+                <div className="text-sm font-bold text-base-color">{Object.values(detail.company.fresh_install_preview.reset ?? {}).reduce((sum, value) => sum + Number(value ?? 0), 0)}</div>
+              </div>
+              <div className="rounded-2xl px-3 py-3 text-center" style={{ background: '#ffffffb8' }}>
+                <div className="text-[11px] text-muted-color">{t('companiesPage.freshInstall.keep')}</div>
+                <div className="text-sm font-bold text-base-color">{Object.values(detail.company.fresh_install_preview.keep ?? {}).reduce((sum, value) => sum + Number(value ?? 0), 0)}</div>
+              </div>
+            </div>
+            <input
+              className="mt-4"
+              value={freshConfirmation}
+              onChange={(event) => setFreshConfirmation(event.target.value)}
+              placeholder={t('companiesPage.freshInstall.placeholder')}
+            />
+            <button onClick={runFreshInstall} disabled={runningFreshInstall} className="btn-danger text-xs mt-3 w-full justify-center">
+              {runningFreshInstall ? <><i className="fa-solid fa-spinner fa-spin" /> {t('companiesPage.freshInstall.running')}</> : <><i className="fa-solid fa-power-off" /> {t('companiesPage.freshInstall.run')}</>}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
   if (loadingCompanies && companies.length === 0) {
     return (
       <div className="card py-12">
@@ -531,444 +1067,254 @@ export default function CompaniesIndex() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-6">
-        <div className="space-y-3">
-          {companies.map((company) => (
-            <CompanyCard
-              key={company.id}
-              company={company}
-              selected={Number(company.id) === Number(selectedCompany?.id)}
-              onOpen={openCompany}
-              t={t}
+      <div className="grid grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)] gap-6 items-start">
+        <div className="xl:sticky xl:top-24 self-start">
+          <div className="card">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-base-color">{t('companiesPage.directory.title')}</h2>
+                <p className="text-xs text-muted-color mt-1">{t('companiesPage.directory.description')}</p>
+              </div>
+              <span className="text-xs text-muted-color">
+                {t('companiesPage.directory.filteredCount', { visible: filteredCompanies.length, total: companies.length })}
+              </span>
+            </div>
+
+            <input
+              className="mt-4"
+              value={companyQuery}
+              onChange={(event) => setCompanyQuery(event.target.value)}
+              placeholder={t('companiesPage.directory.searchPlaceholder')}
             />
-          ))}
+
+            <div className="space-y-3 mt-4 max-h-[70vh] xl:max-h-[calc(100vh-240px)] overflow-auto pr-1">
+              {filteredCompanies.length === 0 ? (
+                <EmptyCollectionState label={t('companiesPage.directory.empty')} />
+              ) : (
+                filteredCompanies.map((company) => (
+                  <CompanyCard
+                    key={company.id}
+                    company={company}
+                    selected={Number(company.id) === Number(selectedCompany?.id)}
+                    onOpen={openCompany}
+                    t={t}
+                  />
+                ))
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="space-y-6">
-          <div className="card">
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5">
-              <div>
-                <h2 className="text-sm font-semibold text-base-color">
-                  {creating ? t('companiesPage.detail.newTitle') : (selectedCompany?.name ?? t('companiesPage.detail.recordTitle'))}
-                </h2>
-                <p className="text-xs text-muted-color mt-1">
-                  {t('companiesPage.detail.subtitle')}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {!creating && selectedCompany?.id && (
-                  <>
-                    <button onClick={() => { void launchCompanySession('admin', '/config') }} className="btn-secondary text-xs">
-                      <i className="fa-solid fa-sliders" /> {t('companiesPage.detail.configure')}
-                    </button>
-                    <button onClick={() => { void launchCompanySession('admin', '/data-tools') }} className="btn-secondary text-xs">
-                      <i className="fa-solid fa-file-arrow-up" /> {t('companiesPage.detail.dataTools')}
-                    </button>
-                  </>
-                )}
-                <button onClick={saveCompany} disabled={saving} className="btn-primary text-xs">
-                  {saving ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : <><i className="fa-solid fa-floppy-disk" /> {t('common.save')}</>}
-                </button>
-              </div>
-            </div>
-
-            {detailLoading ? (
-              <div className="rounded-2xl px-4 py-10 text-center text-sm text-muted-color" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                <i className="fa-solid fa-spinner fa-spin mr-2" /> {t('companiesPage.detail.loading')}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6">
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField label={t('companiesPage.form.name')} required>
-                      <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder={t('companiesPage.form.placeholders.name')} />
-                    </FormField>
-
-                    <FormField label={t('companiesPage.form.slug')}>
-                      <input value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder={t('companiesPage.form.placeholders.slug')} />
-                    </FormField>
-                  </div>
-
-                  <FormField label={t('companiesPage.form.note')}>
-                    <textarea rows="3" value={form.note} onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))} placeholder={t('companiesPage.form.placeholders.note')} />
-                  </FormField>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField label={t('companiesPage.form.maxCamions')}>
-                      <input
-                        type="number"
-                        min="1"
-                        max="5"
-                        value={form.max_camions}
-                        onChange={(event) => setForm((current) => ({ ...current, max_camions: event.target.value }))}
-                      />
-                    </FormField>
-
-                    <FormField label={t('companiesPage.form.logo')} required={companyLogoRequired}>
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                        required={companyLogoRequired}
-                        onChange={(event) => setLogoFile(event.target.files?.[0] ?? null)}
-                      />
-                      <p className="mt-2 text-xs text-muted-color">{t('companiesPage.form.logoHint')}</p>
-                    </FormField>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                    {companyToggleLabels.map(([key, label]) => (
-                      <label key={key} className="rounded-2xl px-4 py-3 text-sm text-base-color cursor-pointer" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                        <span className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={Boolean(form[key])}
-                            onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.checked }))}
-                          />
-                          {label}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {!creating && detail?.company && (
-                    <div className="rounded-[24px] px-4 py-4" style={{ background: 'rgba(13,148,136,0.08)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.16)' }}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-semibold text-base-color">{t('companiesPage.session.title')}</div>
-                          <div className="text-xs text-secondary-color mt-2">
-                            {t('companiesPage.session.description')}
-                          </div>
-                        </div>
-                        {companySessionActive && (
-                          <span className="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold" style={{ background: 'rgba(255,255,255,0.82)', color: '#0f766e' }}>
-                            {t('companiesPage.session.activeRole', { role: translateRole(currentScopedRole) })}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 mt-4">
-                        {['admin', 'comptable', 'rep'].map((role) => {
-                          const roleKey = `${selectedCompany.id}:${role}`
-                          const busy = switchingCompanySession || launchingRoleKey === roleKey
-
-                          return (
-                            <button
-                              key={role}
-                              type="button"
-                              onClick={() => { void launchCompanySession(role, '/') }}
-                              disabled={busy}
-                              className="rounded-2xl px-3 py-3 text-left transition-colors"
-                              style={role === currentScopedRole && companySessionActive
-                                ? { background: 'rgba(13,148,136,0.12)', color: '#0f766e' }
-                                : { background: '#ffffffd1', color: 'var(--text-secondary)', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.16)' }}
-                            >
-                              <div className="text-xs font-semibold text-base-color">
-                                {busy ? t('companiesPage.session.starting') : translateRole(role)}
-                              </div>
-                              <div className="text-[11px] text-secondary-color mt-2">
-                                {t('companiesPage.session.fixedOneHour')}
-                              </div>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="rounded-[24px] px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                    <div className="text-xs font-semibold text-muted-color uppercase tracking-[0.18em] mb-3">{t('companiesPage.preview.title')}</div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center overflow-hidden">
-                        {companyPreviewImage ? (
-                          <img src={companyPreviewImage} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <i className="fa-solid fa-image text-slate-400 text-xl" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-base-color">{form.name || t('companiesPage.preview.newCompany')}</div>
-                        <div className="text-xs text-muted-color mt-1">{form.slug || t('companiesPage.preview.slugFallback')}</div>
-                        {!companyPreviewImage && (
-                          <div className="mt-2 text-[11px] font-medium" style={{ color: '#d97706' }}>
-                            {t('companiesPage.preview.logoMissing')}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {!creating && detail?.company && (
-                      <div className="space-y-2 mt-4">
-                        <MetricPill label={t('layout.nav.users')} value={detail.company.users_count} />
-                        <MetricPill label={t('layout.nav.depot')} value={detail.company.depots_count} />
-                        <MetricPill label={t('layout.nav.camions')} value={`${detail.company.camions_count}/${detail.company.max_camions}`} />
-                        <MetricPill label={t('companiesPage.metrics.transfers')} value={detail.company.transfer_logs_count} />
-                      </div>
-                    )}
-                  </div>
-
-                  {!creating && detail?.company && (
-                    <div className="rounded-[24px] px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                      <div className="text-xs font-semibold text-muted-color uppercase tracking-[0.18em] mb-3">{t('companiesPage.governance.title')}</div>
-                      <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-                        <DetailRow label={t('companiesPage.governance.createdAt')} value={formatDateTimeValue(detail.company.created_at)} />
-                        <DetailRow label={t('companiesPage.governance.updatedAt')} value={formatDateTimeValue(detail.company.updated_at)} />
-                        <DetailRow label={t('companiesPage.governance.settings')} value={t('companiesPage.governance.settingsCount', { count: detail.company.settings_count ?? 0 })} />
-                        <DetailRow label={t('companiesPage.governance.freshInstall')} value={detail.company.fresh_install_enabled ? t('companiesPage.governance.allowed') : t('companiesPage.governance.blocked')} />
-                        <DetailRow label={t('companiesPage.governance.backgroundTasks')} value={detail.company.background_tasks_enabled ? t('companiesPage.governance.enabled') : t('companiesPage.governance.blockedPlural')} />
-                      </div>
-
-                      {Object.entries(detail.company.settings_groups ?? {}).length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-4">
-                          {Object.entries(detail.company.settings_groups).map(([group, count]) => (
-                            <span
-                              key={group}
-                              className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium"
-                              style={{ background: 'rgba(13,148,136,0.12)', color: '#0f766e' }}
-                            >
-                              {group} · {count}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {!creating && detail?.company && (
-                    <div className="rounded-[24px] px-4 py-4" style={{ background: 'rgba(13,148,136,0.08)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.16)' }}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-semibold text-base-color">{t('companiesPage.mapSettings.title')}</div>
-                          <div className="text-xs text-secondary-color mt-2">
-                            {t('companiesPage.mapSettings.description')}
-                          </div>
-                        </div>
-                        <button onClick={saveMapFeatures} disabled={savingMapFeatures} className="btn-primary text-xs">
-                          {savingMapFeatures ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : <><i className="fa-solid fa-floppy-disk" /> {t('common.save')}</>}
-                        </button>
-                      </div>
-
-                      <div className="space-y-3 mt-4">
-                        {[
-                          {
-                            key: 'customer_geolocation_enabled',
-                            title: t('companiesPage.mapSettings.customer.title'),
-                            description: t('companiesPage.mapSettings.customer.description'),
-                          },
-                          {
-                            key: 'terrain_tracking_enabled',
-                            title: t('companiesPage.mapSettings.terrain.title'),
-                            description: t('companiesPage.mapSettings.terrain.description'),
-                          },
-                        ].map((item) => {
-                          const enabled = mapFeatures[item.key] === true
-
-                          return (
-                            <button
-                              key={item.key}
-                              type="button"
-                              onClick={() => setMapFeatures((current) => ({ ...current, [item.key]: !enabled }))}
-                              className="w-full rounded-2xl px-4 py-4 text-left transition-all"
-                              style={enabled
-                                ? { background: 'rgba(13,148,136,0.12)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)' }
-                                : { background: '#ffffffcc', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.14)' }}
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <div>
-                                  <div className="text-sm font-semibold text-base-color">{item.title}</div>
-                                  <div className="text-xs text-secondary-color mt-1">{item.description}</div>
-                                </div>
-                                <span
-                                  className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                                  style={enabled
-                                    ? { background: '#ffffffd9', color: '#0f766e' }
-                                    : { background: 'rgba(148,163,184,0.14)', color: '#64748b' }}
-                                >
-                                  {enabled ? t('companiesPage.mapSettings.enabled') : t('companiesPage.mapSettings.disabled')}
-                                </span>
-                              </div>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {!creating && detail?.company?.fresh_install_preview && (
-                    <div className="rounded-[24px] px-4 py-4" style={{ background: 'rgba(249,115,22,0.08)', boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.16)' }}>
-                      <div className="text-sm font-semibold" style={{ color: '#c2410c' }}>{t('companiesPage.freshInstall.title')}</div>
-                      <div className="text-xs mt-2" style={{ color: '#9a3412' }}>
-                        {t('companiesPage.freshInstall.description')}
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 mt-4">
-                        <div className="rounded-2xl px-3 py-3 text-center" style={{ background: '#ffffffb8' }}>
-                          <div className="text-[11px] text-muted-color">{t('companiesPage.freshInstall.delete')}</div>
-                          <div className="text-sm font-bold text-base-color">{Object.values(detail.company.fresh_install_preview.delete ?? {}).reduce((sum, value) => sum + Number(value ?? 0), 0)}</div>
-                        </div>
-                        <div className="rounded-2xl px-3 py-3 text-center" style={{ background: '#ffffffb8' }}>
-                          <div className="text-[11px] text-muted-color">{t('companiesPage.freshInstall.reset')}</div>
-                          <div className="text-sm font-bold text-base-color">{Object.values(detail.company.fresh_install_preview.reset ?? {}).reduce((sum, value) => sum + Number(value ?? 0), 0)}</div>
-                        </div>
-                        <div className="rounded-2xl px-3 py-3 text-center" style={{ background: '#ffffffb8' }}>
-                          <div className="text-[11px] text-muted-color">{t('companiesPage.freshInstall.keep')}</div>
-                          <div className="text-sm font-bold text-base-color">{Object.values(detail.company.fresh_install_preview.keep ?? {}).reduce((sum, value) => sum + Number(value ?? 0), 0)}</div>
-                        </div>
-                      </div>
-                      <input
-                        className="mt-4"
-                        value={freshConfirmation}
-                        onChange={(event) => setFreshConfirmation(event.target.value)}
-                        placeholder={t('companiesPage.freshInstall.placeholder')}
-                      />
-                      <button onClick={runFreshInstall} disabled={runningFreshInstall} className="btn-danger text-xs mt-3 w-full justify-center">
-                        {runningFreshInstall ? <><i className="fa-solid fa-spinner fa-spin" /> {t('companiesPage.freshInstall.running')}</> : <><i className="fa-solid fa-power-off" /> {t('companiesPage.freshInstall.run')}</>}
-                      </button>
-                    </div>
-                  )}
-
-                  {!creating && (
-                    <div className="rounded-[24px] px-4 py-4" style={{ background: 'rgba(59,130,246,0.08)', boxShadow: 'inset 0 0 0 1px rgba(59,130,246,0.16)' }}>
-                      <div className="text-sm font-semibold text-base-color">{t('companiesPage.workspace.title')}</div>
-                      <div className="text-xs text-secondary-color mt-2">
-                        {t('companiesPage.workspace.description')}
-                      </div>
-                      <button onClick={bootstrapWorkspace} disabled={bootstrapping} className="btn-primary text-xs mt-3 w-full justify-center">
-                        {bootstrapping ? <><i className="fa-solid fa-spinner fa-spin" /> {t('companiesPage.workspace.preparing')}</> : <><i className="fa-solid fa-wand-magic-sparkles" /> {t('companiesPage.workspace.prepare')}</>}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {!creating && detail && (
+          {(creating || selectedCompanyRecord) ? (
             <>
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <ActivityList
-                  title={t('companiesPage.activity.auditTitle')}
-                  emptyLabel={t('companiesPage.activity.auditEmpty')}
-                  countText={t('companiesPage.activity.count', { count: (detail.recent_audits ?? []).length })}
-                  items={detail.recent_audits ?? []}
-                  renderItem={(item) => (
-                    <div key={`audit-${item.id}`} className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-semibold text-base-color">{item.message}</div>
-                          <div className="text-xs text-muted-color mt-1">{item.action}</div>
-                        </div>
-                        <div className="text-right text-[11px] text-muted-color">
-                          <div>{item.actor_name || t('companiesPage.systemFallback')}</div>
-                          <div className="mt-1">{formatDateTimeValue(item.created_at)}</div>
-                        </div>
-                      </div>
-                      {Array.isArray(item.changes) && item.changes.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {item.changes.map((change) => (
-                            <span key={`${item.id}-${change}`} className="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-medium" style={{ background: 'rgba(13,148,136,0.12)', color: '#0f766e' }}>
-                              {change}
-                            </span>
-                          ))}
-                        </div>
+              <div className="card">
+                <div className="flex flex-col 2xl:flex-row 2xl:items-start 2xl:justify-between gap-5">
+                  <div className="flex items-start gap-4 min-w-0">
+                    <div className="w-20 h-20 rounded-[24px] bg-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+                      {companyPreviewImage ? (
+                        <img src={companyPreviewImage} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <i className="fa-solid fa-image text-slate-400 text-2xl" />
                       )}
                     </div>
-                  )}
-                />
 
-                <ActivityList
-                  title={t('companiesPage.activity.transfersTitle')}
-                  emptyLabel={t('companiesPage.activity.transfersEmpty')}
-                  countText={t('companiesPage.activity.count', { count: (detail.recent_transfers ?? []).length })}
-                  items={detail.recent_transfers ?? []}
-                  renderItem={(item) => (
-                    <div key={`transfer-${item.id}`} className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-semibold text-base-color">{item.entity_label}</div>
-                          <div className="text-xs text-muted-color mt-1">{item.direction === 'import' ? t('companiesPage.activity.import') : t('companiesPage.activity.export')} - {item.source}</div>
+                    <div className="min-w-0">
+                      <div className="text-[11px] uppercase tracking-[0.18em] text-muted-color">{t('companiesPage.summary.title')}</div>
+                      <h2 className="text-xl font-bold text-base-color mt-2">
+                        {creating ? (form.name || t('companiesPage.detail.newTitle')) : (selectedCompanyRecord?.name ?? t('companiesPage.detail.recordTitle'))}
+                      </h2>
+                      <div className="text-sm text-muted-color mt-1">
+                        {creating ? (form.slug || t('companiesPage.preview.slugFallback')) : (selectedCompanyRecord?.slug || t('companiesPage.preview.slugFallback'))}
+                      </div>
+                      <div className="text-sm text-secondary-color mt-3 max-w-3xl">
+                        {(creating ? form.note.trim() : selectedCompanyRecord?.note) || t('companiesPage.summary.noteFallback')}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        {companyStatusPills.map((item) => (
+                          <MetricPill key={item.key} label={item.label} value={item.value} tone={item.tone} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={saveCompany} disabled={saving} className="btn-primary text-xs">
+                      {saving ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : <><i className="fa-solid fa-floppy-disk" /> {t('common.save')}</>}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-3 mt-5">
+                  {companySummaryMetrics.map((item) => (
+                    <SummaryStatCard
+                      key={item.key}
+                      label={item.label}
+                      value={item.value}
+                      helper={item.helper}
+                      tone={item.tone}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {!creating && detailLoading ? (
+                <div className="card py-10 text-center text-sm text-muted-color">
+                  <i className="fa-solid fa-spinner fa-spin mr-2" /> {t('companiesPage.detail.loading')}
+                </div>
+              ) : (
+                <>
+                  {!creating && selectedCompany?.id && (
+                    <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-6">
+                      <div className="rounded-[28px] px-5 py-5" style={{ background: 'rgba(13,148,136,0.08)', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.16)' }}>
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                          <div>
+                            <div className="text-sm font-semibold text-base-color">{t('companiesPage.mapSettings.title')}</div>
+                            <div className="text-xs text-secondary-color mt-2">
+                              {t('companiesPage.mapSettings.description')}
+                            </div>
+                          </div>
+                          <button onClick={saveMapFeatures} disabled={savingMapFeatures} className="btn-primary text-xs">
+                            {savingMapFeatures ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : <><i className="fa-solid fa-floppy-disk" /> {t('common.save')}</>}
+                          </button>
                         </div>
-                        <div className="text-right text-[11px] text-muted-color">
-                          <div>{item.created_by || t('companiesPage.systemFallback')}</div>
-                          <div className="mt-1">{formatDateTimeValue(item.created_at)}</div>
+
+                        <div className="flex flex-wrap gap-2 mt-4">
+                          <MetricPill label={t('companiesPage.mapSettings.customer.title')} value={mapFeatures.customer_geolocation_enabled ? t('companiesPage.mapSettings.enabled') : t('companiesPage.mapSettings.disabled')} tone={mapFeatures.customer_geolocation_enabled ? 'success' : 'warning'} />
+                          <MetricPill label={t('companiesPage.mapSettings.terrain.title')} value={mapFeatures.terrain_tracking_enabled ? t('companiesPage.mapSettings.enabled') : t('companiesPage.mapSettings.disabled')} tone={mapFeatures.terrain_tracking_enabled ? 'success' : 'warning'} />
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-4">
+                          {[
+                            {
+                              key: 'customer_geolocation_enabled',
+                              title: t('companiesPage.mapSettings.customer.title'),
+                              description: t('companiesPage.mapSettings.customer.description'),
+                            },
+                            {
+                              key: 'terrain_tracking_enabled',
+                              title: t('companiesPage.mapSettings.terrain.title'),
+                              description: t('companiesPage.mapSettings.terrain.description'),
+                            },
+                          ].map((item) => {
+                            const enabled = mapFeatures[item.key] === true
+
+                            return (
+                              <button
+                                key={item.key}
+                                type="button"
+                                onClick={() => setMapFeatures((current) => ({ ...current, [item.key]: !enabled }))}
+                                className="w-full rounded-2xl px-4 py-4 text-left transition-all"
+                                style={enabled
+                                  ? { background: '#ffffffd9', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.18)' }
+                                  : { background: 'rgba(255,255,255,0.72)', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.14)' }}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <div className="text-sm font-semibold text-base-color">{item.title}</div>
+                                    <div className="text-xs text-secondary-color mt-1">{item.description}</div>
+                                  </div>
+                                  <span
+                                    className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                                    style={enabled
+                                      ? { background: 'rgba(13,148,136,0.12)', color: '#0f766e' }
+                                      : { background: 'rgba(148,163,184,0.14)', color: '#64748b' }}
+                                  >
+                                    {enabled ? t('companiesPage.mapSettings.enabled') : t('companiesPage.mapSettings.disabled')}
+                                  </span>
+                                </div>
+                              </button>
+                            )
+                          })}
                         </div>
                       </div>
-                      {item.file_name && <div className="text-xs font-mono text-secondary-color mt-3">{item.file_name}</div>}
+
+                      <div className="card">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-semibold text-base-color">{t('companiesPage.quickActions.title')}</div>
+                            <div className="text-xs text-secondary-color mt-2">
+                              {t('companiesPage.quickActions.description')}
+                            </div>
+                          </div>
+                          {companySessionActive && (
+                            <span className="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold" style={{ background: 'rgba(13,148,136,0.12)', color: '#0f766e' }}>
+                              {t('companiesPage.session.activeRole', { role: translateRole(currentScopedRole) })}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 mt-4">
+                          <button onClick={() => { void launchCompanySession('admin', '/config') }} className="btn-secondary text-xs">
+                            <i className="fa-solid fa-sliders" /> {t('companiesPage.detail.configure')}
+                          </button>
+                          <button onClick={() => { void launchCompanySession('admin', '/data-tools') }} className="btn-secondary text-xs">
+                            <i className="fa-solid fa-file-arrow-up" /> {t('companiesPage.detail.dataTools')}
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 mt-4">
+                          {['admin', 'comptable', 'rep'].map((role) => {
+                            const roleKey = `${selectedCompany.id}:${role}`
+                            const busy = switchingCompanySession || launchingRoleKey === roleKey
+
+                            return (
+                              <button
+                                key={role}
+                                type="button"
+                                onClick={() => { void launchCompanySession(role, '/') }}
+                                disabled={busy}
+                                className="rounded-2xl px-3 py-3 text-left transition-colors"
+                                style={role === currentScopedRole && companySessionActive
+                                  ? { background: 'rgba(13,148,136,0.12)', color: '#0f766e' }
+                                  : { background: 'var(--surface-2)', color: 'var(--text-secondary)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
+                              >
+                                <div className="text-xs font-semibold text-base-color">
+                                  {busy ? t('companiesPage.session.starting') : translateRole(role)}
+                                </div>
+                                <div className="text-[11px] text-secondary-color mt-2">
+                                  {t('companiesPage.session.fixedOneHour')}
+                                </div>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
                     </div>
                   )}
-                />
-              </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                <div className="card">
-                  <h2 className="text-sm font-semibold text-base-color mb-4">{t('companiesPage.sections.depots')}</h2>
-                  <div className="space-y-2">
-                    {(detail.depots ?? []).map((entry) => (
-                      <div key={`depot-${entry.id}`} className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <div className="text-sm font-semibold text-base-color">{entry.name}</div>
-                          {entry.is_default && <MetricPill label={t('companiesPage.badges.default')} value={t('companiesPage.badges.yes')} tone="success" />}
-                          {!entry.active && <MetricPill label={t('common.status')} value={t('companiesPage.badges.inactive')} tone="warning" />}
-                        </div>
-                        <div className="text-xs text-muted-color mt-1">{entry.code || t('companiesPage.sections.codeMissing')}</div>
-                        <div className="text-[11px] text-secondary-color mt-2">{t('companiesPage.sections.createdAt', { value: formatDateTimeValue(entry.created_at) })}</div>
-                        <div className="text-[11px] text-secondary-color mt-1">{t('companiesPage.sections.updatedAt', { value: formatDateTimeValue(entry.updated_at) })}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                  {!creating && detailTabs.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {detailTabs.map((item) => (
+                        <DetailTabButton
+                          key={item.key}
+                          active={activeDetailTab === item.key}
+                          icon={item.icon}
+                          label={item.label}
+                          count={item.count}
+                          onClick={() => setActiveDetailTab(item.key)}
+                        />
+                      ))}
+                    </div>
+                  )}
 
-                <div className="card">
-                  <h2 className="text-sm font-semibold text-base-color mb-4">{t('companiesPage.sections.camions')}</h2>
-                  <div className="space-y-2">
-                    {(detail.camions ?? []).map((entry) => (
-                      <div key={`camion-${entry.id}`} className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <div className="text-sm font-semibold text-base-color">{entry.name}</div>
-                          {!entry.active && <MetricPill label={t('common.status')} value={t('companiesPage.badges.inactive')} tone="warning" />}
-                        </div>
-                        <div className="text-xs text-muted-color mt-1">{entry.plate || t('companiesPage.sections.noPlate')} - {entry.operational_status}</div>
-                        <div className="text-[11px] text-secondary-color mt-2">{t('companiesPage.sections.createdAt', { value: formatDateTimeValue(entry.created_at) })}</div>
-                        <div className="text-[11px] text-secondary-color mt-1">{t('companiesPage.sections.updatedAt', { value: formatDateTimeValue(entry.updated_at) })}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="card">
-                  <h2 className="text-sm font-semibold text-base-color mb-4">{t('companiesPage.sections.users')}</h2>
-                  <div className="space-y-2">
-                    {(detail.users ?? []).map((entry) => (
-                      <div key={`user-${entry.id}`} className="rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                        <div className="text-sm font-semibold text-base-color">{entry.name}</div>
-                        <div className="text-xs text-muted-color mt-1">{translateRole(entry.role)} - {entry.email}</div>
-                        <div className="text-xs text-secondary-color mt-2">{entry.depot?.name || t('companiesPage.sections.depotToConfirm')}</div>
-                        <div className="text-[11px] text-secondary-color mt-2">{t('companiesPage.sections.createdAt', { value: formatDateTimeValue(entry.created_at) })}</div>
-                        <div className="text-[11px] text-secondary-color mt-1">{t('companiesPage.sections.updatedAt', { value: formatDateTimeValue(entry.updated_at) })}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {bootstrapResult?.credentials?.length > 0 && (
-                <div className="card">
-                  <div className="flex items-center justify-between gap-3 mb-4">
-                    <h2 className="text-sm font-semibold text-base-color">{t('companiesPage.credentials.title')}</h2>
-                    <span className="text-xs text-muted-color">{t('companiesPage.credentials.count', { count: bootstrapResult.credentials.length })}</span>
-                  </div>
-                  <div className="space-y-3">
-                    {bootstrapResult.credentials.map((entry) => (
-                      <div key={entry.email} className="rounded-2xl px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-                        <div className="text-sm font-semibold text-base-color">{entry.name}</div>
-                        <div className="text-xs text-muted-color mt-1">{translateRole(entry.role)} - {entry.email}</div>
-                        <div className="text-xs font-mono text-secondary-color mt-2">{entry.password}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                  {creating
+                    ? renderProfileSection()
+                    : activeDetailTab === 'profile'
+                      ? renderProfileSection()
+                      : activeDetailTab === 'structure'
+                        ? renderStructureSection()
+                        : activeDetailTab === 'activity'
+                          ? renderActivitySection()
+                          : renderWorkspaceSection()}
+                </>
               )}
             </>
+          ) : (
+            <div className="card py-12 text-center text-sm text-muted-color">
+              {t('companiesPage.directory.selectCompany')}
+            </div>
           )}
         </div>
       </div>

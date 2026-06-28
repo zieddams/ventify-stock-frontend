@@ -2223,6 +2223,14 @@ export default {
       newCompany: 'Nouvelle société',
       developerTools: 'Outils développeur',
     },
+    directory: {
+      title: 'Répertoire sociétés',
+      description: 'Choisissez une société puis pilotez sa configuration, son GPS et ses opérations depuis une vue plus courte.',
+      searchPlaceholder: 'Rechercher par nom, slug ou ID',
+      filteredCount: ({ visible, total }) => `${visible}/${total} société(s)`,
+      empty: 'Aucune société ne correspond à cette recherche.',
+      selectCompany: 'Sélectionnez une société dans la colonne de gauche pour ouvrir sa fiche développeur.',
+    },
     badges: {
       default: 'Défaut',
       yes: 'Oui',
@@ -2239,6 +2247,25 @@ export default {
       configure: 'Configurer',
       dataTools: 'Données',
       loading: 'Chargement du détail...',
+    },
+    summary: {
+      title: 'Vue rapide',
+      companyId: 'ID',
+      active: 'Active',
+      inactive: 'Inactive',
+      logoReady: 'Logo prêt',
+      logoMissing: 'Logo manquant',
+      noteFallback: 'Ajoutez une note interne courte pour rendre cette société plus lisible côté développeur.',
+    },
+    quickActions: {
+      title: 'Accès rapides',
+      description: 'Ouvrez immédiatement une session métier isolée ou sautez vers la configuration et les outils de données.',
+    },
+    tabs: {
+      profile: 'Profil',
+      structure: 'Equipe & flotte',
+      activity: 'Activité',
+      workspace: 'Workspace',
     },
     errors: {
       loadCompanies: 'Impossible de charger les sociétés.',
@@ -2347,6 +2374,7 @@ export default {
       depots: 'Dépôts',
       camions: 'Camions',
       users: 'Utilisateurs',
+      empty: 'Aucune donnée dans cette rubrique pour le moment.',
       codeMissing: 'Code non défini',
       noPlate: 'Sans plaque',
       depotToConfirm: 'Dépôt à confirmer',

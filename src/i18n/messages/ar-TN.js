@@ -2222,6 +2222,14 @@ export default {
       newCompany: 'شركة جديدة',
       developerTools: 'أدوات المطوّر',
     },
+    directory: {
+      title: 'دليل الشركات',
+      description: 'اختار الشركة وبعدها تحكّم في إعداداتها، GPS والعمليات الحسّاسة من واجهة أوضح وأقصر.',
+      searchPlaceholder: 'قلّب بالاسم، الـ slug ولا الـ ID',
+      filteredCount: ({ visible, total }) => `${visible}/${total} شركة`,
+      empty: 'ما فما حتى شركة تطابق البحث هذا.',
+      selectCompany: 'اختار شركة من العمود على اليسار باش تفتح بطاقتها للمطوّر.',
+    },
     badges: {
       default: 'افتراضي',
       yes: 'إي',
@@ -2238,6 +2246,25 @@ export default {
       configure: 'اضبط',
       dataTools: 'البيانات',
       loading: 'جاري تحميل التفاصيل...',
+    },
+    summary: {
+      title: 'نظرة سريعة',
+      companyId: 'ID',
+      active: 'مفعّلة',
+      inactive: 'موقوفة',
+      logoReady: 'الشعار حاضر',
+      logoMissing: 'الشعار ناقص',
+      noteFallback: 'زيد note داخلية قصيرة باش تولّي الشركة أوضح للفريق المطوّر.',
+    },
+    quickActions: {
+      title: 'وصول سريع',
+      description: 'افتح جلسة مهنية معزولة مباشرة ولا امشِ للإعدادات وأدوات البيانات من غير ما تدوّر برشة.',
+    },
+    tabs: {
+      profile: 'البروفيل',
+      structure: 'الفريق و الأسطول',
+      activity: 'النشاط',
+      workspace: 'Workspace',
     },
     errors: {
       loadCompanies: 'ما نجمنّاش نحمّلوا الشركات.',
@@ -2346,6 +2373,7 @@ export default {
       depots: 'المخازن',
       camions: 'الشاحنات',
       users: 'المستعملين',
+      empty: 'ما فما حتى معطى في الخانة هاذي توّة.',
       codeMissing: 'الكود موش محدد',
       noPlate: 'بلا ترقيم',
       depotToConfirm: 'المخزن يلزمو تأكيد',
