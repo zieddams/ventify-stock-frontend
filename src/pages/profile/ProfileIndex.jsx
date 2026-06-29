@@ -125,7 +125,7 @@ function SummaryChip({ label, value }) {
 }
 
 export default function ProfileIndex() {
-  const { user, setCurrentUser, isDeveloperWorkspace } = useAuth()
+  const { user, setCurrentUser } = useAuth()
   const { supportedLocales, t } = useI18n()
   const [identityForm, setIdentityForm] = useState(INITIAL_IDENTITY_FORM)
   const [passwordForm, setPasswordForm] = useState(INITIAL_PASSWORD_FORM)
@@ -145,10 +145,6 @@ export default function ProfileIndex() {
 
   const localeMeta = supportedLocales.find((item) => item.code === user?.locale)
   const localeLabel = localeMeta ? `${localeMeta.short} · ${localeMeta.label}` : (user?.locale ?? t('common.notAvailable'))
-  const workspaceLabel = isDeveloperWorkspace()
-    ? t('profilePage.summary.developerWorkspace')
-    : t('profilePage.summary.businessWorkspace')
-  const companyLabel = user?.company?.name || t('profilePage.summary.companyFallback')
   const trimmedName = identityForm.name.trim()
   const trimmedEmail = identityForm.email.trim()
   const identityDirty = trimmedName !== (user?.name ?? '').trim() || trimmedEmail !== (user?.email ?? '').trim()
@@ -257,12 +253,6 @@ export default function ProfileIndex() {
             <h2 className="text-xl font-bold text-base-color mt-2">{t('profilePage.title')}</h2>
             <p className="text-sm text-secondary-color mt-2">{t('profilePage.subtitle')}</p>
           </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:min-w-[540px]">
-            <SummaryChip label={t('profilePage.summary.workspace')} value={workspaceLabel} />
-            <SummaryChip label={t('profilePage.summary.role')} value={t(`badges.roles.${user?.role || 'admin'}`)} />
-            <SummaryChip label={t('profilePage.summary.company')} value={companyLabel} />
-          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 mt-4">
@@ -320,14 +310,6 @@ export default function ProfileIndex() {
                 <div className="text-xs text-red-500 mt-2">{getFieldError(identityErrors, 'email')}</div>
               )}
             </div>
-
-            <div className="rounded-[22px] px-4 py-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-color">
-                {t('profilePage.identity.noteTitle')}
-              </div>
-              <div className="text-sm text-secondary-color mt-2">{t('profilePage.identity.noteBody')}</div>
-            </div>
-
             <div className="flex justify-end">
               <button type="submit" className="btn-primary" disabled={savingIdentity || !identityDirty}>
                 {savingIdentity
