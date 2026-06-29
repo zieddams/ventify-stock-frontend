@@ -15,6 +15,7 @@ const DEVELOPER_NAV = [
   { to: '/elements', icon: 'fa-solid fa-calendar-days', labelKey: 'developerWorkspace.nav.elements' },
   { to: '/companies', icon: COMPANY_NAV_ICON, labelKey: 'layout.nav.companies' },
   { to: '/developer-tools', icon: 'fa-solid fa-screwdriver-wrench', labelKey: 'layout.nav.developerTools' },
+  { to: '/profile', icon: 'fa-solid fa-user-pen', labelKey: 'layout.nav.profile' },
   { to: '/notifications-center', icon: 'fa-solid fa-bell', labelKey: 'layout.nav.notificationsCenter' },
   { to: '/bug-reports', icon: 'fa-solid fa-bug', labelKey: 'layout.nav.bugReports' },
 ]
@@ -35,6 +36,10 @@ const PAGE_META = {
   '/developer-tools': {
     titleKey: 'developerToolsPage.page.title',
     subtitleKey: 'developerToolsPage.page.subtitle',
+  },
+  '/profile': {
+    titleKey: 'profilePage.title',
+    subtitleKey: 'profilePage.subtitle',
   },
   '/notifications-center': {
     titleKey: 'layout.nav.notificationsCenter',

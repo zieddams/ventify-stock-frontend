@@ -31,6 +31,7 @@ import NotificationsCenterIndex from './pages/notifications/NotificationsCenterI
 import BugReportsIndex from './pages/support/BugReportsIndex'
 import DeveloperToolsIndex from './pages/developer/DeveloperToolsIndex'
 import CompaniesIndex from './pages/companies/CompaniesIndex'
+import ProfileIndex from './pages/profile/ProfileIndex'
 import { APP_BASE_PATH } from './utils/appPaths'
 import { isAnyMapExperienceEnabled } from './utils/companyFeatures'
 
@@ -166,6 +167,7 @@ export default function App() {
                 <Route path="help" element={<HelpCenterIndex />} />
                 <Route path="notifications-center" element={<NotificationsCenterIndex />} />
                 <Route path="bug-reports" element={<BugReportsIndex />} />
+                <Route path="profile" element={<ProfileIndex />} />
                 <Route path="import"    element={<Navigate to="/data-tools" replace />} />
                 <Route path="export"    element={<Navigate to="/data-tools" replace />} />
               </Route>

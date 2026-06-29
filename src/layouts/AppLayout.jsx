@@ -71,6 +71,7 @@ const PAGE_TITLES = {
   '/help': { labelKey: 'layout.nav.help', icon: 'fa-solid fa-circle-question' },
   '/notifications-center': { labelKey: 'layout.nav.notificationsCenter', icon: 'fa-solid fa-bell' },
   '/bug-reports': { labelKey: 'layout.nav.bugReports', icon: 'fa-solid fa-bug' },
+  '/profile': { labelKey: 'layout.nav.profile', icon: 'fa-solid fa-user-pen' },
   '/companies': { labelKey: 'layout.nav.companies', icon: COMPANY_NAV_ICON },
   '/developer-tools': { labelKey: 'layout.nav.developerTools', icon: 'fa-solid fa-code' },
 }
@@ -153,6 +154,7 @@ function UserMenu({ user, onLogout }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const { locale, savingLocale, setLocale, supportedLocales, t } = useI18n()
+  const menuLinkClassName = 'w-full flex items-center gap-2.5 px-3 py-2 text-sm text-secondary-color hover:bg-surface-2 transition-colors'
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -218,15 +220,25 @@ function UserMenu({ user, onLogout }) {
             </div>
           </div>
           <NavLink
+            to="/profile"
+            onClick={() => setOpen(false)}
+            className={menuLinkClassName}
+          >
+            <i className="fa-solid fa-user-pen w-4" />
+            {t('layout.userMenu.profile')}
+          </NavLink>
+          <NavLink
             to="/notifications-center"
-            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-secondary-color hover:bg-surface-2 transition-colors"
+            onClick={() => setOpen(false)}
+            className={menuLinkClassName}
           >
             <i className="fa-solid fa-bell w-4" />
             {t('layout.userMenu.notifications')}
           </NavLink>
           <NavLink
             to="/bug-reports"
-            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-secondary-color hover:bg-surface-2 transition-colors"
+            onClick={() => setOpen(false)}
+            className={menuLinkClassName}
           >
             <i className="fa-solid fa-bug w-4" />
             {t('layout.userMenu.support')}
@@ -235,14 +247,16 @@ function UserMenu({ user, onLogout }) {
             <>
               <NavLink
                 to="/companies"
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-secondary-color hover:bg-surface-2 transition-colors"
+                onClick={() => setOpen(false)}
+                className={menuLinkClassName}
               >
                 <i className={`${COMPANY_NAV_ICON} w-4`} />
                 {t('layout.userMenu.companies')}
               </NavLink>
               <NavLink
                 to="/developer-tools"
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-secondary-color hover:bg-surface-2 transition-colors"
+                onClick={() => setOpen(false)}
+                className={menuLinkClassName}
               >
                 <i className="fa-solid fa-code w-4" />
                 {t('layout.userMenu.developerTools')}
@@ -250,7 +264,10 @@ function UserMenu({ user, onLogout }) {
             </>
           )}
           <button
-            onClick={onLogout}
+            onClick={() => {
+              setOpen(false)
+              onLogout()
+            }}
             className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
           >
             <i className="fa-solid fa-right-from-bracket w-4" />
