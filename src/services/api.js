@@ -1,6 +1,11 @@
 import axios from 'axios'
+import {
+  getWebActivitySessionId,
+  resolveWebActivityPath,
+  resolveWebActivityTitle,
+} from './activityClient'
 import { getStoredLocale } from '../i18n/locales'
-import { APP_BASE_PATH, appPath } from '../utils/appPaths'
+import { appPath } from '../utils/appPaths'
 import {
   clearStoredAuthState,
   getStoredToken,
@@ -12,24 +17,8 @@ import {
 
 const api = axios.create({
   baseURL: '/api/v1',
-  headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+  headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-App-Client': 'web' },
 })
-
-function resolveFrontPath() {
-  if (typeof window === 'undefined') {
-    return '/'
-  }
-
-  const pathname = String(window.location.pathname || '/')
-  const normalizedBase = APP_BASE_PATH === '/' ? '' : APP_BASE_PATH
-
-  if (normalizedBase && pathname.startsWith(normalizedBase)) {
-    const trimmed = pathname.slice(normalizedBase.length) || '/'
-    return `/${trimmed.replace(/^\/+/, '')}`.replace(/\/{2,}/g, '/')
-  }
-
-  return pathname || '/'
-}
 
 api.interceptors.request.use((config) => {
   const token = getStoredToken()
@@ -40,7 +29,9 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`
   }
 
-  config.headers['X-Front-Path'] = resolveFrontPath()
+  config.headers['X-Front-Path'] = resolveWebActivityPath()
+  config.headers['X-Front-Page-Title'] = resolveWebActivityTitle()
+  config.headers['X-Activity-Session'] = getWebActivitySessionId()
   if (workspaceMode && !config.headers['X-Workspace-Mode']) {
     config.headers['X-Workspace-Mode'] = workspaceMode
   }

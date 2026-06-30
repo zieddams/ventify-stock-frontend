@@ -3,53 +3,25 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import NotificationBell from '../components/NotificationBell'
 import { APP_VERSION } from '../config/appMeta'
 import { useAuth } from '../contexts/AuthContext'
-import { useI18n } from '../contexts/I18nContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { DEFAULT_APP_MARK, applyDocumentBranding } from '../utils/branding'
+import { DEVELOPER_WORKSPACE_COPY as copy } from '../pages/developer/developerWorkspaceCopy'
 
 const OPS_CONSOLE_URL = 'https://ops.irtiwaa.ziedtech.com/'
 const COMPANY_NAV_ICON = 'fa-solid fa-building'
 
 const DEVELOPER_NAV = [
-  { to: '/developer', icon: 'fa-solid fa-compass-drafting', labelKey: 'developerWorkspace.nav.dashboard' },
-  { to: '/elements', icon: 'fa-solid fa-calendar-days', labelKey: 'developerWorkspace.nav.elements' },
-  { to: '/companies', icon: COMPANY_NAV_ICON, labelKey: 'layout.nav.companies' },
-  { to: '/developer-tools', icon: 'fa-solid fa-screwdriver-wrench', labelKey: 'layout.nav.developerTools' },
-  { to: '/profile', icon: 'fa-solid fa-user-pen', labelKey: 'layout.nav.profile' },
-  { to: '/notifications-center', icon: 'fa-solid fa-bell', labelKey: 'layout.nav.notificationsCenter' },
-  { to: '/bug-reports', icon: 'fa-solid fa-bug', labelKey: 'layout.nav.bugReports' },
+  { to: '/developer', icon: 'fa-solid fa-compass-drafting', label: copy.nav.dashboard },
+  { to: '/live-data', icon: 'fa-solid fa-wave-square', label: copy.nav.liveData },
+  { to: '/elements', icon: 'fa-solid fa-calendar-days', label: copy.nav.elements },
+  { to: '/companies', icon: COMPANY_NAV_ICON, label: copy.nav.companies },
+  { to: '/developer-tools', icon: 'fa-solid fa-screwdriver-wrench', label: copy.nav.tools },
+  { to: '/profile', icon: 'fa-solid fa-user-pen', label: copy.nav.profile },
+  { to: '/notifications-center', icon: 'fa-solid fa-bell', label: copy.nav.notifications },
+  { to: '/bug-reports', icon: 'fa-solid fa-bug', label: copy.nav.support },
 ]
 
-const PAGE_META = {
-  '/developer': {
-    titleKey: 'developerWorkspace.page.dashboardTitle',
-    subtitleKey: 'developerWorkspace.page.dashboardSubtitle',
-  },
-  '/elements': {
-    titleKey: 'developerElementsPage.page.title',
-    subtitleKey: 'developerElementsPage.page.subtitle',
-  },
-  '/companies': {
-    titleKey: 'companiesPage.page.title',
-    subtitleKey: 'companiesPage.page.subtitle',
-  },
-  '/developer-tools': {
-    titleKey: 'developerToolsPage.page.title',
-    subtitleKey: 'developerToolsPage.page.subtitle',
-  },
-  '/profile': {
-    titleKey: 'profilePage.title',
-    subtitleKey: 'profilePage.subtitle',
-  },
-  '/notifications-center': {
-    titleKey: 'layout.nav.notificationsCenter',
-    subtitleKey: 'developerWorkspace.page.supportSubtitle',
-  },
-  '/bug-reports': {
-    titleKey: 'layout.nav.bugReports',
-    subtitleKey: 'developerWorkspace.page.supportSubtitle',
-  },
-}
+const PAGE_META = copy.pageMeta
 
 function WorkspaceLink({ item }) {
   return (
@@ -71,7 +43,6 @@ function WorkspaceLink({ item }) {
 
 export default function DeveloperWorkspaceLayout() {
   const { user, logout } = useAuth()
-  const { t, locale, savingLocale, setLocale, supportedLocales } = useI18n()
   const { toggle, isDark } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
@@ -80,9 +51,24 @@ export default function DeveloperWorkspaceLayout() {
     location.pathname === key || (key !== '/developer' && location.pathname.startsWith(`${key}/`))
   ) ?? '/developer'
   const pageMeta = PAGE_META[pageKey]
-  const workspaceBrand = t('developerWorkspace.brand')
-  const pageTitle = t(pageMeta.titleKey)
-  const pageSubtitle = t(pageMeta.subtitleKey)
+  const workspaceBrand = copy.brand
+  const pageTitle = pageMeta.title
+  const pageSubtitle = pageMeta.subtitle
+  const sidebarShellStyle = isDark
+    ? { borderColor: 'rgba(148,163,184,0.12)', background: 'rgba(15,23,42,0.78)', backdropFilter: 'blur(20px)' }
+    : { borderColor: 'var(--border)', background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(18px)' }
+  const profileShellStyle = isDark
+    ? { background: 'linear-gradient(135deg, rgba(13,148,136,0.18), rgba(59,130,246,0.16))', boxShadow: 'inset 0 0 0 1px rgba(45,212,191,0.14)' }
+    : { background: 'linear-gradient(135deg, rgba(13,148,136,0.14), rgba(59,130,246,0.10))', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.12)' }
+  const footerShellStyle = isDark
+    ? { background: 'rgba(15,23,42,0.52)', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.12)' }
+    : { background: 'var(--surface)', boxShadow: 'inset 0 0 0 1px var(--border)' }
+  const brandMarkShellStyle = isDark
+    ? { background: 'rgba(15,23,42,0.76)', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.14)' }
+    : { background: 'rgba(255,255,255,0.94)', boxShadow: '0 12px 30px rgba(15,23,42,0.08)' }
+  const sessionChipStyle = isDark
+    ? { background: 'rgba(13,148,136,0.18)', color: '#99f6e4', boxShadow: 'inset 0 0 0 1px rgba(45,212,191,0.16)' }
+    : { background: 'rgba(255,255,255,0.82)', color: '#0f766e' }
 
   const handleLogout = async () => {
     await logout()
@@ -101,23 +87,25 @@ export default function DeveloperWorkspaceLayout() {
   return (
     <div
       className="min-h-screen bg-app md:flex"
-      style={{ backgroundImage: 'radial-gradient(circle at top right, rgba(13,148,136,0.10), transparent 26%), radial-gradient(circle at bottom left, rgba(59,130,246,0.08), transparent 24%)' }}
+      style={isDark
+        ? { backgroundImage: 'radial-gradient(circle at top right, rgba(13,148,136,0.18), transparent 26%), radial-gradient(circle at bottom left, rgba(59,130,246,0.14), transparent 24%)' }
+        : { backgroundImage: 'radial-gradient(circle at top right, rgba(13,148,136,0.10), transparent 26%), radial-gradient(circle at bottom left, rgba(59,130,246,0.08), transparent 24%)' }}
     >
       <aside
         className="hidden md:flex w-80 flex-col border-r px-5 py-5"
-        style={{ borderColor: 'var(--border)', background: 'rgba(255,255,255,0.58)', backdropFilter: 'blur(18px)' }}
+        style={sidebarShellStyle}
       >
         <button
           type="button"
           onClick={() => navigate('/developer')}
           className="flex items-center gap-3 rounded-[28px] px-3 py-3 text-left transition-colors hover:bg-surface-2"
         >
-          <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-white shadow-sm">
-            <img src={DEFAULT_APP_MARK} alt={t('developerWorkspace.brand')} className="h-9 w-9 object-contain" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-3xl" style={brandMarkShellStyle}>
+            <img src={DEFAULT_APP_MARK} alt={copy.brand} className="h-9 w-9 object-contain" />
           </div>
           <div className="min-w-0">
             <div className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-color">
-              {t('developerWorkspace.eyebrow')}
+              {copy.brandEyebrow}
             </div>
             <div className="truncate text-base font-semibold text-base-color">{workspaceBrand}</div>
             <div className="mt-1 text-xs text-secondary-color">v{APP_VERSION}</div>
@@ -126,67 +114,27 @@ export default function DeveloperWorkspaceLayout() {
 
         <div
           className="mt-5 rounded-[28px] px-4 py-4"
-          style={{ background: 'linear-gradient(135deg, rgba(13,148,136,0.14), rgba(59,130,246,0.10))', boxShadow: 'inset 0 0 0 1px rgba(13,148,136,0.12)' }}
+          style={profileShellStyle}
         >
           <div className="text-sm font-semibold text-base-color">{user?.name}</div>
           <div className="mt-1 text-xs text-secondary-color">{user?.email}</div>
-          <div className="mt-3 inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold" style={{ background: 'rgba(255,255,255,0.72)', color: '#0f766e' }}>
-            {t('developerWorkspace.sessionLabel')}
+          <div className="mt-3 inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold" style={sessionChipStyle}>
+            {copy.sessionLabel}
           </div>
-        </div>
-
-        <div
-          className="mt-4 rounded-[28px] px-4 py-4"
-          style={{ background: 'rgba(15,23,42,0.04)', boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.14)' }}
-        >
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-color">
-            {t('developerWorkspace.hero.eyebrow')}
-          </div>
-          <div className="mt-2 text-sm text-secondary-color">
-            {t('developerWorkspace.policy.items.session')}
-          </div>
-          <a href={OPS_CONSOLE_URL} target="_blank" rel="noreferrer" className="btn-secondary mt-4 w-full justify-center text-xs">
-            <i className="fa-solid fa-tower-broadcast" /> {t('developerWorkspace.quickActions.opsConsole')}
-          </a>
         </div>
 
         <nav className="mt-5 space-y-2">
           {DEVELOPER_NAV.map((item) => (
-            <WorkspaceLink key={item.to} item={{ ...item, label: t(item.labelKey) }} />
+            <WorkspaceLink key={item.to} item={item} />
           ))}
         </nav>
 
-        <div className="mt-auto space-y-4 rounded-[28px] px-4 py-4" style={{ background: 'var(--surface)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-color">
-              {t('layout.userMenu.language')}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {supportedLocales.map((item) => {
-                const active = item.code === locale
-
-                return (
-                  <button
-                    key={item.code}
-                    type="button"
-                    onClick={() => { void setLocale(item.code) }}
-                    disabled={savingLocale}
-                    className="rounded-full border px-2.5 py-1 text-[11px] font-semibold transition"
-                    style={{
-                      borderColor: active ? '#0d9488' : 'var(--border)',
-                      background: active ? 'rgba(13,148,136,0.12)' : 'transparent',
-                      color: active ? '#0d9488' : 'var(--text-secondary)',
-                    }}
-                  >
-                    {item.short} · {item.label}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
+        <div className="mt-auto space-y-3 rounded-[28px] px-4 py-4" style={footerShellStyle}>
+          <a href={OPS_CONSOLE_URL} target="_blank" rel="noreferrer" className="btn-secondary w-full justify-center text-xs">
+            <i className="fa-solid fa-tower-broadcast" /> {copy.layout.ops}
+          </a>
           <button onClick={handleLogout} className="btn-danger w-full justify-center text-sm">
-            <i className="fa-solid fa-right-from-bracket" /> {t('common.logout')}
+            <i className="fa-solid fa-right-from-bracket" /> {copy.layout.logout}
           </button>
         </div>
       </aside>
@@ -196,7 +144,7 @@ export default function DeveloperWorkspaceLayout() {
           <div className="flex flex-wrap items-start gap-4 md:items-center md:justify-between">
             <div className="min-w-0">
               <div className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-color">
-                {t('developerWorkspace.eyebrow')}
+                {copy.brandEyebrow}
               </div>
               <h1 className="mt-1 truncate text-xl font-bold text-base-color">{pageTitle}</h1>
               <p className="mt-1 max-w-3xl text-sm text-secondary-color">{pageSubtitle}</p>
@@ -205,17 +153,17 @@ export default function DeveloperWorkspaceLayout() {
             <div className="flex items-center gap-2">
               <NotificationBell />
               <a href={OPS_CONSOLE_URL} target="_blank" rel="noreferrer" className="btn-secondary hidden sm:inline-flex text-xs">
-                <i className="fa-solid fa-tower-broadcast" /> {t('developerWorkspace.quickActions.opsConsole')}
+                <i className="fa-solid fa-tower-broadcast" /> {copy.layout.ops}
               </a>
               <button
                 className="btn-ghost p-2"
                 onClick={toggle}
-                title={isDark ? t('layout.theme.light') : t('layout.theme.dark')}
+                title={isDark ? copy.layout.lightTheme : copy.layout.darkTheme}
               >
                 <i className={`fa-solid ${isDark ? 'fa-sun' : 'fa-moon'} text-base text-muted-color`} />
               </button>
               <button onClick={handleLogout} className="btn-secondary text-xs">
-                <i className="fa-solid fa-right-from-bracket" /> <span className="hidden sm:inline">{t('common.logout')}</span>
+                <i className="fa-solid fa-right-from-bracket" /> <span className="hidden sm:inline">{copy.layout.logout}</span>
               </button>
             </div>
           </div>
@@ -233,7 +181,7 @@ export default function DeveloperWorkspaceLayout() {
                   }`
                 }
               >
-                {t(item.labelKey)}
+                {item.label}
               </NavLink>
             ))}
           </div>

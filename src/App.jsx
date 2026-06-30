@@ -9,6 +9,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import DeveloperDashboard from './pages/developer/DeveloperDashboard'
 import DeveloperElementsIndex from './pages/developer/DeveloperElementsIndex'
+import DeveloperLiveDataIndex from './pages/developer/DeveloperLiveDataIndex'
 import ProductsIndex from './pages/products/ProductsIndex'
 import CustomersIndex from './pages/customers/CustomersIndex'
 import InvoicesIndex from './pages/invoices/InvoicesIndex'
@@ -142,6 +143,7 @@ export default function App() {
               <Route path="/" element={<RequireAuth><WorkspaceLayout /></RequireAuth>}>
                 <Route index element={<HomeIndex />} />
                 <Route path="developer" element={<RequireDeveloperWorkspace><DeveloperDashboard /></RequireDeveloperWorkspace>} />
+                <Route path="live-data" element={<RequireDeveloperWorkspace><DeveloperLiveDataIndex /></RequireDeveloperWorkspace>} />
                 <Route path="elements" element={<RequireDeveloperWorkspace><DeveloperElementsIndex /></RequireDeveloperWorkspace>} />
                 <Route path="products" element={<RequireBusinessWorkspace><ProductsIndex /></RequireBusinessWorkspace>} />
                 <Route path="customers" element={<RequireBusinessWorkspace><CustomersIndex /></RequireBusinessWorkspace>} />
