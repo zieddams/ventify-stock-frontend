@@ -2202,7 +2202,12 @@ export default {
         reference: 'المرجع',
         qty: 'الكمية',
         min: 'الأدنى',
+        state: 'الحالة',
         fallbackProduct: 'منتوج',
+      },
+      stockStates: {
+        ok: 'مخزون عادي',
+        low: 'مخزون ناقص',
       },
     },
     alerts: {

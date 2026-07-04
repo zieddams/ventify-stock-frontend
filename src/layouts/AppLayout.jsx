@@ -26,6 +26,7 @@ const FINANCE_NAV = [
 
 const OPERATIONS_NAV = [
   { to: '/users', icon: 'fa-solid fa-user-gear', labelKey: 'layout.nav.users' },
+  { to: '/camions', icon: 'fa-solid fa-truck', labelKey: 'layout.nav.camions' },
   { to: '/routes', icon: 'fa-solid fa-truck-fast', labelKey: 'layout.nav.routes' },
   { to: '/reports', icon: 'fa-solid fa-chart-line', labelKey: 'layout.nav.reports' },
   { to: '/depot', icon: 'fa-solid fa-warehouse', labelKey: 'layout.nav.depot' },
@@ -385,7 +386,7 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper
   }
 
   const operationsNavItems = mapExperienceEnabled
-    ? [...OPERATIONS_NAV.slice(0, 2), MAP_NAV_ITEM, ...OPERATIONS_NAV.slice(2)]
+    ? [...OPERATIONS_NAV.slice(0, 3), MAP_NAV_ITEM, ...OPERATIONS_NAV.slice(3)]
     : OPERATIONS_NAV
   const mobileCoreNav = CORE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
   const mobileFinanceNav = FINANCE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))

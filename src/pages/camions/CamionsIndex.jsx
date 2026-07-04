@@ -39,6 +39,25 @@ function statusMeta(routeSession, t) {
   }
 }
 
+function stockStateMeta(item, t) {
+  const minStock = Math.max(Number(item?.product?.min_stock ?? 1), 1)
+  const qty = Number(item?.qty ?? 0)
+
+  if (qty <= minStock) {
+    return {
+      label: t('camionsPage.repsSection.stockStates.low'),
+      color: '#d97706',
+      bg: 'rgba(217,119,6,0.10)',
+    }
+  }
+
+  return {
+    label: t('camionsPage.repsSection.stockStates.ok'),
+    color: '#059669',
+    bg: 'rgba(5,150,105,0.10)',
+  }
+}
+
 function emptyFleetForm() {
   return {
     id: null,
@@ -161,6 +180,28 @@ export default function CamionsIndex() {
   useEffect(() => {
     load()
   }, [selectedDepotId, showInactiveCamions])
+
+  useEffect(() => {
+    setExpanded((current) => {
+      let changed = false
+      const next = { ...current }
+
+      reps.forEach((rep) => {
+        const repId = rep.user?.id
+
+        if (!repId || Object.prototype.hasOwnProperty.call(next, repId)) {
+          return
+        }
+
+        if (rep.route_session?.status === 'open') {
+          next[repId] = true
+          changed = true
+        }
+      })
+
+      return changed ? next : current
+    })
+  }, [reps])
 
   const totals = useMemo(() => {
     const physicalTotal = camions.length
@@ -750,6 +791,7 @@ export default function CamionsIndex() {
                                 t('camionsPage.repsSection.stockTable.reference'),
                                 t('camionsPage.repsSection.stockTable.qty'),
                                 t('camionsPage.repsSection.stockTable.min'),
+                                t('camionsPage.repsSection.stockTable.state'),
                               ].map((heading) => (
                                 <th key={heading} className="pb-2 pr-4 text-left text-xs font-semibold text-muted-color uppercase tracking-wider">
                                   {heading}
@@ -761,6 +803,7 @@ export default function CamionsIndex() {
                             {stockItems.map((item) => {
                               const minStock = Math.max(Number(item.product?.min_stock ?? 1), 1)
                               const isLow = Number(item.qty ?? 0) <= minStock
+                              const stockState = stockStateMeta(item, t)
 
                               return (
                                 <tr key={`${rep.user?.id}-${item.product?.id ?? item.product?.reference}`} className="table-row">
@@ -770,7 +813,15 @@ export default function CamionsIndex() {
                                     {formatNumber(item.qty)}
                                     {isLow && <i className="fa-solid fa-triangle-exclamation ml-1.5 text-[10px]" style={{ color: '#d97706' }} />}
                                   </td>
-                                  <td className="py-2 text-xs text-muted-color">{formatNumber(minStock)}</td>
+                                  <td className="py-2 pr-4 text-xs text-muted-color">{formatNumber(minStock)}</td>
+                                  <td className="py-2 text-xs">
+                                    <span
+                                      className="inline-flex items-center rounded-full px-2.5 py-1 font-semibold"
+                                      style={{ background: stockState.bg, color: stockState.color }}
+                                    >
+                                      {stockState.label}
+                                    </span>
+                                  </td>
                                 </tr>
                               )
                             })}

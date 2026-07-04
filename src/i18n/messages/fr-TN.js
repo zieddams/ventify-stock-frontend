@@ -2203,7 +2203,12 @@ export default {
         reference: 'Référence',
         qty: 'Quantité',
         min: 'Min',
+        state: 'État',
         fallbackProduct: 'Produit',
+      },
+      stockStates: {
+        ok: 'OK',
+        low: 'Stock bas',
       },
     },
     alerts: {
