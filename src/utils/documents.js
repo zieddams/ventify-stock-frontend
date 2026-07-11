@@ -674,7 +674,7 @@ function buildInvoicePadHtml(model) {
         align-items: flex-end;
         justify-content: space-between;
         gap: 12px;
-        margin-top: 10px;
+        margin-top: 20px;
       }
 
       .client-line,
@@ -705,7 +705,7 @@ function buildInvoicePadHtml(model) {
 
       table {
         width: 100%;
-        margin-top: 8px;
+        margin-top: 18px;
         border-collapse: collapse;
         table-layout: fixed;
       }
@@ -775,10 +775,14 @@ function buildInvoicePadHtml(model) {
 
       .notes,
       .footer-note {
-        margin-top: 8px;
+        margin-top: 22px;
         font-size: 10px;
         line-height: 1.4;
         white-space: pre-wrap;
+      }
+
+      .notes + .footer-note {
+        margin-top: 10px;
       }
 
       .notes-label {
@@ -1357,14 +1361,14 @@ function buildInvoicePadPdf(doc, autoTable, model) {
     { align: 'center' },
   )
 
-  cursorY = Math.max(cursorY + 6, top + 44)
+  cursorY = Math.max(cursorY + 16, top + 52)
   doc.setFont('times', 'italic')
   doc.setFontSize(10.5)
   doc.text('Client :', left, cursorY)
   doc.text(normalizeText(asText(record?.customer_name)), left + 42, cursorY)
   doc.line(left + 40, cursorY + 2, pageWidth - right - 110, cursorY + 2)
   doc.text(`Le : ${normalizeText(formatDate(record?.created_at))}`, pageWidth - right, cursorY, { align: 'right' })
-  cursorY += 8
+  cursorY += 16
 
   doc.setFont('helvetica', 'normal')
   autoTable(doc, {
@@ -1416,7 +1420,7 @@ function buildInvoicePadPdf(doc, autoTable, model) {
   doc.rect(left + qtyColWidth + designationColWidth + unitColWidth, cursorY, amountColWidth, 18)
   doc.text('TOTAL', left + qtyColWidth + designationColWidth + unitColWidth / 2, cursorY + 12.5, { align: 'center' })
   doc.text(normalizeText(formatMoney(record?.total)), pageWidth - right - 6, cursorY + 12.5, { align: 'right' })
-  cursorY += 24
+  cursorY += 40
 
   const trailingLines = [
     ...splitMultilineText(record?.notes).map((line) => `Note : ${line}`),
@@ -1438,6 +1442,86 @@ function buildInvoicePadPdf(doc, autoTable, model) {
   }
 }
 
+function extractHtmlTag(html, tagName) {
+  const match = html.match(new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)</${tagName}>`, 'i'))
+  return match ? match[1] : ''
+}
+
+// jsPDF's own `doc.html()` helper still routes text through jsPDF's standard
+// fonts (WinAnsi-only, no Arabic glyphs, no bidi/shaping) via its context2d
+// bridge - it does NOT rasterize by default, so it would not actually solve
+// the Arabic rendering problem. This renders the pad's real HTML/CSS into a
+// detached, off-screen DOM node and rasterizes it with html2canvas directly,
+// so the browser's own text engine (which shapes Arabic correctly) draws the
+// pixels once, and the PDF just embeds that as an image.
+async function renderInvoicePadSnapshotCanvas(model) {
+  const html = buildInvoicePadHtml(model)
+  const styleEl = document.createElement('style')
+  styleEl.setAttribute('data-invoice-pdf-snapshot', 'true')
+  styleEl.textContent = extractHtmlTag(html, 'style')
+
+  const container = document.createElement('div')
+  container.setAttribute('data-invoice-pdf-snapshot', 'true')
+  container.style.position = 'fixed'
+  container.style.top = '0'
+  container.style.left = '-10000px'
+  container.style.background = '#ffffff'
+  container.innerHTML = extractHtmlTag(html, 'body')
+
+  document.head.appendChild(styleEl)
+  document.body.appendChild(container)
+
+  try {
+    const { default: html2canvas } = await import('html2canvas')
+    return await html2canvas(container.querySelector('.sheet') || container, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+    })
+  } finally {
+    document.body.removeChild(container)
+    document.head.removeChild(styleEl)
+  }
+}
+
+function addCanvasImageWithPagination(doc, canvas, margin) {
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const imgWidth = pageWidth - margin * 2
+  const pageSlicePx = Math.floor(((pageHeight - margin * 2) * canvas.width) / imgWidth)
+
+  let renderedPx = 0
+  let firstPage = true
+
+  while (renderedPx < canvas.height) {
+    const sliceHeightPx = Math.min(pageSlicePx, canvas.height - renderedPx)
+    const pageCanvas = document.createElement('canvas')
+    pageCanvas.width = canvas.width
+    pageCanvas.height = sliceHeightPx
+    pageCanvas.getContext('2d').drawImage(
+      canvas,
+      0, renderedPx, canvas.width, sliceHeightPx,
+      0, 0, canvas.width, sliceHeightPx,
+    )
+
+    if (!firstPage) {
+      doc.addPage()
+    }
+
+    doc.addImage(
+      pageCanvas.toDataURL('image/png'),
+      'PNG',
+      margin,
+      margin,
+      imgWidth,
+      (sliceHeightPx * imgWidth) / canvas.width,
+    )
+
+    renderedPx += sliceHeightPx
+    firstPage = false
+  }
+}
+
 export async function downloadDocumentPdf(options) {
   const model = buildDocumentModel(options)
   const [{ jsPDF }, { default: autoTable }] = await Promise.all([
@@ -1453,7 +1537,15 @@ export async function downloadDocumentPdf(options) {
   })
 
   if (isSinglePadInvoiceDocument(model)) {
-    buildInvoicePadPdf(doc, autoTable, model)
+    const { companyNameAr } = buildInvoicePadCompanyLines(model.branding)
+
+    if (companyNameAr) {
+      const canvas = await renderInvoicePadSnapshotCanvas(model)
+      addCanvasImageWithPagination(doc, canvas, 24)
+    } else {
+      buildInvoicePadPdf(doc, autoTable, model)
+    }
+
     doc.save(model.filename)
     return model.filename
   }
