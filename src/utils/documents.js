@@ -126,6 +126,7 @@ function buildInvoicePadCompanyLines(branding) {
   const headerNoteLines = Array.isArray(branding?.headerNoteLines) ? branding.headerNoteLines : []
   const depotLines = Array.isArray(branding?.depotLines) ? branding.depotLines : []
   const legalName = cleanOptionalText(companyProfile.legal_name)
+  const tagline = cleanOptionalText(companyProfile.tagline)
   const address = cleanOptionalText(companyProfile.address)
   const phone = cleanOptionalText(companyProfile.phone)
   const email = cleanOptionalText(companyProfile.email)
@@ -135,6 +136,10 @@ function buildInvoicePadCompanyLines(branding) {
 
   if (legalName && legalName.toLowerCase() !== companyName.toLowerCase()) {
     lines.push(legalName)
+  }
+
+  if (tagline) {
+    lines.push(tagline)
   }
 
   lines.push(...headerNoteLines.slice(0, 2))
@@ -158,9 +163,20 @@ function buildInvoicePadCompanyLines(branding) {
   const bodyLines = lines.filter(Boolean).slice(0, 5)
   const identityIndex = bodyLines.findIndex((line) => /matricule fiscal|siret/i.test(line))
 
+  // Arabic mirror column: legal name (ar) stands in for the heading, tagline
+  // and address (ar) are the body - phone/email/tax IDs are locale-invariant
+  // so they aren't duplicated on this side. Populated only when an admin has
+  // actually filled in the Arabic company-profile fields (see ConfigIndex.jsx
+  // "Company Profile" card); otherwise the header stays single-column French.
+  const companyNameAr = cleanOptionalText(companyProfile.legal_name_ar)
+  const taglineAr = cleanOptionalText(companyProfile.tagline_ar)
+  const addressAr = cleanOptionalText(companyProfile.address_ar)
+
   return {
     companyBodyLines: bodyLines.filter((_, index) => index !== identityIndex),
     identityLine: identityIndex >= 0 ? bodyLines[identityIndex] : '',
+    companyNameAr,
+    companyBodyLinesAr: [taglineAr, addressAr].filter(Boolean),
   }
 }
 
@@ -520,7 +536,8 @@ export function buildDocumentModel({
 function buildInvoicePadHtml(model) {
   const record = model.record ?? {}
   const companyName = cleanOptionalText(model.branding?.companyName) || DEFAULT_DOCUMENT_BRAND_NAME
-  const { companyBodyLines, identityLine } = buildInvoicePadCompanyLines(model.branding)
+  const { companyBodyLines, identityLine, companyNameAr, companyBodyLinesAr } = buildInvoicePadCompanyLines(model.branding)
+  const hasArabicHeader = Boolean(companyNameAr)
   const lineItems = buildInvoiceLineItems(record)
   const customerName = asText(record?.customer_name)
   const invoiceNumber = asText(record?.number)
@@ -566,8 +583,23 @@ function buildInvoicePadHtml(model) {
         gap: 14px;
       }
 
+      .header-bilingual {
+        grid-template-columns: minmax(0, 1fr) 205px minmax(0, 1fr);
+      }
+
       .company-block {
         min-width: 0;
+      }
+
+      .company-block-ar {
+        min-width: 0;
+        text-align: right;
+        font-family: "Tahoma", "Segoe UI", "Geeza Pro", "Arial", sans-serif;
+      }
+
+      .company-block-ar .company-name {
+        text-transform: none;
+        letter-spacing: normal;
       }
 
       .company-name {
@@ -773,7 +805,7 @@ function buildInvoicePadHtml(model) {
   </head>
   <body>
     <main class="sheet">
-      <header class="header">
+      <header class="header${hasArabicHeader ? ' header-bilingual' : ''}">
         <section class="company-block">
           <h1 class="company-name">${escapeHtml(companyName)}</h1>
           ${companyBodyLines.map((line) => `<div class="company-line">${escapeHtml(line)}</div>`).join('')}
@@ -788,6 +820,12 @@ function buildInvoicePadHtml(model) {
             <div class="invoice-number">${escapeHtml(invoiceNumber)}</div>
           </div>
         </section>
+        ${hasArabicHeader ? `
+        <section class="company-block-ar" dir="rtl" lang="ar">
+          <h1 class="company-name">${escapeHtml(companyNameAr)}</h1>
+          ${companyBodyLinesAr.map((line) => `<div class="company-line">${escapeHtml(line)}</div>`).join('')}
+        </section>
+        ` : ''}
       </header>
 
       <div class="meta-row">
@@ -1254,6 +1292,12 @@ function schedulePrint(printWindow, cleanup) {
 
 // jsPDF/autoTable equivalent of buildInvoicePadHtml, drawn directly onto the
 // PDF canvas so "Télécharger le PDF" matches the print/HTML layout exactly.
+// Intentionally French-only for now: jsPDF's standard fonts have no Arabic
+// glyphs and jsPDF does no bidi/contextual letter-shaping, so drawing the
+// Arabic company fields here would render blank or disconnected/reversed
+// letters. The HTML/print path (buildInvoicePadHtml) renders the bilingual
+// header correctly via the browser's own text engine - use "Print > Save as
+// PDF" from there for a bilingual PDF until an Arabic font is embedded here.
 function buildInvoicePadPdf(doc, autoTable, model) {
   const record = model.record ?? {}
   const lineItems = buildInvoiceLineItems(record)

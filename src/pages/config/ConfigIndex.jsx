@@ -1036,6 +1036,36 @@ export default function ConfigIndex() {
               />
             </FormField>
 
+            <FormField label={t('configPage.documents.companyProfileFields.legalNameAr')}>
+              <input
+                dir="rtl"
+                value={documentCompanyProfile.legal_name_ar}
+                onChange={(event) => updateDocumentCompanyProfile({ legal_name_ar: event.target.value })}
+                placeholder={t('configPage.documents.companyProfilePlaceholders.legalNameAr')}
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <FormField label={t('configPage.documents.companyProfileFields.tagline')}>
+              <input
+                value={documentCompanyProfile.tagline}
+                onChange={(event) => updateDocumentCompanyProfile({ tagline: event.target.value })}
+                placeholder={t('configPage.documents.companyProfilePlaceholders.tagline')}
+              />
+            </FormField>
+
+            <FormField label={t('configPage.documents.companyProfileFields.taglineAr')}>
+              <input
+                dir="rtl"
+                value={documentCompanyProfile.tagline_ar}
+                onChange={(event) => updateDocumentCompanyProfile({ tagline_ar: event.target.value })}
+                placeholder={t('configPage.documents.companyProfilePlaceholders.taglineAr')}
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <FormField label={t('configPage.documents.companyProfileFields.siret')}>
               <input
                 value={documentCompanyProfile.siret}
@@ -1043,9 +1073,7 @@ export default function ConfigIndex() {
                 placeholder={t('configPage.documents.companyProfilePlaceholders.siret')}
               />
             </FormField>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <FormField label={t('configPage.documents.companyProfileFields.taxId')}>
               <input
                 value={documentCompanyProfile.tax_id}
@@ -1053,7 +1081,9 @@ export default function ConfigIndex() {
                 placeholder={t('configPage.documents.companyProfilePlaceholders.taxId')}
               />
             </FormField>
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <FormField label={t('configPage.documents.companyProfileFields.phone')}>
               <input
                 value={documentCompanyProfile.phone}
@@ -1061,9 +1091,7 @@ export default function ConfigIndex() {
                 placeholder={t('configPage.documents.companyProfilePlaceholders.phone')}
               />
             </FormField>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <FormField label={t('configPage.documents.companyProfileFields.email')}>
               <input
                 value={documentCompanyProfile.email}
@@ -1071,12 +1099,23 @@ export default function ConfigIndex() {
                 placeholder={t('configPage.documents.companyProfilePlaceholders.email')}
               />
             </FormField>
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <FormField label={t('configPage.documents.companyProfileFields.address')}>
               <input
                 value={documentCompanyProfile.address}
                 onChange={(event) => updateDocumentCompanyProfile({ address: event.target.value })}
                 placeholder={t('configPage.documents.companyProfilePlaceholders.address')}
+              />
+            </FormField>
+
+            <FormField label={t('configPage.documents.companyProfileFields.addressAr')}>
+              <input
+                dir="rtl"
+                value={documentCompanyProfile.address_ar}
+                onChange={(event) => updateDocumentCompanyProfile({ address_ar: event.target.value })}
+                placeholder={t('configPage.documents.companyProfilePlaceholders.addressAr')}
               />
             </FormField>
           </div>
@@ -1101,6 +1140,9 @@ export default function ConfigIndex() {
 
           <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color mt-4" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
             {t('configPage.documents.companyProfileNotice')}
+          </div>
+          <div className="rounded-2xl px-4 py-4 text-sm text-secondary-color mt-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+            {t('configPage.documents.companyProfileArabicNotice')}
           </div>
         </div>
 

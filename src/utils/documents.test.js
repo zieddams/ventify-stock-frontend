@@ -235,6 +235,65 @@ describe('invoice documents', () => {
     expect(html).not.toContain('key-value-table')
   })
 
+  it('renders the company tagline in the invoice pad French header when configured', () => {
+    const model = buildDocumentModel({
+      documentKey: 'invoice_detail',
+      records: [invoiceRecord],
+      user: currentUser,
+      documentSettings: {
+        [DOCUMENT_COMPANY_PROFILE_SETTING_KEY]: {
+          legal_name: 'Atlas Distribution SARL',
+          tagline: 'Vente en gros de boissons et produits alimentaires',
+        },
+      },
+    })
+
+    const html = buildPrintHtml(model)
+    expect(html).toContain('Vente en gros de boissons et produits alimentaires')
+  })
+
+  it('renders a bilingual left/right header on the invoice pad when Arabic company fields are configured', () => {
+    const model = buildDocumentModel({
+      documentKey: 'invoice_detail',
+      records: [invoiceRecord],
+      user: currentUser,
+      documentSettings: {
+        [DOCUMENT_COMPANY_PROFILE_SETTING_KEY]: {
+          legal_name: 'Atlas Distribution SARL',
+          legal_name_ar: 'شركة أطلس للتوزيع',
+          tagline_ar: 'بيع بالجملة',
+          address_ar: 'شارع البحيرة، تونس',
+        },
+      },
+    })
+
+    const html = buildPrintHtml(model)
+    expect(html).toContain('class="header header-bilingual"')
+    expect(html).toContain('<section class="company-block-ar" dir="rtl" lang="ar">')
+    expect(html).toContain('شركة أطلس للتوزيع')
+    expect(html).toContain('بيع بالجملة')
+    expect(html).toContain('شارع البحيرة، تونس')
+  })
+
+  it('keeps the single-column French header on the invoice pad when no Arabic company fields are configured', () => {
+    const model = buildDocumentModel({
+      documentKey: 'invoice_detail',
+      records: [invoiceRecord],
+      user: currentUser,
+      documentSettings: {
+        [DOCUMENT_COMPANY_PROFILE_SETTING_KEY]: {
+          legal_name: 'Atlas Distribution SARL',
+        },
+      },
+    })
+
+    const html = buildPrintHtml(model)
+    expect(html).toContain('class="header">')
+    expect(html).not.toContain('class="header header-bilingual"')
+    expect(html).not.toContain('<section class="company-block-ar"')
+    expect(html).not.toContain('dir="rtl"')
+  })
+
   it('keeps the invoices list on the generic report template, not the single-invoice pad layout', () => {
     const model = buildDocumentModel({
       documentKey: 'invoices_list',

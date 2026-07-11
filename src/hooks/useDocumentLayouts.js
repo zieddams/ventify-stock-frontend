@@ -35,11 +35,15 @@ export function normalizeDocumentCompanyProfile(value) {
 
   return {
     legal_name: typeof source.legal_name === 'string' ? source.legal_name : '',
+    legal_name_ar: typeof source.legal_name_ar === 'string' ? source.legal_name_ar : '',
+    tagline: typeof source.tagline === 'string' ? source.tagline : '',
+    tagline_ar: typeof source.tagline_ar === 'string' ? source.tagline_ar : '',
     siret: typeof source.siret === 'string' ? source.siret : '',
     tax_id: typeof source.tax_id === 'string' ? source.tax_id : '',
     phone: typeof source.phone === 'string' ? source.phone : '',
     email: typeof source.email === 'string' ? source.email : '',
     address: typeof source.address === 'string' ? source.address : '',
+    address_ar: typeof source.address_ar === 'string' ? source.address_ar : '',
     admin_name: typeof source.admin_name === 'string' ? source.admin_name : '',
     admin_email: typeof source.admin_email === 'string' ? source.admin_email : '',
   }
