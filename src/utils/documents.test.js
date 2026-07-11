@@ -129,9 +129,13 @@ describe('invoice documents', () => {
     expect(model.branding.headerLines).toContain('Rue du Lac, Tunis')
     expect(model.branding.headerLines).toContain('Admin: Nour Ben Ali | admin@atlas.test')
 
+    // invoice_detail renders through the dedicated pad-style invoice layout
+    // (see buildInvoicePadHtml), which pulls the fiscal-identity fields into
+    // their own badge with fuller labels than the generic template's
+    // combined "SIRET: X | MF: Y" header line asserted on above.
     const html = buildPrintHtml(model)
     expect(html).toContain('Atlas Distribution SARL')
-    expect(html).toContain('SIRET: 123 456 789 00012 | MF: 1234567/A/M/000')
+    expect(html).toContain('Matricule fiscal : 1234567/A/M/000 | SIRET : 123 456 789 00012')
     expect(html).not.toContain('Gestion de vente')
   })
 
@@ -207,6 +211,40 @@ describe('invoice documents', () => {
         legal_name: 'Societe Papier',
       },
     })).toBe('Societe Papier')
+  })
+
+  it('renders a single invoice through the dedicated pad-style layout, not the generic report template', () => {
+    const model = buildDocumentModel({
+      documentKey: 'invoice_detail',
+      records: [invoiceRecord],
+      user: currentUser,
+    })
+
+    const html = buildPrintHtml(model)
+    // Pad-specific structure: the classic Quantité/Désignation/P.U./Montant
+    // table with a boxed invoice number and a TOTAL row - not the generic
+    // template's key-value "Détails" table or summary card grid.
+    expect(html).toContain('class="invoice-number"')
+    expect(html).toContain('>Quantité<')
+    expect(html).toContain('>Désignation<')
+    expect(html).toContain('>Montant<')
+    expect(html).toContain('INV-20260625-0001')
+    expect(html).toContain('Pompe 12V')
+    expect(html).toContain('TOTAL')
+    expect(html).not.toContain('summary-grid')
+    expect(html).not.toContain('key-value-table')
+  })
+
+  it('keeps the invoices list on the generic report template, not the single-invoice pad layout', () => {
+    const model = buildDocumentModel({
+      documentKey: 'invoices_list',
+      records: [invoiceRecord],
+      user: currentUser,
+    })
+
+    const html = buildPrintHtml(model)
+    expect(html).not.toContain('class="invoice-number"')
+    expect(html).not.toContain('class="client-line"')
   })
 
   it('reuses the same company identity on non-invoice stock movement documents', () => {

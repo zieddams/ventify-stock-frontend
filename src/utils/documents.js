@@ -6,7 +6,16 @@ import {
   normalizeInvoicePrintingSettings,
 } from '../hooks/useDocumentLayouts'
 import { companyHasDedicatedLogo } from './branding'
-import { asText, formatDateTime, getDefaultDocumentFieldKeys, getDocumentDefinition } from './documentDefinitions'
+import {
+  asNumber,
+  asText,
+  formatDate,
+  formatDateTime,
+  formatMoney,
+  formatQuantity,
+  getDefaultDocumentFieldKeys,
+  getDocumentDefinition,
+} from './documentDefinitions'
 
 const DEFAULT_DOCUMENT_BRAND_NAME = 'El Irtiwaa'
 
@@ -69,6 +78,15 @@ function isInvoiceDocument(definition) {
   return ['invoice_item', 'invoice_detail', 'invoices_list'].includes(definition?.key)
 }
 
+// Single-invoice documents get a dedicated pad-style layout (see
+// buildInvoicePadHtml/buildInvoicePadPdf) matching the company's real paper
+// "Facture" pad instead of the generic report template below - the invoices
+// list view is excluded since the pad layout only makes sense for one
+// invoice at a time.
+function isSinglePadInvoiceDocument(definitionOrModel) {
+  return ['invoice_item', 'invoice_detail'].includes(definitionOrModel?.key)
+}
+
 function buildDepotLines(record, showDepotDetails) {
   if (!showDepotDetails) {
     return []
@@ -95,6 +113,70 @@ function buildDepotLines(record, showDepotDetails) {
   }
 
   return lines
+}
+
+// Builds the invoice pad's company header body (up to 5 lines: legal name if
+// different from the display brand, up to 2 free-text header-note lines,
+// address, phone/email, first depot line) and pulls the fiscal-identity line
+// (Matricule fiscal / SIRET) out into its own badge instead of leaving it
+// mixed into the body lines.
+function buildInvoicePadCompanyLines(branding) {
+  const companyName = cleanOptionalText(branding?.companyName)
+  const companyProfile = branding?.companyProfile ?? {}
+  const headerNoteLines = Array.isArray(branding?.headerNoteLines) ? branding.headerNoteLines : []
+  const depotLines = Array.isArray(branding?.depotLines) ? branding.depotLines : []
+  const legalName = cleanOptionalText(companyProfile.legal_name)
+  const address = cleanOptionalText(companyProfile.address)
+  const phone = cleanOptionalText(companyProfile.phone)
+  const email = cleanOptionalText(companyProfile.email)
+  const taxId = cleanOptionalText(companyProfile.tax_id)
+  const siret = cleanOptionalText(companyProfile.siret)
+  const lines = []
+
+  if (legalName && legalName.toLowerCase() !== companyName.toLowerCase()) {
+    lines.push(legalName)
+  }
+
+  lines.push(...headerNoteLines.slice(0, 2))
+
+  if (address) {
+    lines.push(address)
+  }
+
+  if (phone || email) {
+    lines.push([phone ? `Tel : ${phone}` : '', email].filter(Boolean).join(' | '))
+  }
+
+  if (taxId || siret) {
+    lines.push([taxId ? `Matricule fiscal : ${taxId}` : '', siret ? `SIRET : ${siret}` : ''].filter(Boolean).join(' | '))
+  }
+
+  if (depotLines.length > 0) {
+    lines.push(depotLines[0])
+  }
+
+  const bodyLines = lines.filter(Boolean).slice(0, 5)
+  const identityIndex = bodyLines.findIndex((line) => /matricule fiscal|siret/i.test(line))
+
+  return {
+    companyBodyLines: bodyLines.filter((_, index) => index !== identityIndex),
+    identityLine: identityIndex >= 0 ? bodyLines[identityIndex] : '',
+  }
+}
+
+// Purchased invoice lines only (matches the paper pad's behavior of leaving
+// unpurchased catalog rows blank rather than printing every product line
+// with zero quantity).
+function buildInvoiceLineItems(record) {
+  return (Array.isArray(record?.lines) ? record.lines : [])
+    .filter((line) => cleanOptionalText(line?.product_name) !== '')
+    .filter((line) => asNumber(line?.qty) > 0 || asNumber(line?.total) > 0)
+    .map((line) => ({
+      name: asText(line?.product_name, 'Produit'),
+      quantity: formatQuantity(line?.qty),
+      unitPrice: formatMoney(line?.unit_price ?? line?.price),
+      total: formatMoney(line?.total),
+    }))
 }
 
 function resolveInvoicePrintingConfig(documentSettings) {
@@ -208,10 +290,12 @@ function buildDocumentBranding({ definition, record, user, documentSettings }) {
     && companyHasDedicatedLogo(user?.company)
     ? cleanOptionalText(user?.company?.logo_url)
     : ''
+  const headerNoteLines = splitMultilineText(invoicePrinting.header_note)
+  const depotLines = isInvoiceDocument(definition) ? buildDepotLines(record, invoicePrinting.show_depot_details) : []
   const headerLines = [
     ...buildCompanyProfileLines(companyName, companyProfile),
-    ...splitMultilineText(invoicePrinting.header_note),
-    ...(isInvoiceDocument(definition) ? buildDepotLines(record, invoicePrinting.show_depot_details) : []),
+    ...headerNoteLines,
+    ...depotLines,
   ]
 
   return {
@@ -221,6 +305,13 @@ function buildDocumentBranding({ definition, record, user, documentSettings }) {
     headerLines,
     footerNote: cleanOptionalText(invoicePrinting.footer_note),
     showTaxBreakdown: invoicePrinting.show_tax_breakdown,
+    // Raw pieces (as opposed to the pre-joined `headerLines` above) for the
+    // dedicated single-invoice pad layout, which lays out company identity
+    // fields itself (see buildInvoicePadCompanyLines) rather than consuming
+    // one flat pre-joined line array like the generic document template does.
+    companyProfile,
+    headerNoteLines,
+    depotLines,
   }
 }
 
@@ -398,6 +489,7 @@ export function buildDocumentModel({
 
   return {
     key: definition.key,
+    record,
     title: title || definition.title,
     subtitle: subtitle || definition.description,
     filename: ensurePdfFilename(
@@ -418,7 +510,347 @@ export function buildDocumentModel({
   }
 }
 
+// Dedicated single-invoice layout matching the company's real paper
+// "Facture" pad: bilingual-ready company block + boxed fiscal-identity
+// badge on the left, boxed "N°" invoice number on the right, a dotted
+// Client/date line, then a Quantité | Désignation | P.U. | Montant table
+// with a TOTAL row. Used only for invoice_item/invoice_detail - every other
+// document type (including the invoices list) keeps the generic report
+// template in buildPrintHtml below.
+function buildInvoicePadHtml(model) {
+  const record = model.record ?? {}
+  const companyName = cleanOptionalText(model.branding?.companyName) || DEFAULT_DOCUMENT_BRAND_NAME
+  const { companyBodyLines, identityLine } = buildInvoicePadCompanyLines(model.branding)
+  const lineItems = buildInvoiceLineItems(record)
+  const customerName = asText(record?.customer_name)
+  const invoiceNumber = asText(record?.number)
+  const invoiceDate = formatDate(record?.created_at)
+  const footerNote = cleanOptionalText(model.branding?.footerNote)
+  const noteLines = splitMultilineText(record?.notes)
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>${escapeHtml(model.title)}</title>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #ece8df;
+        color: #111827;
+        font-family: "Arial", "Helvetica Neue", sans-serif;
+      }
+
+      .sheet {
+        width: 100%;
+        max-width: 670px;
+        margin: 0 auto;
+        padding: 10mm 11mm 12mm;
+        background: #ffffff;
+        box-shadow: 0 14px 40px rgba(15, 23, 42, 0.12);
+      }
+
+      .header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 205px;
+        align-items: flex-start;
+        gap: 14px;
+      }
+
+      .company-block {
+        min-width: 0;
+      }
+
+      .company-name {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+
+      .company-line {
+        margin-top: 2px;
+        font-size: 10.3px;
+        line-height: 1.25;
+      }
+
+      .identity-box {
+        display: inline-flex;
+        margin-top: 7px;
+        padding: 3px 10px;
+        border: 1px solid #111827;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+        line-height: 1.1;
+      }
+
+      .invoice-block {
+        min-width: 0;
+        padding-top: 3px;
+      }
+
+      .invoice-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin: 0;
+      }
+
+      .invoice-title {
+        margin: 0;
+        font-size: 21px;
+        font-weight: 700;
+      }
+
+      .invoice-number-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .invoice-number-prefix {
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .invoice-number {
+        min-width: 128px;
+        padding: 5px 8px;
+        border: 1px solid #111827;
+        text-align: center;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+      }
+
+      .meta-row {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 10px;
+      }
+
+      .client-line,
+      .date-line {
+        font-size: 12px;
+      }
+
+      .client-line {
+        flex: 1;
+        border-bottom: 1px dotted #111827;
+        padding-bottom: 3px;
+        font-family: "Times New Roman", Georgia, serif;
+        font-style: italic;
+      }
+
+      .client-label,
+      .date-label {
+        font-weight: 700;
+        font-style: italic;
+      }
+
+      .date-line {
+        min-width: 125px;
+        text-align: right;
+        font-family: "Times New Roman", Georgia, serif;
+        font-style: italic;
+      }
+
+      table {
+        width: 100%;
+        margin-top: 8px;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      thead {
+        display: table-header-group;
+      }
+
+      th,
+      td {
+        border: 1px solid #111827;
+        padding: 3px 6px;
+        font-size: 10px;
+        vertical-align: middle;
+      }
+
+      th {
+        text-transform: uppercase;
+        text-align: center;
+        font-size: 9.8px;
+        letter-spacing: 0.03em;
+        font-weight: 700;
+      }
+
+      .qty-col {
+        width: 18%;
+        text-align: center;
+      }
+
+      .designation-col {
+        width: 44%;
+      }
+
+      .unit-col {
+        width: 17%;
+        text-align: right;
+      }
+
+      .amount-col {
+        width: 21%;
+        text-align: right;
+      }
+
+      tbody td {
+        height: 20px;
+      }
+
+      .designation-cell {
+        text-align: left;
+        letter-spacing: 0.01em;
+      }
+
+      tfoot td {
+        height: 24px;
+        font-weight: 700;
+      }
+
+      .total-label-cell {
+        text-align: center;
+        letter-spacing: 0.08em;
+      }
+
+      .total-value-cell {
+        text-align: right;
+        font-size: 11px;
+      }
+
+      .notes,
+      .footer-note {
+        margin-top: 8px;
+        font-size: 10px;
+        line-height: 1.4;
+        white-space: pre-wrap;
+      }
+
+      .notes-label {
+        font-weight: 700;
+      }
+
+      @page {
+        size: A4 portrait;
+        margin: 12mm;
+      }
+
+      @media print {
+        body {
+          padding: 0;
+          background: #ffffff;
+        }
+
+        .sheet {
+          max-width: none;
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="sheet">
+      <header class="header">
+        <section class="company-block">
+          <h1 class="company-name">${escapeHtml(companyName)}</h1>
+          ${companyBodyLines.map((line) => `<div class="company-line">${escapeHtml(line)}</div>`).join('')}
+          ${identityLine ? `<div class="identity-box">${escapeHtml(identityLine)}</div>` : ''}
+        </section>
+        <section class="invoice-block">
+          <div class="invoice-title-row">
+            <h2 class="invoice-title">Facture</h2>
+          </div>
+          <div class="invoice-number-row">
+            <span class="invoice-number-prefix">N°</span>
+            <div class="invoice-number">${escapeHtml(invoiceNumber)}</div>
+          </div>
+        </section>
+      </header>
+
+      <div class="meta-row">
+        <div class="client-line">
+          <span class="client-label">Client :</span>
+          <span>${escapeHtml(customerName)}</span>
+        </div>
+        <div class="date-line">
+          <span class="date-label">Le :</span>
+          <span>${escapeHtml(invoiceDate)}</span>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th class="qty-col">Quantité</th>
+            <th class="designation-col">Désignation</th>
+            <th class="unit-col">P.U.</th>
+            <th class="amount-col">Montant</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${lineItems.length > 0 ? lineItems.map((item) => `
+            <tr>
+              <td class="qty-col">${escapeHtml(item.quantity)}</td>
+              <td class="designation-col designation-cell">${escapeHtml(item.name)}</td>
+              <td class="unit-col">${escapeHtml(item.unitPrice)}</td>
+              <td class="amount-col">${escapeHtml(item.total)}</td>
+            </tr>
+          `).join('') : `
+            <tr>
+              <td colspan="4">Aucune ligne facture disponible.</td>
+            </tr>
+          `}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td class="qty-col"></td>
+            <td class="designation-col"></td>
+            <td class="unit-col total-label-cell">TOTAL</td>
+            <td class="amount-col total-value-cell">${escapeHtml(formatMoney(record?.total))}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      ${noteLines.length > 0 ? `
+        <div class="notes">
+          <span class="notes-label">Note :</span>
+          <span>${escapeHtml(noteLines.join(' | '))}</span>
+        </div>
+      ` : ''}
+      ${footerNote ? `<div class="footer-note">${escapeHtml(footerNote)}</div>` : ''}
+    </main>
+  </body>
+</html>`
+}
+
 export function buildPrintHtml(model) {
+  if (isSinglePadInvoiceDocument(model)) {
+    return buildInvoicePadHtml(model)
+  }
+
   const brandLogoUrl = cleanOptionalText(model.branding?.companyLogoUrl)
   const brandName = cleanOptionalText(model.branding?.companyName) || DEFAULT_DOCUMENT_BRAND_NAME
   const headerLines = Array.isArray(model.branding?.headerLines) ? model.branding.headerLines : []
@@ -820,6 +1252,148 @@ function schedulePrint(printWindow, cleanup) {
   }, 250)
 }
 
+// jsPDF/autoTable equivalent of buildInvoicePadHtml, drawn directly onto the
+// PDF canvas so "Télécharger le PDF" matches the print/HTML layout exactly.
+function buildInvoicePadPdf(doc, autoTable, model) {
+  const record = model.record ?? {}
+  const lineItems = buildInvoiceLineItems(record)
+  const companyName = cleanOptionalText(model.branding?.companyName) || DEFAULT_DOCUMENT_BRAND_NAME
+  const { companyBodyLines, identityLine } = buildInvoicePadCompanyLines(model.branding)
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const left = 58
+  const right = 58
+  const top = 54
+  const contentWidth = pageWidth - left - right
+  const invoiceBlockWidth = 168
+  const companyBlockWidth = contentWidth - invoiceBlockWidth - 14
+  const qtyColWidth = 86
+  const designationColWidth = 211
+  const unitColWidth = 80
+  const amountColWidth = contentWidth - qtyColWidth - designationColWidth - unitColWidth
+
+  let cursorY = top
+
+  doc.setDrawColor(17, 24, 39)
+  doc.setTextColor(17, 24, 39)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(15)
+  doc.text(normalizeText(companyName), left, cursorY)
+  cursorY += 12
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8.8)
+  companyBodyLines.forEach((line) => {
+    const wrapped = doc.splitTextToSize(normalizeText(line), companyBlockWidth)
+    doc.text(wrapped, left, cursorY)
+    cursorY += wrapped.length * 9.5
+  })
+
+  if (identityLine) {
+    const badgeWidth = Math.min(companyBlockWidth, Math.max(132, doc.getTextWidth(normalizeText(identityLine)) + 20))
+    doc.roundedRect(left, cursorY + 2, badgeWidth, 16, 7, 7)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(7.8)
+    doc.text(normalizeText(identityLine), left + 10, cursorY + 12)
+    cursorY += 24
+  }
+
+  const invoiceBlockLeft = pageWidth - right - invoiceBlockWidth
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(16)
+  doc.text('Facture', invoiceBlockLeft + invoiceBlockWidth / 2, top + 2, { align: 'center' })
+  doc.setFontSize(15)
+  doc.text('N°', invoiceBlockLeft + 14, top + 25)
+  doc.rect(invoiceBlockLeft + 34, top + 12, invoiceBlockWidth - 34, 24)
+  doc.setFontSize(14)
+  doc.text(
+    normalizeText(asText(record?.number)),
+    invoiceBlockLeft + 34 + (invoiceBlockWidth - 34) / 2,
+    top + 28,
+    { align: 'center' },
+  )
+
+  cursorY = Math.max(cursorY + 6, top + 44)
+  doc.setFont('times', 'italic')
+  doc.setFontSize(10.5)
+  doc.text('Client :', left, cursorY)
+  doc.text(normalizeText(asText(record?.customer_name)), left + 42, cursorY)
+  doc.line(left + 40, cursorY + 2, pageWidth - right - 110, cursorY + 2)
+  doc.text(`Le : ${normalizeText(formatDate(record?.created_at))}`, pageWidth - right, cursorY, { align: 'right' })
+  cursorY += 8
+
+  doc.setFont('helvetica', 'normal')
+  autoTable(doc, {
+    startY: cursorY,
+    head: [['Quantité', 'Désignation', 'P.U.', 'Montant']],
+    body: lineItems.length > 0
+      ? lineItems.map((item) => [item.quantity, item.name, item.unitPrice, item.total])
+      : [['-', 'Aucune ligne facture disponible.', '-', '-']],
+    theme: 'grid',
+    margin: { left, right },
+    styles: {
+      font: 'helvetica',
+      fontSize: 8.4,
+      textColor: [17, 24, 39],
+      lineColor: [17, 24, 39],
+      lineWidth: 0.45,
+      cellPadding: { top: 3.2, right: 4.5, bottom: 3.2, left: 4.5 },
+      overflow: 'linebreak',
+      valign: 'middle',
+      minCellHeight: 18,
+    },
+    headStyles: {
+      fillColor: [255, 255, 255],
+      textColor: [17, 24, 39],
+      fontStyle: 'bold',
+      halign: 'center',
+    },
+    columnStyles: {
+      0: { cellWidth: qtyColWidth, halign: 'center' },
+      1: { cellWidth: designationColWidth },
+      2: { cellWidth: unitColWidth, halign: 'right' },
+      3: { cellWidth: amountColWidth, halign: 'right' },
+    },
+  })
+
+  cursorY = doc.lastAutoTable.finalY
+
+  if (cursorY > pageHeight - 64) {
+    doc.addPage()
+    cursorY = top
+  } else {
+    cursorY += 1.5
+  }
+
+  doc.setFont('helvetica', 'bold')
+  doc.rect(left, cursorY, qtyColWidth, 18)
+  doc.rect(left + qtyColWidth, cursorY, designationColWidth, 18)
+  doc.rect(left + qtyColWidth + designationColWidth, cursorY, unitColWidth, 18)
+  doc.rect(left + qtyColWidth + designationColWidth + unitColWidth, cursorY, amountColWidth, 18)
+  doc.text('TOTAL', left + qtyColWidth + designationColWidth + unitColWidth / 2, cursorY + 12.5, { align: 'center' })
+  doc.text(normalizeText(formatMoney(record?.total)), pageWidth - right - 6, cursorY + 12.5, { align: 'right' })
+  cursorY += 24
+
+  const trailingLines = [
+    ...splitMultilineText(record?.notes).map((line) => `Note : ${line}`),
+    cleanOptionalText(model.branding?.footerNote),
+  ].filter(Boolean)
+
+  if (trailingLines.length > 0) {
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8.3)
+    trailingLines.forEach((line) => {
+      if (cursorY > pageHeight - 40) {
+        doc.addPage()
+        cursorY = top
+      }
+      const wrapped = doc.splitTextToSize(normalizeText(line), contentWidth)
+      doc.text(wrapped, left, cursorY)
+      cursorY += wrapped.length * 9.5
+    })
+  }
+}
+
 export async function downloadDocumentPdf(options) {
   const model = buildDocumentModel(options)
   const [{ jsPDF }, { default: autoTable }] = await Promise.all([
@@ -833,6 +1407,12 @@ export async function downloadDocumentPdf(options) {
     format: 'a4',
     compress: true,
   })
+
+  if (isSinglePadInvoiceDocument(model)) {
+    buildInvoicePadPdf(doc, autoTable, model)
+    doc.save(model.filename)
+    return model.filename
+  }
 
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
