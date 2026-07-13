@@ -65,7 +65,7 @@ export default function InvoicesIndex() {
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(20)
   const { user, isAdmin } = useAuth()
-  const { layouts: documentLayouts, invoicePrintSettings } = useDocumentLayouts()
+  const { layouts: documentLayouts, documentSettings } = useDocumentLayouts()
   const deferredSearch = useDeferredValue(search)
   const today = new Date().toISOString().slice(0, 10)
   const periodOptions = [
@@ -202,7 +202,7 @@ export default function InvoicesIndex() {
             documentKey="invoices_list"
             records={invoices}
             documentLayouts={documentLayouts}
-            documentSettings={{ invoicePrintSettings }}
+            documentSettings={documentSettings}
             currentUser={user}
           />
           <Link to="/invoices/create" className="btn-primary">
@@ -330,7 +330,7 @@ export default function InvoicesIndex() {
                           documentLayouts={documentLayouts}
                           title={t('invoices.documentTitle', { number: invoice.number })}
                           filename={`facture_${invoice.number}`}
-                          documentSettings={{ invoicePrintSettings }}
+                          documentSettings={documentSettings}
                           currentUser={user}
                         />
                         <Link to={`/invoices/${invoice.id}`} className="text-xs font-medium hover:underline" style={{ color: '#0d9488' }}>

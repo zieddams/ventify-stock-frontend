@@ -1404,8 +1404,8 @@ function buildInvoicePadPdf(doc, autoTable, model, logoDataUrl) {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8.8)
   companyBodyLines.forEach((line) => {
-    const wrapped = doc.splitTextToSize(normalizeText(line), companyBlockWidth)
-    doc.text(wrapped, left, cursorY)
+    const wrapped = doc.splitTextToSize(normalizeText(line), companyBlockWidth - (textLeft - left))
+    doc.text(wrapped, textLeft, cursorY)
     cursorY += wrapped.length * 9.5
   })
 

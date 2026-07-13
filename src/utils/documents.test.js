@@ -342,6 +342,36 @@ describe('invoice documents', () => {
     expect(html).not.toContain('class="brand-ar"')
   })
 
+  it('resolves Arabic content from the exact documentSettings shape useDocumentLayouts() actually returns (companyProfile pre-nested, not the raw settings-by-key fallback shape)', () => {
+    // Regression test for a real bug: InvoiceShow.jsx and InvoicesIndex.jsx
+    // were manually rebuilding `{ invoicePrintSettings }` instead of using
+    // the hook's own `documentSettings`, silently dropping companyProfile
+    // (and therefore all Arabic/tagline content) on exactly those two pages
+    // even though the underlying template logic was already correct.
+    const hookShapedDocumentSettings = {
+      companyProfile: {
+        legal_name: 'Sté El Irtiwaa',
+        legal_name_ar: 'شركة الارتواء',
+        tagline: 'Vente Gros eaux et boisson gazeuse et produits alimentaire',
+        tagline_ar: 'بيع المياه المعدنية والمشروبات الغازية ومواد غذائية بالجملة',
+        address_ar: 'منزل عبد الرحمان - بنزرت',
+      },
+      invoicePrintSettings: { header_style: 'logo_and_name', show_tax_breakdown: true, show_depot_details: true, header_note: '', footer_note: '' },
+    }
+
+    const model = buildDocumentModel({
+      documentKey: 'invoice_detail',
+      records: [invoiceRecord],
+      user: { company: { name: 'El Irtiwaa' } },
+      documentSettings: hookShapedDocumentSettings,
+    })
+
+    expect(model.branding.companyNameAr).toBe('شركة الارتواء')
+    const html = buildPrintHtml(model)
+    expect(html).toContain('class="header header-bilingual"')
+    expect(html).toContain('بيع المياه المعدنية والمشروبات الغازية ومواد غذائية بالجملة')
+  })
+
   it('reuses the exact same Arabic company data on both the pad and the generic templates', () => {
     const documentSettings = {
       [DOCUMENT_COMPANY_PROFILE_SETTING_KEY]: {
