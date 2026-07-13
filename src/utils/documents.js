@@ -643,13 +643,14 @@ function buildInvoicePadHtml(model) {
 
       .identity-box {
         display: inline-flex;
+        align-items: center;
         margin-top: 7px;
-        padding: 3px 10px;
+        padding: 6px 12px;
         border: 1px solid #111827;
         border-radius: 999px;
         font-size: 10px;
         font-weight: 700;
-        line-height: 1.1;
+        line-height: 1.4;
       }
 
       .invoice-block {
