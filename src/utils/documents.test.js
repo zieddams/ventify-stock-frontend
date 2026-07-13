@@ -306,6 +306,65 @@ describe('invoice documents', () => {
     expect(html).not.toContain('class="client-line"')
   })
 
+  it('renders the same bilingual header pattern on generic (non-pad) documents like the invoices list', () => {
+    const model = buildDocumentModel({
+      documentKey: 'invoices_list',
+      records: [invoiceRecord],
+      user: currentUser,
+      documentSettings: {
+        [DOCUMENT_COMPANY_PROFILE_SETTING_KEY]: {
+          legal_name: 'Atlas Distribution SARL',
+          legal_name_ar: 'شركة أطلس للتوزيع',
+          tagline_ar: 'بيع بالجملة',
+          address_ar: 'شارع البحيرة، تونس',
+        },
+      },
+    })
+
+    const html = buildPrintHtml(model)
+    expect(html).toContain('class="header header-bilingual"')
+    expect(html).toContain('<div class="brand-ar" dir="rtl" lang="ar">')
+    expect(html).toContain('شركة أطلس للتوزيع')
+    expect(html).toContain('بيع بالجملة')
+    expect(html).toContain('شارع البحيرة، تونس')
+  })
+
+  it('keeps the single-column header on generic documents when no Arabic company fields are configured', () => {
+    const model = buildDocumentModel({
+      documentKey: 'invoices_list',
+      records: [invoiceRecord],
+      user: currentUser,
+    })
+
+    const html = buildPrintHtml(model)
+    expect(html).toContain('class="header">')
+    expect(html).not.toContain('class="header header-bilingual"')
+    expect(html).not.toContain('class="brand-ar"')
+  })
+
+  it('reuses the exact same Arabic company data on both the pad and the generic templates', () => {
+    const documentSettings = {
+      [DOCUMENT_COMPANY_PROFILE_SETTING_KEY]: {
+        legal_name_ar: 'شركة الارتواء',
+        tagline_ar: 'بيع بالجملة',
+        address_ar: 'بنزرت',
+      },
+    }
+
+    const padHtml = buildPrintHtml(buildDocumentModel({
+      documentKey: 'invoice_detail', records: [invoiceRecord], user: currentUser, documentSettings,
+    }))
+    const listHtml = buildPrintHtml(buildDocumentModel({
+      documentKey: 'invoices_list', records: [invoiceRecord], user: currentUser, documentSettings,
+    }))
+
+    for (const html of [padHtml, listHtml]) {
+      expect(html).toContain('شركة الارتواء')
+      expect(html).toContain('بيع بالجملة')
+      expect(html).toContain('بنزرت')
+    }
+  })
+
   it('reuses the same company identity on non-invoice stock movement documents', () => {
     const model = buildDocumentModel({
       documentKey: 'stock_movement_item',
