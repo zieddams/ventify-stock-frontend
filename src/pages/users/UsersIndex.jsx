@@ -60,10 +60,11 @@ export default function UsersIndex() {
   const canManageUsers = ['admin', 'developer'].includes(me?.role)
   const canManageAssignments = ['admin', 'developer', 'comptable'].includes(me?.role)
   const isDeveloperUser = me?.role === 'developer'
+  const canChooseDepot = ['admin', 'developer'].includes(me?.role)
   const availableRoleOptions = isDeveloperUser
-    ? ['rep', 'comptable', 'admin', 'developer']
-    : ['rep', 'comptable', 'admin']
-  const showDepotColumn = isDeveloperUser
+    ? ['rep', 'comptable', 'admin', 'pos', 'developer']
+    : ['rep', 'comptable', 'admin', 'pos']
+  const showDepotColumn = canChooseDepot
   const totalAssignedCustomers = users.reduce((sum, entry) => sum + Number(entry.customers_count ?? 0), 0)
 
   const filteredAssignmentCustomers = useMemo(() => {
@@ -469,7 +470,7 @@ export default function UsersIndex() {
           </div>
 
           <FormField label={t('usersPage.modal.fields.depot')} error={errors.depot_id?.[0]}>
-            {!isDeveloperUser ? (
+            {!canChooseDepot ? (
               <DepotSelectionInfo
                 depot={selectedFormDepot}
                 hint={t('usersPage.modal.depotHint')}

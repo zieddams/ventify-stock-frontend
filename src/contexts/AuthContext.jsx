@@ -196,6 +196,8 @@ export function AuthProvider({ children }) {
   const isDeveloperWorkspace = () => isDeveloperWorkspaceUser(user)
   const isScopedCompanySession = () => isScopedCompanySessionUser(user)
   const isAdmin = () => user?.role === 'admin'
+  const isPos = () => user?.role === 'pos'
+  const isPosWorkspace = () => user?.role === 'pos'
   const isFinance = () => ['admin', 'comptable'].includes(user?.role)
   const canManageAllCustomers = () => ['admin', 'comptable'].includes(user?.role)
   const canManageMultiDepot = () => user?.role === 'developer'
@@ -242,6 +244,8 @@ export function AuthProvider({ children }) {
         isDeveloperWorkspace,
         isScopedCompanySession,
         isAdmin,
+        isPos,
+        isPosWorkspace,
         isFinance,
         canManageAllCustomers,
         canManageMultiDepot,

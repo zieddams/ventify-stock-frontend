@@ -49,6 +49,8 @@ function buildMovementConfig(t) {
     camion_to_customer: { label: t('reportsPage.movements.types.camion_to_customer'), icon: 'fa-solid fa-user', color: '#ef4444', bg: 'rgba(239,68,68,0.10)' },
     return: { label: t('reportsPage.movements.types.return'), icon: 'fa-solid fa-rotate-left', color: '#f59e0b', bg: 'rgba(245,158,11,0.10)' },
     adjustment: { label: t('reportsPage.movements.types.adjustment'), icon: 'fa-solid fa-sliders', color: '#8b5cf6', bg: 'rgba(139,92,246,0.10)' },
+    transfer_out: { label: t('reportsPage.movements.types.transfer_out'), icon: 'fa-solid fa-shop', color: '#ec4899', bg: 'rgba(236,72,153,0.10)' },
+    transfer_in: { label: t('reportsPage.movements.types.transfer_in'), icon: 'fa-solid fa-warehouse', color: '#0ea5e9', bg: 'rgba(14,165,233,0.10)' },
   }
 }
 
@@ -71,7 +73,11 @@ export default function DepotIndex() {
   } = useDepots({
     allowAll: false,
     includeInactive: canManageDepots,
-    storageKey: 'app-depot-scope',
+    // Own storage key (not the shared 'app-depot-scope' the sidebar switcher uses):
+    // this page's list is warehouse-only, so it must not silently overwrite a
+    // POS-depot selection the sidebar may be holding for the rest of the app.
+    storageKey: 'app-depot-scope-warehouse',
+    type: 'warehouse',
   })
 
   const movementConfig = buildMovementConfig(t)

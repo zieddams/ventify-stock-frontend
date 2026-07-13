@@ -30,6 +30,7 @@ const OPERATIONS_NAV = [
   { to: '/routes', icon: 'fa-solid fa-truck-fast', labelKey: 'layout.nav.routes' },
   { to: '/reports', icon: 'fa-solid fa-chart-line', labelKey: 'layout.nav.reports' },
   { to: '/depot', icon: 'fa-solid fa-warehouse', labelKey: 'layout.nav.depot' },
+  { to: '/points-de-vente', icon: 'fa-solid fa-shop', labelKey: 'layout.nav.pointsDeVente' },
   { to: '/inventory', icon: 'fa-solid fa-clipboard-list', labelKey: 'layout.nav.inventory' },
   { to: '/config', icon: 'fa-solid fa-sliders', labelKey: 'layout.nav.config' },
 ]
@@ -59,6 +60,7 @@ const PAGE_TITLES = {
   '/expenses': { labelKey: 'layout.nav.expenses', icon: 'fa-solid fa-receipt' },
   '/routes': { labelKey: 'layout.nav.routes', icon: 'fa-solid fa-truck-fast' },
   '/depot': { labelKey: 'layout.nav.depot', icon: 'fa-solid fa-warehouse' },
+  '/points-de-vente': { labelKey: 'layout.nav.pointsDeVente', icon: 'fa-solid fa-shop' },
   '/camions': { labelKey: 'layout.nav.camions', icon: 'fa-solid fa-truck' },
   '/reports': { labelKey: 'layout.nav.reports', icon: 'fa-solid fa-chart-line' },
   '/users': { labelKey: 'layout.nav.users', icon: 'fa-solid fa-user-gear' },

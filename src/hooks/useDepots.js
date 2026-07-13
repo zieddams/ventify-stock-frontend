@@ -30,6 +30,7 @@ export function useDepots(options = {}) {
     storageKey = 'irtiwaa-depot-scope',
     defaultToAll = false,
     enabled = true,
+    type = null,
   } = options
 
   const { user, canManageMultiDepot } = useAuth()
@@ -98,7 +99,10 @@ export function useDepots(options = {}) {
 
     try {
       const response = await api.get('/depots', {
-        params: canBrowseAll && includeInactive ? { include_inactive: 1 } : {},
+        params: {
+          ...(canBrowseAll && includeInactive ? { include_inactive: 1 } : {}),
+          ...(type ? { type } : {}),
+        },
       })
 
       setDepots(Array.isArray(response.data) ? response.data : [])
@@ -107,7 +111,7 @@ export function useDepots(options = {}) {
     } finally {
       setLoading(false)
     }
-  }, [canBrowseAll, enabled, includeInactive])
+  }, [canBrowseAll, enabled, includeInactive, type])
 
   useEffect(() => {
     reload()

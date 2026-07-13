@@ -265,7 +265,10 @@ export default function ProfitInsightsTab({ scopeParams, onExportParamsChange })
     { value: 'all', label: t('reportsPage.profit.filters.allChannels') },
     { value: 'depot', label: t('reportsPage.profit.filters.saleChannels.depot') },
     { value: 'camion', label: t('reportsPage.profit.filters.saleChannels.camion') },
+    { value: 'pos', label: t('reportsPage.profit.filters.saleChannels.pos') },
   ]
+
+  const channelAccent = { depot: '#f59e0b', camion: '#8b5cf6', pos: '#ec4899' }
 
   const sessionStatusLabels = {
     open: t('reportsPage.profit.sessionStatus.open'),
@@ -459,7 +462,7 @@ export default function ProfitInsightsTab({ scopeParams, onExportParamsChange })
               title={t(`reportsPage.profit.filters.saleChannels.${row.sale_channel}`)}
               value={formatCurrency(row.profit)}
               sub={`${formatCurrency(row.revenue)} · ${row.invoice_count}`}
-              accent={row.sale_channel === 'depot' ? '#f59e0b' : '#8b5cf6'}
+              accent={channelAccent[row.sale_channel] ?? '#64748b'}
             />
           ))}
         </div>

@@ -283,6 +283,8 @@ function MovementsTab({ scopeParams }) {
     camion_to_customer: { label: t('reportsPage.movements.types.camion_to_customer'), color: '#ef4444' },
     return: { label: t('reportsPage.movements.types.return'), color: '#f59e0b' },
     adjustment: { label: t('reportsPage.movements.types.adjustment'), color: '#94a3b8' },
+    transfer_out: { label: t('reportsPage.movements.types.transfer_out'), color: '#ec4899' },
+    transfer_in: { label: t('reportsPage.movements.types.transfer_in'), color: '#0ea5e9' },
   }
 
   if (loading) {

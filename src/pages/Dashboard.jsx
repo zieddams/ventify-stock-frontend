@@ -265,6 +265,74 @@ function AgingWidget({ depotId = null, depotName = '' }) {
   )
 }
 
+/* ─── POS summary widget ────────────────────────────────────────────────────── */
+function PosSummaryWidget() {
+  const { t } = useI18n()
+  const [posDepots, setPosDepots] = useState([])
+  const [insights, setInsights] = useState(null)
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    api.get('/depots', { params: { type: 'pos' } })
+      .then((response) => {
+        if (cancelled) return
+        const list = Array.isArray(response.data) ? response.data : []
+        setPosDepots(list)
+
+        if (list.length > 0) {
+          return api.get('/reports/profit-insights', { params: { period: 'today', sale_channel: 'pos' } })
+            .then((insightsResponse) => {
+              if (!cancelled) setInsights(insightsResponse.data)
+            })
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoaded(true)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  if (!loaded || posDepots.length === 0) {
+    return null
+  }
+
+  const activeCount = posDepots.filter((depot) => depot.active).length
+
+  return (
+    <div className="card mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-semibold text-base-color flex items-center gap-2">
+          <i className="fa-solid fa-shop text-pink-500" />
+          {t('dashboard.pos.title')}
+        </h2>
+        <Link to="/points-de-vente" className="text-xs font-medium" style={{ color: '#0d9488' }}>
+          {t('dashboard.pos.seeAll')} <i className="fa-solid fa-arrow-right" style={{ fontSize: 9 }} />
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-xl px-3 py-2.5 text-center border border-theme bg-surface-2">
+          <div className="text-xs text-muted-color mb-1">{t('dashboard.pos.count')}</div>
+          <div className="text-lg font-bold text-base-color">{activeCount}</div>
+        </div>
+        <div className="rounded-xl px-3 py-2.5 text-center border border-theme bg-surface-2">
+          <div className="text-xs text-muted-color mb-1">{t('dashboard.pos.todayRevenue')}</div>
+          <div className="text-lg font-bold" style={{ color: '#0d9488' }}>{formatCurrency(insights?.totals?.revenue ?? 0)}</div>
+        </div>
+        <div className="rounded-xl px-3 py-2.5 text-center border border-theme bg-surface-2">
+          <div className="text-xs text-muted-color mb-1">{t('dashboard.pos.todayProfit')}</div>
+          <div className="text-lg font-bold" style={{ color: '#10b981' }}>{formatCurrency(insights?.totals?.profit ?? 0)}</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ─── Dashboard ─────────────────────────────────────────────────────────────── */
 export default function Dashboard() {
   const { t } = useI18n()
@@ -355,6 +423,9 @@ export default function Dashboard() {
             <KpiCard label={t('dashboard.kpis.openRoutes')} value={stats.open_routes ?? 0} icon="fa-solid fa-truck-fast" accent="#f59e0b" iconBg="#fffbeb" />
             <KpiCard label={t('dashboard.kpis.activeSessions')} value={stats.active_sessions ?? 0} icon="fa-solid fa-mobile-screen" accent="#6366f1" iconBg="#eef2ff" />
           </div>
+
+          {/* POS module summary — only renders once any POS depot exists */}
+          <PosSummaryWidget />
 
           {/* Revenue + Profit chart */}
           {chartData.length > 0 && (

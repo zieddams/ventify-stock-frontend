@@ -16,6 +16,9 @@ import InvoicesIndex from './pages/invoices/InvoicesIndex'
 import InvoiceCreate from './pages/invoices/InvoiceCreate'
 import InvoiceShow from './pages/invoices/InvoiceShow'
 import DepotIndex from './pages/depot/DepotIndex'
+import PosManagementIndex from './pages/pos/PosManagementIndex'
+import PosDashboard from './pages/pos/PosDashboard'
+import PosStockIndex from './pages/pos/PosStockIndex'
 import CamionsIndex from './pages/camions/CamionsIndex'
 import ReportsIndex from './pages/reports/ReportsIndex'
 import UsersIndex from './pages/users/UsersIndex'
@@ -50,17 +53,19 @@ function RequireBusinessWorkspace({ children }) {
 }
 
 function RequireAdmin({ children }) {
-  const { user, isDeveloperWorkspace } = useAuth()
+  const { user, isDeveloperWorkspace, isPosWorkspace } = useAuth()
   if (!user) return <Navigate to="/login" replace />
   if (isDeveloperWorkspace()) return <Navigate to="/developer" replace />
+  if (isPosWorkspace()) return <Navigate to="/pos" replace />
   if (user.role !== 'admin') return <Navigate to="/" replace />
   return children
 }
 
 function RequireFinance({ children }) {
-  const { user, isDeveloperWorkspace } = useAuth()
+  const { user, isDeveloperWorkspace, isPosWorkspace } = useAuth()
   if (!user) return <Navigate to="/login" replace />
   if (isDeveloperWorkspace()) return <Navigate to="/developer" replace />
+  if (isPosWorkspace()) return <Navigate to="/pos" replace />
   if (!['admin', 'comptable'].includes(user.role)) return <Navigate to="/" replace />
   return children
 }
@@ -72,12 +77,20 @@ function RequireDeveloperWorkspace({ children }) {
   return children
 }
 
+function RequirePosWorkspace({ children }) {
+  const { user, isPosWorkspace } = useAuth()
+  if (!user) return <Navigate to="/login" replace />
+  if (!isPosWorkspace()) return <Navigate to="/" replace />
+  return children
+}
+
 function RequireMapFeature({ children }) {
-  const { user, isDeveloperWorkspace } = useAuth()
+  const { user, isDeveloperWorkspace, isPosWorkspace } = useAuth()
   const { t } = useI18n()
   const location = useLocation()
   if (!user) return <Navigate to="/login" replace />
   if (isDeveloperWorkspace()) return <Navigate to="/developer" replace />
+  if (isPosWorkspace()) return <Navigate to="/pos" replace />
   if (user.role !== 'admin') return <Navigate to="/" replace />
   if (!isAnyMapExperienceEnabled(user)) {
     return (
@@ -99,16 +112,20 @@ function RequireMapFeature({ children }) {
 }
 
 function PublicOnly({ children }) {
-  const { user, isDeveloperWorkspace } = useAuth()
-  if (user) return <Navigate to={isDeveloperWorkspace() ? '/developer' : '/'} replace />
+  const { user, isDeveloperWorkspace, isPosWorkspace } = useAuth()
+  if (user) return <Navigate to={isDeveloperWorkspace() ? '/developer' : isPosWorkspace() ? '/pos' : '/'} replace />
   return children
 }
 
 function HomeIndex() {
-  const { isDeveloperWorkspace } = useAuth()
+  const { isDeveloperWorkspace, isPosWorkspace } = useAuth()
 
   if (isDeveloperWorkspace()) {
     return <Navigate to="/developer" replace />
+  }
+
+  if (isPosWorkspace()) {
+    return <Navigate to="/pos" replace />
   }
 
   return <Dashboard />
@@ -145,12 +162,15 @@ export default function App() {
                 <Route path="developer" element={<RequireDeveloperWorkspace><DeveloperDashboard /></RequireDeveloperWorkspace>} />
                 <Route path="live-data" element={<RequireDeveloperWorkspace><DeveloperLiveDataIndex /></RequireDeveloperWorkspace>} />
                 <Route path="elements" element={<RequireDeveloperWorkspace><DeveloperElementsIndex /></RequireDeveloperWorkspace>} />
+                <Route path="pos" element={<RequirePosWorkspace><PosDashboard /></RequirePosWorkspace>} />
+                <Route path="pos/stock" element={<RequirePosWorkspace><PosStockIndex /></RequirePosWorkspace>} />
                 <Route path="products" element={<RequireBusinessWorkspace><ProductsIndex /></RequireBusinessWorkspace>} />
                 <Route path="customers" element={<RequireBusinessWorkspace><CustomersIndex /></RequireBusinessWorkspace>} />
                 <Route path="invoices" element={<RequireBusinessWorkspace><InvoicesIndex /></RequireBusinessWorkspace>} />
                 <Route path="invoices/create" element={<RequireBusinessWorkspace><InvoiceCreate /></RequireBusinessWorkspace>} />
                 <Route path="invoices/:id" element={<RequireBusinessWorkspace><InvoiceShow /></RequireBusinessWorkspace>} />
                 <Route path="depot" element={<RequireAdmin><DepotIndex /></RequireAdmin>} />
+                <Route path="points-de-vente" element={<RequireAdmin><PosManagementIndex /></RequireAdmin>} />
                 <Route path="camions" element={<RequireAdmin><CamionsIndex /></RequireAdmin>} />
                 <Route path="reports" element={<RequireAdmin><ReportsIndex /></RequireAdmin>} />
                 <Route path="users" element={<RequireAdmin><UsersIndex /></RequireAdmin>} />
