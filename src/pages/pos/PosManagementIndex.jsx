@@ -35,6 +35,7 @@ export default function PosManagementIndex() {
 
   const [posDepots, setPosDepots] = useState([])
   const [warehouses, setWarehouses] = useState([])
+  const [staffByDepot, setStaffByDepot] = useState({})
   const [loading, setLoading] = useState(true)
 
   const [posModal, setPosModal] = useState(false)
@@ -62,15 +63,37 @@ export default function PosManagementIndex() {
     setLoading(true)
 
     try {
-      const [posResponse, warehouseResponse] = await Promise.all([
+      const [posResponse, warehouseResponse, usersResponse] = await Promise.all([
         api.get('/depots', { params: { type: 'pos', include_inactive: 1 } }),
         api.get('/depots', { params: { type: 'warehouse' } }),
+        api.get('/users'),
       ])
 
       setPosDepots(Array.isArray(posResponse.data) ? posResponse.data : [])
       setWarehouses(Array.isArray(warehouseResponse.data) ? warehouseResponse.data : [])
+
+      const users = Array.isArray(usersResponse.data) ? usersResponse.data : []
+      const grouped = {}
+      users.filter((u) => u.role === 'pos').forEach((u) => {
+        const key = String(u.depot_id)
+        grouped[key] = [...(grouped[key] ?? []), u]
+      })
+      setStaffByDepot(grouped)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const removeStaff = async (user) => {
+    if (!confirm(t('posManagementPage.alerts.removeStaffConfirm', { name: user.name }))) {
+      return
+    }
+
+    try {
+      await api.delete(`/users/${user.id}`)
+      await loadAll()
+    } catch (error) {
+      alert(error.response?.data?.message || t('posManagementPage.alerts.removeStaffError'))
     }
   }
 
@@ -329,6 +352,27 @@ export default function PosManagementIndex() {
                     <div className="text-sm font-bold text-base-color mt-1">{item.value}</div>
                   </div>
                 ))}
+              </div>
+
+              <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+                <div className="text-[11px] font-semibold text-muted-color uppercase tracking-wider mb-2">{t('posManagementPage.staffTitle')}</div>
+                {(staffByDepot[String(depot.id)] ?? []).length === 0 ? (
+                  <div className="text-xs text-muted-color">{t('posManagementPage.noStaff')}</div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {staffByDepot[String(depot.id)].map((staff) => (
+                      <div key={staff.id} className="flex items-center justify-between gap-2 text-xs">
+                        <div className="min-w-0">
+                          <div className="font-medium text-base-color truncate">{staff.name}</div>
+                          <div className="text-muted-color truncate">{staff.email}</div>
+                        </div>
+                        <button onClick={() => removeStaff(staff)} className="btn-ghost text-red-500 px-2 py-1 flex-shrink-0" title={t('posManagementPage.titles.removeStaff')}>
+                          <i className="fa-solid fa-user-minus" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ))}

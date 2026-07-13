@@ -65,6 +65,11 @@ export default function PosStockIndex() {
     )
   }, [search, stock])
 
+  const lowItems = useMemo(
+    () => stock.filter((item) => Number(item.qty ?? 0) <= Math.max(Number(item.product?.min_stock ?? 1), 1)),
+    [stock],
+  )
+
   if (loading) {
     return <PageLoader />
   }
@@ -95,6 +100,25 @@ export default function PosStockIndex() {
 
       {tab === 'stock' && (
         <div className="card">
+          {lowItems.length > 0 && (
+            <div className="mb-4 rounded-xl p-3 border" style={{ background: 'rgba(239,68,68,0.05)', borderColor: 'rgba(239,68,68,0.2)' }}>
+              <div className="text-xs font-semibold text-red-600 mb-2 flex items-center gap-1.5">
+                <i className="fa-solid fa-triangle-exclamation" /> {t('posWorkspace.dashboard.lowStockSummary', { count: lowItems.length })}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {lowItems.map((item) => (
+                  <span
+                    key={item.product_id}
+                    className="text-xs px-2 py-1 rounded-lg border font-medium"
+                    style={{ background: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.2)', color: '#dc2626' }}
+                  >
+                    {item.product?.name ?? notAvailable} - {formatNumber(item.qty)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="mb-4 relative">
             <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-color text-sm" />
             <input placeholder={t('posWorkspace.stock.searchPlaceholder')} value={search} onChange={(event) => setSearch(event.target.value)} style={{ paddingLeft: '2.25rem' }} />

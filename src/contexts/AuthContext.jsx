@@ -201,6 +201,7 @@ export function AuthProvider({ children }) {
   const isFinance = () => ['admin', 'comptable'].includes(user?.role)
   const canManageAllCustomers = () => ['admin', 'comptable'].includes(user?.role)
   const canManageMultiDepot = () => user?.role === 'developer'
+  const canBrowseCompanyDepots = () => ['admin', 'developer'].includes(user?.role)
   const canLaunchCompanySessions = () => user?.auth_context?.can_launch_company_sessions === true
 
   useEffect(() => {
@@ -249,6 +250,7 @@ export function AuthProvider({ children }) {
         isFinance,
         canManageAllCustomers,
         canManageMultiDepot,
+        canBrowseCompanyDepots,
         canLaunchCompanySessions,
         sessionContext: user?.session_context ?? null,
         loading,

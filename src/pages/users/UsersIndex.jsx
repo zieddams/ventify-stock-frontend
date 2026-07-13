@@ -51,8 +51,12 @@ export default function UsersIndex() {
     canSelectAll,
   } = useDepots({
     allowAll: true,
-    storageKey: 'app-depot-scope',
+    // Own storage key (not the shared 'app-depot-scope' the sidebar switcher
+    // uses): Admin needs a company-wide default view here to manage staff
+    // across every depot/POS, which the sidebar deliberately does not allow.
+    storageKey: 'app-depot-scope-users',
     defaultToAll: true,
+    scopeToCompanyBrowse: true,
   })
 
   const singleDepot = depots.length === 1 ? depots[0] : null

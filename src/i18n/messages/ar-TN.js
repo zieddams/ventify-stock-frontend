@@ -94,6 +94,7 @@ export default {
     userMenu: {
       profile: 'البروفيل متاعي',
       notifications: 'الإشعارات',
+      help: 'المساعدة',
       support: 'الدعم والتبليغات',
       companies: 'الشركات',
       developerTools: 'أدوات المطوّر',
@@ -2192,11 +2193,16 @@ export default {
       delete: 'احذف نقطة البيع هذي',
       transfer: 'حوّل ستوك لنقطة البيع هذي',
       assignManager: 'أعمل حساب مدير لنقطة البيع هذي',
+      removeStaff: 'أحذف الحساب هذا',
     },
     alerts: {
       deleteConfirm: ({ name }) => `تحذف نقطة البيع ${name}؟ الإجراء هذا يبقى محظور إذا نقطة البيع مازال فيها ستوك ولا حرفاء ولا تاريخ مربوط بيها.`,
       deleteError: 'ما ينجمش يتحذف نقطة البيع هذي للتو.',
+      removeStaffConfirm: ({ name }) => `تحذف الحساب ${name}؟ الإجراء هذا يبقى محظور إذا الحساب هذا مازال فيه حرفاء ولا تاريخ مربوط بيه.`,
+      removeStaffError: 'ما ينجمش يتحذف الحساب هذا للتو.',
     },
+    staffTitle: 'العملة',
+    noStaff: 'ما فماش حساب للتو.',
     metrics: {
       refs: 'مراجع',
       team: 'الفريق',

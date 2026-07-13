@@ -42,7 +42,7 @@ export default function PosDashboard() {
     { label: t('posWorkspace.dashboard.kpis.unpaidTotal'), value: formatCurrency(stats.unpaid_total), icon: 'fa-solid fa-hourglass-half', color: '#ef4444' },
   ]
 
-  const lowStockCount = Array.isArray(stats.low_depot_stock) ? stats.low_depot_stock.length : 0
+  const lowStock = Array.isArray(stats.low_depot_stock) ? stats.low_depot_stock : []
 
   return (
     <div>
@@ -67,10 +67,21 @@ export default function PosDashboard() {
         ))}
       </div>
 
-      {lowStockCount > 0 && (
+      {lowStock.length > 0 && (
         <div className="mb-5 rounded-xl p-3 border" style={{ background: 'rgba(239,68,68,0.05)', borderColor: 'rgba(239,68,68,0.2)' }}>
-          <div className="text-xs font-semibold text-red-600 flex items-center gap-1.5">
-            <i className="fa-solid fa-triangle-exclamation" /> {t('posWorkspace.dashboard.lowStockSummary', { count: lowStockCount })}
+          <div className="text-xs font-semibold text-red-600 flex items-center gap-1.5 mb-2">
+            <i className="fa-solid fa-triangle-exclamation" /> {t('posWorkspace.dashboard.lowStockSummary', { count: lowStock.length })}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {lowStock.map((item) => (
+              <span
+                key={item.product_id}
+                className="text-xs px-2 py-1 rounded-lg border font-medium"
+                style={{ background: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.2)', color: '#dc2626' }}
+              >
+                {item.product?.name ?? t('common.notAvailable')} - {formatNumber(item.qty)} / {formatNumber(item.product?.min_stock ?? 0)}
+              </span>
+            ))}
           </div>
         </div>
       )}

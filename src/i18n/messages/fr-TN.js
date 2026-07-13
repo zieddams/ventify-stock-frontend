@@ -94,6 +94,7 @@ export default {
     userMenu: {
       profile: 'Mon profil',
       notifications: 'Notifications',
+      help: 'Aide',
       support: 'Support et signalements',
       companies: 'Sociétés',
       developerTools: 'Outils développeur',
@@ -2193,11 +2194,16 @@ export default {
       delete: 'Supprimer ce point de vente',
       transfer: 'Transférer du stock vers ce point de vente',
       assignManager: 'Créer un compte gérant pour ce point de vente',
+      removeStaff: 'Retirer ce compte',
     },
     alerts: {
       deleteConfirm: ({ name }) => `Supprimer le point de vente ${name} ? Cette action reste bloquée si le point de vente contient encore du stock, des clients ou un historique lié.`,
       deleteError: 'Impossible de supprimer ce point de vente pour le moment.',
+      removeStaffConfirm: ({ name }) => `Retirer le compte ${name} ? Cette action reste bloquée si ce compte a encore des clients ou un historique lié.`,
+      removeStaffError: 'Impossible de retirer ce compte pour le moment.',
     },
+    staffTitle: 'Personnel',
+    noStaff: 'Aucun compte pour le moment.',
     metrics: {
       refs: 'Refs',
       team: 'Équipe',

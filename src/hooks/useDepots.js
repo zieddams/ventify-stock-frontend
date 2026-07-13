@@ -31,10 +31,17 @@ export function useDepots(options = {}) {
     defaultToAll = false,
     enabled = true,
     type = null,
+    // When true, Admin (not just Developer) can browse/select every depot in
+    // their own company - for pages like Users management where Admin needs
+    // company-wide visibility. Leave false (default) for the global sidebar
+    // depot-switcher and anywhere else that should stay Developer-only.
+    scopeToCompanyBrowse = false,
   } = options
 
-  const { user, canManageMultiDepot } = useAuth()
-  const canBrowseAll = canManageMultiDepot ? canManageMultiDepot() : user?.role === 'developer'
+  const { user, canManageMultiDepot, canBrowseCompanyDepots } = useAuth()
+  const canBrowseAll = scopeToCompanyBrowse
+    ? (canBrowseCompanyDepots ? canBrowseCompanyDepots() : ['admin', 'developer'].includes(user?.role))
+    : (canManageMultiDepot ? canManageMultiDepot() : user?.role === 'developer')
   const canSelectAll = allowAll && canBrowseAll
   const scopedStorageKey = `${storageKey}:${user?.id ?? 'guest'}:${user?.role ?? 'guest'}:${user?.company_id ?? 'company'}`
 

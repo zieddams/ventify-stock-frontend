@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import NotificationBell from '../components/NotificationBell'
+import UserMenu from '../components/UserMenu'
 import { APP_VERSION } from '../config/appMeta'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
@@ -12,30 +13,42 @@ import { DEFAULT_APP_MARK, applyDocumentBranding, resolveUserBrandLogo } from '.
 // "new invoice" button, post-creation redirect) resolve correctly - they are
 // hard-coded to these exact top-level paths.
 const POS_NAV = [
-  { to: '/pos', icon: 'fa-solid fa-chart-pie', labelKey: 'posWorkspace.nav.dashboard', exact: true },
+  { to: '/pos', icon: 'fa-solid fa-chart-pie', labelKey: 'posWorkspace.nav.dashboard' },
   { to: '/invoices/create', icon: 'fa-solid fa-cash-register', labelKey: 'posWorkspace.nav.sell' },
   { to: '/invoices', icon: 'fa-solid fa-file-invoice', labelKey: 'posWorkspace.nav.invoices' },
   { to: '/customers', icon: 'fa-solid fa-users', labelKey: 'posWorkspace.nav.customers' },
   { to: '/pos/stock', icon: 'fa-solid fa-boxes-stacked', labelKey: 'posWorkspace.nav.stock' },
 ]
 
-function NavItem({ item, label, onClick }) {
+// Plain-prefix matching breaks down twice over in this nav: "/invoices" is a
+// prefix of "/invoices/create" (would double-highlight "Ventes" and "Nouvelle
+// vente" together), and "/pos" is a prefix of "/pos/stock" (would double-
+// highlight "Tableau de bord" and "Stock" together). Every item other than
+// "Ventes" has no sub-routes in this workspace, so exact matching is correct
+// for them; "Ventes" alone gets prefix matching, to also cover invoice detail
+// pages, explicitly excluding the create page.
+function isNavItemActive(item, pathname) {
+  if (item.to === '/invoices') {
+    return pathname === '/invoices' || (pathname.startsWith('/invoices/') && pathname !== '/invoices/create')
+  }
+
+  return pathname === item.to
+}
+
+function NavItem({ item, label, active, onClick }) {
   return (
-    <NavLink
+    <Link
       to={item.to}
-      end={item.exact}
       onClick={onClick}
-      className={({ isActive }) =>
-        `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-colors ${
-          isActive
-            ? 'bg-teal-500/10 text-teal-700 dark:text-teal-300'
-            : 'text-secondary-color hover:bg-surface-2 hover:text-base-color'
-        }`
-      }
+      className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-colors ${
+        active
+          ? 'bg-teal-500/10 text-teal-700 dark:text-teal-300'
+          : 'text-secondary-color hover:bg-surface-2 hover:text-base-color'
+      }`}
     >
       <i className={item.icon} />
       <span>{label}</span>
-    </NavLink>
+    </Link>
   )
 }
 
@@ -50,9 +63,7 @@ export default function PosWorkspaceLayout() {
   const appDisplayName = user?.company?.name || t('app.name')
   const posName = user?.depot?.name || t('posWorkspace.fallbackName')
 
-  const activeItem = POS_NAV.find((item) =>
-    item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to)
-  ) ?? POS_NAV[0]
+  const activeItem = POS_NAV.find((item) => isNavItemActive(item, location.pathname)) ?? POS_NAV[0]
 
   const handleLogout = async () => {
     await logout()
@@ -94,7 +105,7 @@ export default function PosWorkspaceLayout() {
 
         <nav className="mt-4 flex-1 space-y-1 overflow-y-auto">
           {POS_NAV.map((item) => (
-            <NavItem key={item.to} item={item} label={t(item.labelKey)} />
+            <NavItem key={item.to} item={item} label={t(item.labelKey)} active={isNavItemActive(item, location.pathname)} />
           ))}
         </nav>
 
@@ -121,9 +132,7 @@ export default function PosWorkspaceLayout() {
             <button className="btn-ghost p-2" onClick={toggle} title={isDark ? t('layout.theme.light') : t('layout.theme.dark')}>
               <i className={`fa-solid ${isDark ? 'fa-sun' : 'fa-moon'} text-base text-muted-color`} />
             </button>
-            <button onClick={handleLogout} className="hidden md:inline-flex btn-secondary text-xs">
-              <i className="fa-solid fa-right-from-bracket" /> {t('common.logout')}
-            </button>
+            <UserMenu user={user} onLogout={handleLogout} />
           </div>
         </header>
 
@@ -146,7 +155,13 @@ export default function PosWorkspaceLayout() {
             </div>
             <nav className="space-y-1">
               {POS_NAV.map((item) => (
-                <NavItem key={item.to} item={item} label={t(item.labelKey)} onClick={() => setDrawerOpen(false)} />
+                <NavItem
+                  key={item.to}
+                  item={item}
+                  label={t(item.labelKey)}
+                  active={isNavItemActive(item, location.pathname)}
+                  onClick={() => setDrawerOpen(false)}
+                />
               ))}
             </nav>
             <button onClick={handleLogout} className="btn-secondary w-full justify-center text-xs mt-auto">
