@@ -828,6 +828,30 @@ export default {
     allDepotsShort: 'الكل',
     searchPlaceholder: 'حريف، فاتورة ولا تجاري...',
     reset: 'صفّر',
+    manualCredit: {
+      open: 'دين مباشر',
+      title: 'إنشاء دين مباشر',
+      subtitle: 'زيد دين لحريف بلا منتوجات ولا فاتورة أصلية. الحركة تتسجل كمصروف يدوي.',
+      loadFailed: 'تعذّر تحميل المعطيات اللازمة للدين المباشر.',
+      saveFailed: 'تعذّر تسجيل هذا الدين المباشر.',
+      saving: 'التسجيل...',
+      submit: 'إنشاء الدين',
+      badge: 'مباشر',
+      fields: {
+        customer: 'الحريف',
+        amount: 'المبلغ (د.ت)',
+        date: 'تاريخ الدين',
+        depot: 'المخزن',
+        label: 'العنوان',
+        note: 'ملاحظة داخلية',
+      },
+      placeholders: {
+        customer: 'اختار حريف',
+        depot: 'اختار مخزن',
+        label: 'دين مباشر',
+        note: 'علاش تم إنشاء هذا الدين؟',
+      },
+    },
     tabs: {
       current: 'الحالي',
       history: 'التاريخ',
@@ -1396,6 +1420,14 @@ export default {
       paidTotal: 'اللي تخلّص',
       outstandingTotal: 'الباقي',
       followUpCount: ({ count }) => `${count} مصروف يلزمو متابعة`,
+    },
+    withholding: {
+      rate: ({ value }) => `الخصم من المورد ${value}%`,
+      total: 'جملة الخصم من المورد',
+      netTotal: 'الصافي للخلاص',
+      short: ({ value }) => `خصم : ${value}`,
+      netShort: ({ value }) => `صافي : ${value}`,
+      netAmount: 'الصافي للخلاص',
     },
     filters: {
       month: 'الشهر',
@@ -2820,6 +2852,7 @@ export default {
       default: 'افتراضي',
       active: 'نشط',
       inactive: 'موقوف',
+      withholdingRate: ({ value }) => `خصم ${value}%`,
     },
     managedTypes: {
       category: {
@@ -3158,6 +3191,7 @@ export default {
         icon: 'أيقونة FontAwesome',
         description: 'الوصف',
         paymentScopes: 'نطاقات الاستعمال',
+        withholdingRate: 'نسبة الخصم من المصدر %',
       },
       placeholders: {
         displayName: 'تسمية ظاهرة في التطبيق',
@@ -3165,8 +3199,10 @@ export default {
         color: '#0d9488',
         icon: 'fa-solid fa-wallet',
         description: 'سياق ولا مساعدة داخلية...',
+        withholdingRate: '0.00',
       },
       autoStyleHint: 'إذا اللون ولا الأيقونة يبقاو فارغين، الباك يعطي ستايل افتراضي باش الواجهة تبقى نظيفة.',
+      withholdingHint: 'دخّل نسبة مئوية باش تتحسب أوتوماتيكيا الخصم من المصدر في كل مصروف يتزاد بهذا الصنف.',
     },
   },
 }

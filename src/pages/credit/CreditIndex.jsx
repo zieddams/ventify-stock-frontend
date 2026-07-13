@@ -1,6 +1,7 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import CustomerLedgerModal from '../../components/CustomerLedgerModal'
+import ManualCreditModal from '../../components/ManualCreditModal'
 import DepotScopeControls from '../../components/DepotScopeControls'
 import FrenchDateRangeInput from '../../components/FrenchDateRangeInput'
 import PageHeader from '../../components/PageHeader'
@@ -186,6 +187,7 @@ export default function CreditIndex() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [ledgerCustomer, setLedgerCustomer] = useState(null)
   const [ledgerInitialInvoiceId, setLedgerInitialInvoiceId] = useState('')
+  const [manualCreditOpen, setManualCreditOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -333,16 +335,23 @@ export default function CreditIndex() {
       <PageHeader
         title={t('credit.title')}
         subtitle={t('credit.subtitle', { depotSuffix })}
-        action={canSelectAll ? (
-          <DepotScopeControls
-            depots={depots}
-            selectedValue={selectedDepotValue}
-            onChange={setSelectedDepotValue}
-            allowAll
-            canSelectAll={canSelectAll}
-            allLabel={t('credit.allDepots')}
-          />
-        ) : null}
+        action={(
+          <div className="flex items-center gap-2 flex-wrap">
+            {canSelectAll && (
+              <DepotScopeControls
+                depots={depots}
+                selectedValue={selectedDepotValue}
+                onChange={setSelectedDepotValue}
+                allowAll
+                canSelectAll={canSelectAll}
+                allLabel={t('credit.allDepots')}
+              />
+            )}
+            <button type="button" onClick={() => setManualCreditOpen(true)} className="btn-primary text-sm">
+              <i className="fa-solid fa-circle-plus" /> {t('credit.manualCredit.open')}
+            </button>
+          </div>
+        )}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
@@ -803,6 +812,12 @@ export default function CreditIndex() {
         initialInvoiceId={ledgerInitialInvoiceId}
         onClose={closeLedger}
         onPaymentSaved={reloadAll}
+      />
+
+      <ManualCreditModal
+        open={manualCreditOpen}
+        onClose={() => setManualCreditOpen(false)}
+        onCreated={reloadAll}
       />
     </div>
   )

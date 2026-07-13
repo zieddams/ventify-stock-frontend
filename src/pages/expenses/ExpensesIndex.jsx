@@ -340,7 +340,14 @@ export default function ExpensesIndex() {
     return options
   }, [allCategories, categoryMap, expenses, historyEntries])
 
+  const formCategoryWithholdingRate = Math.max(0, Number(categoryMap.get(String(form.category))?.withholding_rate ?? 0))
+  const formAmount = Number(form.amount || 0)
+  const formWithholdingAmount = Math.max(0, formAmount * (formCategoryWithholdingRate / 100))
+  const formNetAmount = Math.max(0, formAmount - formWithholdingAmount)
+
   const total = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0)
+  const totalWithholding = expenses.reduce((sum, expense) => sum + Number(expense.withholding_amount || 0), 0)
+  const totalNet = expenses.reduce((sum, expense) => sum + Number(expense.net_amount ?? expense.amount), 0)
   const totalPaid = expenses.reduce((sum, expense) => sum + Number(expense.paid_amount || 0), 0)
   const totalOutstanding = expenses.reduce((sum, expense) => sum + Number(expense.remaining_amount || 0), 0)
   const followUpCount = expenses.filter((expense) => Number(expense.remaining_amount || 0) > 0).length
@@ -617,6 +624,18 @@ export default function ExpensesIndex() {
                   onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))}
                   required
                 />
+                {formCategoryWithholdingRate > 0 && formAmount > 0 && (
+                  <div className="mt-2 rounded-xl border border-theme px-3 py-2 text-xs" style={{ background: 'var(--surface-2)' }}>
+                    <div className="flex items-center justify-between text-muted-color">
+                      <span>{t('expensesPage.withholding.rate', { value: formCategoryWithholdingRate.toFixed(2) })}</span>
+                      <span className="font-mono font-semibold" style={{ color: '#d97706' }}>{formatCurrency(formWithholdingAmount)}</span>
+                    </div>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-muted-color">{t('expensesPage.withholding.netAmount')}</span>
+                      <span className="font-mono font-semibold" style={{ color: '#059669' }}>{formatCurrency(formNetAmount)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.form.fields.initialPaidAmount')}</label>
@@ -676,6 +695,12 @@ export default function ExpensesIndex() {
                 <h2 className="text-sm font-semibold text-base-color">{t('expensesPage.list.title')}</h2>
                 <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-color">
                   <span>{t('expensesPage.list.total')}: <span className="font-mono font-semibold" style={{ color: '#ea580c' }}>{formatCurrency(total)}</span></span>
+                  {totalWithholding > 0 && (
+                    <span>{t('expensesPage.withholding.total')}: <span className="font-mono font-semibold" style={{ color: '#d97706' }}>{formatCurrency(totalWithholding)}</span></span>
+                  )}
+                  {totalWithholding > 0 && (
+                    <span>{t('expensesPage.withholding.netTotal')}: <span className="font-mono font-semibold text-emerald-600">{formatCurrency(totalNet)}</span></span>
+                  )}
                   <span>{t('expensesPage.list.paidTotal')}: <span className="font-mono font-semibold text-emerald-600">{formatCurrency(totalPaid)}</span></span>
                   <span>{t('expensesPage.list.outstandingTotal')}: <span className="font-mono font-semibold text-red-600">{formatCurrency(totalOutstanding)}</span></span>
                   <span>{t('expensesPage.list.followUpCount', { count: followUpCount })}</span>
@@ -760,6 +785,16 @@ export default function ExpensesIndex() {
                           <td className="py-3 pr-3 text-base-color">{expense.label}</td>
                           <td className="py-3 pr-3 text-right font-mono font-bold text-sm" style={{ color: '#ea580c' }}>
                             {formatCurrency(expense.amount)}
+                            {Number(expense.withholding_amount || 0) > 0 && (
+                              <>
+                                <div className="mt-1 text-[11px] text-orange-600">
+                                  {t('expensesPage.withholding.short', { value: formatCurrency(expense.withholding_amount || 0) })}
+                                </div>
+                                <div className="mt-1 text-[11px] text-emerald-600">
+                                  {t('expensesPage.withholding.netShort', { value: formatCurrency(expense.net_amount || 0) })}
+                                </div>
+                              </>
+                            )}
                           </td>
                           <td className="py-3 pr-3 text-right font-mono text-sm text-emerald-600">
                             {formatCurrency(expense.paid_amount)}
@@ -960,6 +995,16 @@ export default function ExpensesIndex() {
                         </td>
                         <td className="py-3 pr-3 text-right font-mono text-sm" style={{ color: '#ea580c' }}>
                           {formatCurrency(entry.expense_amount)}
+                          {Number(entry.withholding_amount || 0) > 0 && (
+                            <>
+                              <div className="mt-1 text-[11px] text-orange-600">
+                                {t('expensesPage.withholding.short', { value: formatCurrency(entry.withholding_amount || 0) })}
+                              </div>
+                              <div className="mt-1 text-[11px] text-emerald-600">
+                                {t('expensesPage.withholding.netShort', { value: formatCurrency(entry.net_amount || 0) })}
+                              </div>
+                            </>
+                          )}
                         </td>
                         <td className="py-3 pr-3 text-right font-mono text-sm text-emerald-600">
                           {Number(entry.payment_amount) > 0 ? formatCurrency(entry.payment_amount) : '--'}

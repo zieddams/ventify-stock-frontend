@@ -357,10 +357,14 @@ export const DOCUMENT_DEFINITIONS = [
       field('category', 'Catégorie', (expense) => expenseCategoryLabel(expense), 'Catégorie dynamique.'),
       field('label', 'Libellé', (expense) => asText(expense?.label), 'Désignation.'),
       field('amount', 'Montant', (expense) => formatMoney(expense?.amount), 'Montant dépensé.'),
+      field('withholding_rate', 'Retenue source %', (expense) => `${formatQuantity(expense?.withholding_rate ?? 0)}%`, 'Taux retenu à la source.', { defaultEnabled: false }),
+      field('withholding_amount', 'Retenue source', (expense) => formatMoney(expense?.withholding_amount), 'Montant retenu à la source.', { defaultEnabled: false }),
+      field('net_amount', 'Net à régler', (expense) => formatMoney(expense?.net_amount), 'Montant net après retenue.'),
     ],
     buildSummary: ({ records }) => [
       { label: 'Dépenses', value: asText(records.length, '0') },
       { label: 'Total', value: formatMoney(records.reduce((sum, expense) => sum + asNumber(expense?.amount), 0)) },
+      { label: 'Net à régler', value: formatMoney(records.reduce((sum, expense) => sum + asNumber(expense?.net_amount), 0)) },
     ],
   },
   {
@@ -377,10 +381,14 @@ export const DOCUMENT_DEFINITIONS = [
       field('category', 'Catégorie', (expense) => expenseCategoryLabel(expense), 'Catégorie.'),
       field('label', 'Libellé', (expense) => asText(expense?.label), 'Désignation.'),
       field('amount', 'Montant', (expense) => formatMoney(expense?.amount), 'Montant.'),
+      field('withholding_rate', 'Retenue source %', (expense) => `${formatQuantity(expense?.withholding_rate ?? 0)}%`, 'Taux retenu à la source.', { defaultEnabled: false }),
+      field('withholding_amount', 'Retenue source', (expense) => formatMoney(expense?.withholding_amount), 'Montant retenu à la source.', { defaultEnabled: false }),
+      field('net_amount', 'Net à régler', (expense) => formatMoney(expense?.net_amount), 'Montant net après retenue.'),
       field('created_at', 'Créée le', (expense) => formatDateTime(expense?.created_at), 'Date de création.', { defaultEnabled: false }),
     ],
     buildSummary: ({ record }) => [
       { label: 'Montant', value: formatMoney(record?.amount) },
+      { label: 'Net à régler', value: formatMoney(record?.net_amount) },
     ],
   },
   {
@@ -398,6 +406,8 @@ export const DOCUMENT_DEFINITIONS = [
       field('category_label', 'Catégorie', (entry) => expenseCategoryLabel(entry), 'Catégorie rattachée.'),
       field('label', 'Libellé', (entry) => asText(entry?.label), 'Libellé de la dépense.'),
       field('expense_amount', 'Montant dépense', (entry) => formatMoney(entry?.expense_amount), 'Montant total de la dépense.'),
+      field('withholding_amount', 'Retenue source', (entry) => formatMoney(entry?.withholding_amount), 'Retenue source enregistrée.', { defaultEnabled: false }),
+      field('net_amount', 'Net à régler', (entry) => formatMoney(entry?.net_amount), 'Montant net après retenue.'),
       field('payment_amount', 'Paiement', (entry) => asNumber(entry?.payment_amount) > 0 ? formatMoney(entry?.payment_amount) : '-', "Montant du paiement lié à l'événement."),
       field('remaining_amount_after_event', 'Reste après', (entry) => formatMoney(entry?.remaining_amount_after_event), "Reste après l'événement."),
       field('event_status_after', 'Statut après', (entry) => paymentStatusLabel(entry?.event_status_after), "Statut après l'événement."),
@@ -413,6 +423,10 @@ export const DOCUMENT_DEFINITIONS = [
       {
         label: 'Paiements',
         value: formatMoney(records.reduce((sum, entry) => sum + asNumber(entry?.payment_amount), 0)),
+      },
+      {
+        label: 'Net à régler',
+        value: formatMoney(records.reduce((sum, entry) => sum + (entry?.event_type === 'expense' ? asNumber(entry?.net_amount) : 0), 0)),
       },
     ],
   },

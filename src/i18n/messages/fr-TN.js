@@ -828,6 +828,30 @@ export default {
     allDepotsShort: 'Tous',
     searchPlaceholder: 'Client, facture ou commercial...',
     reset: 'Réinitialiser',
+    manualCredit: {
+      open: 'Crédit direct',
+      title: 'Créer un crédit direct',
+      subtitle: 'Ajoutez un crédit client sans produits ni facture source. Le mouvement sera tracé comme une charge manuelle.',
+      loadFailed: 'Impossible de charger les données nécessaires au crédit direct.',
+      saveFailed: "Impossible d'enregistrer ce crédit direct.",
+      saving: 'Création...',
+      submit: 'Créer le crédit',
+      badge: 'Direct',
+      fields: {
+        customer: 'Client',
+        amount: 'Montant (TND)',
+        date: 'Date du crédit',
+        depot: 'Dépôt',
+        label: 'Libellé',
+        note: 'Note interne',
+      },
+      placeholders: {
+        customer: 'Sélectionner un client',
+        depot: 'Sélectionner un dépôt',
+        label: 'Crédit direct',
+        note: 'Pourquoi ce crédit est créé ?',
+      },
+    },
     tabs: {
       current: 'Actuel',
       history: 'Historique',
@@ -1396,6 +1420,14 @@ export default {
       paidTotal: 'Réglé',
       outstandingTotal: 'Reste',
       followUpCount: ({ count }) => `${count} dépense(s) à suivre`,
+    },
+    withholding: {
+      rate: ({ value }) => `Retenue à la source ${value}%`,
+      total: 'Retenue source',
+      netTotal: 'Net à régler',
+      short: ({ value }) => `Retenue : ${value}`,
+      netShort: ({ value }) => `Net : ${value}`,
+      netAmount: 'Net à régler',
     },
     filters: {
       month: 'Mois',
@@ -2821,6 +2853,7 @@ export default {
       default: 'Défaut',
       active: 'Actif',
       inactive: 'Inactif',
+      withholdingRate: ({ value }) => `Retenue ${value}%`,
     },
     managedTypes: {
       category: {
@@ -3159,6 +3192,7 @@ export default {
         icon: 'Icône FontAwesome',
         description: 'Description',
         paymentScopes: "Scopes d'utilisation",
+        withholdingRate: 'Retenue source %',
       },
       placeholders: {
         displayName: "Libellé visible dans l'application",
@@ -3166,8 +3200,10 @@ export default {
         color: '#0d9488',
         icon: 'fa-solid fa-wallet',
         description: 'Contexte ou aide interne...',
+        withholdingRate: '0.00',
       },
       autoStyleHint: "Si la couleur ou l'icône restent vides, le backend attribuera automatiquement un style par défaut pour garder une interface propre.",
+      withholdingHint: 'Renseignez un pourcentage pour calculer automatiquement la retenue à la source sur chaque dépense créée avec cette catégorie.',
     },
   },
 }

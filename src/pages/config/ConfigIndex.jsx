@@ -55,6 +55,7 @@ const EMPTY_FORM = {
   description: '',
   scopes: [],
   active: true,
+  withholding_rate: '',
 }
 
 function getManagedTypes(t) {
@@ -338,6 +339,11 @@ function ItemBadge({ item, t, paymentScopeOptions }) {
           {paymentScopeOptions.find((option) => option.value === scope)?.label ?? scope}
         </span>
       ))}
+      {item.type === 'expense_category' && Number(item.withholding_rate ?? 0) > 0 && (
+        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(234,88,12,0.12)', color: '#c2410c' }}>
+          {t('configPage.badges.withholdingRate', { value: Number(item.withholding_rate).toFixed(2) })}
+        </span>
+      )}
     </div>
   )
 }
@@ -822,6 +828,7 @@ export default function ConfigIndex() {
       description: item.description ?? '',
       scopes: type === 'payment_method' ? normalizePaymentMethodScopes(item) : [],
       active: item.active !== false,
+      withholding_rate: item.withholding_rate != null ? String(item.withholding_rate) : '',
     })
     setErrors({})
   }
@@ -853,6 +860,9 @@ export default function ConfigIndex() {
         description: form.description.trim() || null,
         scopes: modalType === 'payment_method' ? form.scopes : undefined,
         active: form.active,
+        withholding_rate: modalType === 'expense_category'
+          ? (form.withholding_rate === '' ? null : Number(form.withholding_rate))
+          : undefined,
       }
 
       if (editing) {
@@ -1680,6 +1690,21 @@ export default function ConfigIndex() {
           <FormField label={t('configPage.modal.fields.description')} error={errors.description?.[0]}>
             <textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} rows={3} placeholder={t('configPage.modal.placeholders.description')} />
           </FormField>
+
+          {modalType === 'expense_category' && (
+            <FormField label={t('configPage.modal.fields.withholdingRate')} error={errors.withholding_rate?.[0]}>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                value={form.withholding_rate}
+                onChange={(event) => setForm((current) => ({ ...current, withholding_rate: event.target.value }))}
+                placeholder={t('configPage.modal.placeholders.withholdingRate')}
+              />
+              <p className="mt-1 text-xs text-muted-color">{t('configPage.modal.withholdingHint')}</p>
+            </FormField>
+          )}
 
           {modalType === 'payment_method' && (
             <FormField label={t('configPage.modal.fields.paymentScopes')} error={errors.scopes?.[0]}>
