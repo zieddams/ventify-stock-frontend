@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import NotificationBell from '../components/NotificationBell'
 import UserMenu from '../components/UserMenu'
+import PosSessionBar from '../components/pos/PosSessionBar'
 import { APP_VERSION } from '../config/appMeta'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
+import { PosSessionProvider } from '../contexts/PosSessionContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { DEFAULT_APP_MARK, applyDocumentBranding, resolveUserBrandLogo } from '../utils/branding'
 
@@ -80,6 +82,7 @@ export default function PosWorkspaceLayout() {
   }, [activeItem.labelKey, appDisplayName, posName, t, user])
 
   return (
+    <PosSessionProvider>
     <div className="flex h-screen overflow-hidden bg-app">
       <aside
         className="hidden md:flex w-72 flex-shrink-0 flex-col border-r px-4 py-5"
@@ -136,6 +139,8 @@ export default function PosWorkspaceLayout() {
           </div>
         </header>
 
+        <PosSessionBar />
+
         <main className="flex-1 overflow-y-auto">
           <div className="p-4 md:p-6 max-w-screen-2xl mx-auto">
             <Outlet />
@@ -171,5 +176,6 @@ export default function PosWorkspaceLayout() {
         </div>
       )}
     </div>
+    </PosSessionProvider>
   )
 }

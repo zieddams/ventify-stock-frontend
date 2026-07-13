@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { I18nProvider, useI18n } from './contexts/I18nContext'
+import { usePosSession } from './contexts/PosSessionContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import MaintenanceBoundary from './components/MaintenanceBoundary'
+import PosOpenSessionModal from './components/pos/PosOpenSessionModal'
 import { PageLoader } from './components/Spinner'
 import WorkspaceLayout from './layouts/WorkspaceLayout'
 import Login from './pages/Login'
@@ -81,6 +84,51 @@ function RequirePosWorkspace({ children }) {
   const { user, isPosWorkspace } = useAuth()
   if (!user) return <Navigate to="/login" replace />
   if (!isPosWorkspace()) return <Navigate to="/" replace />
+  return children
+}
+
+// Only the pos role has a "sell" hard-gate - every other role renders
+// children immediately, so this is a no-op for the rest of the app reusing
+// this same route. Relies on PosWorkspaceLayout already providing
+// PosSessionContext higher up the tree (it wraps its own <Outlet/>).
+function RequirePosSessionOpen({ children }) {
+  const { user, isPosWorkspace } = useAuth()
+  const { t } = useI18n()
+  const posSession = usePosSession()
+  const [openModalVisible, setOpenModalVisible] = useState(false)
+
+  if (!user) return <Navigate to="/login" replace />
+  if (!isPosWorkspace()) return children
+  if (posSession?.loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-app">
+        <div className="card py-10 px-8">
+          <PageLoader />
+        </div>
+      </div>
+    )
+  }
+
+  if (!posSession?.isOpen) {
+    return (
+      <>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="card py-10 px-8 max-w-md text-center">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626' }}>
+              <i className="fa-solid fa-cash-register text-xl" />
+            </div>
+            <h2 className="text-lg font-bold text-base-color mb-2">{t('posWorkspace.sessionGate.title')}</h2>
+            <p className="text-sm text-secondary-color mb-6">{t('posWorkspace.sessionGate.message')}</p>
+            <button type="button" onClick={() => setOpenModalVisible(true)} className="btn-primary w-full justify-center">
+              <i className="fa-solid fa-cash-register" /> {t('posWorkspace.sessionGate.action')}
+            </button>
+          </div>
+        </div>
+        <PosOpenSessionModal open={openModalVisible} onClose={() => setOpenModalVisible(false)} />
+      </>
+    )
+  }
+
   return children
 }
 
@@ -167,7 +215,7 @@ export default function App() {
                 <Route path="products" element={<RequireBusinessWorkspace><ProductsIndex /></RequireBusinessWorkspace>} />
                 <Route path="customers" element={<RequireBusinessWorkspace><CustomersIndex /></RequireBusinessWorkspace>} />
                 <Route path="invoices" element={<RequireBusinessWorkspace><InvoicesIndex /></RequireBusinessWorkspace>} />
-                <Route path="invoices/create" element={<RequireBusinessWorkspace><InvoiceCreate /></RequireBusinessWorkspace>} />
+                <Route path="invoices/create" element={<RequireBusinessWorkspace><RequirePosSessionOpen><InvoiceCreate /></RequirePosSessionOpen></RequireBusinessWorkspace>} />
                 <Route path="invoices/:id" element={<RequireBusinessWorkspace><InvoiceShow /></RequireBusinessWorkspace>} />
                 <Route path="depot" element={<RequireAdmin><DepotIndex /></RequireAdmin>} />
                 <Route path="points-de-vente" element={<RequireAdmin><PosManagementIndex /></RequireAdmin>} />
