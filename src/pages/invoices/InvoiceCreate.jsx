@@ -162,6 +162,18 @@ export default function InvoiceCreate() {
     }
   }
 
+  // A POS depot only ever holds whatever stock was explicitly transferred to
+  // it (no default/base stock), so its sell screen should only offer what it
+  // actually has - unlike a warehouse, where showing the full catalog and
+  // letting the backend reject insufficient stock on submit is the norm.
+  const availableProducts = useMemo(() => {
+    if (selectedDepot?.type !== 'pos') {
+      return products
+    }
+
+    return products.filter((product) => Number(product.depot_qty ?? 0) > 0)
+  }, [products, selectedDepot])
+
   const filteredCustomers = customers.filter((item) => (
     String(item.name ?? '').toLowerCase().includes(customerSearch.toLowerCase())
     || String(item.phone ?? '').includes(customerSearch)
@@ -278,6 +290,11 @@ export default function InvoiceCreate() {
             {errors.lines[0]}
           </p>
         )}
+        {selectedDepot?.type === 'pos' && availableProducts.length === 0 && (
+          <p className="text-xs mb-3 px-2 py-1.5 rounded-lg" style={{ color: '#b45309', background: 'rgba(245,158,11,0.08)' }}>
+            {t('invoiceCreate.lines.posNoStock')}
+          </p>
+        )}
 
         <div className="space-y-2">
           {lines.map((line, index) => {
@@ -290,7 +307,7 @@ export default function InvoiceCreate() {
                     {index === 0 && <div className="text-xs text-muted-color mb-1 font-medium">{t('invoiceCreate.lines.product')}</div>}
                     <select value={line.product_id} onChange={(event) => updateLine(index, 'product_id', event.target.value)}>
                       <option value="">{t('invoiceCreate.lines.selectProduct')}</option>
-                      {products.map((product) => (
+                      {availableProducts.map((product) => (
                         <option key={product.id} value={product.id}>
                           {product.name} {product.depot_qty != null ? `- ${t('invoiceCreate.lines.depotQty', { qty: formatNumber(product.depot_qty) })}` : ''}
                         </option>

@@ -1354,6 +1354,7 @@ export default {
       selectProduct: 'Sélectionner...',
       depotQty: ({ qty }) => `dépôt ${qty}`,
       belowCost: ({ price, buyPrice }) => `Prix (${price}) inférieur au prix d'achat (${buyPrice}).`,
+      posNoStock: "Ce point de vente n'a aucun produit en stock pour le moment - demandez un transfert de stock à un administrateur.",
     },
     summary: {
       subtotal: 'Sous-total',

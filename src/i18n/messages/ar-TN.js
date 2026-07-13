@@ -1354,6 +1354,7 @@ export default {
       selectProduct: 'اختار...',
       depotQty: ({ qty }) => `المخزن ${qty}`,
       belowCost: ({ price, buyPrice }) => `السعر (${price}) أقل من سعر الشراء (${buyPrice}).`,
+      posNoStock: 'نقطة البيع هذي ما فيهاش حتى منتوج في الستوك توا - اطلب من الإدمين يعمل تحويل ستوك.',
     },
     summary: {
       subtotal: 'المجموع قبل الأداء',
