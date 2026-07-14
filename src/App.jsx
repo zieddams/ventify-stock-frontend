@@ -23,6 +23,8 @@ import PosManagementIndex from './pages/pos/PosManagementIndex'
 import PosDashboard from './pages/pos/PosDashboard'
 import PosStockIndex from './pages/pos/PosStockIndex'
 import SupervisorDashboard from './pages/supervisor/SupervisorDashboard'
+import StockOverviewIndex from './pages/supervisor/StockOverviewIndex'
+import SupervisorReportsIndex from './pages/supervisor/SupervisorReportsIndex'
 import CamionsIndex from './pages/camions/CamionsIndex'
 import ReportsIndex from './pages/reports/ReportsIndex'
 import UsersIndex from './pages/users/UsersIndex'
@@ -239,6 +241,8 @@ export default function App() {
                 <Route path="pos/stock" element={<RequirePosWorkspace><PosStockIndex /></RequirePosWorkspace>} />
                 <Route path="pos/inventory" element={<RequirePosWorkspace><InventaireIndex /></RequirePosWorkspace>} />
                 <Route path="supervisor" element={<RequireSupervisor><SupervisorDashboard /></RequireSupervisor>} />
+                <Route path="supervisor/stock" element={<RequireSupervisor><StockOverviewIndex /></RequireSupervisor>} />
+                <Route path="supervisor/reports" element={<RequireSupervisor><SupervisorReportsIndex /></RequireSupervisor>} />
                 <Route path="products" element={<RequireBusinessWorkspace><ProductsIndex /></RequireBusinessWorkspace>} />
                 <Route path="customers" element={<RequireBusinessWorkspace><CustomersIndex /></RequireBusinessWorkspace>} />
                 <Route path="invoices" element={<RequireBusinessWorkspace><InvoicesIndex /></RequireBusinessWorkspace>} />

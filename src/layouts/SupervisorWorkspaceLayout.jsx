@@ -8,12 +8,10 @@ import { useI18n } from '../contexts/I18nContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { DEFAULT_APP_MARK, applyDocumentBranding, resolveUserBrandLogo } from '../utils/branding'
 
-// Single-page workspace for now (the dashboard itself is the customizable,
-// section-toggleable view) - structured as its own nav array anyway, matching
-// PosWorkspaceLayout's shape, so a second supervisor-facing page can slot in
-// later without restructuring this file.
 const SUPERVISOR_NAV = [
   { to: '/supervisor', icon: 'fa-solid fa-chart-pie', labelKey: 'supervisorWorkspace.nav.dashboard' },
+  { to: '/supervisor/stock', icon: 'fa-solid fa-warehouse', labelKey: 'supervisorWorkspace.nav.stock' },
+  { to: '/supervisor/reports', icon: 'fa-solid fa-file-pdf', labelKey: 'supervisorWorkspace.nav.reports' },
 ]
 
 function NavItem({ item, label, active, onClick }) {

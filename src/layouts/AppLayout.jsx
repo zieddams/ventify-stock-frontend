@@ -27,27 +27,22 @@ const FINANCE_NAV = [
   { to: '/salary-runs', icon: 'fa-solid fa-money-check-dollar', labelKey: 'layout.nav.salaryRuns' },
 ]
 
-const OPERATIONS_NAV = [
-  { to: '/users', icon: 'fa-solid fa-user-gear', labelKey: 'layout.nav.users' },
+const TERRAIN_NAV = [
   { to: '/camions', icon: 'fa-solid fa-truck', labelKey: 'layout.nav.camions' },
   { to: '/routes', icon: 'fa-solid fa-truck-fast', labelKey: 'layout.nav.routes' },
-  { to: '/reports', icon: 'fa-solid fa-chart-line', labelKey: 'layout.nav.reports' },
   { to: '/depot', icon: 'fa-solid fa-warehouse', labelKey: 'layout.nav.depot' },
   { to: '/points-de-vente', icon: 'fa-solid fa-shop', labelKey: 'layout.nav.pointsDeVente' },
   { to: '/inventory', icon: 'fa-solid fa-clipboard-list', labelKey: 'layout.nav.inventory' },
-  { to: '/config', icon: 'fa-solid fa-sliders', labelKey: 'layout.nav.config' },
 ]
 
-const SUPPORT_NAV = [
-  { to: '/help', icon: 'fa-solid fa-circle-question', labelKey: 'layout.nav.help' },
-  { to: '/notifications-center', icon: 'fa-solid fa-bell', labelKey: 'layout.nav.notificationsCenter' },
-  { to: '/bug-reports', icon: 'fa-solid fa-bug', labelKey: 'layout.nav.bugReports' },
+const ADMIN_NAV = [
+  { to: '/users', icon: 'fa-solid fa-user-gear', labelKey: 'layout.nav.users' },
+  { to: '/reports', icon: 'fa-solid fa-chart-line', labelKey: 'layout.nav.reports' },
 ]
 
-const DEVELOPER_NAV = [
-  { to: '/companies', icon: COMPANY_NAV_ICON, labelKey: 'layout.nav.companies' },
-  { to: '/developer-tools', icon: 'fa-solid fa-code', labelKey: 'layout.nav.developerTools' },
-]
+function withMapItem(items) {
+  return [...items.slice(0, 2), MAP_NAV_ITEM, ...items.slice(2)]
+}
 
 const DEFAULT_SYSTEM_STATUS = {
   state: 'checking',
@@ -119,6 +114,47 @@ function NavSection({ title, items, expanded, onClick }) {
       {items.map((item) => (
         <RailLink key={item.to} {...item} expanded={expanded} onClick={onClick} />
       ))}
+    </div>
+  )
+}
+
+function CollapsibleNavGroup({ title, icon, items, expanded, onClick }) {
+  const location = useLocation()
+  const [open, setOpen] = useState(true)
+  const hasActiveChild = items.some(
+    (item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`)
+  )
+
+  if (!expanded) {
+    return (
+      <div className="space-y-1">
+        <RailDivider expanded={expanded} />
+        {items.map((item) => (
+          <RailLink key={item.to} {...item} expanded={expanded} onClick={onClick} />
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-1">
+      <RailDivider expanded={expanded} />
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className={`rail-link expanded w-full${hasActiveChild ? ' active' : ''}`}
+      >
+        <i className={`${icon} text-base`} />
+        <span className="rail-link-label">{title}</span>
+        <i className={`fa-solid ${open ? 'fa-chevron-up' : 'fa-chevron-down'} text-xs opacity-60`} />
+      </button>
+      {open && (
+        <div className="pl-4 space-y-1">
+          {items.map((item) => (
+            <RailLink key={item.to} {...item} expanded={expanded} onClick={onClick} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -256,21 +292,18 @@ function ScopedCompanySessionBanner({
   )
 }
 
-function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper, statusLabel, appDisplayName, user, mapExperienceEnabled }) {
+function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, statusLabel, appDisplayName, user, mapExperienceEnabled }) {
   const { t } = useI18n()
 
   if (!open) {
     return null
   }
 
-  const operationsNavItems = mapExperienceEnabled
-    ? [...OPERATIONS_NAV.slice(0, 3), MAP_NAV_ITEM, ...OPERATIONS_NAV.slice(3)]
-    : OPERATIONS_NAV
+  const terrainNavItems = mapExperienceEnabled ? withMapItem(TERRAIN_NAV) : TERRAIN_NAV
   const mobileCoreNav = CORE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
   const mobileFinanceNav = FINANCE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
-  const mobileOperationsNav = operationsNavItems.map((item) => ({ ...item, label: t(item.labelKey) }))
-  const mobileSupportNav = SUPPORT_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
-  const mobileDeveloperNav = DEVELOPER_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
+  const mobileTerrainNav = terrainNavItems.map((item) => ({ ...item, label: t(item.labelKey) }))
+  const mobileAdminNav = ADMIN_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
 
   return (
     <div className="fixed inset-0 z-50 md:hidden no-print">
@@ -330,36 +363,24 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, isDeveloper
 
           {isAdmin() && (
             <>
-              <div>
-                <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>{t('layout.sections.operations')}</div>
-                <div className="space-y-0.5">
-                  {mobileOperationsNav.map((item) => (
-                    <RailLink key={item.to} {...item} expanded onClick={onClose} />
-                  ))}
-                </div>
-              </div>
+              <CollapsibleNavGroup
+                title={t('layout.sections.operations')}
+                icon="fa-solid fa-truck-fast"
+                items={mobileTerrainNav}
+                expanded
+                onClick={onClose}
+              />
 
-              <div>
-                <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>{t('layout.sections.assistance')}</div>
-                <div className="space-y-0.5">
-                  {mobileSupportNav.map((item) => (
-                    <RailLink key={item.to} {...item} expanded onClick={onClose} />
-                  ))}
-                </div>
-              </div>
+              <CollapsibleNavGroup
+                title={t('layout.sections.admin')}
+                icon="fa-solid fa-user-shield"
+                items={mobileAdminNav}
+                expanded
+                onClick={onClose}
+              />
             </>
           )}
 
-          {isDeveloper() && (
-            <div>
-              <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>{t('layout.sections.developer')}</div>
-              <div className="space-y-0.5">
-                {mobileDeveloperNav.map((item) => (
-                  <RailLink key={item.to} {...item} expanded onClick={onClose} />
-                ))}
-              </div>
-            </div>
-          )}
         </nav>
 
         <div className="px-3 py-3 border-t border-white/10">
@@ -523,13 +544,11 @@ export default function AppLayout() {
     })
   }, [appDisplayName, pageLabel, user])
 
-  const operationsNavItems = mapExperienceEnabled
-    ? [...OPERATIONS_NAV.slice(0, 2), MAP_NAV_ITEM, ...OPERATIONS_NAV.slice(2)]
-    : OPERATIONS_NAV
+  const terrainNavItems = mapExperienceEnabled ? withMapItem(TERRAIN_NAV) : TERRAIN_NAV
   const desktopCoreNav = CORE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
   const desktopFinanceNav = FINANCE_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
-  const desktopOperationsNav = operationsNavItems.map((item) => ({ ...item, label: t(item.labelKey) }))
-  const desktopDeveloperNav = DEVELOPER_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
+  const desktopTerrainNav = terrainNavItems.map((item) => ({ ...item, label: t(item.labelKey) }))
+  const desktopAdminNav = ADMIN_NAV.map((item) => ({ ...item, label: t(item.labelKey) }))
 
   const handleExitScopedSession = async () => {
     try {
@@ -585,11 +604,21 @@ export default function AppLayout() {
             )}
 
             {isAdmin() && (
-              <NavSection title={t('layout.sections.operations')} items={desktopOperationsNav} expanded={isSidebarExpanded} />
-            )}
+              <>
+                <CollapsibleNavGroup
+                  title={t('layout.sections.operations')}
+                  icon="fa-solid fa-truck-fast"
+                  items={desktopTerrainNav}
+                  expanded={isSidebarExpanded}
+                />
 
-            {isDeveloper() && (
-              <NavSection title={t('layout.sections.developer')} items={desktopDeveloperNav} expanded={isSidebarExpanded} />
+                <CollapsibleNavGroup
+                  title={t('layout.sections.admin')}
+                  icon="fa-solid fa-user-shield"
+                  items={desktopAdminNav}
+                  expanded={isSidebarExpanded}
+                />
+              </>
             )}
           </div>
         </div>
@@ -751,7 +780,6 @@ export default function AppLayout() {
         onLogout={handleLogout}
         isAdmin={isAdmin}
         isFinance={isFinance}
-        isDeveloper={isDeveloper}
         statusLabel={statusLabel}
         appDisplayName={appDisplayName}
         mapExperienceEnabled={mapExperienceEnabled}

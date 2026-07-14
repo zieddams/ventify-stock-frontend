@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import FormField from '../../components/FormField'
+import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
 import { useI18n } from '../../contexts/I18nContext'
+import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 import { formatCurrency, formatDate, formatDateTime } from '../../utils/format'
 
@@ -15,7 +17,7 @@ const EMPTY_PROFILE = {
   cnss_number: '', cnss_enrolled: false, expected_start_time: '',
 }
 
-const TABS = ['profile', 'documents', 'ledger', 'leave', 'notes', 'performance']
+const TABS = ['profile', 'documents', 'ledger', 'leave', 'salary', 'notes', 'performance']
 
 export default function EmployeeDetail() {
   const { t } = useI18n()
@@ -72,8 +74,9 @@ export default function EmployeeDetail() {
       <div className="card">
         {tab === 'profile' && <ProfileTab employee={employee} canEdit={canEdit} onSaved={loadEmployee} t={t} />}
         {tab === 'documents' && <DocumentsTab employeeId={employeeId} canEdit={canEdit} t={t} />}
-        {tab === 'ledger' && <LedgerTab employeeId={employeeId} canEdit={canEdit} t={t} />}
-        {tab === 'leave' && <LeaveTab employeeId={employeeId} canEdit={canEdit} isSelf={String(me?.id) === String(employeeId)} t={t} />}
+        {tab === 'ledger' && <LedgerTab employeeId={employeeId} employeeName={employee.name} canEdit={canEdit} t={t} />}
+        {tab === 'leave' && <LeaveTab employeeId={employeeId} employeeName={employee.name} canEdit={canEdit} isSelf={String(me?.id) === String(employeeId)} t={t} />}
+        {tab === 'salary' && <SalaryHistoryTab employeeId={employeeId} employeeName={employee.name} t={t} />}
         {tab === 'notes' && <NotesTab employeeId={employeeId} canEdit={canEdit} t={t} />}
         {tab === 'performance' && <PerformanceTab employeeId={employeeId} t={t} />}
       </div>
@@ -331,7 +334,8 @@ function DocumentsTab({ employeeId, canEdit, t }) {
   )
 }
 
-function LedgerTab({ employeeId, canEdit, t }) {
+function LedgerTab({ employeeId, employeeName, canEdit, t }) {
+  const { layouts: documentLayouts, documentSettings } = useDocumentLayouts()
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState({ type: 'prime', amount: '', note: '', related_period: '' })
@@ -400,6 +404,16 @@ function LedgerTab({ employeeId, canEdit, t }) {
         </div>
       )}
 
+      <div className="flex justify-end">
+        <PageExportActions
+          title={t('employeesPage.ledger.documentTitle', { name: employeeName })}
+          documentKey="employee_transactions_list"
+          records={transactions}
+          documentLayouts={documentLayouts}
+          documentSettings={documentSettings}
+        />
+      </div>
+
       <table className="w-full text-sm">
         <thead>
           <tr>
@@ -429,7 +443,8 @@ function LedgerTab({ employeeId, canEdit, t }) {
   )
 }
 
-function LeaveTab({ employeeId, canEdit, isSelf, t }) {
+function LeaveTab({ employeeId, employeeName, canEdit, isSelf, t }) {
+  const { layouts: documentLayouts, documentSettings } = useDocumentLayouts()
   const [data, setData] = useState({ accrued_balance: 0, leaves: [] })
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState({ type: 'annuel', date_start: '', date_end: '', note: '' })
@@ -500,6 +515,18 @@ function LeaveTab({ employeeId, canEdit, isSelf, t }) {
         </div>
       )}
 
+      {data.leaves.length > 0 && (
+        <div className="flex justify-end">
+          <PageExportActions
+            title={t('employeesPage.leave.documentTitle', { name: employeeName })}
+            documentKey="employee_leaves_list"
+            records={data.leaves}
+            documentLayouts={documentLayouts}
+            documentSettings={documentSettings}
+          />
+        </div>
+      )}
+
       <div className="divide-y divide-theme">
         {data.leaves.map((leave) => (
           <div key={leave.id} className="flex items-center justify-between py-3">
@@ -528,6 +555,77 @@ function LeaveTab({ employeeId, canEdit, isSelf, t }) {
           <div className="py-12 text-center text-muted-color">{t('employeesPage.leave.empty')}</div>
         )}
       </div>
+    </div>
+  )
+}
+
+function SalaryHistoryTab({ employeeId, employeeName, t }) {
+  const { layouts: documentLayouts, documentSettings } = useDocumentLayouts()
+  const [runs, setRuns] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    api.get('/salary-runs', { params: { employee_user_id: employeeId } })
+      .then((response) => setRuns(Array.isArray(response.data) ? response.data : []))
+      .finally(() => setLoading(false))
+  }, [employeeId])
+
+  if (loading) return <PageLoader />
+
+  return (
+    <div className="space-y-4">
+      {runs.length > 0 && (
+        <div className="flex justify-end">
+          <PageExportActions
+            title={t('employeesPage.salaryHistory.documentTitle', { name: employeeName })}
+            documentKey="salary_runs_list"
+            records={runs}
+            documentLayouts={documentLayouts}
+            documentSettings={documentSettings}
+          />
+        </div>
+      )}
+
+      <table className="w-full text-sm">
+        <thead>
+          <tr>
+            {[
+              t('employeesPage.salaryHistory.period'), t('employeesPage.salaryHistory.grossPay'),
+              t('employeesPage.salaryHistory.netPay'), t('employeesPage.salaryHistory.status'), t('employeesPage.salaryHistory.actions'),
+            ].map((heading) => <th key={heading} className="pb-3 pr-4 text-left">{heading}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {runs.map((run) => (
+            <tr key={run.id} className="table-row">
+              <td className="py-2 pr-4">{String(run.period_month).padStart(2, '0')}/{run.period_year}</td>
+              <td className="py-2 pr-4">{formatCurrency(run.gross_pay)}</td>
+              <td className="py-2 pr-4 font-semibold">{formatCurrency(run.net_pay)}</td>
+              <td className="py-2 pr-4">
+                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                  run.status === 'paid' ? 'text-emerald-600' : run.status === 'finalized' ? 'text-blue-600' : 'text-amber-600'
+                }`} style={{ background: 'var(--surface-2)' }}>
+                  {t(`salaryRunsPage.statuses.${run.status}`)}
+                </span>
+              </td>
+              <td className="py-2">
+                <RowDocumentActions
+                  documentKey="salary_run_item"
+                  record={run}
+                  documentLayouts={documentLayouts}
+                  documentSettings={documentSettings}
+                  title={t('salaryRunsPage.documentTitle', { name: employeeName, period: `${String(run.period_month).padStart(2, '0')}/${run.period_year}` })}
+                  filename={`fiche_de_paie_${employeeId}_${run.period_year}_${String(run.period_month).padStart(2, '0')}`}
+                />
+              </td>
+            </tr>
+          ))}
+          {runs.length === 0 && (
+            <tr><td colSpan={5} className="py-12 text-center text-muted-color">{t('employeesPage.salaryHistory.empty')}</td></tr>
+          )}
+        </tbody>
+      </table>
     </div>
   )
 }

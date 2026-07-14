@@ -165,6 +165,55 @@ function inventoryDeltaTotal(records) {
   return records.reduce((sum, movement) => sum + asNumber(movement?.qty), 0)
 }
 
+const SALARY_RUN_STATUS_LABELS = {
+  draft: 'Brouillon',
+  finalized: 'Finalisée',
+  paid: 'Payée',
+}
+
+const LEDGER_TYPE_LABELS = {
+  prime: 'Prime',
+  avance: 'Avance sur salaire',
+  remboursement_avance: "Remboursement d'avance",
+  retenue: 'Retenue',
+  autre: 'Autre',
+}
+
+const LEAVE_TYPE_LABELS = {
+  annuel: 'Congé annuel',
+  maladie: 'Congé maladie',
+  sans_solde: 'Sans solde',
+  autre: 'Autre',
+}
+
+const LEAVE_STATUS_LABELS = {
+  pending: 'En attente',
+  approved: 'Approuvé',
+  rejected: 'Refusé',
+  taken: 'Pris',
+}
+
+function salaryRunPeriodLabel(run) {
+  const month = String(run?.period_month ?? '').padStart(2, '0')
+  return `${month}/${asText(run?.period_year)}`
+}
+
+function salaryRunStatusLabel(status) {
+  return SALARY_RUN_STATUS_LABELS[status] || asText(status)
+}
+
+function ledgerTypeLabel(type) {
+  return LEDGER_TYPE_LABELS[type] || asText(type)
+}
+
+function leaveTypeLabel(type) {
+  return LEAVE_TYPE_LABELS[type] || asText(type)
+}
+
+function leaveStatusLabel(status) {
+  return LEAVE_STATUS_LABELS[status] || asText(status)
+}
+
 export const DOCUMENT_TEMPLATE_SECTIONS = [
   {
     key: 'sales',
@@ -189,6 +238,12 @@ export const DOCUMENT_TEMPLATE_SECTIONS = [
     label: 'Finance',
     icon: 'fa-solid fa-wallet',
     description: 'Dépenses et sorties financières.',
+  },
+  {
+    key: 'hr',
+    label: 'Ressources humaines',
+    icon: 'fa-solid fa-id-card-clip',
+    description: 'Employés, paie, primes/avances et congés.',
   },
 ]
 
@@ -571,6 +626,165 @@ export const DOCUMENT_DEFINITIONS = [
     buildSummary: ({ records }) => [
       { label: 'Ajustements', value: asText(records.length, '0') },
       { label: 'Écart net', value: `${inventoryDeltaTotal(records) >= 0 ? '+' : ''}${formatQuantity(inventoryDeltaTotal(records))}` },
+    ],
+  },
+  {
+    key: 'salary_run_item',
+    label: 'Fiche de paie',
+    description: 'Bulletin de paie unitaire pour un employé et une période.',
+    scope: 'item',
+    section: 'hr',
+    title: 'Fiche de paie',
+    filename: 'fiche_de_paie',
+    orientation: 'portrait',
+    fields: [
+      field('employee_name', 'Employé', (run) => asText(run?.employee?.name), 'Employé concerné.'),
+      field('period', 'Période', (run) => salaryRunPeriodLabel(run), 'Mois et année de paie.'),
+      field('base_salary', 'Salaire de base', (run) => formatMoney(run?.base_salary), 'Salaire de base.'),
+      field('primes_total', 'Primes', (run) => formatMoney(run?.primes_total), 'Total des primes de la période.'),
+      field('avances_deducted', 'Avances déduites', (run) => formatMoney(run?.avances_deducted), 'Remboursements d’avance déduits.'),
+      field('retenues_total', 'Retenues', (run) => formatMoney(run?.retenues_total), 'Total des retenues.'),
+      field('cnss_employee_amount', 'CNSS salarié', (run) => formatMoney(run?.cnss_employee_amount), 'Cotisation CNSS part salarié (estimation).'),
+      field('cnss_employer_amount', 'CNSS employeur', (run) => formatMoney(run?.cnss_employer_amount), 'Cotisation CNSS part employeur (estimation).', { defaultEnabled: false }),
+      field('gross_pay', 'Brut', (run) => formatMoney(run?.gross_pay), 'Salaire brut.'),
+      field('net_pay', 'Net à payer', (run) => formatMoney(run?.net_pay), 'Montant net à payer.'),
+      field('status', 'Statut', (run) => salaryRunStatusLabel(run?.status), 'État de la fiche de paie.'),
+      field('paid_at', 'Payée le', (run) => run?.paid_at ? formatDate(run.paid_at) : '-', 'Date de paiement.', { defaultEnabled: false }),
+      field('note', 'Note', (run) => asText(run?.note), 'Note interne.', { defaultEnabled: false }),
+    ],
+    buildSummary: ({ record }) => [
+      { label: 'Brut', value: formatMoney(record?.gross_pay) },
+      { label: 'Net à payer', value: formatMoney(record?.net_pay) },
+    ],
+  },
+  {
+    key: 'salary_runs_list',
+    label: 'Fiches de paie - liste',
+    description: 'Fiches de paie de la période affichée, tous employés.',
+    scope: 'list',
+    section: 'hr',
+    title: 'Fiches de paie',
+    filename: 'fiches_de_paie',
+    orientation: 'landscape',
+    fields: [
+      field('employee_name', 'Employé', (run) => asText(run?.employee?.name), 'Employé.'),
+      field('period', 'Période', (run) => salaryRunPeriodLabel(run), 'Mois et année.'),
+      field('base_salary', 'Salaire de base', (run) => formatMoney(run?.base_salary), 'Salaire de base.'),
+      field('primes_total', 'Primes', (run) => formatMoney(run?.primes_total), 'Primes.'),
+      field('avances_deducted', 'Avances déduites', (run) => formatMoney(run?.avances_deducted), 'Avances déduites.'),
+      field('cnss_employee_amount', 'CNSS salarié', (run) => formatMoney(run?.cnss_employee_amount), 'CNSS salarié (estimation).'),
+      field('net_pay', 'Net à payer', (run) => formatMoney(run?.net_pay), 'Net à payer.'),
+      field('status', 'Statut', (run) => salaryRunStatusLabel(run?.status), 'État.'),
+    ],
+    buildSummary: ({ records }) => [
+      { label: 'Fiches', value: asText(records.length, '0') },
+      { label: 'Total net', value: formatMoney(records.reduce((sum, run) => sum + asNumber(run?.net_pay), 0)) },
+      { label: 'Total CNSS salarié', value: formatMoney(records.reduce((sum, run) => sum + asNumber(run?.cnss_employee_amount), 0)) },
+    ],
+  },
+  {
+    key: 'employee_transactions_list',
+    label: 'Employé - primes / avances',
+    description: 'Historique des primes, avances et retenues pour un employé.',
+    scope: 'list',
+    section: 'hr',
+    title: 'Primes et avances',
+    filename: 'employe_primes_avances',
+    orientation: 'portrait',
+    fields: [
+      field('created_at', 'Date', (entry) => formatDateTime(entry?.created_at), 'Date de la saisie.'),
+      field('type', 'Type', (entry) => ledgerTypeLabel(entry?.type), 'Type de mouvement.'),
+      field('amount', 'Montant', (entry) => formatMoney(entry?.amount), 'Montant.'),
+      field('balance_after', 'Solde avance', (entry) => formatMoney(entry?.balance_after), 'Solde d’avance après ce mouvement.'),
+      field('related_period', 'Période', (entry) => asText(entry?.related_period), 'Mois de rattachement.', { defaultEnabled: false }),
+      field('created_by_name', 'Saisi par', (entry) => asText(entry?.created_by_name), 'Utilisateur ayant saisi le mouvement.', { defaultEnabled: false }),
+      field('note', 'Note', (entry) => asText(entry?.note), 'Note.', { defaultEnabled: false }),
+    ],
+    buildSummary: ({ records }) => [
+      { label: 'Mouvements', value: asText(records.length, '0') },
+      { label: 'Solde avance actuel', value: formatMoney(records[0]?.balance_after ?? 0) },
+    ],
+  },
+  {
+    key: 'employee_leaves_list',
+    label: 'Employé - congés',
+    description: 'Historique des congés pour un employé.',
+    scope: 'list',
+    section: 'hr',
+    title: 'Congés',
+    filename: 'employe_conges',
+    orientation: 'portrait',
+    fields: [
+      field('type', 'Type', (leave) => leaveTypeLabel(leave?.type), 'Type de congé.'),
+      field('date_start', 'Du', (leave) => formatDate(leave?.date_start), 'Date de début.'),
+      field('date_end', 'Au', (leave) => formatDate(leave?.date_end), 'Date de fin.'),
+      field('days_count', 'Jours', (leave) => formatQuantity(leave?.days_count), 'Nombre de jours.'),
+      field('status', 'Statut', (leave) => leaveStatusLabel(leave?.status), 'État de la demande.'),
+      field('note', 'Note', (leave) => asText(leave?.note), 'Note.', { defaultEnabled: false }),
+    ],
+    buildSummary: ({ records }) => [
+      { label: 'Congés', value: asText(records.length, '0') },
+      { label: 'Jours pris', value: formatQuantity(records.filter((leave) => ['approved', 'taken'].includes(leave?.status)).reduce((sum, leave) => sum + asNumber(leave?.days_count), 0)) },
+    ],
+  },
+  {
+    key: 'supervisor_report_item',
+    label: 'Rapport superviseur',
+    description: 'Rapport consolidé : ventes, produits, commerciaux, créances et stock sur une période.',
+    scope: 'item',
+    section: 'operations',
+    title: 'Rapport de gestion',
+    filename: 'rapport_superviseur',
+    orientation: 'portrait',
+    fields: [
+      field('period_label', 'Période', (report) => asText(report?.period_label), 'Période couverte par le rapport.'),
+      field('revenue', 'Chiffre d’affaires', (report) => formatMoney(report?.revenue), 'Chiffre d’affaires sur la période.'),
+      field('profit', 'Bénéfice', (report) => formatMoney(report?.profit), 'Bénéfice sur la période.'),
+      field('expenses', 'Dépenses', (report) => formatMoney(report?.expenses), 'Dépenses sur la période.'),
+      field('credit_outstanding', 'Créances en cours', (report) => formatMoney(report?.credit_outstanding), 'Total des créances clients en cours.'),
+      field('stock_value', 'Valeur du stock', (report) => formatMoney(report?.stock_value), 'Valeur totale du stock.'),
+      field('low_stock_count', 'Références en stock bas', (report) => asText(report?.low_stock_count), 'Nombre de références sous le seuil minimum.'),
+    ],
+    buildSummary: ({ record }) => [
+      { label: 'Chiffre d’affaires', value: formatMoney(record?.revenue) },
+      { label: 'Bénéfice', value: formatMoney(record?.profit) },
+    ],
+    buildSections: ({ record }) => [
+      {
+        kind: 'table',
+        title: 'Ventes par canal',
+        columns: ['Canal', 'Chiffre d’affaires'],
+        rows: (record?.by_channel ?? []).map((row) => [asText(row.label), formatMoney(row.revenue)]),
+        emptyMessage: 'Aucune vente sur la période.',
+      },
+      {
+        kind: 'table',
+        title: 'Top produits',
+        columns: ['Produit', 'Qté vendue', 'Chiffre d’affaires'],
+        rows: (record?.by_product ?? []).map((row) => [asText(row.product_name), formatQuantity(row.qty_sold), formatMoney(row.revenue)]),
+        emptyMessage: 'Aucune donnée produit sur la période.',
+      },
+      {
+        kind: 'table',
+        title: 'Performance des commerciaux',
+        columns: ['Commercial', 'Chiffre d’affaires', 'Marge'],
+        rows: (record?.by_rep ?? []).map((row) => [asText(row.rep_name), formatMoney(row.revenue), `${formatQuantity(row.margin_pct)}%`]),
+        emptyMessage: 'Aucune donnée commerciale sur la période.',
+      },
+      {
+        kind: 'table',
+        title: 'Principales créances clients',
+        columns: ['Client', 'Montant dû'],
+        rows: (record?.top_debtors ?? []).map((row) => [asText(row.customer_name), formatMoney(row.total_due)]),
+        emptyMessage: 'Aucune créance en cours.',
+      },
+      {
+        kind: 'table',
+        title: 'Stock par dépôt',
+        columns: ['Dépôt', 'Quantité', 'Valeur'],
+        rows: (record?.by_depot ?? []).map((row) => [asText(row.depot_name), formatQuantity(row.total_qty), formatMoney(row.total_value)]),
+        emptyMessage: 'Aucune donnée de stock.',
+      },
     ],
   },
 ]

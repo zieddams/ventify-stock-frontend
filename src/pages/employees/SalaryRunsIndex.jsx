@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import FormField from '../../components/FormField'
+import Modal from '../../components/Modal'
+import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
+import RowDocumentActions from '../../components/RowDocumentActions'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
 import { useI18n } from '../../contexts/I18nContext'
+import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 import { formatCurrency } from '../../utils/format'
 
@@ -15,6 +19,7 @@ export default function SalaryRunsIndex() {
   const navigate = useNavigate()
   const { user: me } = useAuth()
   const canManage = me?.role === 'admin' || me?.role === 'developer'
+  const { layouts: documentLayouts, documentSettings } = useDocumentLayouts()
 
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
@@ -23,6 +28,7 @@ export default function SalaryRunsIndex() {
   const [generating, setGenerating] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [editForm, setEditForm] = useState({})
+  const [detailRun, setDetailRun] = useState(null)
 
   const load = () => {
     setLoading(true)
@@ -85,7 +91,7 @@ export default function SalaryRunsIndex() {
         title={t('salaryRunsPage.title')}
         subtitle={t('salaryRunsPage.subtitle', { total: formatCurrency(totalNet) })}
         action={(
-          <div className="flex items-end gap-2">
+          <div className="flex flex-wrap items-end justify-end gap-2">
             <FormField label={t('salaryRunsPage.year')}>
               <input type="number" value={year} onChange={(event) => setYear(Number(event.target.value))} style={{ width: 100 }} />
             </FormField>
@@ -101,6 +107,14 @@ export default function SalaryRunsIndex() {
                 {generating ? <><i className="fa-solid fa-spinner fa-spin" /> {t('salaryRunsPage.generating')}</> : t('salaryRunsPage.generate')}
               </button>
             )}
+            <PageExportActions
+              title={t('salaryRunsPage.title')}
+              subtitle={`${String(month).padStart(2, '0')}/${year}`}
+              documentKey="salary_runs_list"
+              records={runs}
+              documentLayouts={documentLayouts}
+              documentSettings={documentSettings}
+            />
           </div>
         )}
       />
@@ -160,22 +174,35 @@ export default function SalaryRunsIndex() {
                         </span>
                       </td>
                       <td className="py-3">
-                        {canManage && isDraft && (
-                          isEditing ? (
-                            <div className="flex gap-2">
-                              <button onClick={() => saveEdit(run)} className="text-xs font-medium text-emerald-600">{t('common.save')}</button>
-                              <button onClick={() => setEditingId(null)} className="text-xs font-medium text-muted-color">{t('common.cancel')}</button>
-                            </div>
-                          ) : (
-                            <div className="flex gap-3">
-                              <button onClick={() => startEdit(run)} className="text-xs font-medium" style={{ color: '#0d9488' }}>{t('common.edit')}</button>
-                              <button onClick={() => finalize(run)} className="text-xs font-medium text-blue-600">{t('salaryRunsPage.finalize')}</button>
-                            </div>
-                          )
-                        )}
-                        {canManage && run.status === 'finalized' && (
-                          <button onClick={() => markPaid(run)} className="text-xs font-medium text-emerald-600">{t('salaryRunsPage.markPaid')}</button>
-                        )}
+                        <div className="flex items-center gap-3">
+                          <button onClick={() => setDetailRun(run)} className="text-xs font-medium text-muted-color hover:text-base-color">
+                            {t('salaryRunsPage.viewDetails')}
+                          </button>
+                          {canManage && isDraft && (
+                            isEditing ? (
+                              <div className="flex gap-2">
+                                <button onClick={() => saveEdit(run)} className="text-xs font-medium text-emerald-600">{t('common.save')}</button>
+                                <button onClick={() => setEditingId(null)} className="text-xs font-medium text-muted-color">{t('common.cancel')}</button>
+                              </div>
+                            ) : (
+                              <div className="flex gap-3">
+                                <button onClick={() => startEdit(run)} className="text-xs font-medium" style={{ color: '#0d9488' }}>{t('common.edit')}</button>
+                                <button onClick={() => finalize(run)} className="text-xs font-medium text-blue-600">{t('salaryRunsPage.finalize')}</button>
+                              </div>
+                            )
+                          )}
+                          {canManage && run.status === 'finalized' && (
+                            <button onClick={() => markPaid(run)} className="text-xs font-medium text-emerald-600">{t('salaryRunsPage.markPaid')}</button>
+                          )}
+                          <RowDocumentActions
+                            documentKey="salary_run_item"
+                            record={run}
+                            documentLayouts={documentLayouts}
+                            documentSettings={documentSettings}
+                            title={t('salaryRunsPage.documentTitle', { name: run.employee?.name, period: `${String(run.period_month).padStart(2, '0')}/${run.period_year}` })}
+                            filename={`fiche_de_paie_${run.employee_user_id}_${run.period_year}_${String(run.period_month).padStart(2, '0')}`}
+                          />
+                        </div>
                       </td>
                     </tr>
                   )
@@ -188,6 +215,45 @@ export default function SalaryRunsIndex() {
           </div>
         </div>
       )}
+
+      <Modal
+        open={Boolean(detailRun)}
+        onClose={() => setDetailRun(null)}
+        title={detailRun ? t('salaryRunsPage.documentTitle', { name: detailRun.employee?.name, period: `${String(detailRun.period_month).padStart(2, '0')}/${detailRun.period_year}` }) : ''}
+      >
+        {detailRun && (
+          <div className="space-y-3">
+            {[
+              [t('salaryRunsPage.columns.baseSalary'), formatCurrency(detailRun.base_salary)],
+              [t('salaryRunsPage.columns.primes'), formatCurrency(detailRun.primes_total)],
+              [t('salaryRunsPage.columns.avances'), formatCurrency(detailRun.avances_deducted)],
+              [t('salaryRunsPage.detail.retenues'), formatCurrency(detailRun.retenues_total)],
+              [t('salaryRunsPage.columns.cnss'), formatCurrency(detailRun.cnss_employee_amount)],
+              [t('salaryRunsPage.detail.cnssEmployer'), formatCurrency(detailRun.cnss_employer_amount)],
+              [t('salaryRunsPage.detail.grossPay'), formatCurrency(detailRun.gross_pay)],
+              [t('salaryRunsPage.columns.netPay'), formatCurrency(detailRun.net_pay)],
+              [t('salaryRunsPage.columns.status'), t(`salaryRunsPage.statuses.${detailRun.status}`)],
+              ...(detailRun.paid_at ? [[t('salaryRunsPage.detail.paidAt'), new Date(detailRun.paid_at).toLocaleDateString('fr-FR')]] : []),
+              ...(detailRun.note ? [[t('salaryRunsPage.detail.note'), detailRun.note]] : []),
+            ].map(([label, value]) => (
+              <div key={label} className="flex items-center justify-between py-2" style={{ borderBottom: '1px solid var(--border)' }}>
+                <span className="text-sm text-secondary-color">{label}</span>
+                <span className="text-sm font-semibold text-base-color">{value}</span>
+              </div>
+            ))}
+            <div className="flex justify-end pt-2">
+              <RowDocumentActions
+                documentKey="salary_run_item"
+                record={detailRun}
+                documentLayouts={documentLayouts}
+                documentSettings={documentSettings}
+                title={t('salaryRunsPage.documentTitle', { name: detailRun.employee?.name, period: `${String(detailRun.period_month).padStart(2, '0')}/${detailRun.period_year}` })}
+                filename={`fiche_de_paie_${detailRun.employee_user_id}_${detailRun.period_year}_${String(detailRun.period_month).padStart(2, '0')}`}
+              />
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
