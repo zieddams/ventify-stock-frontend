@@ -23,6 +23,8 @@ const CORE_NAV = [
 const FINANCE_NAV = [
   { to: '/credit', icon: 'fa-solid fa-credit-card', labelKey: 'layout.nav.credit' },
   { to: '/expenses', icon: 'fa-solid fa-receipt', labelKey: 'layout.nav.expenses' },
+  { to: '/employees', icon: 'fa-solid fa-id-card-clip', labelKey: 'layout.nav.employees' },
+  { to: '/salary-runs', icon: 'fa-solid fa-money-check-dollar', labelKey: 'layout.nav.salaryRuns' },
 ]
 
 const OPERATIONS_NAV = [
@@ -65,6 +67,8 @@ const PAGE_TITLES = {
   '/camions': { labelKey: 'layout.nav.camions', icon: 'fa-solid fa-truck' },
   '/reports': { labelKey: 'layout.nav.reports', icon: 'fa-solid fa-chart-line' },
   '/users': { labelKey: 'layout.nav.users', icon: 'fa-solid fa-user-gear' },
+  '/employees': { labelKey: 'layout.nav.employees', icon: 'fa-solid fa-id-card-clip' },
+  '/salary-runs': { labelKey: 'layout.nav.salaryRuns', icon: 'fa-solid fa-money-check-dollar' },
   '/zones': { labelKey: 'layout.nav.zones', icon: 'fa-solid fa-map-location-dot' },
   '/config': { labelKey: 'layout.nav.config', icon: 'fa-solid fa-sliders' },
   '/map': { labelKey: 'layout.nav.map', icon: 'fa-solid fa-map-location-dot' },

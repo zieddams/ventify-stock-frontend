@@ -26,6 +26,9 @@ import SupervisorDashboard from './pages/supervisor/SupervisorDashboard'
 import CamionsIndex from './pages/camions/CamionsIndex'
 import ReportsIndex from './pages/reports/ReportsIndex'
 import UsersIndex from './pages/users/UsersIndex'
+import EmployeesIndex from './pages/employees/EmployeesIndex'
+import EmployeeDetail from './pages/employees/EmployeeDetail'
+import SalaryRunsIndex from './pages/employees/SalaryRunsIndex'
 import ZonesIndex from './pages/zones/ZonesIndex'
 import CreditIndex from './pages/credit/CreditIndex'
 import ConfigIndex from './pages/config/ConfigIndex'
@@ -250,6 +253,9 @@ export default function App() {
                 <Route path="zones" element={<RequireAdmin><ZonesIndex /></RequireAdmin>} />
                 <Route path="credit"    element={<RequireFinance><CreditIndex /></RequireFinance>} />
                 <Route path="expenses"  element={<RequireFinance><ExpensesIndex /></RequireFinance>} />
+                <Route path="employees" element={<RequireFinance><EmployeesIndex /></RequireFinance>} />
+                <Route path="employees/:employeeId" element={<RequireFinance><EmployeeDetail /></RequireFinance>} />
+                <Route path="salary-runs" element={<RequireFinance><SalaryRunsIndex /></RequireFinance>} />
                 <Route path="routes"    element={<RequireAdmin><RouteSessionsIndex /></RequireAdmin>} />
                 <Route path="config"    element={<RequireAdmin><ConfigIndex /></RequireAdmin>} />
                 <Route path="config/:sectionKey" element={<RequireAdmin><ConfigIndex /></RequireAdmin>} />
