@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
 import { PageLoader } from '../../components/Spinner'
+import MovementsPanel from '../../components/stock/MovementsPanel'
 import { useI18n } from '../../contexts/I18nContext'
 import api from '../../services/api'
 import { formatNumber } from '../../utils/format'
@@ -32,7 +34,9 @@ function buildTransferForm() {
 export default function PosManagementIndex() {
   const { t } = useI18n()
   const notAvailable = t('common.notAvailable')
+  const navigate = useNavigate()
 
+  const [movementsModal, setMovementsModal] = useState(null)
   const [posDepots, setPosDepots] = useState([])
   const [warehouses, setWarehouses] = useState([])
   const [staffByDepot, setStaffByDepot] = useState({})
@@ -326,6 +330,12 @@ export default function PosManagementIndex() {
                   {depot.address && <div className="text-xs text-secondary-color mt-2">{depot.address}</div>}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap justify-end">
+                  <button onClick={() => setMovementsModal(depot)} className="btn-secondary text-xs" title={t('posManagementPage.titles.movements')}>
+                    <i className="fa-solid fa-arrows-up-down" /> {t('posManagementPage.actions.movements')}
+                  </button>
+                  <button onClick={() => navigate(`/points-de-vente/${depot.id}/inventory`, { state: { depotName: depot.name } })} className="btn-secondary text-xs" title={t('posManagementPage.titles.inventory')}>
+                    <i className="fa-solid fa-clipboard-check" /> {t('posManagementPage.actions.inventory')}
+                  </button>
                   <button onClick={() => openTransfer(depot)} className="btn-secondary text-xs" title={t('posManagementPage.titles.transfer')}>
                     <i className="fa-solid fa-truck-ramp-box" /> {t('posManagementPage.actions.transfer')}
                   </button>
@@ -580,6 +590,15 @@ export default function PosManagementIndex() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(movementsModal)}
+        onClose={() => setMovementsModal(null)}
+        title={t('posManagementPage.movementsModal.title', { name: movementsModal?.name ?? '' })}
+        size="xl"
+      >
+        {movementsModal && <MovementsPanel depotId={movementsModal.id} />}
       </Modal>
     </div>
   )

@@ -1,28 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
+import MovementsPanel from '../../components/stock/MovementsPanel'
 import { PageLoader } from '../../components/Spinner'
 import { useI18n } from '../../contexts/I18nContext'
 import api from '../../services/api'
-import { formatDateTime, formatNumber } from '../../utils/format'
-
-function movementTypeLabel(t, type) {
-  const labels = {
-    depot_in: t('reportsPage.movements.types.depot_in'),
-    depot_to_camion: t('reportsPage.movements.types.depot_to_camion'),
-    camion_to_customer: t('reportsPage.movements.types.camion_to_customer'),
-    return: t('reportsPage.movements.types.return'),
-    adjustment: t('reportsPage.movements.types.adjustment'),
-    transfer_out: t('reportsPage.movements.types.transfer_out'),
-    transfer_in: t('reportsPage.movements.types.transfer_in'),
-  }
-
-  return labels[type] ?? type
-}
+import { formatNumber } from '../../utils/format'
 
 export default function PosStockIndex() {
   const { t } = useI18n()
   const notAvailable = t('common.notAvailable')
   const [stock, setStock] = useState([])
-  const [movements, setMovements] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState('stock')
@@ -30,17 +16,12 @@ export default function PosStockIndex() {
   useEffect(() => {
     let cancelled = false
 
-    Promise.all([
-      api.get('/depot'),
-      api.get('/depot/movements', { params: { per_page: 30 } }),
-    ]).then(([stockResponse, movementsResponse]) => {
+    api.get('/depot').then((stockResponse) => {
       if (cancelled) {
         return
       }
 
       setStock(Array.isArray(stockResponse.data) ? stockResponse.data : [])
-      const payload = movementsResponse.data
-      setMovements(Array.isArray(payload) ? payload : (payload?.data ?? []))
     }).finally(() => {
       if (!cancelled) {
         setLoading(false)
@@ -172,43 +153,7 @@ export default function PosStockIndex() {
 
       {tab === 'movements' && (
         <div className="card">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left" style={{ borderBottom: '1px solid var(--border)' }}>
-                  {[
-                    t('posWorkspace.stock.movementsTable.type'),
-                    t('posWorkspace.stock.movementsTable.product'),
-                    t('posWorkspace.stock.movementsTable.qty'),
-                    t('posWorkspace.stock.movementsTable.dateTime'),
-                  ].map((heading) => (
-                    <th key={heading} className="pb-3 pr-4 text-xs font-semibold text-muted-color uppercase tracking-wider">{heading}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {movements.map((movement) => {
-                  const quantity = Number(movement.qty ?? 0)
-
-                  return (
-                    <tr key={movement.id} className="table-row">
-                      <td className="py-3 pr-4 text-xs text-secondary-color">{movementTypeLabel(t, movement.type)}</td>
-                      <td className="py-3 pr-4 font-medium text-base-color">{movement.product?.name ?? notAvailable}</td>
-                      <td className="py-3 pr-4 font-bold font-mono text-sm" style={{ color: quantity >= 0 ? '#10b981' : '#ef4444' }}>
-                        {quantity >= 0 ? '+' : '-'}{formatNumber(Math.abs(quantity))}
-                      </td>
-                      <td className="py-3 text-muted-color text-xs">{movement.created_at ? formatDateTime(movement.created_at) : notAvailable}</td>
-                    </tr>
-                  )
-                })}
-                {movements.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="py-10 text-center text-muted-color">{t('posWorkspace.stock.emptyMovements')}</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <MovementsPanel />
         </div>
       )}
     </div>

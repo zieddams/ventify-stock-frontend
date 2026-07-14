@@ -2059,6 +2059,7 @@ export default {
         adjustment: 'Ajustement',
         transfer_out: 'Transfert sortant',
         transfer_in: 'Transfert entrant',
+        camion_to_pos: 'Camion vers point de vente',
       },
     },
   },
@@ -2189,6 +2190,8 @@ export default {
     actions: {
       transfer: 'Transférer',
       assignManager: 'Gérant',
+      movements: 'Mouvements',
+      inventory: 'Inventaire',
     },
     titles: {
       edit: 'Modifier ce point de vente',
@@ -2196,6 +2199,8 @@ export default {
       transfer: 'Transférer du stock vers ce point de vente',
       assignManager: 'Créer un compte gérant pour ce point de vente',
       removeStaff: 'Retirer ce compte',
+      movements: "Voir l'historique des mouvements de ce point de vente",
+      inventory: "Faire l'inventaire de ce point de vente",
     },
     alerts: {
       deleteConfirm: ({ name }) => `Supprimer le point de vente ${name} ? Cette action reste bloquée si le point de vente contient encore du stock, des clients ou un historique lié.`,
@@ -2262,6 +2267,9 @@ export default {
     assignManagerModal: {
       title: ({ name }) => `Créer un compte gérant pour ${name}`,
     },
+    movementsModal: {
+      title: ({ name }) => `Mouvements - ${name}`,
+    },
   },
   posWorkspace: {
     badge: 'Espace point de vente',
@@ -2272,6 +2280,7 @@ export default {
       invoices: 'Ventes',
       customers: 'Clients',
       stock: 'Stock',
+      inventory: 'Inventaire',
     },
     dashboard: {
       title: ({ name }) => `Bonjour${name ? ` - ${name}` : ''}`,

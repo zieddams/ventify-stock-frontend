@@ -20,6 +20,7 @@ const POS_NAV = [
   { to: '/invoices', icon: 'fa-solid fa-file-invoice', labelKey: 'posWorkspace.nav.invoices' },
   { to: '/customers', icon: 'fa-solid fa-users', labelKey: 'posWorkspace.nav.customers' },
   { to: '/pos/stock', icon: 'fa-solid fa-boxes-stacked', labelKey: 'posWorkspace.nav.stock' },
+  { to: '/pos/inventory', icon: 'fa-solid fa-clipboard-check', labelKey: 'posWorkspace.nav.inventory' },
 ]
 
 // Plain-prefix matching breaks down twice over in this nav: "/invoices" is a

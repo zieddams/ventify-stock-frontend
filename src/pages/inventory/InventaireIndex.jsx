@@ -17,7 +17,7 @@ function fmt(value, fallback = '-') {
   return value != null ? formatNumber(value) : fallback
 }
 
-export default function InventaireIndex() {
+export default function InventaireIndex({ depotId: forcedDepotId = null, depotName: forcedDepotName = null }) {
   const { t } = useI18n()
   const notAvailable = t('common.notAvailable')
   const { layouts: documentLayouts } = useDocumentLayouts()
@@ -25,15 +25,29 @@ export default function InventaireIndex() {
     depots,
     selectedValue: selectedDepotValue,
     setSelectedValue: setSelectedDepotValue,
-    selectedDepotId,
-    selectedDepot,
-    canBrowseAll,
-    scopeParams,
-    ready: depotsReady,
+    selectedDepotId: hookSelectedDepotId,
+    selectedDepot: hookSelectedDepot,
+    canBrowseAll: hookCanBrowseAll,
+    scopeParams: hookScopeParams,
+    ready: hookDepotsReady,
   } = useDepots({
     allowAll: false,
     storageKey: 'app-depot-scope',
+    // Skip fetching/reacting to the shared depot list entirely when a specific
+    // depot is forced (admin viewing one POS from the Points de vente list) -
+    // this page must not read or overwrite the sidebar's own depot scope in
+    // that case, same reasoning DepotIndex uses its own storage key for.
+    enabled: !forcedDepotId,
   })
+
+  // Forced mode (an explicit depotId prop) bypasses the shared depot-scope
+  // hook's selection entirely rather than just pre-selecting it, so this page
+  // never reads from or writes to the sidebar's shared "app-depot-scope" key.
+  const selectedDepotId = forcedDepotId ?? hookSelectedDepotId
+  const selectedDepot = forcedDepotId ? null : hookSelectedDepot
+  const canBrowseAll = forcedDepotId ? false : hookCanBrowseAll
+  const scopeParams = forcedDepotId ? { depot_id: forcedDepotId } : hookScopeParams
+  const depotsReady = forcedDepotId ? true : hookDepotsReady
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [counts, setCounts] = useState({})
@@ -253,7 +267,9 @@ export default function InventaireIndex() {
     return <PageLoader />
   }
 
-  const depotSuffix = selectedDepot ? ` | ${t('inventory.selectedDepot', { name: selectedDepot.name })}` : ''
+  const depotSuffix = selectedDepot
+    ? ` | ${t('inventory.selectedDepot', { name: selectedDepot.name })}`
+    : (forcedDepotName ? ` | ${t('inventory.selectedDepot', { name: forcedDepotName })}` : '')
 
   return (
     <div>

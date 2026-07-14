@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { I18nProvider, useI18n } from './contexts/I18nContext'
 import { usePosSession } from './contexts/PosSessionContext'
@@ -85,6 +85,16 @@ function RequirePosWorkspace({ children }) {
   if (!user) return <Navigate to="/login" replace />
   if (!isPosWorkspace()) return <Navigate to="/" replace />
   return children
+}
+
+// Admin viewing Inventaire for one specific POS from the Points de vente list.
+// depotName travels via navigate(..., { state }) for the nicer subtitle; a
+// direct URL/refresh still works correctly (just without the name) since
+// InventaireIndex only needs the id to scope every request.
+function PosDepotInventoryRoute() {
+  const { depotId } = useParams()
+  const location = useLocation()
+  return <InventaireIndex depotId={Number(depotId)} depotName={location.state?.depotName ?? null} />
 }
 
 // Only the pos role has a "sell" hard-gate - every other role renders
@@ -212,6 +222,7 @@ export default function App() {
                 <Route path="elements" element={<RequireDeveloperWorkspace><DeveloperElementsIndex /></RequireDeveloperWorkspace>} />
                 <Route path="pos" element={<RequirePosWorkspace><PosDashboard /></RequirePosWorkspace>} />
                 <Route path="pos/stock" element={<RequirePosWorkspace><PosStockIndex /></RequirePosWorkspace>} />
+                <Route path="pos/inventory" element={<RequirePosWorkspace><InventaireIndex /></RequirePosWorkspace>} />
                 <Route path="products" element={<RequireBusinessWorkspace><ProductsIndex /></RequireBusinessWorkspace>} />
                 <Route path="customers" element={<RequireBusinessWorkspace><CustomersIndex /></RequireBusinessWorkspace>} />
                 <Route path="invoices" element={<RequireBusinessWorkspace><InvoicesIndex /></RequireBusinessWorkspace>} />
@@ -219,6 +230,7 @@ export default function App() {
                 <Route path="invoices/:id" element={<RequireBusinessWorkspace><InvoiceShow /></RequireBusinessWorkspace>} />
                 <Route path="depot" element={<RequireAdmin><DepotIndex /></RequireAdmin>} />
                 <Route path="points-de-vente" element={<RequireAdmin><PosManagementIndex /></RequireAdmin>} />
+                <Route path="points-de-vente/:depotId/inventory" element={<RequireAdmin><PosDepotInventoryRoute /></RequireAdmin>} />
                 <Route path="camions" element={<RequireAdmin><CamionsIndex /></RequireAdmin>} />
                 <Route path="reports" element={<RequireAdmin><ReportsIndex /></RequireAdmin>} />
                 <Route path="users" element={<RequireAdmin><UsersIndex /></RequireAdmin>} />

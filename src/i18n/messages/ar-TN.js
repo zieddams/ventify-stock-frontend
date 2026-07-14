@@ -2058,6 +2058,7 @@ export default {
         adjustment: 'تعديل',
         transfer_out: 'تحويل صادر',
         transfer_in: 'تحويل وارد',
+        camion_to_pos: 'من الشاحنة للبيع بالتفصيل',
       },
     },
   },
@@ -2188,6 +2189,8 @@ export default {
     actions: {
       transfer: 'حوّل',
       assignManager: 'المدير',
+      movements: 'الحركات',
+      inventory: 'الجرد',
     },
     titles: {
       edit: 'عدّل نقطة البيع هذي',
@@ -2195,6 +2198,8 @@ export default {
       transfer: 'حوّل ستوك لنقطة البيع هذي',
       assignManager: 'أعمل حساب مدير لنقطة البيع هذي',
       removeStaff: 'أحذف الحساب هذا',
+      movements: 'شوف تاريخ حركات نقطة البيع هذي',
+      inventory: 'أعمل الجرد لنقطة البيع هذي',
     },
     alerts: {
       deleteConfirm: ({ name }) => `تحذف نقطة البيع ${name}؟ الإجراء هذا يبقى محظور إذا نقطة البيع مازال فيها ستوك ولا حرفاء ولا تاريخ مربوط بيها.`,
@@ -2261,6 +2266,9 @@ export default {
     assignManagerModal: {
       title: ({ name }) => `أعمل حساب مدير لـ ${name}`,
     },
+    movementsModal: {
+      title: ({ name }) => `حركات - ${name}`,
+    },
   },
   posWorkspace: {
     badge: 'فضاء نقطة البيع',
@@ -2271,6 +2279,7 @@ export default {
       invoices: 'المبيعات',
       customers: 'الحرفاء',
       stock: 'الستوك',
+      inventory: 'الجرد',
     },
     dashboard: {
       title: ({ name }) => `أهلا${name ? ` - ${name}` : ''}`,
