@@ -22,6 +22,7 @@ import DepotIndex from './pages/depot/DepotIndex'
 import PosManagementIndex from './pages/pos/PosManagementIndex'
 import PosDashboard from './pages/pos/PosDashboard'
 import PosStockIndex from './pages/pos/PosStockIndex'
+import SupervisorDashboard from './pages/supervisor/SupervisorDashboard'
 import CamionsIndex from './pages/camions/CamionsIndex'
 import ReportsIndex from './pages/reports/ReportsIndex'
 import UsersIndex from './pages/users/UsersIndex'
@@ -77,6 +78,13 @@ function RequireDeveloperWorkspace({ children }) {
   const { user, isDeveloperWorkspace } = useAuth()
   if (!user) return <Navigate to="/login" replace />
   if (!isDeveloperWorkspace()) return <Navigate to="/" replace />
+  return children
+}
+
+function RequireSupervisor({ children }) {
+  const { user, isSupervisor } = useAuth()
+  if (!user) return <Navigate to="/login" replace />
+  if (!isSupervisor()) return <Navigate to="/" replace />
   return children
 }
 
@@ -176,7 +184,7 @@ function PublicOnly({ children }) {
 }
 
 function HomeIndex() {
-  const { isDeveloperWorkspace, isPosWorkspace } = useAuth()
+  const { isDeveloperWorkspace, isPosWorkspace, isSupervisor } = useAuth()
 
   if (isDeveloperWorkspace()) {
     return <Navigate to="/developer" replace />
@@ -184,6 +192,10 @@ function HomeIndex() {
 
   if (isPosWorkspace()) {
     return <Navigate to="/pos" replace />
+  }
+
+  if (isSupervisor()) {
+    return <Navigate to="/supervisor" replace />
   }
 
   return <Dashboard />
@@ -223,6 +235,7 @@ export default function App() {
                 <Route path="pos" element={<RequirePosWorkspace><PosDashboard /></RequirePosWorkspace>} />
                 <Route path="pos/stock" element={<RequirePosWorkspace><PosStockIndex /></RequirePosWorkspace>} />
                 <Route path="pos/inventory" element={<RequirePosWorkspace><InventaireIndex /></RequirePosWorkspace>} />
+                <Route path="supervisor" element={<RequireSupervisor><SupervisorDashboard /></RequireSupervisor>} />
                 <Route path="products" element={<RequireBusinessWorkspace><ProductsIndex /></RequireBusinessWorkspace>} />
                 <Route path="customers" element={<RequireBusinessWorkspace><CustomersIndex /></RequireBusinessWorkspace>} />
                 <Route path="invoices" element={<RequireBusinessWorkspace><InvoicesIndex /></RequireBusinessWorkspace>} />

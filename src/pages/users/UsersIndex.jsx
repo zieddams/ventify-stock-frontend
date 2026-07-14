@@ -66,8 +66,8 @@ export default function UsersIndex() {
   const isDeveloperUser = me?.role === 'developer'
   const canChooseDepot = ['admin', 'developer'].includes(me?.role)
   const availableRoleOptions = isDeveloperUser
-    ? ['rep', 'comptable', 'admin', 'pos', 'developer']
-    : ['rep', 'comptable', 'admin', 'pos']
+    ? ['rep', 'comptable', 'admin', 'pos', 'supervisor', 'developer']
+    : ['rep', 'comptable', 'admin', 'pos', 'supervisor']
   const showDepotColumn = canChooseDepot
   const totalAssignedCustomers = users.reduce((sum, entry) => sum + Number(entry.customers_count ?? 0), 0)
 

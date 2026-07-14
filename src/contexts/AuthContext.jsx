@@ -198,10 +198,14 @@ export function AuthProvider({ children }) {
   const isAdmin = () => user?.role === 'admin'
   const isPos = () => user?.role === 'pos'
   const isPosWorkspace = () => user?.role === 'pos'
+  const isSupervisor = () => user?.role === 'supervisor'
   const isFinance = () => ['admin', 'comptable'].includes(user?.role)
-  const canManageAllCustomers = () => ['admin', 'comptable'].includes(user?.role)
+  const canManageAllCustomers = () => ['admin', 'comptable', 'supervisor'].includes(user?.role)
   const canManageMultiDepot = () => user?.role === 'developer'
-  const canBrowseCompanyDepots = () => ['admin', 'developer'].includes(user?.role)
+  // Mirrors UserRole::canBrowseCompanyDepots() on the backend - read-scoping only in
+  // practice (see that method's docblock): supervisor never reaches any route gated
+  // RequireAdmin, so this can't grant them depot CRUD despite the shared name.
+  const canBrowseCompanyDepots = () => ['admin', 'developer', 'supervisor'].includes(user?.role)
   const canLaunchCompanySessions = () => user?.auth_context?.can_launch_company_sessions === true
 
   useEffect(() => {
@@ -247,6 +251,7 @@ export function AuthProvider({ children }) {
         isAdmin,
         isPos,
         isPosWorkspace,
+        isSupervisor,
         isFinance,
         canManageAllCustomers,
         canManageMultiDepot,
