@@ -1936,6 +1936,7 @@ export default {
     profileComplete: 'Dossier RH créé',
     profileMissing: 'Aucun dossier RH',
     empty: 'Aucun employé pour le moment.',
+    profileDocumentTitle: ({ name }) => `Fiche employé - ${name}`,
     actions: {
       open: 'Ouvrir le dossier',
     },

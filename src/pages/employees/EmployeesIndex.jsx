@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
+import RowDocumentActions from '../../components/RowDocumentActions'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
 import { useI18n } from '../../contexts/I18nContext'
+import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 import { formatCurrency, formatDate } from '../../utils/format'
 
@@ -14,6 +17,7 @@ export default function EmployeesIndex() {
   const canViewPayroll = ['admin', 'developer', 'comptable'].includes(me?.role)
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
+  const { layouts: documentLayouts, documentSettings } = useDocumentLayouts()
 
   useEffect(() => {
     let active = true
@@ -36,6 +40,15 @@ export default function EmployeesIndex() {
       <PageHeader
         title={t('employeesPage.title')}
         subtitle={t('employeesPage.subtitle', { count: employees.length })}
+        action={(
+          <PageExportActions
+            title={t('employeesPage.title')}
+            documentKey="employees_list"
+            records={employees}
+            documentLayouts={documentLayouts}
+            documentSettings={documentSettings}
+          />
+        )}
       />
 
       <div className="card">
@@ -91,13 +104,23 @@ export default function EmployeesIndex() {
                     )}
                   </td>
                   <td className="py-3">
-                    <button
-                      onClick={() => navigate(`/employees/${entry.id}`)}
-                      className="text-xs font-medium"
-                      style={{ color: '#0d9488' }}
-                    >
-                      <i className="fa-solid fa-id-card mr-1" /> {t('employeesPage.actions.open')}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => navigate(`/employees/${entry.id}`)}
+                        className="text-xs font-medium"
+                        style={{ color: '#0d9488' }}
+                      >
+                        <i className="fa-solid fa-id-card mr-1" /> {t('employeesPage.actions.open')}
+                      </button>
+                      <RowDocumentActions
+                        documentKey="employee_profile_item"
+                        record={entry}
+                        documentLayouts={documentLayouts}
+                        documentSettings={documentSettings}
+                        title={t('employeesPage.profileDocumentTitle', { name: entry.name })}
+                        filename={`fiche_employe_${entry.id}`}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}

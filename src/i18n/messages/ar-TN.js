@@ -1936,6 +1936,7 @@ export default {
     profileComplete: 'الملف موجود',
     profileMissing: 'ما فماش ملف باعد',
     empty: 'ما فما حتى موظف لتوّة.',
+    profileDocumentTitle: ({ name }) => `ملف الموظف - ${name}`,
     actions: {
       open: 'حل الملف',
     },

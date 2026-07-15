@@ -102,28 +102,44 @@ function RailDivider({ expanded = false }) {
   return <div className={`rail-divider${expanded ? ' expanded' : ''}`} />
 }
 
-function RailSectionTitle({ children }) {
-  return <div className="rail-section-title">{children}</div>
+function readStoredGroupOpen(storageKey) {
+  if (!storageKey || typeof window === 'undefined') {
+    return false
+  }
+
+  try {
+    return window.localStorage.getItem(storageKey) === '1'
+  } catch {
+    return false
+  }
 }
 
-function NavSection({ title, items, expanded, onClick }) {
-  return (
-    <div className="space-y-1">
-      {expanded && <RailSectionTitle>{title}</RailSectionTitle>}
-      <RailDivider expanded={expanded} />
-      {items.map((item) => (
-        <RailLink key={item.to} {...item} expanded={expanded} onClick={onClick} />
-      ))}
-    </div>
-  )
+function writeStoredGroupOpen(storageKey, open) {
+  if (!storageKey || typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    window.localStorage.setItem(storageKey, open ? '1' : '0')
+  } catch {
+    // storage unavailable (private mode, quota) - state just won't persist
+  }
 }
 
-function CollapsibleNavGroup({ title, icon, items, expanded, onClick }) {
+function CollapsibleNavGroup({ title, icon, items, expanded, onClick, storageKey }) {
   const location = useLocation()
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(() => readStoredGroupOpen(storageKey))
   const hasActiveChild = items.some(
     (item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`)
   )
+
+  const toggleOpen = () => {
+    setOpen((prev) => {
+      const next = !prev
+      writeStoredGroupOpen(storageKey, next)
+      return next
+    })
+  }
 
   if (!expanded) {
     return (
@@ -141,7 +157,7 @@ function CollapsibleNavGroup({ title, icon, items, expanded, onClick }) {
       <RailDivider expanded={expanded} />
       <button
         type="button"
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={toggleOpen}
         className={`rail-link expanded w-full${hasActiveChild ? ' active' : ''}`}
       >
         <i className={`${icon} text-base`} />
@@ -341,24 +357,24 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, statusLabel
             {t('layout.nav.dashboard')}
           </NavLink>
 
-          <div>
-            <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>{t('layout.sections.core')}</div>
-            <div className="space-y-0.5">
-              {mobileCoreNav.map((item) => (
-                <RailLink key={item.to} {...item} expanded onClick={onClose} />
-              ))}
-            </div>
-          </div>
+          <CollapsibleNavGroup
+            title={t('layout.sections.core')}
+            icon="fa-solid fa-briefcase"
+            items={mobileCoreNav}
+            expanded
+            onClick={onClose}
+            storageKey="sidebar-group-core"
+          />
 
           {(isFinance() || isAdmin()) && (
-            <div>
-              <div className="section-label" style={{ color: 'rgba(148,163,184,0.6)' }}>{t('layout.sections.finance')}</div>
-              <div className="space-y-0.5">
-                {mobileFinanceNav.map((item) => (
-                  <RailLink key={item.to} {...item} expanded onClick={onClose} />
-                ))}
-              </div>
-            </div>
+            <CollapsibleNavGroup
+              title={t('layout.sections.finance')}
+              icon="fa-solid fa-coins"
+              items={mobileFinanceNav}
+              expanded
+              onClick={onClose}
+              storageKey="sidebar-group-finance"
+            />
           )}
 
           {isAdmin() && (
@@ -369,6 +385,7 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, statusLabel
                 items={mobileTerrainNav}
                 expanded
                 onClick={onClose}
+                storageKey="sidebar-group-terrain"
               />
 
               <CollapsibleNavGroup
@@ -377,6 +394,7 @@ function MobileDrawer({ open, onClose, onLogout, isAdmin, isFinance, statusLabel
                 items={mobileAdminNav}
                 expanded
                 onClick={onClose}
+                storageKey="sidebar-group-admin"
               />
             </>
           )}
@@ -596,11 +614,25 @@ export default function AppLayout() {
         </div>
 
         <div className={`flex-1 min-h-0 w-full overflow-y-auto ${isSidebarExpanded ? 'overflow-x-hidden' : 'overflow-x-visible'}`}>
-          <div className="space-y-4 pb-3">
-            <NavSection title={t('layout.sections.core')} items={desktopCoreNav} expanded={isSidebarExpanded} />
+          <div className="space-y-1 pb-3">
+            <RailLink to="/" icon="fa-solid fa-chart-pie" label={t('layout.nav.dashboard')} exact expanded={isSidebarExpanded} />
+
+            <CollapsibleNavGroup
+              title={t('layout.sections.core')}
+              icon="fa-solid fa-briefcase"
+              items={desktopCoreNav}
+              expanded={isSidebarExpanded}
+              storageKey="sidebar-group-core"
+            />
 
             {(isFinance() || isAdmin()) && (
-              <NavSection title={t('layout.sections.finance')} items={desktopFinanceNav} expanded={isSidebarExpanded} />
+              <CollapsibleNavGroup
+                title={t('layout.sections.finance')}
+                icon="fa-solid fa-coins"
+                items={desktopFinanceNav}
+                expanded={isSidebarExpanded}
+                storageKey="sidebar-group-finance"
+              />
             )}
 
             {isAdmin() && (
@@ -610,6 +642,7 @@ export default function AppLayout() {
                   icon="fa-solid fa-truck-fast"
                   items={desktopTerrainNav}
                   expanded={isSidebarExpanded}
+                  storageKey="sidebar-group-terrain"
                 />
 
                 <CollapsibleNavGroup
@@ -617,6 +650,7 @@ export default function AppLayout() {
                   icon="fa-solid fa-user-shield"
                   items={desktopAdminNav}
                   expanded={isSidebarExpanded}
+                  storageKey="sidebar-group-admin"
                 />
               </>
             )}

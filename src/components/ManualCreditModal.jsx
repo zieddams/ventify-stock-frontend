@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import FrenchDateTimeInput from './FrenchDateTimeInput'
 import Modal from './Modal'
 import { useI18n } from '../contexts/I18nContext'
 import { useDepots } from '../hooks/useDepots'
@@ -152,7 +153,7 @@ export default function ManualCreditModal({ open, onClose, onCreated }) {
         </div>
         <div>
           <label className="block text-xs text-muted-color mb-1 font-medium">{t('credit.manualCredit.fields.date')}</label>
-          <input type="date" value={creditDate} onChange={(event) => setCreditDate(event.target.value)} />
+          <FrenchDateTimeInput type="date" value={creditDate} onChange={(event) => setCreditDate(event.target.value)} />
         </div>
       </div>
 

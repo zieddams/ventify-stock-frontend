@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import FormField from '../../components/FormField'
+import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import RowDocumentActions from '../../components/RowDocumentActions'
@@ -155,10 +156,10 @@ function ProfileTab({ employee, canEdit, onSaved, t }) {
 
       <div className="grid grid-cols-2 gap-3">
         <FormField label={t('employeesPage.profile.birthDate')} error={errors.birth_date?.[0]}>
-          <input type="date" value={form.birth_date ?? ''} onChange={set('birth_date')} disabled={!canEdit} />
+          <FrenchDateTimeInput type="date" value={form.birth_date ?? ''} onChange={set('birth_date')} disabled={!canEdit} />
         </FormField>
         <FormField label={t('employeesPage.profile.hireDate')} error={errors.hire_date?.[0]}>
-          <input type="date" value={form.hire_date ?? ''} onChange={set('hire_date')} disabled={!canEdit} />
+          <FrenchDateTimeInput type="date" value={form.hire_date ?? ''} onChange={set('hire_date')} disabled={!canEdit} />
         </FormField>
       </div>
 
@@ -501,10 +502,10 @@ function LeaveTab({ employeeId, employeeName, canEdit, isSelf, t }) {
               </select>
             </FormField>
             <FormField label={t('employeesPage.leave.dateStart')}>
-              <input type="date" value={form.date_start} onChange={(event) => setForm((current) => ({ ...current, date_start: event.target.value }))} />
+              <FrenchDateTimeInput type="date" value={form.date_start} onChange={(event) => setForm((current) => ({ ...current, date_start: event.target.value }))} />
             </FormField>
             <FormField label={t('employeesPage.leave.dateEnd')}>
-              <input type="date" value={form.date_end} onChange={(event) => setForm((current) => ({ ...current, date_end: event.target.value }))} />
+              <FrenchDateTimeInput type="date" value={form.date_end} onChange={(event) => setForm((current) => ({ ...current, date_end: event.target.value }))} />
             </FormField>
           </div>
           <div className="flex justify-end">

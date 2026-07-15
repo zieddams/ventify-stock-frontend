@@ -89,9 +89,7 @@ describe('frenchDateInput helpers', () => {
     expect(usesTimeInput('date')).toBe(false)
   })
 
-  it('keeps Dock Rail on dev hosts but disables it on the live production hostname', () => {
-    expect(shouldUseDockRailDateInputs('dev.irtiwaa.ziedtech.com')).toBe(true)
-    expect(shouldUseDockRailDateInputs('localhost')).toBe(true)
-    expect(shouldUseDockRailDateInputs('irtiwaa.ziedtech.com')).toBe(false)
+  it('enables Dock Rail everywhere by default, regardless of hostname', () => {
+    expect(shouldUseDockRailDateInputs()).toBe(true)
   })
 })

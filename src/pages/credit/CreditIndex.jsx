@@ -4,11 +4,13 @@ import CustomerLedgerModal from '../../components/CustomerLedgerModal'
 import ManualCreditModal from '../../components/ManualCreditModal'
 import DepotScopeControls from '../../components/DepotScopeControls'
 import FrenchDateRangeInput from '../../components/FrenchDateRangeInput'
+import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
 import { PageLoader } from '../../components/Spinner'
 import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
+import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 import { formatCurrency, formatDateTime } from '../../utils/format'
 import { paginateItems } from '../../utils/pagination'
@@ -208,6 +210,7 @@ export default function CreditIndex() {
     defaultToAll: true,
   })
   const deferredSearch = useDeferredValue(search.trim())
+  const { layouts: documentLayouts, documentSettings } = useDocumentLayouts()
 
   const load = useCallback(async () => {
     if (!depotsReady) {
@@ -498,12 +501,21 @@ export default function CreditIndex() {
           </div>
 
           <div className="card mt-6">
-            <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
               <div>
                 <h2 className="text-sm font-semibold text-base-color">{t('credit.customerSummaryTitle')}</h2>
                 <p className="text-xs text-muted-color mt-1">{t('credit.customerSummarySubtitle')}</p>
               </div>
-              {loading && <i className="fa-solid fa-spinner fa-spin text-muted-color" />}
+              <div className="flex items-center gap-2">
+                {loading && <i className="fa-solid fa-spinner fa-spin text-muted-color" />}
+                <PageExportActions
+                  title={t('credit.customerSummaryTitle')}
+                  documentKey="credit_aging_customers_list"
+                  records={customers}
+                  documentLayouts={documentLayouts}
+                  documentSettings={documentSettings}
+                />
+              </div>
             </div>
 
             <div className="overflow-x-auto">
