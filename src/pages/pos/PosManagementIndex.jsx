@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
+import PageExportActions from '../../components/PageExportActions'
 import { PageLoader } from '../../components/Spinner'
 import MovementsPanel from '../../components/stock/MovementsPanel'
 import { useI18n } from '../../contexts/I18nContext'
+import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 import { formatNumber } from '../../utils/format'
 
@@ -35,6 +37,7 @@ export default function PosManagementIndex() {
   const { t } = useI18n()
   const notAvailable = t('common.notAvailable')
   const navigate = useNavigate()
+  const { layouts: documentLayouts, documentSettings } = useDocumentLayouts()
 
   const [movementsModal, setMovementsModal] = useState(null)
   const [posDepots, setPosDepots] = useState([])
@@ -301,9 +304,18 @@ export default function PosManagementIndex() {
           <h1 className="text-xl font-bold text-base-color tracking-tight">{t('posManagementPage.title')}</h1>
           <p className="text-sm text-muted-color mt-0.5">{t('posManagementPage.subtitle')}</p>
         </div>
-        <button onClick={openCreate} className="btn-primary">
-          <i className="fa-solid fa-plus" /> {t('posManagementPage.newPos')}
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={openCreate} className="btn-primary">
+            <i className="fa-solid fa-plus" /> {t('posManagementPage.newPos')}
+          </button>
+          <PageExportActions
+            title={t('posManagementPage.title')}
+            documentKey="pos_depots_list"
+            records={posDepots}
+            documentLayouts={documentLayouts}
+            documentSettings={documentSettings}
+          />
+        </div>
       </div>
 
       {warehouses.length === 0 && (

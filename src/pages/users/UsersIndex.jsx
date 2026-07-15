@@ -3,12 +3,14 @@ import { RôleBadge } from '../../components/Badge'
 import DepotScopeControls, { DepotSelectionInfo } from '../../components/DepotScopeControls'
 import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
+import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
 import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
 import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
+import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 import { formatDate } from '../../utils/format'
 import { paginateItems } from '../../utils/pagination'
@@ -43,6 +45,7 @@ export default function UsersIndex() {
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(15)
   const { user: me } = useAuth()
+  const { layouts: documentLayouts, documentSettings } = useDocumentLayouts()
   const {
     depots,
     selectedValue: selectedDepotValue,
@@ -308,6 +311,13 @@ export default function UsersIndex() {
                 <i className="fa-solid fa-plus" /> {t('usersPage.newUser')}
               </button>
             )}
+            <PageExportActions
+              title={t('usersPage.title')}
+              documentKey="users_list"
+              records={users}
+              documentLayouts={documentLayouts}
+              documentSettings={documentSettings}
+            />
           </div>
         )}
       />

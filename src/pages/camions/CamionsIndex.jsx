@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import DepotScopeControls from '../../components/DepotScopeControls'
 import Modal from '../../components/Modal'
 import FormField from '../../components/FormField'
+import PageExportActions from '../../components/PageExportActions'
 import { PageLoader } from '../../components/Spinner'
 import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
+import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
 import { formatCurrency, formatDateTime, formatNumber } from '../../utils/format'
 
@@ -138,6 +140,7 @@ export default function CamionsIndex() {
   const [savingSession, setSavingSession] = useState(false)
   const [closingSession, setClosingSession] = useState(false)
   const [expanded, setExpanded] = useState({})
+  const { layouts: documentLayouts, documentSettings } = useDocumentLayouts()
   const {
     depots,
     selectedValue: selectedDepotValue,
@@ -514,6 +517,13 @@ export default function CamionsIndex() {
           <button onClick={openCreateFleetModal} className="btn-primary">
             <i className="fa-solid fa-truck" /> {t('camionsPage.newCamion')}
           </button>
+          <PageExportActions
+            title={t('camionsPage.title')}
+            documentKey="camions_list"
+            records={camions}
+            documentLayouts={documentLayouts}
+            documentSettings={documentSettings}
+          />
         </div>
       </div>
 
