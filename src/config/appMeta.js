@@ -1,3 +1,3 @@
 export const APP_NAME = 'Gestion de vente'
-export const APP_VERSION = '2.11.30'
+export const APP_VERSION = '2.11.31'
 
