@@ -2,7 +2,6 @@ import { useDeferredValue, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PaymentStatusBadge, StatusBadge } from '../../components/Badge'
 import DepotScopeControls from '../../components/DepotScopeControls'
-import FrenchDateRangeInput from '../../components/FrenchDateRangeInput'
 import PageExportActions from '../../components/PageExportActions'
 import PaginationControls from '../../components/PaginationControls'
 import RowDocumentActions from '../../components/RowDocumentActions'
@@ -261,15 +260,26 @@ export default function InvoicesIndex() {
           </div>
           <div className="md:col-span-2">
             <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateRange')}</label>
-            <FrenchDateRangeInput
-              valueFrom={dateFrom}
-              valueTo={dateTo}
-              onChange={({ from, to }) => {
-                setDateFrom(from)
-                setDateTo(to)
-                setPeriod('custom')
-              }}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(event) => {
+                  setDateFrom(event.target.value)
+                  setPeriod('custom')
+                }}
+                max={dateTo || undefined}
+              />
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(event) => {
+                  setDateTo(event.target.value)
+                  setPeriod('custom')
+                }}
+                min={dateFrom || undefined}
+              />
+            </div>
           </div>
         </div>
 

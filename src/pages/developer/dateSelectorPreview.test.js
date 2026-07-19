@@ -75,13 +75,12 @@ describe('dateSelectorPreview helpers', () => {
     expect(toDateSelectorFlatpickrValue('range', `2026-06-20${RANGE_PAYLOAD_SEPARATOR}2026-06-26`)).toHaveLength(2)
   })
 
-  it('keeps glass inline first, marks dock rail as favorite, and exposes 6 total candidates', () => {
-    expect(DATE_SELECTOR_VARIANTS).toHaveLength(6)
+  it('keeps glass inline first and exposes only the flatpickr candidates', () => {
+    expect(DATE_SELECTOR_VARIANTS).toHaveLength(2)
     expect(DATE_SELECTOR_VARIANTS[0]?.key).toBe('glass')
     expect(DATE_SELECTOR_VARIANTS[0]?.accepted).toBe(true)
-    expect(DATE_SELECTOR_VARIANTS.find((item) => item.key === 'dock')?.favorite).toBe(true)
     expect(DATE_SELECTOR_VARIANTS.find((item) => item.key === 'sage')?.library).toBe('flatpickr')
-    expect(DATE_SELECTOR_VARIANTS.filter((item) => item.library === 'react-datepicker')).toHaveLength(4)
+    expect(DATE_SELECTOR_VARIANTS.filter((item) => item.library === 'react-datepicker')).toHaveLength(0)
     expect(DATE_SELECTOR_VARIANTS.filter((item) => item.library === 'flatpickr')).toHaveLength(2)
   })
 })

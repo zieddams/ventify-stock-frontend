@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
-import FrenchDateRangeInput from '../FrenchDateRangeInput'
 import PaginationControls from '../PaginationControls'
 import { useI18n } from '../../contexts/I18nContext'
 import api from '../../services/api'
-import { formatDateTime, formatNumber } from '../../utils/format'
+import { formatDateTime, formatQty } from '../../utils/format'
 import { extractPaginationMeta } from '../../utils/pagination'
 import { buildMovementConfig } from '../../utils/stockMovements'
 
@@ -78,14 +77,20 @@ export default function MovementsPanel({ depotId = null, perPage = 20 }) {
         </div>
         <div className="md:col-span-2">
           <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateRange')}</label>
-          <FrenchDateRangeInput
-            valueFrom={dateFrom}
-            valueTo={dateTo}
-            onChange={({ from, to }) => {
-              setDateFrom(from)
-              setDateTo(to)
-            }}
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(event) => setDateFrom(event.target.value)}
+              max={dateTo || undefined}
+            />
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(event) => setDateTo(event.target.value)}
+              min={dateFrom || undefined}
+            />
+          </div>
         </div>
       </div>
 
@@ -129,7 +134,7 @@ export default function MovementsPanel({ depotId = null, perPage = 20 }) {
                     </td>
                     <td className="py-3 pr-4 text-secondary-color text-xs">{movement.user?.name ?? notAvailable}</td>
                     <td className="py-3 pr-4 font-bold font-mono text-sm" style={{ color: quantity >= 0 ? '#10b981' : '#ef4444' }}>
-                      {quantity >= 0 ? '+' : '-'}{formatNumber(Math.abs(quantity))}
+                      {quantity >= 0 ? '+' : '-'}{formatQty(Math.abs(quantity))}
                     </td>
                     <td className="py-3 pr-4 text-muted-color text-xs">{movement.note ?? notAvailable}</td>
                     <td className="py-3 text-muted-color text-xs">{movement.created_at ? formatDateTime(movement.created_at) : notAvailable}</td>

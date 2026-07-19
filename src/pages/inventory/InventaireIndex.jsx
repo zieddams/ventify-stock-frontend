@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import DepotScopeControls from '../../components/DepotScopeControls'
-import FrenchDateRangeInput from '../../components/FrenchDateRangeInput'
 import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
@@ -10,11 +9,11 @@ import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
-import { formatDateTime, formatNumber } from '../../utils/format'
+import { formatDateTime, formatQty } from '../../utils/format'
 import { extractPaginationMeta, paginateItems } from '../../utils/pagination'
 
 function fmt(value, fallback = '-') {
-  return value != null ? formatNumber(value) : fallback
+  return value != null ? formatQty(value) : fallback
 }
 
 export default function InventaireIndex({ depotId: forcedDepotId = null, depotName: forcedDepotName = null }) {
@@ -440,15 +439,26 @@ export default function InventaireIndex({ depotId: forcedDepotId = null, depotNa
           <div className="space-y-3 mb-4">
             <input value={historySearch} onChange={(event) => { setHistoryPage(1); setHistorySearch(event.target.value) }} placeholder={t('inventory.history.searchPlaceholder')} />
             <div>
-              <FrenchDateRangeInput
-                valueFrom={historyDateFrom}
-                valueTo={historyDateTo}
-                onChange={({ from, to }) => {
-                  setHistoryPage(1)
-                  setHistoryDateFrom(from)
-                  setHistoryDateTo(to)
-                }}
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
+                  type="date"
+                  value={historyDateFrom}
+                  onChange={(event) => {
+                    setHistoryPage(1)
+                    setHistoryDateFrom(event.target.value)
+                  }}
+                  max={historyDateTo || undefined}
+                />
+                <input
+                  type="date"
+                  value={historyDateTo}
+                  onChange={(event) => {
+                    setHistoryPage(1)
+                    setHistoryDateTo(event.target.value)
+                  }}
+                  min={historyDateFrom || undefined}
+                />
+              </div>
             </div>
           </div>
 

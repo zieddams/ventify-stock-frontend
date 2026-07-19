@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import CustomerLedgerModal from '../../components/CustomerLedgerModal'
 import ManualCreditModal from '../../components/ManualCreditModal'
 import DepotScopeControls from '../../components/DepotScopeControls'
-import FrenchDateRangeInput from '../../components/FrenchDateRangeInput'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
@@ -76,14 +75,20 @@ function CreditFilters({
         </div>
         <div className="md:col-span-2">
           <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateRange')}</label>
-          <FrenchDateRangeInput
-            valueFrom={dateFrom}
-            valueTo={dateTo}
-            onChange={({ from, to }) => {
-              setDateFrom(from)
-              setDateTo(to)
-            }}
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(event) => setDateFrom(event.target.value)}
+              max={dateTo || undefined}
+            />
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(event) => setDateTo(event.target.value)}
+              min={dateFrom || undefined}
+            />
+          </div>
         </div>
         <div className="flex items-end md:col-span-4 justify-between gap-3 flex-wrap">
           <div className="text-xs text-muted-color">{hint}</div>

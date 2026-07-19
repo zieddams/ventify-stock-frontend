@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import DepotScopeControls from '../../components/DepotScopeControls'
-import FrenchDateRangeInput from '../../components/FrenchDateRangeInput'
 import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../contexts/AuthContext'
 import { useI18n } from '../../contexts/I18nContext'
@@ -114,7 +113,10 @@ export default function SupervisorReportsIndex() {
         <div className="space-y-4">
           <div>
             <div className="text-sm font-semibold text-base-color mb-2">{t('supervisorReportsPage.periodLabel')}</div>
-            <FrenchDateRangeInput valueFrom={dateFrom} valueTo={dateTo} onChange={({ from, to }) => { setDateFrom(from); setDateTo(to) }} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} max={dateTo || undefined} />
+              <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} min={dateFrom || undefined} />
+            </div>
           </div>
 
           {canSelectAll && (

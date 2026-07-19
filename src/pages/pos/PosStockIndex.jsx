@@ -3,7 +3,7 @@ import MovementsPanel from '../../components/stock/MovementsPanel'
 import { PageLoader } from '../../components/Spinner'
 import { useI18n } from '../../contexts/I18nContext'
 import api from '../../services/api'
-import { formatNumber } from '../../utils/format'
+import { formatQty } from '../../utils/format'
 
 export default function PosStockIndex() {
   const { t } = useI18n()
@@ -93,7 +93,7 @@ export default function PosStockIndex() {
                     className="text-xs px-2 py-1 rounded-lg border font-medium"
                     style={{ background: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.2)', color: '#dc2626' }}
                   >
-                    {item.product?.name ?? notAvailable} - {formatNumber(item.qty)}
+                    {item.product?.name ?? notAvailable} - {formatQty(item.qty)}
                   </span>
                 ))}
               </div>
@@ -129,7 +129,7 @@ export default function PosStockIndex() {
                     <tr key={item.product_id} className="table-row">
                       <td className="py-3 pr-4 font-semibold text-base-color">{item.product?.name ?? notAvailable}</td>
                       <td className="py-3 pr-4 font-mono text-xs text-muted-color">{item.product?.reference ?? notAvailable}</td>
-                      <td className="py-3 pr-4 font-bold font-mono" style={{ color: low ? '#dc2626' : '#0d9488' }}>{formatNumber(qty)}</td>
+                      <td className="py-3 pr-4 font-bold font-mono" style={{ color: low ? '#dc2626' : '#0d9488' }}>{formatQty(qty)}</td>
                       <td className="py-3">
                         {low ? (
                           <span className="text-xs font-medium text-red-600">{t('posWorkspace.stock.status.low')}</span>

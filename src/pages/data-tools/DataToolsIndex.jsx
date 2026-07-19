@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import DepotScopeControls from '../../components/DepotScopeControls'
-import FrenchDateRangeInput from '../../components/FrenchDateRangeInput'
 import PageHeader from '../../components/PageHeader'
 import { APP_VERSION } from '../../config/appMeta'
 import { useAuth } from '../../contexts/AuthContext'
@@ -824,14 +823,20 @@ export default function DataToolsIndex() {
               {selectedExport.hasDateRange ? (
                 <div className="mb-5">
                   <label className="block text-xs font-medium text-muted-color mb-1">{t('common.dateRange')}</label>
-                  <FrenchDateRangeInput
-                    valueFrom={dateFrom}
-                    valueTo={dateTo}
-                    onChange={({ from, to }) => {
-                      setDateFrom(from)
-                      setDateTo(to)
-                    }}
-                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(event) => setDateFrom(event.target.value)}
+                      max={dateTo || undefined}
+                    />
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={(event) => setDateTo(event.target.value)}
+                      min={dateFrom || undefined}
+                    />
+                  </div>
                 </div>
               ) : (
                 <div

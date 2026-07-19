@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import DepotScopeControls from '../../components/DepotScopeControls'
-import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
 import PageExportActions from '../../components/PageExportActions'
 import { PageLoader } from '../../components/Spinner'
 import { useI18n } from '../../contexts/I18nContext'
@@ -9,7 +8,7 @@ import { useDepots } from '../../hooks/useDepots'
 import { useTheme } from '../../contexts/ThemeContext'
 import ProfitInsightsTab from './ProfitInsightsTab'
 import api from '../../services/api'
-import { formatCurrency, formatDate, formatNumber } from '../../utils/format'
+import { formatCurrency, formatDate, formatNumber, formatQty } from '../../utils/format'
 
 function useChartTheme() {
   const { isDark } = useTheme()
@@ -152,7 +151,7 @@ function SitationTab({ scopeParams }) {
   return (
     <>
       <div className="flex items-center gap-3 mb-5">
-        <FrenchDateTimeInput type="month" value={month} onChange={(event) => setMonth(event.target.value)} style={{ width: 'auto' }} />
+        <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} style={{ width: 'auto' }} />
         <span className="text-xs text-muted-color">{t('reportsPage.sitation.monthHint')}</span>
       </div>
 
@@ -328,7 +327,7 @@ function MovementsTab({ scopeParams }) {
                 <td className="py-2.5 pr-4 text-muted-color text-xs">{movement.depot?.name ?? notAvailable}</td>
                 <td className="py-2.5 pr-4 text-secondary-color text-xs">{movement.user?.name ?? notAvailable}</td>
                 <td className="py-2.5 pr-4 text-right font-mono font-bold" style={{ color: quantity >= 0 ? '#059669' : '#dc2626' }}>
-                  {quantity >= 0 ? '+' : '-'}{formatNumber(Math.abs(quantity))}
+                  {quantity >= 0 ? '+' : '-'}{formatQty(Math.abs(quantity))}
                 </td>
                 <td className="py-2.5 text-muted-color text-xs">{formatDate(movement.created_at)}</td>
               </tr>

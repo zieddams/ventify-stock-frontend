@@ -3,7 +3,7 @@ import { PageLoader } from '../../components/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
 import { useI18n } from '../../contexts/I18nContext'
 import api from '../../services/api'
-import { formatCurrency, formatNumber } from '../../utils/format'
+import { formatCount, formatCurrency, formatQty } from '../../utils/format'
 
 export default function PosDashboard() {
   const { t } = useI18n()
@@ -38,7 +38,7 @@ export default function PosDashboard() {
   const kpis = [
     { label: t('posWorkspace.dashboard.kpis.todayRevenue'), value: formatCurrency(stats.today_revenue), icon: 'fa-solid fa-sack-dollar', color: '#0d9488' },
     { label: t('posWorkspace.dashboard.kpis.monthRevenue'), value: formatCurrency(stats.month_revenue), icon: 'fa-solid fa-chart-line', color: '#3b82f6' },
-    { label: t('posWorkspace.dashboard.kpis.todayInvoices'), value: formatNumber(stats.today_invoices), icon: 'fa-solid fa-file-invoice', color: '#8b5cf6' },
+    { label: t('posWorkspace.dashboard.kpis.todayInvoices'), value: formatCount(stats.today_invoices), icon: 'fa-solid fa-file-invoice', color: '#8b5cf6' },
     { label: t('posWorkspace.dashboard.kpis.unpaidTotal'), value: formatCurrency(stats.unpaid_total), icon: 'fa-solid fa-hourglass-half', color: '#ef4444' },
   ]
 
@@ -79,7 +79,7 @@ export default function PosDashboard() {
                 className="text-xs px-2 py-1 rounded-lg border font-medium"
                 style={{ background: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.2)', color: '#dc2626' }}
               >
-                {item.product?.name ?? t('common.notAvailable')} - {formatNumber(item.qty)} / {formatNumber(item.product?.min_stock ?? 0)}
+                {item.product?.name ?? t('common.notAvailable')} - {formatQty(item.qty)} / {formatQty(item.product?.min_stock ?? 0)}
               </span>
             ))}
           </div>

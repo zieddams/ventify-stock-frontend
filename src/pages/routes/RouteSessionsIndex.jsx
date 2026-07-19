@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import DepotScopeControls from '../../components/DepotScopeControls'
-import FrenchDateRangeInput from '../../components/FrenchDateRangeInput'
-import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
@@ -147,7 +145,7 @@ export default function RouteSessionsIndex() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label className="block text-xs text-muted-color mb-1 font-medium">{t('routeSessions.filters.specificDay')}</label>
-            <FrenchDateTimeInput
+            <input
               type="date"
               value={date}
               onChange={(event) => {
@@ -162,16 +160,28 @@ export default function RouteSessionsIndex() {
           </div>
           <div className="md:col-span-2">
             <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateRange')}</label>
-            <FrenchDateRangeInput
-              valueFrom={dateFrom}
-              valueTo={dateTo}
-              onChange={({ from, to }) => {
-                setPage(1)
-                setDate('')
-                setDateFrom(from)
-                setDateTo(to)
-              }}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(event) => {
+                  setPage(1)
+                  setDate('')
+                  setDateFrom(event.target.value)
+                }}
+                max={dateTo || undefined}
+              />
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(event) => {
+                  setPage(1)
+                  setDate('')
+                  setDateTo(event.target.value)
+                }}
+                min={dateFrom || undefined}
+              />
+            </div>
           </div>
         </div>
 

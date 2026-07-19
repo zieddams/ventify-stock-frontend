@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import Modal from '../../components/Modal'
 import { DepotSelectionInfo } from '../../components/DepotScopeControls'
-import FrenchDateRangeInput from '../../components/FrenchDateRangeInput'
-import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
@@ -118,7 +116,7 @@ function ExpensesFilters({
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <div>
           <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.filters.month')}</label>
-          <FrenchDateTimeInput
+          <input
             type="month"
             value={month}
             onChange={(event) => {
@@ -144,15 +142,26 @@ function ExpensesFilters({
         </div>
         <div className="md:col-span-2">
           <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateRange')}</label>
-          <FrenchDateRangeInput
-            valueFrom={dateFrom}
-            valueTo={dateTo}
-            onChange={({ from, to }) => {
-              setDateFrom(from)
-              setDateTo(to)
-              setMonth('')
-            }}
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(event) => {
+                setDateFrom(event.target.value)
+                setMonth('')
+              }}
+              max={dateTo || undefined}
+            />
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(event) => {
+                setDateTo(event.target.value)
+                setMonth('')
+              }}
+              min={dateFrom || undefined}
+            />
+          </div>
         </div>
       </div>
 
@@ -573,7 +582,7 @@ export default function ExpensesIndex() {
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
                 <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.form.fields.date')}</label>
-                <FrenchDateTimeInput
+                <input
                   type="date"
                   value={form.expense_date}
                   onChange={(event) => setForm((current) => ({ ...current, expense_date: event.target.value }))}
@@ -665,7 +674,7 @@ export default function ExpensesIndex() {
                 </div>
                 <div>
                   <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.form.fields.paymentDate')}</label>
-                  <FrenchDateTimeInput
+                  <input
                     type="date"
                     value={form.payment_date}
                     onChange={(event) => setForm((current) => ({ ...current, payment_date: event.target.value }))}
@@ -1110,7 +1119,7 @@ export default function ExpensesIndex() {
                 </div>
                 <div>
                   <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.paymentModal.fields.paymentDate')}</label>
-                  <FrenchDateTimeInput
+                  <input
                     type="date"
                     value={paymentForm.payment_date}
                     onChange={(event) => setPaymentForm((current) => ({ ...current, payment_date: event.target.value }))}

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import FormField from '../../components/FormField'
-import FrenchDateRangeInput from '../../components/FrenchDateRangeInput'
 import Modal from '../../components/Modal'
 import PageExportActions from '../../components/PageExportActions'
 import PaginationControls from '../../components/PaginationControls'
@@ -11,7 +10,7 @@ import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
-import { formatCurrency, formatDateTime, formatNumber } from '../../utils/format'
+import { formatCurrency, formatDateTime, formatQty } from '../../utils/format'
 import { extractPaginationMeta, paginateItems } from '../../utils/pagination'
 import { buildMovementConfig } from '../../utils/stockMovements'
 
@@ -454,7 +453,7 @@ export default function DepotIndex() {
                   </div>
 
                   <div className="mt-3 text-xs text-secondary-color">
-                    {t('depotPage.labels.stockTotal')}: <span className="font-mono font-semibold text-base-color">{formatNumber(depot.total_stock_qty)}</span>
+                    {t('depotPage.labels.stockTotal')}: <span className="font-mono font-semibold text-base-color">{formatQty(depot.total_stock_qty)}</span>
                   </div>
                 </div>
               )
@@ -466,7 +465,7 @@ export default function DepotIndex() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {[
           { label: t('depotPage.kpis.references'), value: stock.length, icon: 'fa-solid fa-box-open', color: '#0d9488' },
-          { label: t('depotPage.kpis.totalUnits'), value: formatNumber(totalItems), icon: 'fa-solid fa-cubes', color: '#3b82f6' },
+          { label: t('depotPage.kpis.totalUnits'), value: formatQty(totalItems), icon: 'fa-solid fa-cubes', color: '#3b82f6' },
           { label: t('depotPage.kpis.stockValue'), value: formatCurrency(totalValue), icon: 'fa-solid fa-sack-dollar', color: '#8b5cf6' },
           { label: t('depotPage.kpis.lowStock'), value: lowItems.length, icon: 'fa-solid fa-triangle-exclamation', color: '#ef4444' },
         ].map((kpi) => (
@@ -520,7 +519,7 @@ export default function DepotIndex() {
                     className="text-xs px-2 py-1 rounded-lg border font-medium"
                     style={{ background: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.2)', color: '#dc2626' }}
                   >
-                    {item.product?.name ?? notAvailable} - {formatNumber(item.qty)}
+                    {item.product?.name ?? notAvailable} - {formatQty(item.qty)}
                   </span>
                 ))}
               </div>
@@ -550,8 +549,8 @@ export default function DepotIndex() {
                       <td className="py-3 pr-4 font-mono text-xs text-muted-color">{item.product?.reference ?? notAvailable}</td>
                       <td className="py-3 pr-4 text-secondary-color text-xs">{item.product?.category ?? notAvailable}</td>
                       <td className="py-3 pr-4 text-muted-color text-xs">{item.product?.unit ?? notAvailable}</td>
-                      <td className="py-3 pr-4 font-bold font-mono" style={{ color: low ? '#dc2626' : '#0d9488' }}>{formatNumber(qty)}</td>
-                      <td className="py-3 pr-4 text-muted-color font-mono text-xs">{formatNumber(min)}</td>
+                      <td className="py-3 pr-4 font-bold font-mono" style={{ color: low ? '#dc2626' : '#0d9488' }}>{formatQty(qty)}</td>
+                      <td className="py-3 pr-4 text-muted-color font-mono text-xs">{formatQty(min)}</td>
                       <td className="py-3 pr-4 text-muted-color text-xs">{formatDepotDateTime(item.updated_at, notAvailable)}</td>
                       <td className="py-3">
                         {low ? (
@@ -607,15 +606,26 @@ export default function DepotIndex() {
             </div>
             <div className="md:col-span-2">
               <label className="block text-xs text-muted-color mb-1 font-medium">{t('common.dateRange')}</label>
-              <FrenchDateRangeInput
-                valueFrom={movementDateFrom}
-                valueTo={movementDateTo}
-                onChange={({ from, to }) => {
-                  setMovementPage(1)
-                  setMovementDateFrom(from)
-                  setMovementDateTo(to)
-                }}
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
+                  type="date"
+                  value={movementDateFrom}
+                  onChange={(event) => {
+                    setMovementPage(1)
+                    setMovementDateFrom(event.target.value)
+                  }}
+                  max={movementDateTo || undefined}
+                />
+                <input
+                  type="date"
+                  value={movementDateTo}
+                  onChange={(event) => {
+                    setMovementPage(1)
+                    setMovementDateTo(event.target.value)
+                  }}
+                  min={movementDateFrom || undefined}
+                />
+              </div>
             </div>
           </div>
 
@@ -655,7 +665,7 @@ export default function DepotIndex() {
                         <td className="py-3 pr-4 text-muted-color text-xs">{movement.depot?.name ?? notAvailable}</td>
                         <td className="py-3 pr-4 text-secondary-color text-xs">{movement.user?.name ?? notAvailable}</td>
                         <td className="py-3 pr-4 font-bold font-mono text-sm" style={{ color: quantity >= 0 ? '#10b981' : '#ef4444' }}>
-                          {quantity >= 0 ? '+' : '-'}{formatNumber(Math.abs(quantity))}
+                          {quantity >= 0 ? '+' : '-'}{formatQty(Math.abs(quantity))}
                         </td>
                         <td className="py-3 pr-4 text-muted-color text-xs">{movement.note ?? notAvailable}</td>
                         <td className="py-3 text-muted-color text-xs">{formatDepotDateTime(movement.created_at, notAvailable)}</td>

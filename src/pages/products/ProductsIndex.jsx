@@ -12,7 +12,7 @@ import { useDepots } from '../../hooks/useDepots'
 import { findConfigItem, getConfigItemLabel, useConfigItems } from '../../hooks/useConfigItems'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
-import { formatCount, formatNumber } from '../../utils/format'
+import { formatCount, formatNumber, formatQty } from '../../utils/format'
 import { paginateItems } from '../../utils/pagination'
 
 const EMPTY = {
@@ -338,12 +338,12 @@ export default function ProductsIndex() {
                 >
                   <div className="text-sm font-semibold text-base-color">{product.name}</div>
                   <div className="text-xs text-muted-color mt-1">
-                    {t('products.depotQty')}: <span className="font-mono">{formatNumber(depotQty)}</span>
+                    {t('products.depotQty')}: <span className="font-mono">{formatQty(depotQty)}</span>
                     <span className="mx-2">|</span>
-                    {t('products.camionQty')}: <span className="font-mono">{formatNumber(camionQty)}</span>
+                    {t('products.camionQty')}: <span className="font-mono">{formatQty(camionQty)}</span>
                   </div>
                   <div className="text-xs text-red-600 mt-1">
-                    {t('products.minRequired')}: <span className="font-mono">{formatNumber(min)}</span>
+                    {t('products.minRequired')}: <span className="font-mono">{formatQty(min)}</span>
                     {product.unit ? ` ${product.unit}` : ''}
                   </div>
                   {isAdmin() && (
@@ -419,11 +419,11 @@ export default function ProductsIndex() {
                       {formatNumber(product.depot_price ?? product.price)}
                     </td>
                     <td className="py-3 pr-4 text-right font-mono text-xs" style={{ color: isLow ? '#dc2626' : 'var(--text-base)' }}>
-                      {formatNumber(depotQty)}
+                      {formatQty(depotQty)}
                     </td>
-                    <td className="py-3 pr-4 text-right font-mono text-xs text-secondary-color">{formatNumber(camionQty)}</td>
+                    <td className="py-3 pr-4 text-right font-mono text-xs text-secondary-color">{formatQty(camionQty)}</td>
                     <td className="py-3 pr-4 font-mono text-xs" style={{ color: isLow ? '#dc2626' : '#059669' }}>
-                      {formatNumber(min)}
+                      {formatQty(min)}
                     </td>
                     <td className="py-3 pr-4 text-muted-color text-xs">{unitLabel}</td>
                     {isAdmin() && (

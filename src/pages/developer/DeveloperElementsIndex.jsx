@@ -1,10 +1,7 @@
-import { forwardRef, useMemo, useState } from 'react'
-import DatePicker, { registerLocale } from 'react-datepicker'
-import { fr } from 'date-fns/locale/fr'
+import { useMemo, useState } from 'react'
 import Flatpickr from 'react-flatpickr'
 import { French } from 'flatpickr/dist/l10n/fr.js'
 import 'flatpickr/dist/flatpickr.css'
-import 'react-datepicker/dist/react-datepicker.css'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../../contexts/I18nContext'
 import {
@@ -16,16 +13,9 @@ import {
   toDateSelectorPayload,
 } from './dateSelectorPreview'
 
-registerLocale('irtiwaa-fr', fr)
-
 const FLATPICKR_LOCALE = {
   ...French,
   rangeSeparator: ' au ',
-}
-
-const REACT_DATEPICKER_PORTAL_ID = 'developer-elements-datepicker-portal'
-const REACT_DATEPICKER_POPPER_PROPS = {
-  strategy: 'fixed',
 }
 
 const PICKER_SCENARIOS = [
@@ -168,42 +158,6 @@ function ActionCardChrome({ scenario, variant, summary, onChange, t, control }) 
   )
 }
 
-const DateSelectorTextInput = forwardRef(function DateSelectorTextInput(props, ref) {
-  const { className, value, ...rest } = props
-
-  return (
-    <input
-      ref={ref}
-      type="text"
-      autoComplete="off"
-      className={className}
-      value={value || ''}
-      dir="ltr"
-      translate="no"
-      data-no-translate="true"
-      readOnly
-      {...rest}
-    />
-  )
-})
-
-function DockTimeField({ value = '', onChange }) {
-  return (
-    <input
-      type="time"
-      step="300"
-      autoComplete="off"
-      className="picker-lab__dock-time-field"
-      value={value || ''}
-      onChange={(event) => onChange?.(event.target.value)}
-      lang="fr-FR"
-      dir="ltr"
-      translate="no"
-      data-no-translate="true"
-    />
-  )
-}
-
 function FlatpickrActionExampleCard({ scenario, variant, value, summary, onChange, t }) {
   const options = useMemo(
     () => buildFlatpickrOptions(scenario.mode, variant.id),
@@ -236,72 +190,7 @@ function FlatpickrActionExampleCard({ scenario, variant, value, summary, onChang
   )
 }
 
-function ReactDatepickerActionExampleCard({ scenario, variant, value, summary, onChange, t }) {
-  const parsedValue = toDateSelectorFlatpickrValue(scenario.mode, value)
-  const selectedDate = parsedValue instanceof Date ? parsedValue : null
-  const rangeValue = Array.isArray(parsedValue) ? parsedValue : []
-  const startDate = rangeValue[0] ?? null
-  const endDate = rangeValue[1] ?? null
-  const usesDockTimeInput = variant.key === 'dock' && scenario.mode === 'datetime'
-
-  return (
-    <ActionCardChrome
-      scenario={scenario}
-      variant={variant}
-      summary={summary}
-      onChange={onChange}
-      t={t}
-      control={(
-        <DatePicker
-          locale="irtiwaa-fr"
-          selected={scenario.mode === 'range' ? undefined : selectedDate}
-          startDate={scenario.mode === 'range' ? startDate : undefined}
-          endDate={scenario.mode === 'range' ? endDate : undefined}
-          selectsRange={scenario.mode === 'range'}
-          showTimeSelect={scenario.mode === 'datetime' && !usesDockTimeInput}
-          showTimeInput={usesDockTimeInput}
-          dateFormat={scenario.mode === 'datetime' ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy'}
-          rangeSeparator=" au "
-          timeFormat="HH:mm"
-          timeIntervals={5}
-          shouldCloseOnSelect={scenario.mode !== 'datetime'}
-          showPopperArrow={false}
-          popperPlacement="bottom-start"
-          fixedHeight={scenario.mode === 'range'}
-          portalId={REACT_DATEPICKER_PORTAL_ID}
-          popperProps={REACT_DATEPICKER_POPPER_PROPS}
-          timeInputLabel={usesDockTimeInput ? t('developerElementsPage.scenarios.schedule.timeField') : undefined}
-          customTimeInput={usesDockTimeInput ? <DockTimeField /> : undefined}
-          autoComplete="off"
-          placeholderText={t(`developerElementsPage.scenarios.${scenario.key}.placeholder`)}
-          className={`picker-lab__react-input picker-lab__react-input--${variant.key}`}
-          wrapperClassName={`picker-lab__react-wrapper picker-lab__react-wrapper--${variant.key}`}
-          popperClassName={`picker-lab__react-popper picker-lab__react-popper--${variant.key}`}
-          calendarClassName={`picker-lab__react-calendar picker-lab__react-calendar--${variant.key}`}
-          customInput={<DateSelectorTextInput />}
-          onChange={(nextValue) => {
-            onChange(scenario.mode, toDateSelectorPayload(scenario.mode, nextValue))
-          }}
-        />
-      )}
-    />
-  )
-}
-
 function ActionExampleCard({ scenario, variant, value, summary, onChange, t }) {
-  if (variant.library === 'react-datepicker') {
-    return (
-      <ReactDatepickerActionExampleCard
-        scenario={scenario}
-        variant={variant}
-        value={value}
-        summary={summary}
-        onChange={onChange}
-        t={t}
-      />
-    )
-  }
-
   return (
     <FlatpickrActionExampleCard
       scenario={scenario}
@@ -316,7 +205,7 @@ function ActionExampleCard({ scenario, variant, value, summary, onChange, t }) {
 
 function VariantSection({ variant, index, values, summaries, onChange, t }) {
   const candidateNumber = String(index + 1).padStart(2, '0')
-  const libraryLabel = variant.library === 'react-datepicker' ? 'React Datepicker' : 'Flatpickr'
+  const libraryLabel = 'Flatpickr'
 
   return (
     <section
@@ -441,7 +330,6 @@ export default function DeveloperElementsIndex() {
 
             <div className="mt-5 flex flex-wrap gap-2">
               <AccentBadge accent="#0d9488">Flatpickr</AccentBadge>
-              <AccentBadge accent="#1d4ed8">React Datepicker</AccentBadge>
               <AccentBadge accent="#ea580c">{t('developerElementsPage.badges.shared')}</AccentBadge>
               <AccentBadge accent="#7c3aed">{`${totalCandidates} candidates`}</AccentBadge>
             </div>

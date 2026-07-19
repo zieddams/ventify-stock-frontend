@@ -9,7 +9,7 @@ import { getConfigItemLabel, getDefaultConfigValue, useConfigItems } from '../..
 import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
 import { filterPaymentMethodsByScope } from '../../utils/paymentMethodScopes'
-import { formatCurrency, formatDate } from '../../utils/format'
+import { formatCurrency, formatDate, formatQty } from '../../utils/format'
 
 const STATUSES = ['draft', 'sent', 'paid', 'cancelled']
 
@@ -164,7 +164,7 @@ export default function InvoiceShow() {
               {invoice.lines?.map((line, index) => (
                 <tr key={index} className="table-row">
                   <td className="py-2.5 pr-3 font-medium text-base-color">{line.product_name}</td>
-                  <td className="py-2.5 pr-3 text-right text-secondary-color">{formatCurrency(line.qty, 3).replace(' TND', '')} {line.unit}</td>
+                  <td className="py-2.5 pr-3 text-right text-secondary-color">{formatQty(line.qty)} {line.unit}</td>
                   <td className="py-2.5 pr-3 text-right font-mono text-secondary-color">{formatCurrency(line.unit_price ?? line.price, 3).replace(' TND', '')}</td>
                   <td className="py-2.5 text-right font-mono font-semibold text-base-color">{formatCurrency(line.total, 3).replace(' TND', '')}</td>
                 </tr>

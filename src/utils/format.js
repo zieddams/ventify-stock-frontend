@@ -50,8 +50,24 @@ export function formatCount(value) {
   }).format(toNumber(value))
 }
 
+// Product/stock quantities are always whole units (bottles, crates, etc.) and
+// must never show padded decimals - same 0-decimal formatting as
+// formatCount(), kept as its own export so call sites read correctly.
+export function formatQty(value) {
+  return formatCount(value)
+}
+
 export function formatCurrency(value, digits = 3) {
   return `${formatNumber(value, digits)} TND`
+}
+
+// Percentages (margin, withholding rate) can be fractional (e.g. 1.5%) -
+// keep decimals when present, but don't pad whole rates with trailing zeros.
+export function formatPercent(value) {
+  return new Intl.NumberFormat(getRuntimeLocale(), {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(toNumber(value))
 }
 
 export function formatDate(value) {

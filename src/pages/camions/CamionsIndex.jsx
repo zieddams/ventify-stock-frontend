@@ -8,7 +8,7 @@ import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
-import { formatCurrency, formatDateTime, formatNumber } from '../../utils/format'
+import { formatCurrency, formatDateTime, formatNumber, formatQty } from '../../utils/format'
 
 function formatCamionDateTime(value, fallback = '--') {
   return value ? formatDateTime(value) : fallback
@@ -470,7 +470,7 @@ export default function CamionsIndex() {
     },
     {
       label: t('camionsPage.kpis.loadedStock'),
-      value: formatNumber(totals.stockQty),
+      value: formatQty(totals.stockQty),
       sub: t('camionsPage.kpis.fieldUnits'),
       icon: 'fa-solid fa-boxes-stacked',
       color: '#f59e0b',
@@ -740,7 +740,7 @@ export default function CamionsIndex() {
                         </div>
                         <div className="rounded-2xl px-3 py-2" style={{ background: 'var(--surface-2)' }}>
                           <div className="text-[11px] text-muted-color">{t('camionsPage.repsSection.loadedStock')}</div>
-                          <div className="text-sm font-semibold text-base-color mt-1">{formatNumber(rep.total_qty)}</div>
+                          <div className="text-sm font-semibold text-base-color mt-1">{formatQty(rep.total_qty)}</div>
                           <div className="text-[11px] text-muted-color mt-1">{t('camionsPage.repsSection.references', { count: stockItems.length })}</div>
                         </div>
                         <div className="rounded-2xl px-3 py-2" style={{ background: 'var(--surface-2)' }}>
@@ -820,10 +820,10 @@ export default function CamionsIndex() {
                                   <td className="py-2 pr-4 font-medium text-base-color">{item.product?.name || t('camionsPage.repsSection.stockTable.fallbackProduct')}</td>
                                   <td className="py-2 pr-4 text-xs text-muted-color">{item.product?.reference || t('common.notAvailable')}</td>
                                   <td className="py-2 pr-4 font-mono font-semibold" style={{ color: isLow ? '#d97706' : 'var(--text)' }}>
-                                    {formatNumber(item.qty)}
+                                    {formatQty(item.qty)}
                                     {isLow && <i className="fa-solid fa-triangle-exclamation ml-1.5 text-[10px]" style={{ color: '#d97706' }} />}
                                   </td>
-                                  <td className="py-2 pr-4 text-xs text-muted-color">{formatNumber(minStock)}</td>
+                                  <td className="py-2 pr-4 text-xs text-muted-color">{formatQty(minStock)}</td>
                                   <td className="py-2 text-xs">
                                     <span
                                       className="inline-flex items-center rounded-full px-2.5 py-1 font-semibold"
@@ -1094,7 +1094,7 @@ export default function CamionsIndex() {
                           {t('camionsPage.sessionModal.productOption', {
                             name: product.name,
                             reference: product.reference,
-                            qty: formatNumber(product.depot_qty ?? 0),
+                            qty: formatQty(product.depot_qty ?? 0),
                           })}
                         </option>
                       ))}

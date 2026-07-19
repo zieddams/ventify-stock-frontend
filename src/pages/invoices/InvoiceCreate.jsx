@@ -6,7 +6,7 @@ import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import { getConfigItemLabel, getDefaultConfigValue, useConfigItems } from '../../hooks/useConfigItems'
 import api from '../../services/api'
-import { formatCurrency, formatNumber } from '../../utils/format'
+import { formatCurrency, formatNumber, formatQty } from '../../utils/format'
 import { filterPaymentMethodsByScope } from '../../utils/paymentMethodScopes'
 
 const EMPTY_LINE = { product_id: '', product_name: '', unit: '', qty: 1, price: 0, total: 0, buy_price: null }
@@ -309,7 +309,7 @@ export default function InvoiceCreate() {
                       <option value="">{t('invoiceCreate.lines.selectProduct')}</option>
                       {availableProducts.map((product) => (
                         <option key={product.id} value={product.id}>
-                          {product.name} {product.depot_qty != null ? `- ${t('invoiceCreate.lines.depotQty', { qty: formatNumber(product.depot_qty) })}` : ''}
+                          {product.name} {product.depot_qty != null ? `- ${t('invoiceCreate.lines.depotQty', { qty: formatQty(product.depot_qty) })}` : ''}
                         </option>
                       ))}
                     </select>
