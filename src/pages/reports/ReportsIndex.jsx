@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import DepotScopeControls from '../../components/DepotScopeControls'
+import MonthYearField from '../../components/MonthYearField'
 import PageExportActions from '../../components/PageExportActions'
 import { PageLoader } from '../../components/Spinner'
 import { useI18n } from '../../contexts/I18nContext'
@@ -151,7 +152,7 @@ function SitationTab({ scopeParams }) {
   return (
     <>
       <div className="flex items-center gap-3 mb-5">
-        <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} style={{ width: 'auto' }} />
+        <MonthYearField value={month} onChange={setMonth} />
         <span className="text-xs text-muted-color">{t('reportsPage.sitation.monthHint')}</span>
       </div>
 

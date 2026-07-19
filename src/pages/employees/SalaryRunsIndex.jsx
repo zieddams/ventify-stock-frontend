@@ -94,7 +94,17 @@ export default function SalaryRunsIndex() {
         action={(
           <div className="flex flex-wrap items-end justify-end gap-2">
             <FormField label={t('salaryRunsPage.year')}>
-              <input type="number" value={year} onChange={(event) => setYear(Number(event.target.value))} style={{ width: 100 }} />
+              <input
+                type="number"
+                value={year}
+                onChange={(event) => {
+                  const parsed = Number(event.target.value)
+                  if (event.target.value !== '' && Number.isFinite(parsed)) {
+                    setYear(parsed)
+                  }
+                }}
+                style={{ width: 100 }}
+              />
             </FormField>
             <FormField label={t('salaryRunsPage.month')}>
               <select value={month} onChange={(event) => setMonth(Number(event.target.value))}>

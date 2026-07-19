@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Modal from '../../components/Modal'
 import { DepotSelectionInfo } from '../../components/DepotScopeControls'
+import MonthYearField from '../../components/MonthYearField'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import PaginationControls from '../../components/PaginationControls'
@@ -116,17 +117,15 @@ function ExpensesFilters({
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <div>
           <label className="block text-xs text-muted-color mb-1 font-medium">{t('expensesPage.filters.month')}</label>
-          <input
-            type="month"
+          <MonthYearField
             value={month}
-            onChange={(event) => {
-              setMonth(event.target.value)
-              if (event.target.value) {
+            onChange={(value) => {
+              setMonth(value)
+              if (value) {
                 setDateFrom('')
                 setDateTo('')
               }
             }}
-            className="text-sm"
           />
         </div>
         <div>
@@ -459,7 +458,7 @@ export default function ExpensesIndex() {
     setPaymentForm({
       amount: '',
       payment_method: defaultPaymentMethod,
-      payment_date: expense.last_payment_date || expense.expense_date || new Date().toISOString().slice(0, 10),
+      payment_date: (expense.last_payment_date || expense.expense_date || '').slice(0, 10) || new Date().toISOString().slice(0, 10),
       note: '',
     })
   }

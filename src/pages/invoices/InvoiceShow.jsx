@@ -19,6 +19,7 @@ export default function InvoiceShow() {
   const { t } = useI18n()
   const [invoice, setInvoice] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [updating, setUpdating] = useState(false)
   const [payAmount, setPayAmount] = useState('')
   const { items: configItems } = useConfigItems('payment_method')
@@ -43,10 +44,14 @@ export default function InvoiceShow() {
   }
 
   useEffect(() => {
-    api.get(`/invoices/${id}`).then((response) => {
-      setInvoice(response.data)
-      setLoading(false)
-    })
+    setLoading(true)
+    setLoadError('')
+    api.get(`/invoices/${id}`)
+      .then((response) => setInvoice(response.data))
+      .catch((error) => {
+        setLoadError(error.response?.status === 403 ? t('invoiceShow.accessDenied') : t('invoiceShow.notFound'))
+      })
+      .finally(() => setLoading(false))
   }, [id])
 
   useEffect(() => {
@@ -90,11 +95,11 @@ export default function InvoiceShow() {
     return <PageLoader />
   }
 
-  if (!invoice) {
+  if (loadError || !invoice) {
     return (
       <div className="text-center py-20 text-muted-color">
         <i className="fa-solid fa-file-circle-xmark text-4xl opacity-30 mb-3 block" />
-        {t('invoiceShow.notFound')}
+        {loadError || t('invoiceShow.notFound')}
       </div>
     )
   }

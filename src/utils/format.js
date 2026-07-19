@@ -23,9 +23,24 @@ function isArabicLocale() {
   return String(getRuntimeLocale() || '').startsWith('ar')
 }
 
+const BARE_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
+
 function toValidDate(value) {
   if (!value) {
     return null
+  }
+
+  // A bare "YYYY-MM-DD" string is parsed by `new Date(...)` as UTC midnight,
+  // which then formats as the *previous* day in any timezone behind UTC -
+  // build it from local calendar components instead so a date never shifts.
+  // Full timestamps (ISO datetimes with a time/offset) are unaffected.
+  if (typeof value === 'string') {
+    const match = BARE_DATE_PATTERN.exec(value)
+    if (match) {
+      const [, year, month, day] = match
+      const date = new Date(Number(year), Number(month) - 1, Number(day))
+      return Number.isNaN(date.getTime()) ? null : date
+    }
   }
 
   const date = new Date(value)

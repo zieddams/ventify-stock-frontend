@@ -946,14 +946,20 @@ export function buildPrintHtml(model) {
     <meta charset="utf-8" />
     <title>${escapeHtml(model.title)}</title>
     <style>
+      /* Prefixed --doc-* to avoid colliding with the live app's own theme
+         variables (index.css defines --surface/--border for its own light/
+         dark toggle) - this HTML gets injected straight into the app's
+         document by renderDocumentSnapshotCanvas for the Arabic PDF path, so
+         a same-named variable would let the app's dark-theme value win the
+         cascade and render this "always light" document with dark colors. */
       :root {
         color-scheme: light;
-        --ink: #0f172a;
-        --muted: #475569;
-        --line: #dbe3ec;
-        --surface: #ffffff;
-        --soft: #f8fafc;
-        --brand: #0f766e;
+        --doc-ink: #0f172a;
+        --doc-muted: #475569;
+        --doc-line: #dbe3ec;
+        --doc-surface: #ffffff;
+        --doc-soft: #f8fafc;
+        --doc-brand: #0f766e;
       }
 
       * {
@@ -964,15 +970,15 @@ export function buildPrintHtml(model) {
         margin: 0;
         padding: 32px;
         font-family: "Segoe UI", Tahoma, sans-serif;
-        color: var(--ink);
+        color: var(--doc-ink);
         background: #eef4f5;
       }
 
       .sheet {
         max-width: 1120px;
         margin: 0 auto;
-        background: var(--surface);
-        border: 1px solid var(--line);
+        background: var(--doc-surface);
+        border: 1px solid var(--doc-line);
         border-radius: 24px;
         padding: 28px 30px 34px;
       }
@@ -983,7 +989,7 @@ export function buildPrintHtml(model) {
         gap: 20px;
         margin-bottom: 22px;
         padding-bottom: 18px;
-        border-bottom: 1px solid var(--line);
+        border-bottom: 1px solid var(--doc-line);
       }
 
       .brand {
@@ -998,7 +1004,7 @@ export function buildPrintHtml(model) {
         height: 58px;
         object-fit: contain;
         border-radius: 18px;
-        border: 1px solid var(--line);
+        border: 1px solid var(--doc-line);
         background: #ffffff;
         padding: 8px;
         flex-shrink: 0;
@@ -1011,12 +1017,12 @@ export function buildPrintHtml(model) {
       .brand-name {
         font-size: 15px;
         font-weight: 700;
-        color: var(--brand);
+        color: var(--doc-brand);
       }
 
       .brand-line {
         margin-top: 4px;
-        color: var(--muted);
+        color: var(--doc-muted);
         font-size: 12px;
         line-height: 1.5;
       }
@@ -1029,14 +1035,14 @@ export function buildPrintHtml(model) {
 
       .subtitle {
         margin-top: 8px;
-        color: var(--muted);
+        color: var(--doc-muted);
         font-size: 13px;
       }
 
       .meta {
         min-width: 260px;
         text-align: right;
-        color: var(--muted);
+        color: var(--doc-muted);
         font-size: 12px;
         line-height: 1.6;
       }
@@ -1057,12 +1063,12 @@ export function buildPrintHtml(model) {
       }
 
       .brand-ar .brand-name {
-        color: var(--brand);
+        color: var(--doc-brand);
       }
 
       .brand-ar .brand-line {
         margin-top: 4px;
-        color: var(--muted);
+        color: var(--doc-muted);
         font-size: 12px;
         line-height: 1.5;
       }
@@ -1075,14 +1081,14 @@ export function buildPrintHtml(model) {
       }
 
       .summary-card {
-        background: var(--soft);
-        border: 1px solid var(--line);
+        background: var(--doc-soft);
+        border: 1px solid var(--doc-line);
         border-radius: 16px;
         padding: 14px 16px;
       }
 
       .summary-label {
-        color: var(--muted);
+        color: var(--doc-muted);
         font-size: 12px;
         margin-bottom: 6px;
       }
@@ -1104,7 +1110,7 @@ export function buildPrintHtml(model) {
       table {
         width: 100%;
         border-collapse: collapse;
-        border: 1px solid var(--line);
+        border: 1px solid var(--doc-line);
         border-radius: 16px;
         overflow: hidden;
       }
@@ -1115,7 +1121,7 @@ export function buildPrintHtml(model) {
 
       th,
       td {
-        border-bottom: 1px solid var(--line);
+        border-bottom: 1px solid var(--doc-line);
         padding: 11px 12px;
         text-align: left;
         font-size: 12px;
@@ -1126,7 +1132,7 @@ export function buildPrintHtml(model) {
         font-size: 11px;
         letter-spacing: 0.02em;
         text-transform: uppercase;
-        color: var(--muted);
+        color: var(--doc-muted);
       }
 
       tbody tr:nth-child(even) {
@@ -1135,13 +1141,13 @@ export function buildPrintHtml(model) {
 
       .empty-row {
         text-align: center;
-        color: var(--muted);
+        color: var(--doc-muted);
         font-style: italic;
       }
 
       .key-value-table th {
         width: 240px;
-        background: var(--soft);
+        background: var(--doc-soft);
         text-transform: none;
         letter-spacing: 0;
       }
@@ -1149,20 +1155,20 @@ export function buildPrintHtml(model) {
       .text-section {
         margin: 0;
         padding: 16px;
-        border: 1px solid var(--line);
+        border: 1px solid var(--doc-line);
         border-radius: 16px;
-        background: var(--soft);
-        color: var(--muted);
+        background: var(--doc-soft);
+        color: var(--doc-muted);
         white-space: pre-wrap;
       }
 
       .footer-note {
         margin-top: 22px;
         padding: 14px 16px;
-        border: 1px solid var(--line);
+        border: 1px solid var(--doc-line);
         border-radius: 16px;
-        background: var(--soft);
-        color: var(--muted);
+        background: var(--doc-soft);
+        color: var(--doc-muted);
         font-size: 12px;
         line-height: 1.6;
         white-space: pre-wrap;

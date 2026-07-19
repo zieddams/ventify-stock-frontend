@@ -377,6 +377,7 @@ export default {
     genericError: 'Erreur',
     deleteConfirm: 'Supprimer définitivement cette facture ?',
     notFound: 'Facture introuvable',
+    accessDenied: "Vous n'avez pas accès à cette facture.",
     documentTitle: ({ number }) => `Facture ${number}`,
     documentSubtitle: ({ customer }) => `Client : ${customer}`,
     customerSection: 'Client',
@@ -1925,6 +1926,8 @@ export default {
     profileComplete: 'Dossier RH créé',
     profileMissing: 'Aucun dossier RH',
     empty: 'Aucun employé pour le moment.',
+    notFound: 'Employé introuvable.',
+    accessDenied: "Vous n'avez pas accès à ce dossier employé.",
     profileDocumentTitle: ({ name }) => `Fiche employé - ${name}`,
     actions: {
       open: 'Ouvrir le dossier',

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import FormField from '../../components/FormField'
+import MonthYearField from '../../components/MonthYearField'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import RowDocumentActions from '../../components/RowDocumentActions'
@@ -30,6 +31,7 @@ export default function EmployeeDetail() {
   const [tab, setTab] = useState('profile')
   const [employee, setEmployee] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
 
   const loadEmployee = async () => {
     const response = await api.get(`/employees/${employeeId}`)
@@ -38,11 +40,35 @@ export default function EmployeeDetail() {
 
   useEffect(() => {
     setLoading(true)
-    loadEmployee().finally(() => setLoading(false))
+    setLoadError('')
+    loadEmployee()
+      .catch((error) => {
+        setLoadError(error.response?.status === 403 ? t('employeesPage.accessDenied') : t('employeesPage.notFound'))
+      })
+      .finally(() => setLoading(false))
   }, [employeeId])
 
-  if (loading || !employee) {
+  if (loading) {
     return <PageLoader />
+  }
+
+  if (loadError || !employee) {
+    return (
+      <div>
+        <PageHeader
+          title={t('employeesPage.title')}
+          action={(
+            <button onClick={() => navigate('/employees')} className="btn-secondary">
+              <i className="fa-solid fa-arrow-left" /> {t('common.back')}
+            </button>
+          )}
+        />
+        <div className="card text-center py-16">
+          <i className="fa-solid fa-triangle-exclamation text-3xl mb-3" style={{ color: '#f59e0b' }} />
+          <p className="text-secondary-color">{loadError || t('employeesPage.notFound')}</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -97,8 +123,10 @@ function ProfileTab({ employee, canEdit, onSaved, t }) {
       phone: profile?.phone ?? '',
       address: profile?.address ?? '',
       cin: profile?.cin ?? '',
-      birth_date: profile?.birth_date ?? '',
-      hire_date: profile?.hire_date ?? '',
+      // Defensive slice: an <input type="date"> silently blanks out if fed
+      // anything but a bare "YYYY-MM-DD" (e.g. a full ISO timestamp).
+      birth_date: (profile?.birth_date ?? '').slice(0, 10),
+      hire_date: (profile?.hire_date ?? '').slice(0, 10),
       emergency_contact_name: profile?.emergency_contact_name ?? '',
       emergency_contact_phone: profile?.emergency_contact_phone ?? '',
       bank_name: profile?.bank_name ?? '',
@@ -393,7 +421,7 @@ function LedgerTab({ employeeId, employeeName, canEdit, t }) {
               <input type="number" step="0.001" value={form.amount} onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))} />
             </FormField>
             <FormField label={t('employeesPage.ledger.period')}>
-              <input type="month" value={form.related_period} onChange={(event) => setForm((current) => ({ ...current, related_period: event.target.value }))} />
+              <MonthYearField value={form.related_period} onChange={(value) => setForm((current) => ({ ...current, related_period: value }))} />
             </FormField>
             <FormField label={t('employeesPage.ledger.note')}>
               <input value={form.note} onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))} />
@@ -640,7 +668,7 @@ function ManquesAbsencesTab({ employeeId, employeeName, canEdit, t }) {
                 <input type="number" step="0.001" value={manqueForm.amount} onChange={(event) => setManqueForm((current) => ({ ...current, amount: event.target.value }))} />
               </FormField>
               <FormField label={t('employeesPage.ledger.period')}>
-                <input type="month" value={manqueForm.related_period} onChange={(event) => setManqueForm((current) => ({ ...current, related_period: event.target.value }))} />
+                <MonthYearField value={manqueForm.related_period} onChange={(value) => setManqueForm((current) => ({ ...current, related_period: value }))} />
               </FormField>
               <FormField label={t('employeesPage.ledger.note')}>
                 <input value={manqueForm.note} onChange={(event) => setManqueForm((current) => ({ ...current, note: event.target.value }))} />

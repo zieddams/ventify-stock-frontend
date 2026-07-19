@@ -377,6 +377,7 @@ export default {
     genericError: 'خطأ',
     deleteConfirm: 'تحب تحذف الفاتورة نهائيًّا؟',
     notFound: 'الفاتورة موش موجودة',
+    accessDenied: 'ما عندكش صلاحية باش تشوف هذه الفاتورة.',
     documentTitle: ({ number }) => `فاتورة ${number}`,
     documentSubtitle: ({ customer }) => `الحريف: ${customer}`,
     customerSection: 'الحريف',
@@ -1925,6 +1926,8 @@ export default {
     profileComplete: 'الملف موجود',
     profileMissing: 'ما فماش ملف باعد',
     empty: 'ما فما حتى موظف لتوّة.',
+    notFound: 'الموظف موش موجود.',
+    accessDenied: 'ما عندكش صلاحية باش تشوف هذا الملف.',
     profileDocumentTitle: ({ name }) => `ملف الموظف - ${name}`,
     actions: {
       open: 'حل الملف',
