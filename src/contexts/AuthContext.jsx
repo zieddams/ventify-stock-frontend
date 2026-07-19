@@ -199,8 +199,8 @@ export function AuthProvider({ children }) {
   const isPos = () => user?.role === 'pos'
   const isPosWorkspace = () => user?.role === 'pos'
   const isSupervisor = () => user?.role === 'supervisor'
-  const isFinance = () => ['admin', 'comptable'].includes(user?.role)
-  const canManageAllCustomers = () => ['admin', 'comptable', 'supervisor'].includes(user?.role)
+  const isFinance = () => user?.role === 'admin'
+  const canManageAllCustomers = () => ['admin', 'supervisor'].includes(user?.role)
   const canManageMultiDepot = () => user?.role === 'developer'
   // Mirrors UserRole::canBrowseCompanyDepots() on the backend - read-scoping only in
   // practice (see that method's docblock): supervisor never reaches any route gated

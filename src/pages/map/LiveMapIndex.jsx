@@ -22,7 +22,7 @@ import {
   formatCount as formatLocaleCount,
   formatCurrency as formatLocaleCurrency,
   formatDateTime as formatLocaleDateTime,
-  formatNumber as formatLocaleNumber,
+  formatQty as formatLocaleQty,
 } from '../../utils/format'
 import {
   DEFAULT_CENTER,
@@ -228,8 +228,8 @@ function formatMapSourceLabel(source, t) {
   return t('liveMapPage.sources.gps')
 }
 
-function formatNumber(value) {
-  return formatLocaleNumber(value)
+function formatQty(value) {
+  return formatLocaleQty(value)
 }
 
 function formatCount(value) {
@@ -262,7 +262,6 @@ function formatRoleLabel(role, t) {
   if (role === 'rep') return t('badges.roles.rep')
   if (role === 'admin') return t('badges.roles.admin')
   if (role === 'developer') return t('badges.roles.developer')
-  if (role === 'comptable') return t('badges.roles.comptable')
   return role || t('liveMapPage.fallbacks.user')
 }
 
@@ -1001,7 +1000,7 @@ function TerrainTab({
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="rounded-2xl px-3 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                     <div className="text-[11px] text-muted-color">{t('liveMapPage.terrain.remainingQuantity')}</div>
-                    <div className="text-sm font-bold text-base-color mt-1">{formatNumber(selectedRep.camion_stock?.total_qty ?? 0)}</div>
+                    <div className="text-sm font-bold text-base-color mt-1">{formatQty(selectedRep.camion_stock?.total_qty ?? 0)}</div>
                   </div>
                   <div className="rounded-2xl px-3 py-3" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--border)' }}>
                     <div className="text-[11px] text-muted-color">{t('liveMapPage.terrain.camionValue')}</div>
@@ -1025,12 +1024,12 @@ function TerrainTab({
                         <div className="text-sm font-medium text-base-color truncate">{item.product?.name}</div>
                         <div className="text-[11px] text-muted-color truncate">
                           {item.product?.reference || t('liveMapPage.fallbacks.noReference')} · {item.product?.unit || t('liveMapPage.fallbacks.unit')}
-                          {item.product?.min_stock != null && ` · ${t('liveMapPage.terrain.minStock', { value: formatNumber(item.product.min_stock) })}`}
+                          {item.product?.min_stock != null && ` · ${t('liveMapPage.terrain.minStock', { value: formatQty(item.product.min_stock) })}`}
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="text-sm font-bold" style={{ color: item.is_low ? '#f59e0b' : '#0d9488' }}>
-                          {formatNumber(item.qty)}
+                          {formatQty(item.qty)}
                         </div>
                         <div className="text-[11px] text-muted-color">{formatMoney(item.value)}</div>
                       </div>
@@ -1221,7 +1220,7 @@ function TerrainTab({
                 />
                 <MetricCard
                   label={t('liveMapPage.terrain.loadedToday')}
-                  value={formatNumber(selectedRep.route_session?.loaded_qty_total ?? 0)}
+                  value={formatQty(selectedRep.route_session?.loaded_qty_total ?? 0)}
                   sub={formatMoney(selectedRep.route_session?.loaded_value_total ?? 0)}
                   icon="fa-solid fa-truck-ramp-box"
                   color="#3b82f6"
@@ -1229,7 +1228,7 @@ function TerrainTab({
                 <MetricCard
                   label={t('liveMapPage.terrain.lastRecharge')}
                   value={selectedRep.route_session?.last_load?.qty_total != null
-                    ? formatNumber(selectedRep.route_session.last_load.qty_total)
+                    ? formatQty(selectedRep.route_session.last_load.qty_total)
                     : t('liveMapPage.fallbacks.none')}
                   sub={selectedRep.route_session?.last_load?.at
                     ? `${formatDateTime(selectedRep.route_session.last_load.at, t('liveMapPage.fallbacks.notAvailable'))} · ${formatMoney(selectedRep.route_session.last_load.value_total ?? 0)}`
@@ -1267,8 +1266,8 @@ function TerrainTab({
                     <DetailRow label={t('liveMapPage.terrain.closing')} value={formatDateTime(selectedRep.route_session?.closed_at, t('liveMapPage.fallbacks.notAvailable'))} />
                     <DetailRow label={t('liveMapPage.terrain.sessionZone')} value={selectedRep.route_session?.zone?.name || selectedRep.zone?.name || t('liveMapPage.fallbacks.notAvailable')} />
                     <DetailRow label={t('liveMapPage.terrain.assignedCamion')} value={selectedRep.route_session?.camion?.name || selectedRep.camion_stock?.configured_camion?.name || t('liveMapPage.fallbacks.none')} />
-                    <DetailRow label={t('liveMapPage.terrain.loadSellReturn')} value={`${formatNumber(selectedRep.route_session?.loaded_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.sold_qty_total ?? 0)} / ${formatNumber(selectedRep.route_session?.returned_qty_total ?? 0)}`} />
-                    <DetailRow label={t('liveMapPage.terrain.remainingCamion')} value={formatNumber(selectedRep.route_session?.remaining_qty_total ?? 0)} />
+                    <DetailRow label={t('liveMapPage.terrain.loadSellReturn')} value={`${formatQty(selectedRep.route_session?.loaded_qty_total ?? 0)} / ${formatQty(selectedRep.route_session?.sold_qty_total ?? 0)} / ${formatQty(selectedRep.route_session?.returned_qty_total ?? 0)}`} />
+                    <DetailRow label={t('liveMapPage.terrain.remainingCamion')} value={formatQty(selectedRep.route_session?.remaining_qty_total ?? 0)} />
                     <DetailRow label={t('liveMapPage.terrain.cashCredit')} value={`${formatMoney(selectedRep.route_session?.cash_collected ?? 0)} / ${formatMoney(selectedRep.route_session?.credit_given ?? 0)}`} />
                     <DetailRow
                       label={t('liveMapPage.terrain.terrainMap')}

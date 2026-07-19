@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import FormField from '../../components/FormField'
-import FrenchDateTimeInput from '../../components/FrenchDateTimeInput'
 import PageExportActions from '../../components/PageExportActions'
 import PageHeader from '../../components/PageHeader'
 import RowDocumentActions from '../../components/RowDocumentActions'
@@ -19,7 +18,7 @@ const EMPTY_PROFILE = {
   cnss_number: '', cnss_enrolled: false, expected_start_time: '',
 }
 
-const TABS = ['profile', 'documents', 'ledger', 'leave', 'salary', 'notes', 'performance']
+const TABS = ['profile', 'documents', 'ledger', 'leave', 'manques', 'salary', 'notes', 'performance']
 
 export default function EmployeeDetail() {
   const { t } = useI18n()
@@ -78,6 +77,7 @@ export default function EmployeeDetail() {
         {tab === 'documents' && <DocumentsTab employeeId={employeeId} canEdit={canEdit} t={t} />}
         {tab === 'ledger' && <LedgerTab employeeId={employeeId} employeeName={employee.name} canEdit={canEdit} t={t} />}
         {tab === 'leave' && <LeaveTab employeeId={employeeId} employeeName={employee.name} canEdit={canEdit} isSelf={String(me?.id) === String(employeeId)} t={t} />}
+        {tab === 'manques' && <ManquesAbsencesTab employeeId={employeeId} employeeName={employee.name} canEdit={canEdit} t={t} />}
         {tab === 'salary' && <SalaryHistoryTab employeeId={employeeId} employeeName={employee.name} t={t} />}
         {tab === 'notes' && <NotesTab employeeId={employeeId} canEdit={canEdit} t={t} />}
         {tab === 'performance' && <PerformanceTab employeeId={employeeId} t={t} />}
@@ -156,10 +156,10 @@ function ProfileTab({ employee, canEdit, onSaved, t }) {
 
       <div className="grid grid-cols-2 gap-3">
         <FormField label={t('employeesPage.profile.birthDate')} error={errors.birth_date?.[0]}>
-          <FrenchDateTimeInput type="date" value={form.birth_date ?? ''} onChange={set('birth_date')} disabled={!canEdit} />
+          <input type="date" value={form.birth_date ?? ''} onChange={set('birth_date')} disabled={!canEdit} />
         </FormField>
         <FormField label={t('employeesPage.profile.hireDate')} error={errors.hire_date?.[0]}>
-          <FrenchDateTimeInput type="date" value={form.hire_date ?? ''} onChange={set('hire_date')} disabled={!canEdit} />
+          <input type="date" value={form.hire_date ?? ''} onChange={set('hire_date')} disabled={!canEdit} />
         </FormField>
       </div>
 
@@ -382,7 +382,9 @@ function LedgerTab({ employeeId, employeeName, canEdit, t }) {
           <div className="grid grid-cols-4 gap-3">
             <FormField label={t('employeesPage.ledger.type')}>
               <select value={form.type} onChange={(event) => setForm((current) => ({ ...current, type: event.target.value }))}>
-                {['prime', 'avance', 'remboursement_avance', 'retenue', 'autre'].map((value) => (
+                {/* 'retenue' is soft-deprecated (no longer creatable) and 'manque' has
+                    its own dedicated tab - see the HR redesign plan. */}
+                {['prime', 'avance', 'remboursement_avance', 'autre'].map((value) => (
                   <option key={value} value={value}>{t(`employeesPage.ledger.types.${value}`)}</option>
                 ))}
               </select>
@@ -447,9 +449,9 @@ function LedgerTab({ employeeId, employeeName, canEdit, t }) {
 
 function LeaveTab({ employeeId, employeeName, canEdit, isSelf, t }) {
   const { layouts: documentLayouts, documentSettings } = useDocumentLayouts()
-  const [data, setData] = useState({ accrued_balance: 0, leaves: [] })
+  const [data, setData] = useState({ leaves: [] })
   const [loading, setLoading] = useState(true)
-  const [form, setForm] = useState({ type: 'annuel', date_start: '', date_end: '', note: '' })
+  const [form, setForm] = useState({ type: 'annuel', date_start: '', date_end: '', note: '', is_paid: false })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -467,7 +469,7 @@ function LeaveTab({ employeeId, employeeName, canEdit, isSelf, t }) {
 
     try {
       await api.post(`/employees/${employeeId}/leaves`, form)
-      setForm({ type: 'annuel', date_start: '', date_end: '', note: '' })
+      setForm({ type: 'annuel', date_start: '', date_end: '', note: '', is_paid: false })
       load()
     } catch (err) {
       setError(err.response?.data?.message ?? t('employeesPage.leave.saveFailed'))
@@ -485,12 +487,6 @@ function LeaveTab({ employeeId, employeeName, canEdit, isSelf, t }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl p-4" style={{ background: 'var(--surface-2)' }}>
-        <div className="text-xs text-secondary-color">{t('employeesPage.leave.accruedBalance')}</div>
-        <div className="text-2xl font-bold text-base-color">{data.accrued_balance} {t('employeesPage.leave.days')}</div>
-        <div className="text-xs text-muted-color mt-1">{t('employeesPage.leave.accrualNote')}</div>
-      </div>
-
       {(canEdit || isSelf) && (
         <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--surface-2)' }}>
           <div className="grid grid-cols-3 gap-3">
@@ -502,12 +498,16 @@ function LeaveTab({ employeeId, employeeName, canEdit, isSelf, t }) {
               </select>
             </FormField>
             <FormField label={t('employeesPage.leave.dateStart')}>
-              <FrenchDateTimeInput type="date" value={form.date_start} onChange={(event) => setForm((current) => ({ ...current, date_start: event.target.value }))} />
+              <input type="date" value={form.date_start} onChange={(event) => setForm((current) => ({ ...current, date_start: event.target.value }))} />
             </FormField>
             <FormField label={t('employeesPage.leave.dateEnd')}>
-              <FrenchDateTimeInput type="date" value={form.date_end} onChange={(event) => setForm((current) => ({ ...current, date_end: event.target.value }))} />
+              <input type="date" value={form.date_end} onChange={(event) => setForm((current) => ({ ...current, date_end: event.target.value }))} />
             </FormField>
           </div>
+          <label className="flex items-center gap-2 text-sm text-base-color">
+            <input type="checkbox" checked={form.is_paid} onChange={(event) => setForm((current) => ({ ...current, is_paid: event.target.checked }))} style={{ width: 16, height: 16 }} />
+            {t('employeesPage.leave.isPaid')}
+          </label>
           <div className="flex justify-end">
             <button onClick={submit} disabled={saving} className="btn-primary">
               {saving ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : t('employeesPage.leave.request')}
@@ -535,6 +535,11 @@ function LeaveTab({ employeeId, employeeName, canEdit, isSelf, t }) {
             <div>
               <div className="text-sm font-semibold text-base-color">
                 {t(`employeesPage.leave.types.${leave.type}`)} · {formatDate(leave.date_start)} - {formatDate(leave.date_end)} ({leave.days_count} {t('employeesPage.leave.days')})
+                {leave.is_paid && (
+                  <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full text-emerald-600" style={{ background: 'var(--surface)' }}>
+                    {t('employeesPage.leave.isPaid')}
+                  </span>
+                )}
               </div>
               <div className="text-xs text-muted-color mt-1">{leave.note}</div>
             </div>
@@ -556,6 +561,175 @@ function LeaveTab({ employeeId, employeeName, canEdit, isSelf, t }) {
         {data.leaves.length === 0 && (
           <div className="py-12 text-center text-muted-color">{t('employeesPage.leave.empty')}</div>
         )}
+      </div>
+    </div>
+  )
+}
+
+function ManquesAbsencesTab({ employeeId, employeeName, canEdit, t }) {
+  const { layouts: documentLayouts, documentSettings } = useDocumentLayouts()
+  const [manques, setManques] = useState([])
+  const [absences, setAbsences] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [manqueForm, setManqueForm] = useState({ amount: '', related_period: '', note: '' })
+  const [absenceForm, setAbsenceForm] = useState({ date: '', note: '' })
+  const [savingManque, setSavingManque] = useState(false)
+  const [savingAbsence, setSavingAbsence] = useState(false)
+  const [manqueError, setManqueError] = useState('')
+  const [absenceError, setAbsenceError] = useState('')
+
+  const load = () => {
+    setLoading(true)
+    Promise.all([
+      api.get(`/employees/${employeeId}/transactions`),
+      api.get(`/employees/${employeeId}/absences`),
+    ]).then(([transactionsResponse, absencesResponse]) => {
+      const transactions = Array.isArray(transactionsResponse.data) ? transactionsResponse.data : []
+      setManques(transactions.filter((entry) => entry.type === 'manque'))
+      setAbsences(Array.isArray(absencesResponse.data) ? absencesResponse.data : [])
+    }).finally(() => setLoading(false))
+  }
+
+  useEffect(load, [employeeId])
+
+  const submitManque = async () => {
+    if (!manqueForm.amount || !manqueForm.related_period) return
+    setSavingManque(true)
+    setManqueError('')
+
+    try {
+      await api.post(`/employees/${employeeId}/transactions`, {
+        type: 'manque', amount: Number(manqueForm.amount),
+        related_period: manqueForm.related_period, note: manqueForm.note || null,
+      })
+      setManqueForm({ amount: '', related_period: '', note: '' })
+      load()
+    } catch (err) {
+      setManqueError(err.response?.data?.message ?? t('employeesPage.manques.saveFailed'))
+    } finally {
+      setSavingManque(false)
+    }
+  }
+
+  const submitAbsence = async () => {
+    if (!absenceForm.date) return
+    setSavingAbsence(true)
+    setAbsenceError('')
+
+    try {
+      await api.post(`/employees/${employeeId}/absences`, { date: absenceForm.date, note: absenceForm.note || null })
+      setAbsenceForm({ date: '', note: '' })
+      load()
+    } catch (err) {
+      setAbsenceError(err.response?.data?.message ?? t('employeesPage.absences.saveFailed'))
+    } finally {
+      setSavingAbsence(false)
+    }
+  }
+
+  if (loading) return <PageLoader />
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h3 className="text-sm font-semibold text-base-color mb-3">{t('employeesPage.manques.title')}</h3>
+        {canEdit && (
+          <div className="rounded-2xl p-4 space-y-3 mb-3" style={{ background: 'var(--surface-2)' }}>
+            <div className="grid grid-cols-3 gap-3">
+              <FormField label={t('employeesPage.ledger.amount')}>
+                <input type="number" step="0.001" value={manqueForm.amount} onChange={(event) => setManqueForm((current) => ({ ...current, amount: event.target.value }))} />
+              </FormField>
+              <FormField label={t('employeesPage.ledger.period')}>
+                <input type="month" value={manqueForm.related_period} onChange={(event) => setManqueForm((current) => ({ ...current, related_period: event.target.value }))} />
+              </FormField>
+              <FormField label={t('employeesPage.ledger.note')}>
+                <input value={manqueForm.note} onChange={(event) => setManqueForm((current) => ({ ...current, note: event.target.value }))} />
+              </FormField>
+            </div>
+            <div className="flex justify-end">
+              <button onClick={submitManque} disabled={savingManque || !manqueForm.amount || !manqueForm.related_period} className="btn-primary">
+                {savingManque ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : t('employeesPage.manques.add')}
+              </button>
+            </div>
+            {manqueError && <div className="text-xs text-red-500">{manqueError}</div>}
+          </div>
+        )}
+
+        {manques.length > 0 && (
+          <div className="flex justify-end mb-2">
+            <PageExportActions
+              title={t('employeesPage.manques.documentTitle', { name: employeeName })}
+              documentKey="employee_manques_list"
+              records={manques}
+              documentLayouts={documentLayouts}
+              documentSettings={documentSettings}
+            />
+          </div>
+        )}
+
+        <div className="divide-y divide-theme">
+          {manques.map((entry) => (
+            <div key={entry.id} className="flex items-center justify-between py-3">
+              <div>
+                <div className="text-sm font-semibold text-base-color">{formatCurrency(entry.amount)} · {entry.related_period ?? '-'}</div>
+                <div className="text-xs text-muted-color mt-1">{entry.note}</div>
+              </div>
+              <div className="text-xs text-muted-color">{formatDateTime(entry.created_at)}</div>
+            </div>
+          ))}
+          {manques.length === 0 && (
+            <div className="py-8 text-center text-muted-color">{t('employeesPage.manques.empty')}</div>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold text-base-color mb-3">{t('employeesPage.absences.title')}</h3>
+        {canEdit && (
+          <div className="rounded-2xl p-4 space-y-3 mb-3" style={{ background: 'var(--surface-2)' }}>
+            <div className="grid grid-cols-2 gap-3">
+              <FormField label={t('employeesPage.absences.date')}>
+                <input type="date" value={absenceForm.date} onChange={(event) => setAbsenceForm((current) => ({ ...current, date: event.target.value }))} />
+              </FormField>
+              <FormField label={t('employeesPage.ledger.note')}>
+                <input value={absenceForm.note} onChange={(event) => setAbsenceForm((current) => ({ ...current, note: event.target.value }))} />
+              </FormField>
+            </div>
+            <div className="flex justify-end">
+              <button onClick={submitAbsence} disabled={savingAbsence || !absenceForm.date} className="btn-primary">
+                {savingAbsence ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : t('employeesPage.absences.add')}
+              </button>
+            </div>
+            {absenceError && <div className="text-xs text-red-500">{absenceError}</div>}
+          </div>
+        )}
+
+        {absences.length > 0 && (
+          <div className="flex justify-end mb-2">
+            <PageExportActions
+              title={t('employeesPage.absences.documentTitle', { name: employeeName })}
+              documentKey="employee_absences_list"
+              records={absences}
+              documentLayouts={documentLayouts}
+              documentSettings={documentSettings}
+            />
+          </div>
+        )}
+
+        <div className="divide-y divide-theme">
+          {absences.map((entry) => (
+            <div key={entry.id} className="flex items-center justify-between py-3">
+              <div>
+                <div className="text-sm font-semibold text-base-color">{formatDate(entry.date)}</div>
+                <div className="text-xs text-muted-color mt-1">{entry.note}</div>
+              </div>
+              <div className="text-xs text-muted-color">{entry.created_by_name}</div>
+            </div>
+          ))}
+          {absences.length === 0 && (
+            <div className="py-8 text-center text-muted-color">{t('employeesPage.absences.empty')}</div>
+          )}
+        </div>
       </div>
     </div>
   )

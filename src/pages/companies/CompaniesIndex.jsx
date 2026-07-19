@@ -1210,7 +1210,7 @@ export default function CompaniesIndex() {
                         </div>
 
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 mt-4">
-                          {['admin', 'comptable', 'rep'].map((role) => {
+                          {['admin', 'rep'].map((role) => {
                             const roleKey = `${selectedCompany.id}:${role}`
                             const busy = switchingCompanySession || launchingRoleKey === roleKey
 

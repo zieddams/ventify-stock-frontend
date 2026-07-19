@@ -8,7 +8,7 @@ import MovementsPanel from '../../components/stock/MovementsPanel'
 import { useI18n } from '../../contexts/I18nContext'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
-import { formatNumber } from '../../utils/format'
+import { formatNumber, formatQty } from '../../utils/format'
 
 function buildPosForm(depot = null) {
   return {
@@ -367,7 +367,7 @@ export default function PosManagementIndex() {
                 {[
                   { label: t('posManagementPage.metrics.refs'), value: depot.stocked_products_count ?? 0 },
                   { label: t('posManagementPage.metrics.team'), value: depot.users_count ?? 0 },
-                  { label: t('posManagementPage.metrics.stockTotal'), value: formatNumber(depot.total_stock_qty) },
+                  { label: t('posManagementPage.metrics.stockTotal'), value: formatQty(depot.total_stock_qty) },
                 ].map((item) => (
                   <div key={item.label} className="rounded-xl px-3 py-2 border border-theme" style={{ background: 'var(--surface-2)' }}>
                     <div className="text-[11px] text-muted-color">{item.label}</div>
@@ -526,7 +526,7 @@ export default function PosManagementIndex() {
               </option>
               {sourceStock.map((item) => (
                 <option key={item.product_id} value={item.product_id}>
-                  {item.product?.name} - {item.product?.reference || notAvailable} ({formatNumber(item.qty)} {t('posManagementPage.transferModal.availableUnit')})
+                  {item.product?.name} - {item.product?.reference || notAvailable} ({formatQty(item.qty)} {t('posManagementPage.transferModal.availableUnit')})
                 </option>
               ))}
             </select>
@@ -556,7 +556,7 @@ export default function PosManagementIndex() {
 
           {selectedSourceStock && (
             <p className="text-xs text-muted-color -mt-2">
-              {t('posManagementPage.transferModal.availableHint', { qty: formatNumber(selectedSourceStock.qty) })}
+              {t('posManagementPage.transferModal.availableHint', { qty: formatQty(selectedSourceStock.qty) })}
               {' · '}
               {t('posManagementPage.transferModal.referencePriceHint', {
                 depotPrice: formatNumber(selectedSourceStock.product?.depot_price ?? 0),

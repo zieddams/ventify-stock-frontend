@@ -52,7 +52,6 @@ export function RôleBadge({ role }) {
     admin:     { color: 'teal', label: t('badges.roles.admin') },
     developer: { color: 'violet', label: t('badges.roles.developer') },
     rep:       { color: 'blue', label: t('badges.roles.rep') },
-    comptable: { color: 'yellow', label: t('badges.roles.comptable') },
   }
   const { color, label } = map[role] ?? { color: 'slate', label: role }
   return <Badge color={color}>{label}</Badge>

@@ -5,7 +5,7 @@ import { PageLoader } from '../../components/Spinner'
 import { useI18n } from '../../contexts/I18nContext'
 import { useDepots } from '../../hooks/useDepots'
 import api from '../../services/api'
-import { formatCurrency, formatDateTime, formatNumber } from '../../utils/format'
+import { formatCurrency, formatDateTime, formatQty } from '../../utils/format'
 
 function SectionCard({ title, children }) {
   return (
@@ -30,6 +30,33 @@ function KpiCard({ label, value, icon, color }) {
   )
 }
 
+function toYmd(date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+function thisMonthRange() {
+  const now = new Date()
+  return { from: toYmd(new Date(now.getFullYear(), now.getMonth(), 1)), to: toYmd(new Date(now.getFullYear(), now.getMonth() + 1, 0)) }
+}
+
+function lastMonthRange() {
+  const now = new Date()
+  return { from: toYmd(new Date(now.getFullYear(), now.getMonth() - 1, 1)), to: toYmd(new Date(now.getFullYear(), now.getMonth(), 0)) }
+}
+
+function thisYearRange() {
+  const now = new Date()
+  return { from: toYmd(new Date(now.getFullYear(), 0, 1)), to: toYmd(new Date(now.getFullYear(), 11, 31)) }
+}
+
+function lastYearRange() {
+  const now = new Date()
+  return { from: toYmd(new Date(now.getFullYear() - 1, 0, 1)), to: toYmd(new Date(now.getFullYear() - 1, 11, 31)) }
+}
+
 export default function StockOverviewIndex() {
   const { t } = useI18n()
   const {
@@ -50,6 +77,12 @@ export default function StockOverviewIndex() {
   const [loading, setLoading] = useState(true)
   const [overview, setOverview] = useState(null)
 
+  const [compareA, setCompareA] = useState({ from: '', to: '' })
+  const [compareB, setCompareB] = useState({ from: '', to: '' })
+  const [compareResult, setCompareResult] = useState(null)
+  const [comparing, setComparing] = useState(false)
+  const [compareError, setCompareError] = useState('')
+
   useEffect(() => {
     if (!depotsReady) return
 
@@ -62,6 +95,39 @@ export default function StockOverviewIndex() {
 
     return () => { cancelled = true }
   }, [depotsReady, scopeParams])
+
+  const applyComparePreset = (preset) => {
+    if (preset === 'month') {
+      setCompareA(thisMonthRange())
+      setCompareB(lastMonthRange())
+    } else if (preset === 'year') {
+      setCompareA(thisYearRange())
+      setCompareB(lastYearRange())
+    }
+  }
+
+  const runCompare = async () => {
+    if (!compareA.from || !compareA.to || !compareB.from || !compareB.to) return
+    setComparing(true)
+    setCompareError('')
+
+    try {
+      const response = await api.get('/reports/profit-compare', {
+        params: {
+          ...scopeParams,
+          date_from_a: compareA.from,
+          date_to_a: compareA.to,
+          date_from_b: compareB.from,
+          date_to_b: compareB.to,
+        },
+      })
+      setCompareResult(response.data)
+    } catch (err) {
+      setCompareError(err.response?.data?.message ?? t('supervisorStockPage.compare.failed'))
+    } finally {
+      setComparing(false)
+    }
+  }
 
   if (loading && !overview) {
     return <PageLoader />
@@ -96,7 +162,7 @@ export default function StockOverviewIndex() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         <KpiCard label={t('supervisorStockPage.kpis.depots')} value={byDepot.length} icon="fa-solid fa-warehouse" color="#0d9488" />
-        <KpiCard label={t('supervisorStockPage.kpis.totalQty')} value={formatNumber(totalQty)} icon="fa-solid fa-boxes-stacked" color="#3b82f6" />
+        <KpiCard label={t('supervisorStockPage.kpis.totalQty')} value={formatQty(totalQty)} icon="fa-solid fa-boxes-stacked" color="#3b82f6" />
         <KpiCard label={t('supervisorStockPage.kpis.totalValue')} value={formatCurrency(totalValue)} icon="fa-solid fa-sack-dollar" color="#10b981" />
         <KpiCard label={t('supervisorStockPage.kpis.lowStock')} value={lowStockCount} icon="fa-solid fa-triangle-exclamation" color="#ef4444" />
       </div>
@@ -117,7 +183,7 @@ export default function StockOverviewIndex() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-bold font-mono text-base-color">{formatNumber(depot.total_qty)}</div>
+                    <div className="text-sm font-bold font-mono text-base-color">{formatQty(depot.total_qty)}</div>
                     <div className="text-xs text-muted-color font-mono">{formatCurrency(depot.total_value)}</div>
                   </div>
                 </div>
@@ -138,7 +204,7 @@ export default function StockOverviewIndex() {
                     <div className="text-xs text-muted-color truncate">{movement.depot_name} · {movement.user_name} · {formatDateTime(movement.created_at)}</div>
                   </div>
                   <span className="font-mono font-semibold flex-shrink-0" style={{ color: Number(movement.qty) >= 0 ? '#059669' : '#dc2626' }}>
-                    {Number(movement.qty) >= 0 ? '+' : ''}{formatNumber(movement.qty)}
+                    {Number(movement.qty) >= 0 ? '+' : ''}{formatQty(movement.qty)}
                   </span>
                 </div>
               ))}
@@ -168,12 +234,12 @@ export default function StockOverviewIndex() {
                       <div className="font-medium text-base-color">{product.product_name}</div>
                       <div className="text-xs text-muted-color">{product.product_reference}</div>
                     </td>
-                    <td className="py-2 pr-3 text-right font-mono font-semibold text-base-color">{formatNumber(product.total_qty)}</td>
+                    <td className="py-2 pr-3 text-right font-mono font-semibold text-base-color">{formatQty(product.total_qty)}</td>
                     <td className="py-2">
                       <div className="flex flex-wrap gap-1.5">
                         {product.by_depot.map((entry) => (
                           <span key={entry.depot_id} className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)' }}>
-                            {entry.depot_name}: {formatNumber(entry.qty)}
+                            {entry.depot_name}: {formatQty(entry.qty)}
                           </span>
                         ))}
                       </div>
@@ -182,6 +248,83 @@ export default function StockOverviewIndex() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+
+      <div className="card mt-5">
+        <h2 className="text-sm font-semibold text-base-color mb-1">{t('supervisorStockPage.compare.title')}</h2>
+        <p className="text-xs text-muted-color mb-4">{t('supervisorStockPage.compare.subtitle')}</p>
+
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button onClick={() => applyComparePreset('month')} className="text-xs font-medium px-3 py-1.5 rounded-full border border-theme text-secondary-color hover:text-base-color transition-colors">
+            {t('supervisorStockPage.compare.presetMonth')}
+          </button>
+          <button onClick={() => applyComparePreset('year')} className="text-xs font-medium px-3 py-1.5 rounded-full border border-theme text-secondary-color hover:text-base-color transition-colors">
+            {t('supervisorStockPage.compare.presetYear')}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <div className="text-xs font-semibold text-muted-color uppercase tracking-wider mb-2">{t('supervisorStockPage.compare.periodA')}</div>
+            <div className="grid grid-cols-2 gap-2">
+              <input type="date" value={compareA.from} onChange={(event) => setCompareA((current) => ({ ...current, from: event.target.value }))} max={compareA.to || undefined} />
+              <input type="date" value={compareA.to} onChange={(event) => setCompareA((current) => ({ ...current, to: event.target.value }))} min={compareA.from || undefined} />
+            </div>
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-muted-color uppercase tracking-wider mb-2">{t('supervisorStockPage.compare.periodB')}</div>
+            <div className="grid grid-cols-2 gap-2">
+              <input type="date" value={compareB.from} onChange={(event) => setCompareB((current) => ({ ...current, from: event.target.value }))} max={compareB.to || undefined} />
+              <input type="date" value={compareB.to} onChange={(event) => setCompareB((current) => ({ ...current, to: event.target.value }))} min={compareB.from || undefined} />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={runCompare}
+            disabled={comparing || !compareA.from || !compareA.to || !compareB.from || !compareB.to}
+            className="btn-primary"
+          >
+            {comparing ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.loading')}</> : t('supervisorStockPage.compare.run')}
+          </button>
+        </div>
+
+        {compareError && <p className="text-xs text-red-500 mb-3">{compareError}</p>}
+
+        {compareResult && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[['a', compareA], ['b', compareB]].map(([key, range]) => (
+              <div key={key} className="rounded-xl p-4 border border-theme" style={{ background: 'var(--surface-2)' }}>
+                <div className="text-xs font-semibold text-muted-color uppercase tracking-wider mb-2">
+                  {key === 'a' ? t('supervisorStockPage.compare.periodA') : t('supervisorStockPage.compare.periodB')} · {range.from} &rarr; {range.to}
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-secondary-color">{t('supervisorStockPage.compare.revenue')}</span>
+                    <span className="font-mono font-semibold text-base-color">{formatCurrency(compareResult[key].revenue)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-secondary-color">{t('supervisorStockPage.compare.profit')}</span>
+                    <span className="font-mono font-semibold text-base-color">{formatCurrency(compareResult[key].profit)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-secondary-color">{t('supervisorStockPage.compare.expenses')}</span>
+                    <span className="font-mono font-semibold text-base-color">{formatCurrency(compareResult[key].expenses)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-secondary-color">{t('supervisorStockPage.compare.creditOutstanding')}</span>
+                    <span className="font-mono font-semibold text-base-color">{formatCurrency(compareResult[key].credit_outstanding)}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1.5" style={{ borderTop: '1px solid var(--border)' }}>
+                    <span className="text-secondary-color font-semibold">{t('supervisorStockPage.compare.net')}</span>
+                    <span className="font-mono font-bold text-base-color">{formatCurrency(compareResult[key].net)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

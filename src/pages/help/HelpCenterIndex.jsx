@@ -17,7 +17,6 @@ const SECTION_ORDER = [
 const ROLE_TONES = {
   admin: '#0d9488',
   developer: '#8b5cf6',
-  comptable: '#2563eb',
   rep: '#f97316',
 }
 

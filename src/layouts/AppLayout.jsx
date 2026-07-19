@@ -255,7 +255,7 @@ function ScopedCompanySessionBanner({
   exitingCompanySession,
   t,
 }) {
-  const roles = ['admin', 'comptable', 'rep']
+  const roles = ['admin', 'rep']
 
   return (
     <div

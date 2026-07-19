@@ -341,12 +341,22 @@ function buildDocumentBranding({ definition, record, user, documentSettings }) {
   }
 }
 
-function filterDocumentFields(definition, fields, branding) {
-  if (!isInvoiceDocument(definition) || branding.showTaxBreakdown) {
-    return fields
+function filterDocumentFields(definition, fields, branding, record) {
+  let visibleFields = fields
+
+  if (isInvoiceDocument(definition) && !branding.showTaxBreakdown) {
+    visibleFields = visibleFields.filter((field) => !['tax_rate', 'tax_amount'].includes(field.key))
   }
 
-  return fields.filter((field) => !['tax_rate', 'tax_amount'].includes(field.key))
+  // Item-scope only: a list column staying at 0 for every row is still useful
+  // (comparing employees), but a single printed document repeating "0.000" rows
+  // for deductions that don't apply this period is just noise - see the HR
+  // redesign plan's "documents stay clean" rule.
+  if (definition.scope === 'item') {
+    visibleFields = visibleFields.filter((field) => !field.hideIfZero || asNumber(record?.[field.key]) !== 0)
+  }
+
+  return visibleFields
 }
 
 function renderSummary(summary) {
@@ -485,7 +495,7 @@ export function buildDocumentModel({
   const record = normalizedRecords[0] ?? null
   const layout = resolveDocumentLayout(definition, documentLayouts)
   const branding = buildDocumentBranding({ definition, record, user, documentSettings })
-  const visibleFields = filterDocumentFields(definition, layout.fields, branding)
+  const visibleFields = filterDocumentFields(definition, layout.fields, branding, record)
   const combinedSummary = [
     ...(definition.buildSummary?.({ records: normalizedRecords, record }) ?? []),
     ...summary,

@@ -75,7 +75,7 @@ function RequireFinance({ children }) {
   if (!user) return <Navigate to="/login" replace />
   if (isDeveloperWorkspace()) return <Navigate to="/developer" replace />
   if (isPosWorkspace()) return <Navigate to="/pos" replace />
-  if (!['admin', 'comptable'].includes(user.role)) return <Navigate to="/" replace />
+  if (user.role !== 'admin') return <Navigate to="/" replace />
   return children
 }
 

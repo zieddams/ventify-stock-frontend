@@ -10,7 +10,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useI18n } from '../../contexts/I18nContext'
 import { useDocumentLayouts } from '../../hooks/useDocumentLayouts'
 import api from '../../services/api'
-import { formatCurrency } from '../../utils/format'
+import { formatCurrency, formatQty } from '../../utils/format'
 
 const now = new Date()
 
@@ -53,8 +53,8 @@ export default function SalaryRunsIndex() {
     setEditingId(run.id)
     setEditForm({
       base_salary: run.base_salary, primes_total: run.primes_total,
-      avances_deducted: run.avances_deducted, retenues_total: run.retenues_total,
-      cnss_employee_amount: run.cnss_employee_amount,
+      avances_deducted: run.avances_deducted, manques_total: run.manques_total,
+      absence_days: run.absence_days, cnss_employee_amount: run.cnss_employee_amount,
     })
   }
 
@@ -64,7 +64,8 @@ export default function SalaryRunsIndex() {
       base_salary: Number(editForm.base_salary),
       primes_total: Number(editForm.primes_total),
       avances_deducted: Number(editForm.avances_deducted),
-      retenues_total: Number(editForm.retenues_total),
+      manques_total: Number(editForm.manques_total),
+      absence_days: Number(editForm.absence_days),
       cnss_employee_amount: Number(editForm.cnss_employee_amount),
     })
     setEditingId(null)
@@ -128,6 +129,7 @@ export default function SalaryRunsIndex() {
                   {[
                     t('salaryRunsPage.columns.employee'), t('salaryRunsPage.columns.baseSalary'),
                     t('salaryRunsPage.columns.primes'), t('salaryRunsPage.columns.avances'),
+                    t('salaryRunsPage.columns.manques'), t('salaryRunsPage.columns.absenceDays'),
                     t('salaryRunsPage.columns.cnss'), t('salaryRunsPage.columns.netPay'),
                     t('salaryRunsPage.columns.status'), t('salaryRunsPage.columns.actions'),
                   ].map((heading) => <th key={heading} className="pb-3 pr-4 text-left">{heading}</th>)}
@@ -159,6 +161,16 @@ export default function SalaryRunsIndex() {
                         {isEditing ? (
                           <input type="number" step="0.001" value={editForm.avances_deducted} onChange={(e) => setEditForm((c) => ({ ...c, avances_deducted: e.target.value }))} style={{ width: 90 }} />
                         ) : formatCurrency(run.avances_deducted)}
+                      </td>
+                      <td className="py-3 pr-4">
+                        {isEditing ? (
+                          <input type="number" step="0.001" value={editForm.manques_total} onChange={(e) => setEditForm((c) => ({ ...c, manques_total: e.target.value }))} style={{ width: 90 }} />
+                        ) : formatCurrency(run.manques_total)}
+                      </td>
+                      <td className="py-3 pr-4">
+                        {isEditing ? (
+                          <input type="number" step="0.01" value={editForm.absence_days} onChange={(e) => setEditForm((c) => ({ ...c, absence_days: e.target.value }))} style={{ width: 70 }} />
+                        ) : formatQty(run.absence_days)}
                       </td>
                       <td className="py-3 pr-4">
                         {isEditing ? (
@@ -208,7 +220,7 @@ export default function SalaryRunsIndex() {
                   )
                 })}
                 {runs.length === 0 && (
-                  <tr><td colSpan={8} className="py-12 text-center text-muted-color">{t('salaryRunsPage.empty')}</td></tr>
+                  <tr><td colSpan={10} className="py-12 text-center text-muted-color">{t('salaryRunsPage.empty')}</td></tr>
                 )}
               </tbody>
             </table>
@@ -227,7 +239,9 @@ export default function SalaryRunsIndex() {
               [t('salaryRunsPage.columns.baseSalary'), formatCurrency(detailRun.base_salary)],
               [t('salaryRunsPage.columns.primes'), formatCurrency(detailRun.primes_total)],
               [t('salaryRunsPage.columns.avances'), formatCurrency(detailRun.avances_deducted)],
-              [t('salaryRunsPage.detail.retenues'), formatCurrency(detailRun.retenues_total)],
+              [t('salaryRunsPage.columns.manques'), formatCurrency(detailRun.manques_total)],
+              [t('salaryRunsPage.columns.absenceDays'), formatQty(detailRun.absence_days)],
+              [t('salaryRunsPage.detail.absenceCost'), formatCurrency(detailRun.absence_cost)],
               [t('salaryRunsPage.columns.cnss'), formatCurrency(detailRun.cnss_employee_amount)],
               [t('salaryRunsPage.detail.cnssEmployer'), formatCurrency(detailRun.cnss_employer_amount)],
               [t('salaryRunsPage.detail.grossPay'), formatCurrency(detailRun.gross_pay)],

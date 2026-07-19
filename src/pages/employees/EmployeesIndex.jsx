@@ -14,7 +14,7 @@ export default function EmployeesIndex() {
   const { t } = useI18n()
   const navigate = useNavigate()
   const { user: me } = useAuth()
-  const canViewPayroll = ['admin', 'developer', 'comptable'].includes(me?.role)
+  const canViewPayroll = ['admin', 'developer'].includes(me?.role)
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
   const { layouts: documentLayouts, documentSettings } = useDocumentLayouts()

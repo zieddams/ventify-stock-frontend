@@ -1,15 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import CustomerLedgerModal from '../../components/CustomerLedgerModal'
 import DepotScopeControls from '../../components/DepotScopeControls'
-import FrenchDateRangeInput from '../../components/FrenchDateRangeInput'
 import PageHeader from '../../components/PageHeader'
 import { PageLoader } from '../../components/Spinner'
 import { useI18n } from '../../contexts/I18nContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useDepots } from '../../hooks/useDepots'
 import api from '../../services/api'
-import { formatCurrency, formatNumber } from '../../utils/format'
+import { formatCurrency, formatNumber, formatPercent, formatQty } from '../../utils/format'
 
 const SECTIONS_STORAGE_KEY = 'irtiwaa-supervisor-dashboard-sections'
 const CHANNEL_COLORS = { depot: '#0d9488', camion: '#3b82f6', pos: '#ec4899' }
@@ -163,11 +161,6 @@ export default function SupervisorDashboard() {
     }
   })
 
-  const [customerSearch, setCustomerSearch] = useState('')
-  const [customerResults, setCustomerResults] = useState([])
-  const [searchingCustomers, setSearchingCustomers] = useState(false)
-  const [ledgerCustomer, setLedgerCustomer] = useState(null)
-
   const range = useMemo(() => resolveRange(period, dateFrom, dateTo), [period, dateFrom, dateTo])
   const prevRange = useMemo(() => previousEquivalentRange(range.from, range.to), [range])
 
@@ -221,27 +214,6 @@ export default function SupervisorDashboard() {
       cancelled = true
     }
   }, [depotsReady, range.from, range.to, compareEnabled, prevRange.from, prevRange.to, scopeParams])
-
-  useEffect(() => {
-    const query = customerSearch.trim()
-
-    if (query.length < 2) {
-      setCustomerResults([])
-      return undefined
-    }
-
-    setSearchingCustomers(true)
-    const timeout = setTimeout(() => {
-      api.get('/customers', { params: { q: query, per_page: 8 } })
-        .then((response) => {
-          const rows = Array.isArray(response.data) ? response.data : (response.data?.data ?? [])
-          setCustomerResults(rows)
-        })
-        .finally(() => setSearchingCustomers(false))
-    }, 300)
-
-    return () => clearTimeout(timeout)
-  }, [customerSearch])
 
   const totals = insights?.totals ?? null
   const prevTotals = prevInsights?.totals ?? null
@@ -304,7 +276,10 @@ export default function SupervisorDashboard() {
           </div>
 
           {period === 'custom' && (
-            <FrenchDateRangeInput valueFrom={dateFrom} valueTo={dateTo} onChange={({ from, to }) => { setDateFrom(from); setDateTo(to) }} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} max={dateTo || undefined} />
+              <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} min={dateFrom || undefined} />
+            </div>
           )}
 
           <label className="inline-flex items-center gap-2 text-xs font-medium text-secondary-color cursor-pointer ml-auto">
@@ -437,7 +412,7 @@ export default function SupervisorDashboard() {
                           <div className="font-medium text-base-color">{row.product_name}</div>
                           <div className="text-xs text-muted-color">{row.product_reference}</div>
                         </td>
-                        <td className="py-2 pr-3 text-right font-mono text-muted-color">{formatNumber(row.qty_sold)}</td>
+                        <td className="py-2 pr-3 text-right font-mono text-muted-color">{formatQty(row.qty_sold)}</td>
                         <td className="py-2 text-right font-mono font-semibold text-base-color">{formatCurrency(row.revenue)}</td>
                       </tr>
                     ))}
@@ -467,7 +442,7 @@ export default function SupervisorDashboard() {
                       <tr key={row.rep_id ?? row.rep_name} className="table-row">
                         <td className="py-2 pr-3 font-medium text-base-color">{row.rep_name}</td>
                         <td className="py-2 pr-3 text-right font-mono font-semibold text-base-color">{formatCurrency(row.revenue)}</td>
-                        <td className="py-2 text-right font-mono text-muted-color">{formatNumber(row.margin_pct)}%</td>
+                        <td className="py-2 text-right font-mono text-muted-color">{formatPercent(row.margin_pct)}%</td>
                       </tr>
                     ))}
                   </tbody>
@@ -477,46 +452,6 @@ export default function SupervisorDashboard() {
           </SectionCard>
         )}
       </div>
-
-      <div className="card mt-5">
-        <h2 className="text-sm font-semibold text-base-color mb-3">{t('supervisorDashboard.customerHistoryTitle')}</h2>
-        <p className="text-xs text-muted-color mb-3">{t('supervisorDashboard.customerHistorySubtitle')}</p>
-        <div className="relative max-w-md">
-          <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-color text-sm" />
-          <input
-            value={customerSearch}
-            onChange={(event) => setCustomerSearch(event.target.value)}
-            placeholder={t('supervisorDashboard.customerSearchPlaceholder')}
-            style={{ paddingLeft: '2.25rem' }}
-          />
-        </div>
-
-        {searchingCustomers && <p className="text-xs text-muted-color mt-2">{t('common.loading')}</p>}
-
-        {customerResults.length > 0 && (
-          <div className="mt-3 space-y-1.5">
-            {customerResults.map((customer) => (
-              <button
-                key={customer.id}
-                onClick={() => setLedgerCustomer(customer)}
-                className="w-full flex items-center justify-between gap-3 text-left rounded-xl px-3 py-2.5 border border-theme hover:bg-surface-2 transition-colors"
-              >
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-base-color truncate">{customer.name}</div>
-                  <div className="text-xs text-muted-color truncate">{customer.phone || t('common.notAvailable')}</div>
-                </div>
-                <i className="fa-solid fa-chevron-right text-xs text-muted-color flex-shrink-0" />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <CustomerLedgerModal
-        open={Boolean(ledgerCustomer)}
-        customer={ledgerCustomer}
-        onClose={() => setLedgerCustomer(null)}
-      />
     </div>
   )
 }

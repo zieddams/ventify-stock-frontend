@@ -28,7 +28,7 @@ const EMPTY = {
 }
 
 function formatRoleLabel(role, t) {
-  if (['admin', 'developer', 'rep', 'comptable'].includes(role)) {
+  if (['admin', 'developer', 'rep'].includes(role)) {
     return t(`badges.roles.${role}`)
   }
 
@@ -191,7 +191,7 @@ export default function CustomersIndex() {
   }, [customers, search])
 
   const assignableUsers = useMemo(() => (
-    users.filter((entry) => entry.active && ['admin', 'developer', 'rep', 'comptable'].includes(entry.role))
+    users.filter((entry) => entry.active && ['admin', 'developer', 'rep'].includes(entry.role))
   ), [users])
 
   const { items: paginatedCustomers, meta: customersMeta } = useMemo(

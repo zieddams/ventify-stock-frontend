@@ -108,14 +108,12 @@ function CompanyLaunchCard({
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-2">
-        {['admin', 'comptable', 'rep'].map((role) => {
+        {['admin', 'rep'].map((role) => {
           const launchKey = `${company.id}:${role}`
           const busy = switchingCompanySession || launchingKey === launchKey
           const icon = role === 'admin'
             ? 'fa-solid fa-shield-halved'
-            : role === 'comptable'
-              ? 'fa-solid fa-calculator'
-              : 'fa-solid fa-truck-field'
+            : 'fa-solid fa-truck-field'
 
           return (
             <button

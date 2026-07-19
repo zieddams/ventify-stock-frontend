@@ -22,7 +22,7 @@ function formatTransactionLabel(transaction, t) {
 }
 
 function formatRoleLabel(role, t) {
-  if (['admin', 'developer', 'rep', 'comptable'].includes(role)) {
+  if (['admin', 'developer', 'rep'].includes(role)) {
     return t(`badges.roles.${role}`)
   }
 

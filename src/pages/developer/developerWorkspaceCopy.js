@@ -65,7 +65,7 @@ export const DEVELOPER_WORKSPACE_COPY = {
     },
     sections: {
       launcher: 'Company session launcher',
-      launcherHelp: 'Start a one-hour scoped company session as Admin, Accountant, or Sales.',
+      launcherHelp: 'Start a one-hour scoped company session as Admin or Sales.',
       recentActivity: 'Recent activity',
       recentActivityHelp: 'Latest captured navigation and action history from live web/mobile sessions.',
       quickActions: 'Quick actions',
@@ -80,7 +80,6 @@ export const DEVELOPER_WORKSPACE_COPY = {
     },
     roles: {
       admin: 'Admin',
-      comptable: 'Accountant',
       rep: 'Sales',
     },
   },

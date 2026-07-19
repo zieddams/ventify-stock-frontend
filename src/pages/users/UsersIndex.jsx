@@ -65,12 +65,12 @@ export default function UsersIndex() {
   const singleDepot = depots.length === 1 ? depots[0] : null
   const selectedFormDepot = depots.find((depot) => String(depot.id) === String(form.depot_id)) ?? singleDepot ?? null
   const canManageUsers = ['admin', 'developer'].includes(me?.role)
-  const canManageAssignments = ['admin', 'developer', 'comptable'].includes(me?.role)
+  const canManageAssignments = ['admin', 'developer'].includes(me?.role)
   const isDeveloperUser = me?.role === 'developer'
   const canChooseDepot = ['admin', 'developer'].includes(me?.role)
   const availableRoleOptions = isDeveloperUser
-    ? ['rep', 'comptable', 'admin', 'pos', 'supervisor', 'developer']
-    : ['rep', 'comptable', 'admin', 'pos', 'supervisor']
+    ? ['rep', 'admin', 'pos', 'supervisor', 'developer']
+    : ['rep', 'admin', 'pos', 'supervisor']
   const showDepotColumn = canChooseDepot
   const totalAssignedCustomers = users.reduce((sum, entry) => sum + Number(entry.customers_count ?? 0), 0)
 
@@ -161,7 +161,7 @@ export default function UsersIndex() {
 
   const zoneName = (id) => zones.find((zone) => Number(zone.id) === Number(id))?.name ?? t('common.notAvailable')
   const depotName = (id) => depots.find((depot) => Number(depot.id) === Number(id))?.name ?? t('common.notAvailable')
-  const canManageList = (entry) => ['rep', 'comptable'].includes(entry.role)
+  const canManageList = (entry) => entry.role === 'rep'
 
   const save = async () => {
     setSaving(true)

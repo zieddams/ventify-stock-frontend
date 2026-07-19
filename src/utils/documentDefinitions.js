@@ -3,6 +3,19 @@ const MONEY_FORMATTER = new Intl.NumberFormat('fr-TN', {
   maximumFractionDigits: 3,
 })
 
+// Quantities are always whole units - never share this with MONEY_FORMATTER,
+// which pads to 3 decimals.
+const QUANTITY_FORMATTER = new Intl.NumberFormat('fr-TN', {
+  maximumFractionDigits: 0,
+})
+
+// Percentages (withholding rate, margin) can be fractional (e.g. 1.5%) -
+// separate from QUANTITY_FORMATTER, which is 0-decimal for whole-unit qty.
+const PERCENT_FORMATTER = new Intl.NumberFormat('fr-TN', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+})
+
 const DATE_FORMATTER = new Intl.DateTimeFormat('fr-FR', {
   day: '2-digit',
   month: '2-digit',
@@ -50,6 +63,10 @@ function field(key, label, value, description = '', options = {}) {
     value,
     description,
     defaultEnabled: options.defaultEnabled !== false,
+    // Item-scope documents only: skip the row entirely when the record's raw value
+    // is 0, instead of printing "0.000" - see the HR redesign plan's "documents
+    // stay clean" rule (CNSS/manque/absence rows that don't apply to this period).
+    hideIfZero: options.hideIfZero === true,
   }
 }
 
@@ -72,7 +89,11 @@ export function formatMoney(value) {
 }
 
 export function formatQuantity(value) {
-  return MONEY_FORMATTER.format(asNumber(value))
+  return QUANTITY_FORMATTER.format(asNumber(value))
+}
+
+export function formatPercent(value) {
+  return PERCENT_FORMATTER.format(asNumber(value))
 }
 
 export function formatDate(value, fallback = '-') {
@@ -176,6 +197,7 @@ const LEDGER_TYPE_LABELS = {
   avance: 'Avance sur salaire',
   remboursement_avance: "Remboursement d'avance",
   retenue: 'Retenue',
+  manque: 'Manque de caisse',
   autre: 'Autre',
 }
 
@@ -434,7 +456,7 @@ export const DOCUMENT_DEFINITIONS = [
       field('category', 'Catégorie', (expense) => expenseCategoryLabel(expense), 'Catégorie dynamique.'),
       field('label', 'Libellé', (expense) => asText(expense?.label), 'Désignation.'),
       field('amount', 'Montant', (expense) => formatMoney(expense?.amount), 'Montant dépensé.'),
-      field('withholding_rate', 'Retenue source %', (expense) => `${formatQuantity(expense?.withholding_rate ?? 0)}%`, 'Taux retenu à la source.', { defaultEnabled: false }),
+      field('withholding_rate', 'Retenue source %', (expense) => `${formatPercent(expense?.withholding_rate ?? 0)}%`, 'Taux retenu à la source.', { defaultEnabled: false }),
       field('withholding_amount', 'Retenue source', (expense) => formatMoney(expense?.withholding_amount), 'Montant retenu à la source.', { defaultEnabled: false }),
       field('net_amount', 'Net à régler', (expense) => formatMoney(expense?.net_amount), 'Montant net après retenue.'),
     ],
@@ -458,7 +480,7 @@ export const DOCUMENT_DEFINITIONS = [
       field('category', 'Catégorie', (expense) => expenseCategoryLabel(expense), 'Catégorie.'),
       field('label', 'Libellé', (expense) => asText(expense?.label), 'Désignation.'),
       field('amount', 'Montant', (expense) => formatMoney(expense?.amount), 'Montant.'),
-      field('withholding_rate', 'Retenue source %', (expense) => `${formatQuantity(expense?.withholding_rate ?? 0)}%`, 'Taux retenu à la source.', { defaultEnabled: false }),
+      field('withholding_rate', 'Retenue source %', (expense) => `${formatPercent(expense?.withholding_rate ?? 0)}%`, 'Taux retenu à la source.', { defaultEnabled: false }),
       field('withholding_amount', 'Retenue source', (expense) => formatMoney(expense?.withholding_amount), 'Montant retenu à la source.', { defaultEnabled: false }),
       field('net_amount', 'Net à régler', (expense) => formatMoney(expense?.net_amount), 'Montant net après retenue.'),
       field('created_at', 'Créée le', (expense) => formatDateTime(expense?.created_at), 'Date de création.', { defaultEnabled: false }),
@@ -664,10 +686,12 @@ export const DOCUMENT_DEFINITIONS = [
       field('period', 'Période', (run) => salaryRunPeriodLabel(run), 'Mois et année de paie.'),
       field('base_salary', 'Salaire de base', (run) => formatMoney(run?.base_salary), 'Salaire de base.'),
       field('primes_total', 'Primes', (run) => formatMoney(run?.primes_total), 'Total des primes de la période.'),
-      field('avances_deducted', 'Avances déduites', (run) => formatMoney(run?.avances_deducted), 'Remboursements d’avance déduits.'),
-      field('retenues_total', 'Retenues', (run) => formatMoney(run?.retenues_total), 'Total des retenues.'),
-      field('cnss_employee_amount', 'CNSS salarié', (run) => formatMoney(run?.cnss_employee_amount), 'Cotisation CNSS part salarié (estimation).'),
-      field('cnss_employer_amount', 'CNSS employeur', (run) => formatMoney(run?.cnss_employer_amount), 'Cotisation CNSS part employeur (estimation).', { defaultEnabled: false }),
+      field('avances_deducted', 'Avances déduites', (run) => formatMoney(run?.avances_deducted), 'Remboursements d’avance déduits.', { hideIfZero: true }),
+      field('manques_total', 'Manques de caisse', (run) => formatMoney(run?.manques_total), 'Total des manques de caisse déduits.', { hideIfZero: true }),
+      field('absence_days', 'Jours d’absence', (run) => formatQuantity(run?.absence_days), 'Nombre de jours d’absence sur la période.', { hideIfZero: true }),
+      field('absence_cost', 'Coût des absences', (run) => formatMoney(run?.absence_cost), 'Montant déduit pour absences.', { hideIfZero: true }),
+      field('cnss_employee_amount', 'CNSS salarié', (run) => formatMoney(run?.cnss_employee_amount), 'Cotisation CNSS part salarié (estimation).', { hideIfZero: true }),
+      field('cnss_employer_amount', 'CNSS employeur', (run) => formatMoney(run?.cnss_employer_amount), 'Cotisation CNSS part employeur (estimation).', { defaultEnabled: false, hideIfZero: true }),
       field('gross_pay', 'Brut', (run) => formatMoney(run?.gross_pay), 'Salaire brut.'),
       field('net_pay', 'Net à payer', (run) => formatMoney(run?.net_pay), 'Montant net à payer.'),
       field('status', 'Statut', (run) => salaryRunStatusLabel(run?.status), 'État de la fiche de paie.'),
@@ -694,6 +718,7 @@ export const DOCUMENT_DEFINITIONS = [
       field('base_salary', 'Salaire de base', (run) => formatMoney(run?.base_salary), 'Salaire de base.'),
       field('primes_total', 'Primes', (run) => formatMoney(run?.primes_total), 'Primes.'),
       field('avances_deducted', 'Avances déduites', (run) => formatMoney(run?.avances_deducted), 'Avances déduites.'),
+      field('manques_total', 'Manques', (run) => formatMoney(run?.manques_total), 'Manques de caisse déduits.'),
       field('cnss_employee_amount', 'CNSS salarié', (run) => formatMoney(run?.cnss_employee_amount), 'CNSS salarié (estimation).'),
       field('net_pay', 'Net à payer', (run) => formatMoney(run?.net_pay), 'Net à payer.'),
       field('status', 'Statut', (run) => salaryRunStatusLabel(run?.status), 'État.'),
@@ -863,6 +888,45 @@ export const DOCUMENT_DEFINITIONS = [
     ],
   },
   {
+    key: 'employee_manques_list',
+    label: 'Employé - manques de caisse',
+    description: 'Historique des manques de caisse enregistrés pour un employé.',
+    scope: 'list',
+    section: 'hr',
+    title: 'Manques de caisse',
+    filename: 'employe_manques',
+    orientation: 'portrait',
+    fields: [
+      field('created_at', 'Date', (entry) => formatDateTime(entry?.created_at), 'Date de la saisie.'),
+      field('amount', 'Montant', (entry) => formatMoney(entry?.amount), 'Montant du manque.'),
+      field('related_period', 'Période', (entry) => asText(entry?.related_period), 'Mois de rattachement.'),
+      field('created_by_name', 'Saisi par', (entry) => asText(entry?.created_by_name), 'Utilisateur ayant saisi le manque.', { defaultEnabled: false }),
+      field('note', 'Note', (entry) => asText(entry?.note), 'Note.', { defaultEnabled: false }),
+    ],
+    buildSummary: ({ records }) => [
+      { label: 'Manques', value: asText(records.length, '0') },
+      { label: 'Total', value: formatMoney(records.reduce((sum, entry) => sum + asNumber(entry?.amount), 0)) },
+    ],
+  },
+  {
+    key: 'employee_absences_list',
+    label: 'Employé - absences',
+    description: 'Historique des absences enregistrées pour un employé.',
+    scope: 'list',
+    section: 'hr',
+    title: 'Absences',
+    filename: 'employe_absences',
+    orientation: 'portrait',
+    fields: [
+      field('date', 'Date', (entry) => formatDate(entry?.date), "Date de l'absence."),
+      field('note', 'Note', (entry) => asText(entry?.note), 'Note.', { defaultEnabled: false }),
+      field('created_by_name', 'Saisi par', (entry) => asText(entry?.created_by_name), 'Utilisateur ayant saisi l’absence.', { defaultEnabled: false }),
+    ],
+    buildSummary: ({ records }) => [
+      { label: 'Absences', value: asText(records.length, '0') },
+    ],
+  },
+  {
     key: 'supervisor_report_item',
     label: 'Rapport superviseur',
     description: 'Rapport consolidé : ventes, produits, commerciaux, créances et stock sur une période.',
@@ -903,7 +967,7 @@ export const DOCUMENT_DEFINITIONS = [
         kind: 'table',
         title: 'Performance des commerciaux',
         columns: ['Commercial', 'Chiffre d’affaires', 'Marge'],
-        rows: (record?.by_rep ?? []).map((row) => [asText(row.rep_name), formatMoney(row.revenue), `${formatQuantity(row.margin_pct)}%`]),
+        rows: (record?.by_rep ?? []).map((row) => [asText(row.rep_name), formatMoney(row.revenue), `${formatPercent(row.margin_pct)}%`]),
         emptyMessage: 'Aucune donnée commerciale sur la période.',
       },
       {
