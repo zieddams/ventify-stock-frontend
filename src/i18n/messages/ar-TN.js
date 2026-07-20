@@ -1937,7 +1937,8 @@ export default {
       documents: 'الوثائق',
       ledger: 'البريمات / السلفات',
       leave: 'العطل',
-      manques: 'النقص والغيابات',
+      manques: 'النقص',
+      absences: 'الغيابات',
       salary: 'الباي',
       notes: 'ملاحظات',
       performance: 'الأداء',
@@ -2029,10 +2030,18 @@ export default {
     absences: {
       title: 'الغيابات',
       date: 'التاريخ',
+      dateFrom: 'من',
+      dateTo: 'لـ',
+      modeSingle: 'نهار وحيد',
+      modeRange: 'مدة',
       add: 'سجّل',
       empty: 'ما فما حتى غيبة مسجّلة.',
       saveFailed: 'ما نجمش يتسجّل.',
+      rangeInverted: 'تاريخ النهاية لازم يكون بعد تاريخ البداية.',
       documentTitle: ({ name }) => `الغيابات - ${name}`,
+      rangeSummary: ({ created, skipped }) => skipped > 0
+        ? `تزادو ${created} نهار/أيام، ${skipped} كانو مسجلين من قبل.`
+        : `تزادو ${created} نهار/أيام.`,
     },
     notes: {
       internalHint: 'ملاحظات داخلية للإدارة بَرك - الموظف ما يشوفهمش.',

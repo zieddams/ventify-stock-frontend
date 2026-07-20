@@ -19,7 +19,17 @@ const EMPTY_PROFILE = {
   cnss_number: '', cnss_enrolled: false, expected_start_time: '',
 }
 
-const TABS = ['profile', 'documents', 'ledger', 'leave', 'manques', 'salary', 'notes', 'performance']
+const TAB_DEFS = [
+  { key: 'profile', icon: 'fa-solid fa-id-badge' },
+  { key: 'documents', icon: 'fa-solid fa-file-lines' },
+  { key: 'ledger', icon: 'fa-solid fa-money-bill-transfer' },
+  { key: 'leave', icon: 'fa-solid fa-umbrella-beach' },
+  { key: 'manques', icon: 'fa-solid fa-triangle-exclamation' },
+  { key: 'absences', icon: 'fa-solid fa-calendar-xmark' },
+  { key: 'salary', icon: 'fa-solid fa-money-check-dollar' },
+  { key: 'notes', icon: 'fa-solid fa-note-sticky' },
+  { key: 'performance', icon: 'fa-solid fa-chart-line' },
+]
 
 export default function EmployeeDetail() {
   const { t } = useI18n()
@@ -83,17 +93,17 @@ export default function EmployeeDetail() {
         )}
       />
 
-      <div className="flex flex-wrap gap-2 mb-4">
-        {TABS.map((key) => (
+      <div className="flex flex-wrap gap-1 mb-6 border-b border-theme">
+        {TAB_DEFS.map((item) => (
           <button
-            key={key}
-            onClick={() => setTab(key)}
-            className="px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
-            style={tab === key
-              ? { background: '#0d9488', color: '#fff' }
-              : { background: 'var(--surface-2)', color: 'var(--text-secondary)' }}
+            key={item.key}
+            onClick={() => setTab(item.key)}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+              tab === item.key ? 'border-teal-500 text-teal-600 dark:text-teal-400' : 'border-transparent text-muted-color hover:text-base-color'
+            }`}
           >
-            {t(`employeesPage.tabs.${key}`)}
+            <i className={`${item.icon} text-xs`} />
+            {t(`employeesPage.tabs.${item.key}`)}
           </button>
         ))}
       </div>
@@ -103,7 +113,8 @@ export default function EmployeeDetail() {
         {tab === 'documents' && <DocumentsTab employeeId={employeeId} canEdit={canEdit} t={t} />}
         {tab === 'ledger' && <LedgerTab employeeId={employeeId} employeeName={employee.name} canEdit={canEdit} t={t} />}
         {tab === 'leave' && <LeaveTab employeeId={employeeId} employeeName={employee.name} canEdit={canEdit} isSelf={String(me?.id) === String(employeeId)} t={t} />}
-        {tab === 'manques' && <ManquesAbsencesTab employeeId={employeeId} employeeName={employee.name} canEdit={canEdit} t={t} />}
+        {tab === 'manques' && <ManquesTab employeeId={employeeId} employeeName={employee.name} canEdit={canEdit} t={t} />}
+        {tab === 'absences' && <AbsencesTab employeeId={employeeId} employeeName={employee.name} canEdit={canEdit} t={t} />}
         {tab === 'salary' && <SalaryHistoryTab employeeId={employeeId} employeeName={employee.name} t={t} />}
         {tab === 'notes' && <NotesTab employeeId={employeeId} canEdit={canEdit} t={t} />}
         {tab === 'performance' && <PerformanceTab employeeId={employeeId} t={t} />}
@@ -594,27 +605,19 @@ function LeaveTab({ employeeId, employeeName, canEdit, isSelf, t }) {
   )
 }
 
-function ManquesAbsencesTab({ employeeId, employeeName, canEdit, t }) {
+function ManquesTab({ employeeId, employeeName, canEdit, t }) {
   const { layouts: documentLayouts, documentSettings } = useDocumentLayouts()
   const [manques, setManques] = useState([])
-  const [absences, setAbsences] = useState([])
   const [loading, setLoading] = useState(true)
   const [manqueForm, setManqueForm] = useState({ amount: '', related_period: '', note: '' })
-  const [absenceForm, setAbsenceForm] = useState({ date: '', note: '' })
   const [savingManque, setSavingManque] = useState(false)
-  const [savingAbsence, setSavingAbsence] = useState(false)
   const [manqueError, setManqueError] = useState('')
-  const [absenceError, setAbsenceError] = useState('')
 
   const load = () => {
     setLoading(true)
-    Promise.all([
-      api.get(`/employees/${employeeId}/transactions`),
-      api.get(`/employees/${employeeId}/absences`),
-    ]).then(([transactionsResponse, absencesResponse]) => {
-      const transactions = Array.isArray(transactionsResponse.data) ? transactionsResponse.data : []
+    api.get(`/employees/${employeeId}/transactions`).then((response) => {
+      const transactions = Array.isArray(response.data) ? response.data : []
       setManques(transactions.filter((entry) => entry.type === 'manque'))
-      setAbsences(Array.isArray(absencesResponse.data) ? absencesResponse.data : [])
     }).finally(() => setLoading(false))
   }
 
@@ -639,10 +642,98 @@ function ManquesAbsencesTab({ employeeId, employeeName, canEdit, t }) {
     }
   }
 
+  if (loading) return <PageLoader />
+
+  return (
+    <div>
+      {canEdit && (
+        <div className="rounded-2xl p-4 space-y-3 mb-3" style={{ background: 'var(--surface-2)' }}>
+          <div className="grid grid-cols-3 gap-3">
+            <FormField label={t('employeesPage.ledger.amount')}>
+              <input type="number" step="0.001" value={manqueForm.amount} onChange={(event) => setManqueForm((current) => ({ ...current, amount: event.target.value }))} />
+            </FormField>
+            <FormField label={t('employeesPage.ledger.period')}>
+              <MonthYearField value={manqueForm.related_period} onChange={(value) => setManqueForm((current) => ({ ...current, related_period: value }))} />
+            </FormField>
+            <FormField label={t('employeesPage.ledger.note')}>
+              <input value={manqueForm.note} onChange={(event) => setManqueForm((current) => ({ ...current, note: event.target.value }))} />
+            </FormField>
+          </div>
+          <div className="flex justify-end">
+            <button onClick={submitManque} disabled={savingManque || !manqueForm.amount || !manqueForm.related_period} className="btn-primary">
+              {savingManque ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : t('employeesPage.manques.add')}
+            </button>
+          </div>
+          {manqueError && <div className="text-xs text-red-500">{manqueError}</div>}
+        </div>
+      )}
+
+      {manques.length > 0 && (
+        <div className="flex justify-end mb-2">
+          <PageExportActions
+            title={t('employeesPage.manques.documentTitle', { name: employeeName })}
+            documentKey="employee_manques_list"
+            records={manques}
+            documentLayouts={documentLayouts}
+            documentSettings={documentSettings}
+          />
+        </div>
+      )}
+
+      <div className="divide-y divide-theme">
+        {manques.map((entry) => (
+          <div key={entry.id} className="flex items-center justify-between py-3">
+            <div>
+              <div className="text-sm font-semibold text-base-color">{formatCurrency(entry.amount)} · {entry.related_period ?? '-'}</div>
+              <div className="text-xs text-muted-color mt-1">{entry.note}</div>
+            </div>
+            <div className="text-xs text-muted-color">{formatDateTime(entry.created_at)}</div>
+          </div>
+        ))}
+        {manques.length === 0 && (
+          <div className="py-8 text-center text-muted-color">{t('employeesPage.manques.empty')}</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const ABSENCE_MODES = [
+  { value: 'single', labelKey: 'modeSingle' },
+  { value: 'range', labelKey: 'modeRange' },
+]
+
+function AbsencesTab({ employeeId, employeeName, canEdit, t }) {
+  const { layouts: documentLayouts, documentSettings } = useDocumentLayouts()
+  const [absences, setAbsences] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [mode, setMode] = useState('single')
+  const [absenceForm, setAbsenceForm] = useState({ date: '', note: '' })
+  const [rangeForm, setRangeForm] = useState({ date_from: '', date_to: '', note: '' })
+  const [savingAbsence, setSavingAbsence] = useState(false)
+  const [absenceError, setAbsenceError] = useState('')
+  const [rangeSummary, setRangeSummary] = useState('')
+
+  const load = () => {
+    setLoading(true)
+    api.get(`/employees/${employeeId}/absences`).then((response) => {
+      setAbsences(Array.isArray(response.data) ? response.data : [])
+    }).finally(() => setLoading(false))
+  }
+
+  useEffect(load, [employeeId])
+
+  const switchMode = (value) => {
+    setMode(value)
+    setAbsenceError('')
+    setRangeSummary('')
+  }
+
   const submitAbsence = async () => {
     if (!absenceForm.date) return
     setSavingAbsence(true)
     setAbsenceError('')
+    setRangeSummary('')
 
     try {
       await api.post(`/employees/${employeeId}/absences`, { date: absenceForm.date, note: absenceForm.note || null })
@@ -655,66 +746,60 @@ function ManquesAbsencesTab({ employeeId, employeeName, canEdit, t }) {
     }
   }
 
+  const submitRange = async () => {
+    if (!rangeForm.date_from || !rangeForm.date_to) return
+    setAbsenceError('')
+    setRangeSummary('')
+
+    // The <input type="date"> min/max attributes only grey out choices in the
+    // native picker - typing digits directly into the date segments can still
+    // produce an inverted range, so it must be re-checked here before posting.
+    if (rangeForm.date_from > rangeForm.date_to) {
+      setAbsenceError(t('employeesPage.absences.rangeInverted'))
+      return
+    }
+
+    setSavingAbsence(true)
+
+    try {
+      const response = await api.post(`/employees/${employeeId}/absences/range`, {
+        date_from: rangeForm.date_from, date_to: rangeForm.date_to, note: rangeForm.note || null,
+      })
+      setRangeSummary(t('employeesPage.absences.rangeSummary', {
+        created: response.data.created_count, skipped: response.data.skipped_count,
+      }))
+      setRangeForm({ date_from: '', date_to: '', note: '' })
+      load()
+    } catch (err) {
+      setAbsenceError(err.response?.data?.message ?? t('employeesPage.absences.saveFailed'))
+    } finally {
+      setSavingAbsence(false)
+    }
+  }
+
   if (loading) return <PageLoader />
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h3 className="text-sm font-semibold text-base-color mb-3">{t('employeesPage.manques.title')}</h3>
-        {canEdit && (
-          <div className="rounded-2xl p-4 space-y-3 mb-3" style={{ background: 'var(--surface-2)' }}>
-            <div className="grid grid-cols-3 gap-3">
-              <FormField label={t('employeesPage.ledger.amount')}>
-                <input type="number" step="0.001" value={manqueForm.amount} onChange={(event) => setManqueForm((current) => ({ ...current, amount: event.target.value }))} />
-              </FormField>
-              <FormField label={t('employeesPage.ledger.period')}>
-                <MonthYearField value={manqueForm.related_period} onChange={(value) => setManqueForm((current) => ({ ...current, related_period: value }))} />
-              </FormField>
-              <FormField label={t('employeesPage.ledger.note')}>
-                <input value={manqueForm.note} onChange={(event) => setManqueForm((current) => ({ ...current, note: event.target.value }))} />
-              </FormField>
-            </div>
-            <div className="flex justify-end">
-              <button onClick={submitManque} disabled={savingManque || !manqueForm.amount || !manqueForm.related_period} className="btn-primary">
-                {savingManque ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : t('employeesPage.manques.add')}
+    <div>
+      {canEdit && (
+        <div className="rounded-2xl p-4 space-y-3 mb-3" style={{ background: 'var(--surface-2)' }}>
+          <div className="inline-flex rounded-full p-1" style={{ background: 'var(--surface)' }}>
+            {ABSENCE_MODES.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => switchMode(option.value)}
+                disabled={savingAbsence}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  mode === option.value ? 'bg-teal-500 text-white' : 'text-muted-color hover:text-base-color'
+                }`}
+              >
+                {t(`employeesPage.absences.${option.labelKey}`)}
               </button>
-            </div>
-            {manqueError && <div className="text-xs text-red-500">{manqueError}</div>}
+            ))}
           </div>
-        )}
 
-        {manques.length > 0 && (
-          <div className="flex justify-end mb-2">
-            <PageExportActions
-              title={t('employeesPage.manques.documentTitle', { name: employeeName })}
-              documentKey="employee_manques_list"
-              records={manques}
-              documentLayouts={documentLayouts}
-              documentSettings={documentSettings}
-            />
-          </div>
-        )}
-
-        <div className="divide-y divide-theme">
-          {manques.map((entry) => (
-            <div key={entry.id} className="flex items-center justify-between py-3">
-              <div>
-                <div className="text-sm font-semibold text-base-color">{formatCurrency(entry.amount)} · {entry.related_period ?? '-'}</div>
-                <div className="text-xs text-muted-color mt-1">{entry.note}</div>
-              </div>
-              <div className="text-xs text-muted-color">{formatDateTime(entry.created_at)}</div>
-            </div>
-          ))}
-          {manques.length === 0 && (
-            <div className="py-8 text-center text-muted-color">{t('employeesPage.manques.empty')}</div>
-          )}
-        </div>
-      </div>
-
-      <div>
-        <h3 className="text-sm font-semibold text-base-color mb-3">{t('employeesPage.absences.title')}</h3>
-        {canEdit && (
-          <div className="rounded-2xl p-4 space-y-3 mb-3" style={{ background: 'var(--surface-2)' }}>
+          {mode === 'single' ? (
             <div className="grid grid-cols-2 gap-3">
               <FormField label={t('employeesPage.absences.date')}>
                 <input type="date" value={absenceForm.date} onChange={(event) => setAbsenceForm((current) => ({ ...current, date: event.target.value }))} />
@@ -723,41 +808,61 @@ function ManquesAbsencesTab({ employeeId, employeeName, canEdit, t }) {
                 <input value={absenceForm.note} onChange={(event) => setAbsenceForm((current) => ({ ...current, note: event.target.value }))} />
               </FormField>
             </div>
-            <div className="flex justify-end">
+          ) : (
+            <div className="grid grid-cols-3 gap-3">
+              <FormField label={t('employeesPage.absences.dateFrom')}>
+                <input type="date" value={rangeForm.date_from} max={rangeForm.date_to || undefined} onChange={(event) => setRangeForm((current) => ({ ...current, date_from: event.target.value }))} />
+              </FormField>
+              <FormField label={t('employeesPage.absences.dateTo')}>
+                <input type="date" value={rangeForm.date_to} min={rangeForm.date_from || undefined} onChange={(event) => setRangeForm((current) => ({ ...current, date_to: event.target.value }))} />
+              </FormField>
+              <FormField label={t('employeesPage.ledger.note')}>
+                <input value={rangeForm.note} onChange={(event) => setRangeForm((current) => ({ ...current, note: event.target.value }))} />
+              </FormField>
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            {mode === 'single' ? (
               <button onClick={submitAbsence} disabled={savingAbsence || !absenceForm.date} className="btn-primary">
                 {savingAbsence ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : t('employeesPage.absences.add')}
               </button>
-            </div>
-            {absenceError && <div className="text-xs text-red-500">{absenceError}</div>}
+            ) : (
+              <button onClick={submitRange} disabled={savingAbsence || !rangeForm.date_from || !rangeForm.date_to} className="btn-primary">
+                {savingAbsence ? <><i className="fa-solid fa-spinner fa-spin" /> {t('common.saving')}</> : t('employeesPage.absences.add')}
+              </button>
+            )}
           </div>
-        )}
-
-        {absences.length > 0 && (
-          <div className="flex justify-end mb-2">
-            <PageExportActions
-              title={t('employeesPage.absences.documentTitle', { name: employeeName })}
-              documentKey="employee_absences_list"
-              records={absences}
-              documentLayouts={documentLayouts}
-              documentSettings={documentSettings}
-            />
-          </div>
-        )}
-
-        <div className="divide-y divide-theme">
-          {absences.map((entry) => (
-            <div key={entry.id} className="flex items-center justify-between py-3">
-              <div>
-                <div className="text-sm font-semibold text-base-color">{formatDate(entry.date)}</div>
-                <div className="text-xs text-muted-color mt-1">{entry.note}</div>
-              </div>
-              <div className="text-xs text-muted-color">{entry.created_by_name}</div>
-            </div>
-          ))}
-          {absences.length === 0 && (
-            <div className="py-8 text-center text-muted-color">{t('employeesPage.absences.empty')}</div>
-          )}
+          {absenceError && <div className="text-xs text-red-500">{absenceError}</div>}
+          {rangeSummary && <div className="text-xs text-emerald-600">{rangeSummary}</div>}
         </div>
+      )}
+
+      {absences.length > 0 && (
+        <div className="flex justify-end mb-2">
+          <PageExportActions
+            title={t('employeesPage.absences.documentTitle', { name: employeeName })}
+            documentKey="employee_absences_list"
+            records={absences}
+            documentLayouts={documentLayouts}
+            documentSettings={documentSettings}
+          />
+        </div>
+      )}
+
+      <div className="divide-y divide-theme">
+        {absences.map((entry) => (
+          <div key={entry.id} className="flex items-center justify-between py-3">
+            <div>
+              <div className="text-sm font-semibold text-base-color">{formatDate(entry.date)}</div>
+              <div className="text-xs text-muted-color mt-1">{entry.note}</div>
+            </div>
+            <div className="text-xs text-muted-color">{entry.created_by_name}</div>
+          </div>
+        ))}
+        {absences.length === 0 && (
+          <div className="py-8 text-center text-muted-color">{t('employeesPage.absences.empty')}</div>
+        )}
       </div>
     </div>
   )

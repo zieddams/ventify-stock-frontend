@@ -1937,7 +1937,8 @@ export default {
       documents: 'Documents',
       ledger: 'Primes / avances',
       leave: 'Congés',
-      manques: 'Manques & absences',
+      manques: 'Manques',
+      absences: 'Absences',
       salary: 'Paie',
       notes: 'Notes',
       performance: 'Performance',
@@ -2029,10 +2030,18 @@ export default {
     absences: {
       title: 'Absences',
       date: 'Date',
+      dateFrom: 'Du',
+      dateTo: 'Au',
+      modeSingle: 'Un jour',
+      modeRange: 'Période',
       add: 'Enregistrer',
       empty: 'Aucune absence enregistrée.',
       saveFailed: "Échec de l'enregistrement.",
+      rangeInverted: 'La date de fin doit être après la date de début.',
       documentTitle: ({ name }) => `Absences - ${name}`,
+      rangeSummary: ({ created, skipped }) => skipped > 0
+        ? `${created} jour(s) ajouté(s), ${skipped} déjà enregistré(s).`
+        : `${created} jour(s) ajouté(s).`,
     },
     notes: {
       internalHint: "Notes internes réservées à l'administration - non visibles par l'employé.",
