@@ -424,11 +424,29 @@ export default function CamionsIndex() {
     setSavingTransfer(true)
     setTransferErrors({})
 
+    // A rep with an open route session already has that session's own load
+    // ledger (route_session_lines) - posting through /camion/refill moves
+    // stock but silently skips that ledger, so the session's own loaded-vs-
+    // sold-vs-returned reconciliation understates what was actually loaded.
+    // Route through the session's own recharge endpoint whenever one is open.
+    const targetRep = reps.find((entry) => String(entry.user?.id) === String(transferForm.user_id))
+    const openSessionId = targetRep?.route_session?.status === 'open' ? targetRep.route_session.id : null
+
     try {
-      await api.post('/camion/refill', {
-        ...transferForm,
-        depot_id: selectedDepotId,
-      })
+      if (openSessionId) {
+        await api.post(`/route-sessions/${openSessionId}/load`, {
+          lines: [{
+            product_id: Number(transferForm.product_id),
+            qty_loaded: Number(transferForm.qty),
+          }],
+        })
+      } else {
+        await api.post('/camion/refill', {
+          ...transferForm,
+          depot_id: selectedDepotId,
+        })
+      }
+
       setTransferModal(false)
       setTransferForm(emptyTransferForm())
       await load({ keepLoading: true })

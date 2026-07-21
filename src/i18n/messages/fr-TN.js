@@ -2771,7 +2771,7 @@ export default {
       qty: 'Quantité',
       note: 'Note',
       notePlaceholder: 'Recharge matinale, correction, urgence...',
-      hint: 'Le mouvement sera tracé dans l’audit stock avec la session terrain et le camion physique s’ils sont déjà affectés.',
+      hint: 'Si la session du commercial est ouverte, cette quantité s’ajoute directement à sa charge en cours (recharge). Sinon, elle est transférée sur le camion en attendant l’ouverture de session.',
       submitting: 'Transfert...',
       submit: 'Transférer',
     },
